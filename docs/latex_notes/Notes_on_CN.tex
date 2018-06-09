@@ -1,0 +1,399 @@
+\title{Notes on the Crank-Nicholson Method and the Bing Method}
+\date{}
+
+\documentclass[12pt]{article}
+
+\usepackage{amsmath,empheq}
+\usepackage{palatino}
+\usepackage{txfonts}
+\usepackage{bm}
+\usepackage{graphicx}
+\usepackage{color}
+\usepackage{cases}
+\usepackage[]{mcode}
+
+\newcommand{\be}{\begin{equation}}
+\newcommand{\ee}{\end{equation}}
+
+\usepackage{natbib} %bibliography
+\usepackage[font=footnotesize]{caption}
+
+\usepackage[colorlinks=true, linkcolor=black, citecolor=black, urlcolor=blue]{hyperref}
+\frenchspacing
+
+\begin{document}
+\maketitle
+
+%\begin{abstract}
+%This is the paper's abstract \ldots
+%\end{abstract}
+
+\section{Dynamical Equations}
+
+We study an OU process described by the following Langevin equation:
+
+\begin{numcases}{da=}
+  \left(\lambda a +  I(t) \right)dt + \sigma(t) dW & : $|a| < B$\\
+  0 & : $|a| \geq B$
+\end{numcases}
+
+where $a$ is the value of a decision variable, $B$ represents an absorbing boundary, $dW$ is a Weiner process, $I(t)$ is a (possibly) stochastic input. $\sigma$ is a function of time, since eventually variance due to the amplitude of the clicks will enter here. The dynamics of $P$, the distribution over $a$, can alternatively be expressed in a Fokker-Planck form:
+
+\be
+\frac{\partial P(a,t)}{\partial t} = \frac{\sigma(t)^2}{2} \frac{\partial^2 P}{\partial a^2} + \frac{\partial{[(\lambda a - I(t))P]}}{\partial a}
+\ee
+
+\section{Finite-differencing methods}
+
+We will solve the FP equation using finite-difference approximation. For a arbitrary function $f(x)$, we can write a Taylor series expansion about the point $x + \Delta x$:
+
+\be
+	f(x + \Delta x) = f(x) + \Delta x f^{\prime}(x) + \mathcal{O}({\Delta x}^2)
+\ee
+
+Discarding all second order and greater terms, we are left with the following approximation to the first derivative:
+
+\be
+	f^{\prime}(x) \approx \frac{f(x+\Delta x) - f(x)}{\Delta x} \\
+\ee
+
+The numerical truncation error of this expressions is linear in $\Delta x$.
+
+If we are solving an ODE of the following form:
+
+\be
+	f^\prime(x) = F(f(x))
+\ee
+
+the Forward-Euler expression (an \emph{explicit} method, since if relies on values of $f^\prime(x)$ that have already been computed) can be written for our ODE, using this expression:
+
+\be
+	f_{i+1} = f_{i} + \Delta x F(f_i)
+\ee
+
+The Backward-Euler expression (an \emph{implicit} method), can be derived in the same way. Starting with a Taylor series expansion of $f(x)$:
+
+\be
+	f(x - \Delta x) = f(x) - \Delta x f^{\prime}(x) + \mathcal{O}({\Delta x}^2)
+\ee
+
+Discarding all second order and greater terms, we are left with the following approximation to the first derivative:
+
+\begin{align}
+	f^{\prime}(x) \approx \frac{f(x) - f(x-\Delta x)}{\Delta x} \\
+\end{align}
+
+The numerical truncation error of this expressions is linear in $\Delta x$. We can write out an expression, given our ODE from above:
+
+\begin{align}
+	f_{i+1} = f_{i} + \Delta x F(f_{i+1})
+\end{align}
+
+Backward Euler is considered \emph{implicit} since it relies on a value of $f(\cdot)$ which has not yet been computed.
+
+We will use the same finite-difference notation to numerically integrate the Fokker-Planck equation. We will also rely on the \emph{central difference} equation, which can be computed by taking the average of the backward and forward Taylor series expansion
+
+\be
+	f^{\prime}(x) \approx \frac{f(x +\Delta x) - f(x - \Delta x)}{2 \Delta x}
+\ee
+
+The numerical truncation error of this expression is quadratic in $\Delta x$, since all even order terms in the average will cancel. 
+
+The Crank-Nicholson method is simply the average of the explicit and implicit methods:
+
+\begin{align}
+	\frac{f_{i+1} - f_{i}}{\Delta x}= \frac{1}{2} (F(f_{i+1}) + F(f_{i}))
+\end{align}
+
+and will likewise exhibit a truncation error quadratic in $\Delta x$.
+
+%\begin{align}
+%	y^{\prime}(t) \approx \frac{y(t + 1/2h) - y(t-1/2h)}{1/2h} \\
+%	y_{n+1} = y_{n} + hf(t_{n+1},y_{n+1})
+%\end{align}
+
+\section{Stability for purely diffusive PDEs}
+
+(Apparently) a standard procedure for computing the numerical stability of PDEs is the \emph{von Neumann stability analysis}. Here, I compute the stability of the purely diffusive PDE:
+
+\be
+\frac{\partial P(a,t)}{\partial t} = \frac{\sigma(t)^2}{2} \frac{\partial^2 P}{\partial a^2}
+\ee
+
+Using the centered approximation to the second partial derivative w.r.t. a:
+
+\be
+	\frac{\partial^2 P}{\partial a^2} \approx \frac{p_{n+1} - 2p_n + p_{n-1}}{{(\Delta a)}^2} 
+\ee
+
+the CN expression for this PDE is:
+
+\be \label{eq:CNdiff}
+\frac{p^{t+1}_n - p^{t}_n}{\Delta t} = \frac{\sigma(t)^2}{2} \left[ \frac{\left(p^{t+1}_{n+1} - 2p^{t+1}_n + p^{t+1}_{n-1}\right) + \left(p^{t}_{n+1} - 2p^{t}_n + p^{t}_{n-1}\right)}{2{\left(\Delta a\right)}^2} \right]	
+\ee
+
+von Neumann stability analysis considers the eigenmodes of the difference equation:
+
+\be
+	p^t_n = \xi^t e^{ikn\Delta a}
+\ee
+
+where $k$ is a spatial wavenumber. Plugging these into \ref{eq:CNdiff}
+
+\begin{align} 
+\frac{\xi^{t+1} e^{ikn\Delta a} - \xi^t e^{ikn\Delta a}}{\Delta t} &= \frac{\sigma(t)^2}{2} \left[ \frac{\left(\xi^{t+1} e^{ik(n+1)\Delta a} - 2\xi^{t+1} e^{ikn\Delta a} + \xi^{t+1} e^{ik(n-1)\Delta a}\right)}{2{\left(\Delta a\right)}^2} \right] \nonumber \\ 
+	&\qquad {} + \frac{\sigma(t)^2}{2}  \left[ \frac{\left(\xi^t e^{ik(n+1)\Delta a} - 2\xi^t e^{ikn\Delta a} + \xi^t e^{ik(n-1)\Delta a}\right)}{2{\left(\Delta a\right)}^2} \right]
+\end{align}
+
+We can use the fact that 
+
+\be
+	e^{ik(n+1)\Delta a} + e^{ik(n-1)\Delta a} = e^{ikn\Delta a}2cos(k\Delta a)
+\ee
+
+\begin{align} 
+\frac{\xi^{t+1} - \xi^t}{\Delta t} &= \frac{\sigma(t)^2}{2} \left[ \frac{2\xi^{t+1} \left( cos(k\Delta a) - 1\right)}{2{\left(\Delta a\right)}^2} \right] \nonumber \\ 
+	&\qquad {} + \frac{\sigma(t)^2}{2} \left[ \frac{2\xi^{t} \left( cos(k\Delta a) - 1\right)}{2{\left(\Delta a\right)}^2} \right]
+\end{align}
+
+Moving a bunch of stuff around, canceling stuff, and relying on another trig identity, we can compute the ratio $\frac{\xi^{t+1}}{\xi^{t}}$, called the ``growth factor'', which tells us about the stability of the solution:
+
+\be
+G = \frac{\xi^{t+1}}{\xi^{t}} = \frac{1 - \frac{\Delta t \sigma(t)^2}{{(\Delta a)}^2}\sin^2(k\Delta a/2)}{1 + \frac{\Delta t \sigma(t)^2}{{(\Delta a)}^2}\sin^2(k\Delta a/2)}
+\ee
+
+$|G| \leq 1$ for CN, making it \emph{unconditionally stable}. However, when $\frac{\Delta t \sigma(t)^2}{{(\Delta a)}^2} \geq 1$, $G \leq 0$ so temporal oscillations are present in the solution. When $\frac{\Delta t \sigma(t)^2}{{(\Delta a)}^2} $ is very large, these solutions are only weakly dampened, since $G$ is close to -1.
+
+A fully-implicit solution has a growth factor of the form
+
+\be
+G = \frac{\xi^{t+1}}{\xi^{t}} = \frac{1}{1 + \frac{\Delta t \sigma(t)^2}{{(\Delta a)}^2}\sin^2(k\Delta a/2)}
+\ee
+
+which is always between 0 and 1. Therefore the method should never generate spurious oscillations, but is only first-order accurate in time. 
+
+\section{Adding the drift term}
+
+Using the chain rule on the last term of the FP equation we arrive at
+
+\be
+\frac{\partial P(a,t)}{\partial t} = \frac{\sigma(t)^2}{2} \frac{\partial^2 P}{\partial a^2} + (\lambda a -I(t)) \frac{\partial P}{\partial a} + \lambda P
+\ee
+
+Expressed in CN:
+
+\begin{align} \label{eq:CN}
+	\frac{p^{t+1}_n - p^{t}_n}{\Delta t} &= \frac{\sigma(t)^2}{2} \left[ \frac{\left(p^{t+1}_{n+1} - 2p^{t+1}_n + p^{t+1}_{n-1}\right) + \left(p^{t}_{n+1} - 2p^{t}_n + p^{t}_{n-1}\right)}{2{\left(\Delta a\right)}^2} \right]  \nonumber \\
+	&\qquad {} + \left(\lambda a_n - I(t) \right) \left[ \frac{\left(p^{t+1}_{n+1} - p^{t+1}_{n-1}\right) + \left(p^{t}_{n+1} - p^{t}_{n-1}\right)}{4 \Delta a}\right]  \nonumber \\
+	&\qquad {} + \lambda\frac{p^{t+1}_n - p^{t}_n}{2}	
+\end{align}
+
+This expression is accurate in $a$ and $t$ to second order. We can compute the growth factor for this expression:
+
+\be
+G = \frac{1 - \frac{\Delta t \sigma(t)^2}{{(\Delta a)}^2}\sin^2(k\Delta a/2) + \frac{\lambda \Delta t}{2} + \frac{i \Delta t}{2 \Delta a}\left(\lambda a_n - I(t) \right) \sin \left(k \Delta a \right)}{1 + \frac{\Delta t \sigma(t)^2}{{(\Delta a)}^2}\sin^2(k\Delta a/2) - \frac{\lambda \Delta t}{2} - \frac{i \Delta t}{2 \Delta a}\left(\lambda a_n - I(t) \right) \sin\left(k\Delta a\right)}
+\ee
+
+which is a bit more complicated. Without the diffusive term:
+
+\be
+\frac{\partial P(a,t)}{\partial t} = (\lambda a -I(t)) \frac{\partial P}{\partial a} + \lambda P
+\ee
+
+\be
+G = \frac{1 + \frac{\lambda \Delta t}{2} + \frac{i \Delta t}{2 \Delta a}\left(\lambda a_n - I(t) \right) \sin \left(k \Delta a \right)}{1 - \frac{\lambda \Delta t}{2} - \frac{i \Delta t}{2 \Delta a}\left(\lambda a_n - I(t) \right) \sin\left(k\Delta a\right)}
+\ee
+
+I yet need to establish the stability of this method for a purely advective equation, and see if oscillations will arise. In general, I have NOT seen others use CN for a first-order PDE, whereas other 2nd order methods, such as \emph{staggered leapfrog}, appear to be used, with stability conditions well established.
+
+\section{CN in matrix form}
+
+We can write \ref{eq:CN} in matrix form:
+
+\begin{align}
+	\frac{1}{\Delta t} \left(p^{t+1} - p^{t}\right) &= \frac{\sigma(t)^2}{4{{\left(\Delta a\right)}^2}} D^{\prime \prime} \left[ p^{t+1} + p^{t} \right]  \nonumber \\
+	&\qquad {} + \frac{1}{4 \Delta a} D^{\prime}  \left(\lambda a - I(t) \right) \left[ p^{t+1} + p^{t} \right]	
+\end{align}
+
+where $D^{\prime \prime}$ and $D^{\prime}$ are the second and first derivative operators. They take the form of tri-diagonal matrices with values $\begin{bmatrix}-1 & 0 & 1 \end{bmatrix}$
+ and $\begin{bmatrix}1 & -2 & 1 \end{bmatrix}$
+ along the main diagonal. We can gather terms of $t+1$ and $t$ on each side:
+ 
+ \be
+ A(t) p^{t+1}  = B(t) p^{t} 
+ \ee
+ 
+\begin{align}
+\begin{split}
+ A(t) =  I -  \frac{\Delta t \sigma(t)^2}{4{{\left(\Delta a\right)}^2}} D^{\prime \prime} - \frac{\Delta t}{4 \Delta a} D^{\prime}  \left(\lambda a - I(t) \right) 
+\\
+ B(t)  = I +  \frac{\Delta t \sigma(t)^2}{4{{\left(\Delta a\right)}^2}} D^{\prime \prime} + \frac{\Delta t}{4 \Delta a} D^{\prime}  \left(\lambda a - I(t) \right).
+\end{split}
+\end{align}
+
+\section{Boundary conditions}
+
+Because of the absorbing boundary, we have the following boundary condition on $P$:
+
+\begin{align}
+\begin{split}
+P(B,t) = 0
+\\
+P(-B,t) = 0
+\end{split}
+\end{align}
+
+Since we want to keep probability mass that has leaked outside the boundary, we need to make sure it doesn't leak back:
+
+\begin{align}
+\begin{split}
+P(B+\Delta a,t+1) \geq P(B+\Delta a, t)
+\\
+P(-B-\Delta a,t+1) \geq P(-B-\Delta a, t)
+\end{split}
+\end{align}
+
+To ensure that probability mass does not leak out of the first and last bin, using CN we set all rows of $D^{\prime}$ and $D^{\prime \prime}$ in the first and last column to zero. By doing so $A(t)$ and $B(t)$ only contain a 1 in the 1,1, entry and the N,N entry. 
+
+The Bing Method enforces probability mass from drifting in the same way, albeit using a different transition matrix from time $t$ to time $t+1$. 
+
+To ensure that probability at the boundary is equal to zero, we can subtract $\frac{\sigma(t)^2}{4{{\left(\Delta a\right)}^2}} \frac{\partial P}{\partial a}$ from the bin just below $B$ and just above $-B$. I still have yet to uncover why this works.
+
+\section{Meeting with Carlos 8/18}
+
+\begin{enumerate}
+\item How to derive equation 3?
+\item How to establish Jonathan's boundary condition?
+\item Does using eigenmodes makes any sense with the advective term?
+\item Toeplitz form, very handy!
+\item Just do analytic form of FP until near boundary. Haves pulses come in instantaneously. Then convolve for variance added. Then check for boundary violations.
+\item When are eigenmodes the fourier components?
+\item Boundary conditions shouldn't be a problem for CN.
+\item Understand JPBC, compare the MC to real and see difference. Run fmincon on some data to see how much it matters. Moved towards analytic form.
+\item Do everything in Fourier domain? Fourier transform of diffusion equation? FT of derivative?
+
+\end{enumerate}
+ 
+
+%\lstinputlisting{/Users/briandepasquale/Dropbox/Princeton/Crank-Nicholson/compare_Bing_CrankNic_BD.m}
+
+%\begin{lstlisting}
+%
+%function [PV, P0] = Crank_Nic(T,v,p,I)
+%%%
+%PV = zeros(v.n,numel(T.VEC));  % Matrix of P(V) at times held in tt
+%
+%cDiff = (p.sig^2)/(v.dv^2*4);  % scale factor for diffusion
+%cDrft = 1/(p.tau*v.dv*4);   % scale factor for drift
+%csDiff = (p.pulse^2/T.DT)/(v.dv^2*4);  % scale factor for diffusion
+%
+%evec = ones(v.n,1);  % vector of ones
+%
+%% %%%%%Original
+%% 
+%% % Build diffusion matrix (to be multiplied by dt);
+%% Mdff = spdiags(evec*[cDiff -2*cDiff cDiff], [-1 0 1], nv,nv);
+%% Mdff(1,1) = -cDiff; % Conservation at lower (reflecting) boundary.
+%% Mdff(nv-1,nv) = 0;
+%% Mdff(nv,nv) = 0;
+%% % delta func subtracting (cDiff*dP/dV) from bin just below thresh
+%% Mdff(nv-1:nv,nv-2:nv-1)=Mdff(nv-1:nv,nv-2:nv-1)+([-cDiff cDiff; cDiff -cDiff]);
+%% 
+%% % Build derivative Matrix
+%% Mderiv = spdiags(evec*[-cDrft 0 cDrft], [-1 0 1], nv, nv);  % Derivative matrix
+%% Mderiv(1,1) = -Mderiv(2,1);  % Conservation at reflecting boundary
+%% Mderiv(nv-1,nv) = 0;
+%%
+%%%%%%%%
+%
+%% Build diffusion matrix (to be multiplied by T.dt);
+%Ddprime = spdiags(evec*[cDiff -2*cDiff cDiff], [-1 0 1], v.n,v.n);
+%Ddprime(1:2,1) = 0;
+%Ddprime(v.n-1:v.n,v.n) = 0;
+%
+%%Ddprime(1,1) = cDiff;
+%%Ddprime(v.n,v.n) = cDiff;
+%
+%% delta func subtracting (cDiff*dP/dV) from bin just below thresh
+%Ddprime(v.n-1:v.n,v.n-2:v.n-1) = Ddprime(v.n-1:v.n,v.n-2:v.n-1) + ...
+%	([-cDiff cDiff; cDiff -cDiff]);
+%Ddprime(1:2,2:3) = Ddprime(1:2,2:3)+([-cDiff cDiff; cDiff -cDiff]);
+%
+%% Build stimulus diffusion matrix (to be multiplied by T.dt);
+%Dsprime = spdiags(evec*[csDiff -2*csDiff csDiff], [-1 0 1], v.n,v.n);
+%Dsprime(1:2,1) = 0;
+%Dsprime(v.n-1:v.n,v.n) = 0;
+%
+%%Dsprime(1,1) = csDiff;
+%%Dsprime(v.n,v.n) = csDiff;
+%
+%% [1 0       [0 1
+%% -2 1] -- > -1 0], flow from second and third bin to first
+%%and second bin
+%%sum of each column remains the same
+%
+%%I think main key is that 1,2 is zero and 3,2 is zero. the rest need to be
+%%changed to ensure that the rows and/or columns sum to 1.
+%
+%%flow from second and third to last bin, to second to last and last bin
+%%second to first: 1 to 0
+%%third to first: 0 to 1
+%%second to second: -2 to -1
+%%third to second: 1 to 0
+%
+%Dsprime(v.n-1:v.n,v.n-2:v.n-1) = Dsprime(v.n-1:v.n,v.n-2:v.n-1) + ...
+%	([-csDiff csDiff; csDiff -csDiff]);
+%Dsprime(1:2,2:3) = Dsprime(1:2,2:3)+([-csDiff csDiff; csDiff -csDiff]);
+%
+%% Build derivative Matrix
+%Dprime = spdiags(evec*[-cDrft 0 cDrft], [-1 0 1], v.n, v.n);  % Derivative matrix
+%
+%Dprime(:,1) = 0;
+%Dprime(:,v.n) = 0;
+%
+%%Dprime(1,1) = cDrft;
+%%Dprime(v.n,v.n) = cDrft;
+%
+%Mdrft= Dprime*spdiags(v.vv, 0, v.n, v.n);  % Drift matrix;
+%Mnet = Ddprime + Mdrft;  % Matrix summarizing drift and diffusion
+%
+%P0 = normpdf(v.vv, v.mu, v.std); % Initial Gaussian
+%
+%P = P0; % Normalize initial P
+%P = P./sum(P(1:end-1))*normcdf(v.thr, v.mu, v.std);
+%P(end) = 1-sum(P(1:end-1));
+%P0 = P;
+%
+%Meye = speye(v.n, v.n);
+%Mnet = Mnet*T.DT;
+%Dprime = Dprime*T.DT;
+%P = P0; %initialize P
+%
+%for j = 1:numel(T.VEC)
+%    
+%    PV(:,j) = P;
+%    
+%    inp = sum(p.g * I.CN(:,j));
+%    % Equilibrium voltage on this time step
+%    Veq = v.leak + inp*p.tau;
+%    % Future time-step matrix
+%    A = Meye+(-Mnet - abs(inp) * Dsprime * T.DT + Dprime*Veq);
+%    % Current time-step matrix
+%    B = Meye+(Mnet + abs(inp) * Dsprime * T.DT - Dprime*Veq); 
+%    P = A\(B*P);%toc;
+%    
+%end
+%
+%\end{lstlisting}
+
+%\paragraph{Outline}
+%The remainder of this article is organized as follows.
+%Section~\ref{previous work} gives account of previous work.
+%Our new and exciting results are described in Section~\ref{results}.
+%Finally, Section~\ref{conclusions} gives the conclusions.
+
+%\bibliographystyle{abbrv}
+%\bibliography{main}
+
+\end{document}
+  
