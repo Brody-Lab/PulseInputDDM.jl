@@ -1,0 +1,6 @@
+data/*
+archive/*
+figures/*
+docs/*
+code/analysis/*
+latent_accum_bit_bucket/*
