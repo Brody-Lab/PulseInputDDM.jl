@@ -121,7 +121,7 @@ if posterior
     
     %loop over trials
     parfor i = 1:tri
-        [post{i},alpha{i}] = LL_single_trial(data(i),x(6:8),P,M,dx,xc,...
+        [post{i},alpha{i}] = LL_single_trial(data(i),x(4:8),P,M,dx,xc,...
             Sfrac,nbinsL,lambda(:,data(i).N),n,dt,model_type,posterior);
     end
     
@@ -138,7 +138,7 @@ else
     
     %loop over trials
     parfor i = 1:tri
-        LL = LL + LL_single_trial(data(i),x(6:8),P,M,dx,xc,...
+        LL = LL + LL_single_trial(data(i),x(4:8),P,M,dx,xc,...
             Sfrac,nbinsL,lambda(:,data(i).N),n,dt,model_type,posterior);
     end
     
@@ -189,7 +189,7 @@ if nargin < 13 || isempty(posterior)
 end
 
 %convert the entries of x into variables that are easier to read
-vars = x(1); phi = x(2); tau_phi = x(3);
+lambda_drift = x(1); vara = x(2); vars = x(3); phi = x(4); tau_phi = x(5);
 %number of temporal bins on this trial
 nT = data.nT;
 
@@ -253,13 +253,13 @@ for t = 1:nT
     
     %if var > 0, i.e. was there a either L or R pulse?
     if var > 0
-        M_sett = M_settling_v2(xc, var, 0, mu/dt, dt, dx);
+        M_sett = M_settling_v2(xc, var + vara*dt, lambda_drift, mu/dt, dt, dx);
         %pulse diffuse and shift
         P = M_sett * P;
+    else      
+        %evolve the latent variable distribution
+        P = M * P;
     end
-    
-    %evolve the latent variable distribution
-    P = M * P;
     
     %if using spike data
     if any(strcmp(model_type,{'spikes','joint'}))

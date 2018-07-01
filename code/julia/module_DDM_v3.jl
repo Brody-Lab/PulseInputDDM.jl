@@ -1,27 +1,27 @@
 module module_DDM_v3
 
-const dt = 2e-2
-const n = 203
-const dim_z = 8
-const dim_d = 1
-const dim_y = 4
+const dt,dims = 2e-2,Dict("z"=>8,"d"=>1,"y"=>4)
 
-import ForwardDiff
-import Base.convert
-using StatsBase, LsqFit
+import ForwardDiff, Base.convert
+using StatsBase, LsqFit, Distributions
 
-export LL_all_trials
-export LL_single_trial
-export convert_data!
-export deparameterize, reparameterize
-export ll_wrapper, fit_func, qfind, package_data!, compute_x0
+export LL_all_trials, LL_single_trial, convert_data!
+export deparameterize, reparameterize, my_sigmoid, Mprime!, make_adapted_clicks
+export ll_wrapper, fit_func, qfind, package_data!, compute_x0, sample_latent
+export dt,dims
 
 convert(::Type{Float64}, x::ForwardDiff.Dual) = Float64(x.value)
 convert(::Type{Int},x::ForwardDiff.Dual) = Int(x.value)
 
+function my_sigmoid(x,p)
+    
+    y = broadcast(+,p[:,1]',broadcast(/,p[:,2]',(1. + exp.(broadcast(+,broadcast(*,-p[:,3]',x),p[:,4]')))));
+    
+end
+
 function compute_x0(data,model_type,N)
 
-    x0 = [1e-5, 0., 20., 1e-3, 10., 1., 1., 0.2]
+    x0 = [1e-5, 0., 20., 1e-3, 10., 1., 1.-1e-6, 0.2]
 
    if any(model_type .== ["choice","joint"])
         x0 = cat(1,x0,0.)
@@ -132,6 +132,7 @@ function package_data!(data,rawdata,model_type,t0,N0)
     append!(data["T"],rawdata["T"])
     append!(data["nT"],ceil.(Int,rawdata["T"]/dt))
     append!(data["pokedR"],vec(convert(BitArray,rawdata["pokedR"])))
+    append!(data["correct_dir"],vec(convert(BitArray,rawdata["correct_dir"])))
 
     for i = 1:ntrials
         t = 0.:dt:data["nT"][t0 + i]*dt;
@@ -185,16 +186,16 @@ function package_data!(data,rawdata,model_type,t0,N0)
 
 end
 
-function fit_func(model_type,N)
+function fit_func(model_type::String,N::Int)
 
     #          vari       inatt          B    lambda       vara    vars     phi    tau_phi 
-    fit_vec = [falses(1);falses(1);    trues(4);                         falses(2)];
+    fit_vec = [falses(1);falses(1);    trues(4);                         trues(2)];
 
     if any(model_type .== ["choice","joint"]);
         fit_vec = cat(1,fit_vec,trues(1));
     end
     if any(model_type .== ["spikes","joint"])
-        fit_vec = cat(1,fit_vec,trues(dim_y*N));
+        fit_vec = cat(1,fit_vec,trues(dims["y"]*N));
     end
 
     return fit_vec
@@ -265,10 +266,10 @@ function reparameterize{TT}(xf::Vector{TT}, x0::Vector{Float64}, fit_vec::BitArr
 
 end
 
-function ll_wrapper{TT}(xf::Vector{TT}, data::Dict, model_type::String, x0::Vector{Float64}, fit_vec::BitArray{1}, N::Int64)
+function ll_wrapper{TT}(xf::Vector{TT}, data::Dict, model_type::String, x0::Vector{Float64}, fit_vec::BitArray{1}, N::Int64; n::Int=203,beta::Dict=Dict("d"=> 0.))
 
     x = reparameterize(xf,x0,fit_vec,model_type,N)
-    LL = LL_all_trials(x,data,model_type,N)
+    LL = LL_all_trials(x,data,model_type,N,n=n,beta=beta)
     return LL
 
 end
@@ -367,19 +368,30 @@ function make_adapted_clicks(leftbups, rightbups, phi, tau_phi)
 
 end
 
-function LL_single_trial{TT}(x::Array{TT,1}, P::Array{TT,1}, M::Array{TT,2}, dx::TT, xc::Array{TT,1}, T::Int, L, R, 
-                             hereL::Union{Array{Int},Int}, hereR::Union{Array{Int},Int},
-                             model_type::String, nbinsL::Union{Int,TT}, Sfrac::Union{Float64,TT}, pokedR::Bool, 
-                             lambda::Union{Array{TT,2},Array{TT,1}}, spike_counts::Union{Array{Int,1},Array{Int,2}})
-
-    vars = x[1];  phi = x[2];  tau_phi = x[3]
+function LL_single_trial{TT}(L::Union{Array{Float64},Float64},R::Union{Array{Float64},Float64},T::Int,
+        hereL::Union{Array{Int},Int},hereR::Union{Array{Int},Int}, 
+        P::Vector{TT},lambda_drift::TT,vara::TT,vars::TT,phi::TT,tau_phi::TT,M::Array{TT,2},dx::TT, xc::Vector{TT},
+        model_type::String;
+        lambda::Union{Array{TT,2},Array{TT,1}}=Array{TT}(0,2),
+        spike_counts::Union{Array{Int,1},Array{Int,2}}=Array{Int,2}(0,2),
+        nbinsL::TT=one(TT),Sfrac::TT=one(TT),pokedR::Union{Bool,TT}=false,comp_posterior::Bool=false, n::Int=203)
 
     La, Ra = make_adapted_clicks(L,R,phi,tau_phi)
 
-    notpoked = convert(TT,~pokedR); poked = convert(TT,pokedR)
-    any(model_type .== ["choice","joint"]) ? Pd = vcat(notpoked * ones(nbinsL), notpoked * Sfrac + poked * (one(Sfrac) - Sfrac), poked * ones(n - (nbinsL + 1))) : nothing 
-    any(model_type .== ["spikes","joint"]) ? Py = exp.(broadcast(-, broadcast(-, spike_counts *  log.(lambda'*dt), sum(lambda,2)' * dt), sum(lgamma.(spike_counts + 1),2)))' : nothing
-    LL = zero(TT);
+    F = zeros(M)
+
+    if any(model_type .== ["choice","joint"])
+        notpoked = convert(TT,~pokedR); poked = convert(TT,pokedR)
+        Pd = vcat(notpoked * ones(nbinsL), notpoked * Sfrac + poked * (one(Sfrac) - Sfrac), poked * ones(n - (nbinsL + 1)))
+    end
+    
+    if any(model_type .== ["spikes","joint"]) 
+        Py = exp.(broadcast(-, broadcast(-, spike_counts *  log.(lambda'*dt), sum(lambda,2)' * dt), 
+                sum(lgamma.(spike_counts + 1),2)))' 
+    end
+    
+    c = Vector{TT}(T)
+    comp_posterior ? alpha = Array{Float64,2}(n,T) : nothing
 
     @inbounds for t = 1:T
         
@@ -388,70 +400,98 @@ function LL_single_trial{TT}(x::Array{TT,1}, P::Array{TT,1}, M::Array{TT,2}, dx:
 
         var = vars * (sL + sR);  mu = -sL + sR
 
-        (var > zero(vars)) ? (isdefined(:F) ||  (F = zeros(M));  Mprime!(F,var,zero(TT),mu/dt,dx,xc); P  = F * P;) : nothing
-
-        P = M * P
+        (var > zero(vars)) ? (Mprime!(F,var+vara*dt,lambda_drift,mu/dt,dx,xc,n=n); P  = F * P;) : P = M * P
         
         any(model_type .== ["spikes","joint"]) && (P .*= Py[:,t])
         any(model_type .== ["choice","joint"]) && t == T && (P .*=  Pd)
 
-        LL += log(abs(sum(P) + eps()))
-        P /= (sum(P) + eps()) 
+        c[t] = sum(P)
+        P /= c[t] 
+
+        comp_posterior ? alpha[:,t] = P : nothing
 
     end
 
-    return LL
+    if comp_posterior
+
+        beta = zeros(Float64,n,T)
+        P = ones(Float64,n); #initialze backward pass with all 1's
+    
+        beta[:,T] = P;
+
+        @inbounds for t = T-1:-1:1
+
+            any(model_type .== ["spikes","joint"]) && (P .*= Py[:,t+1])
+            any(model_type .== ["choice","joint"]) && t + 1 == T && (P .*=  Pd)
+        
+            any(t+1 .== hereL) ? sL = sum(La[t+1 .== hereL]) : sL = zero(phi)
+            any(t+1 .== hereR) ? sR = sum(Ra[t+1 .== hereR]) : sR = zero(phi)
+
+            var = vars * (sL + sR);  mu = -sL + sR
+
+            (var > zero(vars)) ? (Mprime!(F,var+vara*dt,lambda_drift,mu/dt,dx,xc,n=n); P  = F' * P;) : P = M' * P
+
+            P /= c[t+1] 
+
+            beta[:,t] = P
+
+        end
+
+    end
+
+    comp_posterior ? (return alpha .* beta) : (return sum(log.(c)))
+
 end
 
-function LL_all_trials{TT}(x::Vector{TT}, data::Dict, model_type::String, N::Int64)
+function LL_all_trials{TT}(x::Vector{TT}, data::Dict, model_type::String, N::Int64; comp_posterior::Bool=false, n::Int=203,
+    beta::Dict=Dict("d"=>0.))
 
-    vari = x[1]; inatt = x[2];  B = x[3]; lambda_drift = x[4];  vara = x[5]; 
+    vari,inatt,B,lambda_drift,vara,vars,phi,tau_phi = x[1:dims["z"]]
+
+    ntrials = length(data["T"])
    
     # binning
     dx = 2.*B/(n-2);  #bin width
     xc = vcat(collect(linspace(-(B+dx/2.),-dx,(n-1)/2.)),0.,collect(linspace(dx,(B+dx/2.),(n-1)/2)));
-
-    # build state transition matrix
-    M = zeros(TT,n,n);  Mprime!(M,vara*dt,lambda_drift,zero(TT),dx,xc)
-
+    
     # make initial delta function
     P = zeros(xc); P[[1,n]] = inatt/2.; P[ceil(Int,n/2)] = one(TT) - inatt; 
     # Convolve initial delta with vari
-    M0 = zeros(M);  Mprime!(M0,vari,zero(TT),zero(TT),dx,xc); P = M0 * P
+    M = zeros(TT,n,n);  Mprime!(M,vari,zero(TT),zero(TT),dx,xc,n=n); P = M * P
+    #make ntrial copys for all the trials
+    P = pmap(i->copy(P),1:ntrials); 
+    
+    # build state transition matrix for no input time bins
+    Mprime!(M,vara*dt,lambda_drift,zero(TT),dx,xc,n=n)
 
     if any(model_type .== ["choice","joint"])
         bias = x[9]
         nbinsL = ceil(Int,(B+bias)/dx)
         Sfrac = one(dx)/dx * (bias - (-(B+dx)+nbinsL*dx))
-    else
-        Sfrac = 1.; nbinsL = 1
     end
 
     if any(model_type .== ["spikes","joint"])
-        model_type == "joint" ? (a = x[(1:N)+dim_z+dim_d]; b = x[(1:N)+dim_z+dim_d+N]; c = x[(1:N)+dim_z+dim_d+2*N]; d = x[(1:N)+dim_z+dim_d+3*N]) :
-            (a = x[(1:N)+dim_z]; b = x[(1:N)+dim_z+N]; c = x[(1:N)+dim_z+2*N]; d = x[(1:N)+dim_z+3*N])
+        model_type == "joint" ? xy = reshape(x[dims["z"]+dims["d"]+1:end],N,4) : xy = reshape(x[dims["z"]+1:end],N,4)
 
-        temp = broadcast(+,broadcast(*,-c',xc),d')
-        lambda = broadcast(+, a', broadcast(/, b', (1 + broadcast(exp, broadcast(+, broadcast(*, -c', xc), d')))))
-        lambda[exp.(temp) .<= 1e-150] = broadcast(+,a',broadcast(/,b',ones(n,)))[exp.(temp) .<= 1e-150]
-        lambda[exp.(temp) .>= 1e150] = broadcast(*,a',ones(n,))[exp.(temp) .>= 1e150]
-    else
-        lambda = Array{TT}(0,2);
+        lambda = my_sigmoid(xc,xy)
+        temp = broadcast(+,broadcast(*,-xy[:,3]',xc),xy[:,4]')
+        lambda[exp.(temp) .<= 1e-150] = broadcast(+,xy[:,1]',broadcast(/,xy[:,2]',ones(n,)))[exp.(temp) .<= 1e-150]
+        lambda[exp.(temp) .>= 1e150] = broadcast(*,xy[:,1]',ones(n,))[exp.(temp) .>= 1e150]
     end
+        
+    output = pmap((L,R,T,nL,nR,P,N,SC) -> LL_single_trial(L,R,T,nL,nR,P,
+            lambda_drift,vara,vars,phi,tau_phi,M,dx,xc,model_type,
+            lambda=lambda[:,N],spike_counts=SC,comp_posterior=comp_posterior,n=n),
+            data["leftbups"],data["rightbups"],data["nT"],data["hereL"],data["hereR"],P,
+            data["N"],data["spike_counts"])
 
-    LL =  @parallel (+) for i = 1:length(data["T"])
-        LL_single_trial(x[6:8],copy(P),M,dx,xc,data["nT"][i],data["leftbups"][i],data["rightbups"][i],data["hereL"][i],data["hereR"][i],
-                        model_type,nbinsL,Sfrac,Bool(data["pokedR"][i]),lambda[:,data["N"][i]],data["spike_counts"][i])
-    end
-
-    return -LL
+    comp_posterior ? (return output) : (return -(sum(output) - beta["d"]*sum(diag(xy[:,3:4]'*xy[:,3:4]))))
 
 end
 
-function Mprime!{TT}(F::AbstractArray{TT,2},vara::TT,lambda::TT,h::TT,dx::TT,xc::Vector{TT})
+function Mprime!{TT}(F::AbstractArray{TT,2},vara::TT,lambda::TT,h::TT,dx::TT,xc::Vector{TT}; n::Int=203)
     
-    F[1,1] = 1.; F[n,n] = 1.
-    @inbounds for j = 2:n-1;  for k = 1:n;  F[k,j] = 0.; end; end
+    F[1,1] = one(TT); F[n,n] = one(TT); F[:,2:n-1] = zero(TT)
 
     ndeltas = max(70,ceil(Int, 10.*sqrt(vara)/dx));
 
