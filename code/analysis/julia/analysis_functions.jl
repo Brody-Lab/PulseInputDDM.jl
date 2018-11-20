@@ -1,14 +1,27 @@
 module analysis_functions
 
-using DSP
+using DSP, Distributions
 
-export FilterSpikes, nanmean, nanstderr
+export FilterSpikes, nanmean, nanstderr, rate_mat_func_filt
 
 nanmean(x) = mean(filter(!isnan,x))
 nanmean(x,y) = mapslices(nanmean,x,y)
 
 nanstderr(x) = std(filter(!isnan,x))/sqrt(length(filter(!isnan,x)))
 nanstderr(x,y) = mapslices(nanstderr,x,y)
+
+function rate_mat_func_filt(nspikes,dt,filtSD)
+    
+    nT = map(length,nspikes)
+    λ = fill!(Array{Float64,2}(length(nspikes),maximum(nT)),NaN);
+    
+    for i = 1:length(nspikes)
+        λ[i,1:nT[i]] = vec(FilterSpikes((1/dt)*nspikes[i],filtSD,pad="zeros"))
+    end
+    
+    return λ
+        
+end
 
 function FilterSpikes(x,SD;pad::String="zeros")
     
