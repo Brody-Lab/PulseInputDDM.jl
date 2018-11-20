@@ -1,10 +1,16 @@
 module analysis_functions
 
-using DSP, Distributions, module_DDM_v4, StatsBase
+using DSP
 
-export FilterSpikes, sample_latent, make_spikes, sampled_dataset!, diffLR
+export FilterSpikes, nanmean, nanstderr
 
-function FilterSpikes(x,SD)
+nanmean(x) = mean(filter(!isnan,x))
+nanmean(x,y) = mapslices(nanmean,x,y)
+
+nanstderr(x) = std(filter(!isnan,x))/sqrt(length(filter(!isnan,x)))
+nanstderr(x,y) = mapslices(nanstderr,x,y)
+
+function FilterSpikes(x,SD;pad::String="zeros")
     
     #plot(conv(pdf.(Normal(mu1,sigma1),x1),pdf.(Normal(mu2,sigma2),x2)))
     #plot(filt(digitalfilter(PolynomialRatio(gaussian(10,1e-2),ones(10)),pdf.(Normal(mu1,sigma1),x1)))
@@ -23,13 +29,24 @@ function FilterSpikes(x,SD)
     F /= sum(F);
         
     try
+        
         shift = Int(floor(length(F)/2)); # this is the amount of time that must be added to the beginning and end;
-        prefilt = cat(1,broadcast(+,zeros(shift,size(x,2)),mean(x[1:SD,:],1)),x,
-        broadcast(+,zeros(shift,size(x,2)),mean(x[end-SD:end,:],1))); # pads the beginning and end with copies of first and last value (not zeros)
+        
+        if pad == "zeros"
+            prefilt = cat(1,zeros(shift,size(x,2)),x,zeros(shift,size(x,2)));
+        elseif pad == "mean"
+            #pads the beginning and end with copies of first and last value (not zeros)
+            prefilt = cat(1,broadcast(+,zeros(shift,size(x,2)),mean(x[1:SD,:],1)),x,
+                broadcast(+,zeros(shift,size(x,2)),mean(x[end-SD:end,:],1)));        
+        end
+        
         postfilt = filt(F,prefilt); # filters the data with the impulse response in Filter
         postfilt = postfilt[2*shift:size(postfilt,1)-1,:];
+        
     catch
+        
         postfilt = x
+        
     end
 
 end
@@ -46,110 +63,5 @@ function psth(data::Dict,filt_sd::Float64,dt::Float64)
     end
 
 end
-
-function sample_latent(T::Float64,L::Union{Float64,Vector{Float64}},R::Union{Float64,Vector{Float64}},
-        x::Vector{Float64};dt::Float64=1e-4,path::Bool=false)
-    
-    vari, inatt, B, lambda, vara, vars, phi, tau_phi = x;
-    
-    nT = Int(ceil.(T/dt)); # number of timesteps
-    
-    path ? A = Vector{Float64}(nT) : nothing
-                
-    if rand() < inatt
-
-        a = B * sign(randn())
-        path ? A[1:nT] = a : nothing
-
-    else
-
-        La, Ra = make_adapted_clicks(L, R, phi, tau_phi);
-        t = 0.:dt:nT*dt-dt; 
-        hereL = vec(qfind(t,L))
-        hereR = vec(qfind(t,R))
-          
-        a = sqrt(vari)*randn()
-        t = 1
-
-        while t <= nT
-
-            #inputs
-            any(t .== hereL) ? sL = sum(La[t .== hereL]) : sL = zero(phi)
-            any(t .== hereR) ? sR = sum(Ra[t .== hereR]) : sR = zero(phi)
-            var = vars * (sL + sR)  
-            mu = -sL + sR
-            var > zero(vars) ? a += mu + sqrt(var) * randn() : nothing
-
-            #drift and diffuse
-            a += (dt*lambda) * a + sqrt(vara * dt) * randn();
-
-            abs(a) > B ? (a = B * sign(a); (path ? A[t:nT] = a : nothing); break) : ((path ? A[t] = a :nothing); t += 1)
-
-        end               
-    end
-    
-    path ? (return A) : (return a)
-    
-end
-
-function sampled_dataset!(data,p,N;dtMC::Float64=1e-4,dt::Float64=2e-2)
-
-    px = p[1:8]
-    bias = p[9]
-    #neural tuning curve parameters
-    py = reshape(p[10:end],N,4)
-
-    #sample latent paths
-    A_sampled = pmap((T,leftbups,rightbups) -> sample_latent(T,leftbups,rightbups,px,path=true),
-        data["T"],data["leftbups"],data["rightbups"]);
-    #compute firing rates
-    lambda_sampled = pmap((a,N) -> my_sigmoid(a,py[N,:]),A_sampled,data["N"]);
-    #generate spikes
-    spikes_sampled = pmap(lambda -> make_spikes(lambda),lambda_sampled);
-    
-    nbins = Int(dt/dtMC)
-
-    #bin and downsample spikes
-    for i = 1:length(spikes_sampled)
-        spikes_sampled[i] = cat(1,spikes_sampled[i],
-                zeros(nbins - rem(size(spikes_sampled[i],1),nbins),
-                size(spikes_sampled[i],2)))
-        data["spike_counts"][i] = squeeze(sum(reshape(spikes_sampled[i],nbins,
-                        Int(size(spikes_sampled[i],1)/nbins),size(spikes_sampled[i],2)),1),1)
-    end
-    
-    #make new choices
-    for i = 1:length(data["pokedR"])
-        data["pokedR"][i] = A_sampled[i][end] >= bias
-    end
-    
-end
-
-function make_spikes(lambda;dt::Float64=1e-4)
-    
-    spikes = copy(lambda)
-    
-    for i = 1:length(lambda)
-        spikes[i] = Int(rand(Poisson(lambda[i]*dt)))
-    end
-    
-    return spikes
-end
-
-function diffLR(nT,L,R;cumsum=false)
-    #compute the cumulative diff of clicks
-    t = 0:dt:nT*dt;
-    L = fit(Histogram,L,t,closed=:left)
-    R = fit(Histogram,R,t,closed=:left)
-    
-    if cumsum
-        diffLR = cumsum(-L.weights + R.weights)
-    else
-        diffLR = sum(-L.weights + R.weights)
-    end
-    
-end
-
-
 
 end

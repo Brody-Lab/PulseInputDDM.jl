@@ -1,41 +1,40 @@
 
+addprocs(24);
+
 using latent_model, LineSearches, Optim, JLD, ForwardDiff
 using global_functions, initialize_latent_model
 
-###########################################################################################
-
-ratname = ARGS[1]; #which rat
-model_type_dir = ARGS[2]; #which model to fit
-path = ARGS[3]; #parent directory where data and results are located
-out_pth = ARGS[4]; #directory where data will be saved
-reload_pth = ARGS[5]; #directory to reload history from
-max_time = ARGS[6]; # time limit in hours
+ratname = "T036"
+model_type_dir = "spikes"
+model_type_dir == "joint" ? model_type = ["spikes","choice"] : model_type = model_type_dir
+path=ENV["HOME"]*"/Dropbox/spike-data_latent-accum";
+reload_pth = path*"/data/results/julia/"*model_type_dir*"/"*ratname
+out_pth = reload_pth;
+max_time = 2; # time limit in hours
 
 model_type_dir == "joint" ? model_type = ["spikes","choice"] : model_type = model_type_dir
 map_str = "exp"
-dt = 2e-2
+dt = 2e-2;
 
-###########################################################################################
 ## Load data
 
 if any(model_type .== "spikes") & any(model_type .== "choice")
 
     fit_vec, data, model_type, p0_z, p0_bias, p0_y, beta_y, mu0_y = 
-        load_data(path,model_type,reload_pth,map_str,ratname)
+        load_data(path,model_type,reload_pth,map_str,ratname);
 
 elseif any(model_type .== "spikes") 
 
     fit_vec, data, model_type, p0_z, p0_y, beta_y, mu0_y = 
-        load_data(path,model_type,reload_pth,map_str,ratname)
+        load_data(path,model_type,reload_pth,map_str,ratname);
 
 elseif any(model_type .== "choice")
 
     fit_vec, data, model_type, p0_z, p0_bias = 
-        load_data(path,model_type,reload_pth,map_str,ratname)
+        load_data(path,model_type,reload_pth,map_str,ratname);
 
 end
 
-###########################################################################################
 ## Load previous results
 
 results = reload_pth*"/results.jld"
@@ -70,13 +69,18 @@ else
 
 end
 
-###########################################################################################
+#this is old stuff
+#tail="18359421";
+#reload_pth2=path*"/data/results/julia/"*model_type*"/"*ratname*"/"*tail;
+#p_opt,x0,fit_vec,betas,mu0 = load(reload_pth2*"/results.jld","p_opt","x0","fit_vec","betas","mu0");
+#p_opt[7:end] = reshape(reshape(p_opt[7:end],12,4)',48,1);
+#p_z,p_y = latent_and_spike_params(p_opt, x0[.!fit_vec], fit_vec, model_type)
+
 ## Map parameters to unbounded domain for optimization
 
 p_z = inv_map_latent_params!(p_z,map_str,dt)  
 any(model_type .== "spikes") ? p_y = map(x->inv_map_sig_params!(x,map_str),p_y) : nothing
 
-###########################################################################################
 ## Concatenate into a single vector and break up into optimization variables and constants
 
 if any(model_type .== "spikes") & any(model_type .== "choice")
@@ -96,7 +100,6 @@ end
 p_opt = p[fit_vec]
 p_const = p[.!fit_vec]
 
-###########################################################################################
 ## Define a closure over optimization function
 
 if any(model_type .== "spikes") 
@@ -110,9 +113,8 @@ else
     
 end
 
-od = OnceDifferentiable(ll, p_opt; autodiff=:forward)
+od = OnceDifferentiable(ll, p_opt; autodiff=:forward);
 
-###########################################################################################
 ## Optimize and compute Hessian
 
 @time p_opt = Optim.minimizer(Optim.optimize(od, p_opt, 
@@ -120,12 +122,11 @@ od = OnceDifferentiable(ll, p_opt; autodiff=:forward)
             linesearch = BackTracking()), 
             Optim.Options(time_limit = 3600 * 0.9 * max_time, 
             g_tol = 1e-12, x_tol = 1e-16, f_tol = 1e-16, 
-            iterations = 100000, store_trace = true, 
+            iterations = 10, store_trace = true, 
             show_trace = true, extended_trace = false, allow_f_increases = true)))
 
 H = ForwardDiff.hessian(od, p_opt)
 
-###########################################################################################
 ## Break up optimization vector into functional groups and remap to bounded domain
 
 if any(model_type .== "spikes") & any(model_type .== "choice")
@@ -147,7 +148,6 @@ elseif any(model_type .== "choice")
 
 end
 
-###########################################################################################
 ## save ML parameters
 
 if any(model_type .== "spikes") & any(model_type .== "choice")
@@ -164,7 +164,6 @@ elseif any(model_type .== "choice")
 
 end
 
-###########################################################################################
 ## save Hessian
 
 save(out_pth*"/Hessian.jld","H", H) 

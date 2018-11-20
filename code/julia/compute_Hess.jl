@@ -5,12 +5,20 @@ using ForwardDiff: hessian
 model_type = ARGS[1]; #which model to fit
 reload_pth = ARGS[2]; #directory to reload history from
 
+if model_type == "joint"
+    model_type = ["spikes","choice"]
+end
+
 #reload existing xf in bounded domain
 p_opt,x0,N,fit_vec,data = load(reload_pth*"/results.jld","p_opt","x0","N","fit_vec","data")
 
 p_const = x0[.!fit_vec]
 #@everywhere LL(x) = ll_wrapper(x, p_const, fit_vec, data, model_type, N=N, beta=Dict("d"=>1e-6))
-@everywhere LL(x) = LL_all_trials(x, p_const, fit_vec, data, model_type, N=N, beta=Dict("d"=>1e-6))
+@everywhere LL(x) = LL_all_trials(x, p_const, fit_vec, data, model_type, N=N, 
+                                  beta=Dict("d"=>1e-6,"B"=>0.))
+
+#p_const[1] = log(p_const[1])
+#p_opt[[3,4]] = log.(p_opt[[3,4]])
 
 #p = group_params(p_opt, p_const, fit_vec)
 #p = bounded_to_inf!(p,model_type,N=N)
