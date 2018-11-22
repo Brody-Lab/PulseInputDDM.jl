@@ -248,13 +248,56 @@ function construct_inputs!(data::Dict,num_reps::Int)
     data["nT"] = repmat(data["nT"],num_reps)
     data["binned_leftbups"] = repmat(data["binned_leftbups"],num_reps)
     data["binned_rightbups"] = repmat(data["binned_rightbups"],num_reps)
-    data["N"] = repmat(data["N"],num_reps)
     data["T"] = repmat(data["T"],num_reps)
     data["leftbups"] = repmat(data["leftbups"],num_reps)
     data["rightbups"] = repmat(data["rightbups"],num_reps)
     data["trial0"] = data["trial0"] * num_reps;
     
+    if haskey(data,"N")
+        data["N"] = repmat(data["N"],num_reps)   
+    end
+    
     return data
+    
+end
+
+function sample_clicks(ntrials::Int,dt::Float64)
+    
+    data = Dict();
+
+    output = map(generate_stimulus,1:ntrials);
+
+    data["leftbups"] = map(i->output[i][3],1:ntrials);
+    data["rightbups"] = map(i->output[i][2],1:ntrials);
+    data["T"] = map(i->output[i][1],1:ntrials);
+    data["dt"] = dt;
+    data["trial0"] = ntrials;
+
+    #bin the clicks
+    data["nT"] = ceil.(Int,data["T"]/dt);
+    data["binned_leftbups"] = map((x,y)->vec(qfind(0.:dt:x*dt,y)),data["nT"],data["leftbups"])
+    data["binned_rightbups"] = map((x,y)->vec(qfind(0.:dt:x*dt,y)),data["nT"],data["rightbups"])
+    
+    return data
+    
+end
+
+function generate_stimulus(rng;tmin::Float64=0.2,tmax::Float64=1.0,clicktot::Int=40)
+    
+    srand(rng)
+
+    T = tmin + (tmax-tmin)*rand()
+
+    ratetot = clicktot/T
+    Rbar = ratetot*rand()
+    Lbar = ratetot - Rbar
+
+    R = cumsum(rand(Exponential(1/Rbar),clicktot))
+    L = cumsum(rand(Exponential(1/Lbar),clicktot))
+    R = vcat(0,R[R .<= T])
+    L = vcat(0,L[L .<= T])
+    
+    return T,R,L
     
 end
 

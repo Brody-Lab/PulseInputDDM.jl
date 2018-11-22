@@ -183,7 +183,7 @@ function sampled_dataset!(data::Dict, p::Vector{Float64}; dtMC::Float64=1e-4, nu
     
     srand(rng)
     data["pokedR"] = pmap((T,leftbups,rightbups,rng) -> sample_model(T,leftbups,rightbups,p,rng=rng),
-        data["T"],data["leftbups"],data["rightbups"],shuffle(1:length(data["N"])));
+        data["T"],data["leftbups"],data["rightbups"],shuffle(1:length(data["T"])));
             
     return data
     

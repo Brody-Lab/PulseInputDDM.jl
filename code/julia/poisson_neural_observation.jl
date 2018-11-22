@@ -344,7 +344,7 @@ function sampled_dataset!(data::Dict, p::Vector{Float64}, dt::Float64;
     srand(rng)
     data["spike_counts"] = pmap((T,L,R,N,rng) -> sample_model(p,T,L,R,N,dt;
             f_str=f_str, rng=rng), data["T"],data["leftbups"],data["rightbups"],
-            data["N"], shuffle(1:length(data["N"])));        
+            data["N"], shuffle(1:length(data["T"])));        
     
     return data
     
