@@ -1,6 +1,6 @@
 push!(LOAD_PATH, "../src")
 
-using Documenter, spike-data_latent-accum
+using Documenter, poisson_neural_observation
 
-makedocs(sitname="My Documentation")
+makedocs(sitename="My Documentation")
 
