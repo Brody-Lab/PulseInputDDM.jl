@@ -3,6 +3,13 @@ module poisson_neural_observation
 using latent_DDM_common_functions, ForwardDiff, Optim, Pandas, Distributions
 using Distributed, SpecialFunctions, LinearAlgebra
 
+"""
+    do_H
+
+    returns Hessian
+
+"""
+
 function do_H(p,fit_vec,dt,data,n::Int;
         f_str="softplus",map_str::String="exp",
         beta::Vector{Vector{Float64}}=Vector{Vector{Float64}}(),
@@ -477,6 +484,11 @@ end
 
 gauss_prior(p::Vector{TT}, mu::Vector{Float64}, beta::Vector{Float64}) where {TT} = -sum(beta .* (p - mu).^2)
 
+"""
+    poiss_LL(k,λ,dt)  
+
+    returns poiss LL
+"""
 poiss_LL(k,λ,dt) = k*log(λ*dt) - λ*dt - lgamma(k+1)
 
 poisson_noise(lambda,dt) = Int(rand(Poisson(lambda*dt)))
