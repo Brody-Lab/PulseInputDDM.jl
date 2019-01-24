@@ -1,9 +1,9 @@
-module choice_and_poisson_neural_observation
+#module choice_and_poisson_neural_observation
 
-using latent_DDM_common_functions, ForwardDiff, Optim, Pandas, Distributions
-using poisson_neural_observation: gauss_prior, poiss_LL, inv_map_py!, map_py!, fy
-using choice_observation: bias_bin
-using Distributed, SpecialFunctions, LinearAlgebra
+#using latent_DDM_common_functions, ForwardDiff, Optim, Pandas, Distributions
+#using poisson_neural_observation: gauss_prior, poiss_LL, inv_map_py!, map_py!, fy
+#using choice_observation: bias_bin
+#using Distributed, SpecialFunctions, LinearAlgebra
 
 function do_optim(p,fit_vec,dt,data,n;
         f_str="softplus",map_str::String="exp",
@@ -173,4 +173,4 @@ end
 
 inv_breakup(pz::Vector{TT},bias::TT, py::Vector{Vector{TT}}) where {TT} = vcat(pz,bias,vcat(py...))
 
-end
+#end

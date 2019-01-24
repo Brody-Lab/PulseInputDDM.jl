@@ -12,6 +12,7 @@ include("initialize_latent_model.jl")
 include("choice_observation.jl")
 include("poisson_neural_observation.jl")
 include("analysis_functions.jl")
+include("choice_and_poisson_neural_observation.jl")
 
 export do_LL, poiss_LL
 export FilterSpikes, nanmean, nanstderr, rate_mat_func_filt
