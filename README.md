@@ -1,6 +1,6 @@
 # Pulse input DDM
 
-[![](https://img.shields.io/badge/docs-dev-blue.svg)](https://princetonuniversity.github.io/spike_data_latent_accum/dev)
+[![](https://img.shields.io/badge/docs-dev-blue.svg)](https://princetonuniversity.github.io/pulse_input_DDM/dev)
 
 # Introduction
 
