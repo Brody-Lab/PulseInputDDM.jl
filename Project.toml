@@ -1,0 +1,6 @@
+authors = ["Brian DePasquale <depasquale@princeton.edu>"]
+name = "spike_data_latent_accum"
+uuid = "c2542da2-1f7d-11e9-2506-87691095ebb2"
+version = "0.1.0"
+
+[deps]
