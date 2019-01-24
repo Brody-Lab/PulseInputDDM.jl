@@ -297,7 +297,7 @@ function LL_single_trial(pz::Vector{TT}, P::Vector{TT}, M::Array{TT,2}, dx::TT,
     spike_counts = reshape(vcat(spike_counts...),:,length(spike_counts))
     
     c = Vector{TT}(undef,T)
-    comp_posterior ? post = Array{Float64,2}(under,n,T) : nothing
+    comp_posterior ? post = Array{Float64,2}(undef,n,T) : nothing
     F = zeros(TT,n,n) #empty transition matrix for time bins with clicks
 
     @inbounds for t = 1:T
