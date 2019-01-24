@@ -8,7 +8,7 @@ Julia code for inferring a latent drift diffusion model (DDM) model from data du
 
 # Getting started
 
-First, you need Julia 1.0. Then you need to add this package by typing `Pkg.clone(https://github.com/PrincetonUniversity/pulse_input_DDM/'.
+First, you need Julia 1.0. Then you need to add this package by typing `Pkg.clone(https://github.com/PrincetonUniversity/pulse_input_DDM/`.
 
 # API
 
