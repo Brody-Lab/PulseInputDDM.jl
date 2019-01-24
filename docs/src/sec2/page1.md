@@ -5,6 +5,6 @@ Some text describing this section
 ## Subtitle
  
 ```@docs
-VAE.transform(vae,X)
+poiss_LL(k,λ,dt)
 ```
 

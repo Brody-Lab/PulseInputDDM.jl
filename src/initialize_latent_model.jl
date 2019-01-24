@@ -1,11 +1,11 @@
-module initialize_latent_model
+#module initialize_latent_model
 
 const dimy, dt = 4, 2e-2
 
-using initialize_spike_obs_model, JLD
-using StatsBase, MAT, helpers
+#using initialize_spike_obs_model, JLD
+#using StatsBase, MAT, helpers
 
-export load_data, make_data, get_sessid, keep_single_neuron_data!
+#export load_data, make_data, get_sessid, keep_single_neuron_data!
 
 function load_data(path::String,model_type::Union{String,Array{String}},
         reload_pth::String,map_str::String,ratname::String)
@@ -279,4 +279,4 @@ function my_callback(os)
 
 end
 
-end
+#end

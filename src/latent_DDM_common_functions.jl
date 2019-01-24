@@ -1,15 +1,15 @@
-module latent_DDM_common_functions
+#module latent_DDM_common_functions
 
-using StatsBase, Distributions, helpers, DSP, Optim, LineSearches, JLD
+#using StatsBase, Distributions, helpers, DSP, Optim, LineSearches, JLD
 
 const dimz = 7
 
-export diffLR, binLR
-export make_adapted_clicks, P0, M!, bins
-export sample_latent, construct_inputs!
-export decimate, make_observation
-export inv_map_pz!, map_pz!, P_M_xc, opt_ll, transition_Pa!
-export opt_ll_Newton, gather, inv_gather, group_by_neuron, dimz
+#export diffLR, binLR
+#export make_adapted_clicks, P0, M!, bins
+#export sample_latent, construct_inputs!
+#export decimate, make_observation
+#export inv_map_pz!, map_pz!, P_M_xc, opt_ll, transition_Pa!
+#export opt_ll_Newton, gather, inv_gather, group_by_neuron, dimz
 
 function group_by_neuron(data)
     
@@ -585,4 +585,4 @@ function my_callback(os)
 
 end
 
-end
+#end

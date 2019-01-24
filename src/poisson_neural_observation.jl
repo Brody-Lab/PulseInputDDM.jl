@@ -1,7 +1,7 @@
-module poisson_neural_observation
+#module poisson_neural_observation
 
-using latent_DDM_common_functions, ForwardDiff, Optim, Pandas, Distributions
-using Distributed, SpecialFunctions, LinearAlgebra
+#using latent_DDM_common_functions, ForwardDiff, Optim, Pandas, Distributions
+#using Distributed, SpecialFunctions, LinearAlgebra
 
 """
     do_H
@@ -493,4 +493,4 @@ poiss_LL(k,λ,dt) = k*log(λ*dt) - λ*dt - lgamma(k+1)
 
 poisson_noise(lambda,dt) = Int(rand(Poisson(lambda*dt)))
 
-end
+#end

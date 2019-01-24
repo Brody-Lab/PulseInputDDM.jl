@@ -1,9 +1,9 @@
-module initialize_spike_obs_model
+#module initialize_spike_obs_model
 
-using Optim, LineSearches, StatsBase
-using latent_DDM_common_functions, ForwardDiff
+#using Optim, LineSearches, StatsBase
+#using latent_DDM_common_functions, ForwardDiff
 
-export ΔLR_ll_wrapper, filter_bound, filt_bound_model_wrapper
+#export ΔLR_ll_wrapper, filter_bound, filt_bound_model_wrapper
 
 function filt_bound_model_wrapper(p_opt::Vector{TT},p_const::Vector{Float64}, fit_vec::BitArray{1},
         data::Dict,model_type::Union{String,Array{String}},f_str::String;
@@ -139,4 +139,4 @@ poiss_likelihood(k,λ,dt) = k.*log.(λ*dt) - λ*dt - lgamma.(k+1)
 #noise is hardcoded in, this needs to be changed.
 gauss_likelihood(k,λ;std0::Float64=1e-1) = log(1/sqrt(2*pi*std0^2)) - ((k-λ).^2)./(2*std0^2);
         
-end
+#end

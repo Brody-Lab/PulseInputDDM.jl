@@ -1,6 +1,6 @@
-module helpers
+#module helpers
 
-export qfind
+#export qfind
 
 function qfind(x,ts)
 
@@ -57,4 +57,4 @@ function qfind(x,ts)
 
 end
 
-end
+#end

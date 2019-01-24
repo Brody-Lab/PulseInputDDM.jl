@@ -1,7 +1,7 @@
-module choice_observation
+#module choice_observation
 
-using latent_DDM_common_functions, ForwardDiff, Optim
-using Distributed, LinearAlgebra
+#using latent_DDM_common_functions, ForwardDiff, Optim
+#using Distributed, LinearAlgebra
 
 function do_LL(p,dt,data,n)
     
@@ -212,4 +212,4 @@ function bias_bin(bias::TT,xe::Vector{TT},dx::TT,n::Int) where {TT}
     
 end
 
-end
+#end
