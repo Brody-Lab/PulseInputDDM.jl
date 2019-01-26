@@ -2,7 +2,7 @@ push!(LOAD_PATH,"../src/")
 
 using Documenter, spike_data_latent_accum
 
-makedocs(sitename="spike_data_latent_accum", modules=[spike_data_latent_accum], doctest=false,
+makedocs(sitename="pulse_input_DDM.jl, modules=[spike_data_latent_accum], doctest=false,
         pages = Any[
         "Home" => "index.md",
         "Tutorials" => Any[
@@ -15,11 +15,7 @@ makedocs(sitename="spike_data_latent_accum", modules=[spike_data_latent_accum], 
          ]
          ])
  
-#deploydocs(deps   = Deps.pip("mkdocs", "python-markdown-math"),
-#           repo = "github.com/PrincetonUniversity/spike_data_latent_accum.git",
-#           versions = ["stable" => "v^", "v#.#"]
-#          )
-
-deploydocs(repo = "github.com/PrincetonUniversity/pulse_input_DDM.jl.git",
+deploydocs(deps   = Deps.pip("mkdocs", "python-markdown-math"),
+           repo = "github.com/PrincetonUniversity/spike_data_latent_accum.git",
            versions = ["stable" => "v^", "v#.#"]
           )
