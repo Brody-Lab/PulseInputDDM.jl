@@ -1,8 +1,9 @@
 push!(LOAD_PATH,"../src/")
+push!(LOAD_PATH,"../src/")
 
 using Documenter, spike_data_latent_accum
 
-makedocs(sitename="pulse_input_DDM.jl, modules=[spike_data_latent_accum], doctest=false,
+makedocs(sitename="pulse_input_DDM.jl", modules=[spike_data_latent_accum], doctest=false,
         pages = Any[
         "Home" => "index.md",
         "Tutorials" => Any[
