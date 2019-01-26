@@ -15,7 +15,11 @@ makedocs(sitename="spike_data_latent_accum", modules=[spike_data_latent_accum], 
          ]
          ])
  
-deploydocs(deps   = Deps.pip("mkdocs", "python-markdown-math"),
-           repo = "github.com/PrincetonUniversity/spike_data_latent_accum.git",
+#deploydocs(deps   = Deps.pip("mkdocs", "python-markdown-math"),
+#           repo = "github.com/PrincetonUniversity/spike_data_latent_accum.git",
+#           versions = ["stable" => "v^", "v#.#"]
+#          )
+
+deploydocs(repo = "github.com/PrincetonUniversity/spike_data_latent_accum.git",
            versions = ["stable" => "v^", "v#.#"]
           )
