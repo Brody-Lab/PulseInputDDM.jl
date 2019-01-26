@@ -1,6 +1,6 @@
 # pulse_input_DDM.jl
 
-[![](https://img.shields.io/badge/docs-dev-blue.svg)](https://princetonuniversity.github.io/pulse_input_DDM.jl.jl/dev)
+[![](https://img.shields.io/badge/docs-dev-blue.svg)](https://princetonuniversity.github.io/pulse_input_DDM.jl/dev)
 
 # Introduction
 
