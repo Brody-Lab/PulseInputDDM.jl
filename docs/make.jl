@@ -20,6 +20,6 @@ makedocs(sitename="spike_data_latent_accum", modules=[spike_data_latent_accum], 
 #           versions = ["stable" => "v^", "v#.#"]
 #          )
 
-deploydocs(repo = "github.com/PrincetonUniversity/spike_data_latent_accum.git",
+deploydocs(repo = "github.com/PrincetonUniversity/pulse_input_DDM.jl.git",
            versions = ["stable" => "v^", "v#.#"]
           )
