@@ -6,9 +6,15 @@
 
 Julia code for inferring a latent drift diffusion model (DDM) model from data during pulsed-based evidence accumlation tasks.
 
-# Getting started
+# Julia is annoying, and I use MATLAB. Why are you making me do this?
 
-First, you need Julia 1.0. Then you need to add this package by typing `Pkg.clone(https://github.com/PrincetonUniversity/pulse_input_DDM.jl/`.
+To solve for the ML model parameters, we need to compute gradients. Packages exist in Julia for doing this with automatic differentation. Packages for doing this in MATLAB stink. Also, generally MATALB stinks.
+
+# OK. I get it. How do I get started?
+
+I suggest you run this on scotty or spock, which already has Julia on it.
+
+Then you need to add this package by typing `Pkg.clone(https://github.com/PrincetonUniversity/pulse_input_DDM.jl/`.
 
 # Useful functions
 
