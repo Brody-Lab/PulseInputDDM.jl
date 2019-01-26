@@ -16,6 +16,6 @@ makedocs(sitename="pulse_input_DDM.jl, modules=[spike_data_latent_accum], doctes
          ])
  
 deploydocs(deps   = Deps.pip("mkdocs", "python-markdown-math"),
-           repo = "github.com/PrincetonUniversity/spike_data_latent_accum.git",
+           repo = "github.com/PrincetonUniversity/pulse_input_DDM.jl.git",
            versions = ["stable" => "v^", "v#.#"]
           )
