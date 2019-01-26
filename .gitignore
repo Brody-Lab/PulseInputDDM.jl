@@ -1,0 +1,9 @@
+old/*
+figures/*
+data/*
+code/*
+src/depreciated/*
+src/julia/*
+docs/build/
+notebooks/deprecated
+notebooks/.ipynb_checkpoints
