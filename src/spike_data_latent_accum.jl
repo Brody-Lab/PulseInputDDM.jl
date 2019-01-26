@@ -2,7 +2,8 @@ module spike_data_latent_accum
 
 using StatsBase, Distributions, DSP, Optim, LineSearches, JLD
 using ForwardDiff, Distributed, LinearAlgebra
-using Pandas, SpecialFunctions
+#using Pandas
+using SpecialFunctions
 #using MAT
 
 include("latent_DDM_common_functions.jl")
