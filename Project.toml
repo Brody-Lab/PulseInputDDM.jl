@@ -1,20 +1,5 @@
 name = "pulse_input_DDM.jl"
 uuid = "c2542da2-1f7d-11e9-2506-87691095ebb2"
 authors = ["Brian DePasquale <depasquale@princeton.edu>"]
-version = "0.1.0"
 
 [deps]
-DSP = "717857b8-e6f2-59f4-9121-6e50c889abd2"
-Distributed = "8ba89e20-285c-5b6f-9357-94700520ee1b"
-Distributions = "31c24e10-a181-5473-b8eb-7969acd0382f"
-ForwardDiff = "f6369f11-7733-5829-9624-2563aa707210"
-JLD = "4138dd39-2aa7-5051-a626-17a0bb65d9c8"
-LineSearches = "d3d80556-e9d4-5f37-9878-2ab0fcc64255"
-LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
-MAT = "23992714-dd62-5051-b70f-ba57cb901cac"
-Optim = "429524aa-4258-5aef-a3af-852621145aeb"
-Pandas = "eadc2687-ae89-51f9-a5d9-86b5a6373a9c"
-ROCAnalysis = "f535d66d-59bb-5153-8d2b-ef0a426c6aff"
-SpecialFunctions = "276daf66-3868-5448-9aa4-cd146d93841b"
-StatsBase = "2913bbd2-ae8a-5f71-8c99-4fb6c76f3a91"
-Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
