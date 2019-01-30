@@ -313,7 +313,7 @@ function sample_latent(T::Float64,L::Vector{Float64},R::Vector{Float64},
     hereL = vec(qfind(t,L))
     hereR = vec(qfind(t,R))
 
-    A = Vector{Float64}(nT)
+    A = Vector{Float64}(undef,nT)
     a = sqrt(vari)*randn()
 
     for t = 1:nT
