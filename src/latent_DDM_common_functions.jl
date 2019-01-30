@@ -328,7 +328,7 @@ function sample_latent(T::Float64,L::Vector{Float64},R::Vector{Float64},
         #drift and diffuse
         a += (dt*lambda) * a + sqrt(vara * dt) * randn();
 
-        abs(a) > B ? (a = B * sign(a); A[t:nT] = a; break) : A[t] = a
+        abs(a) > B ? (a = B * sign(a); A[t:nT] .= a; break) : A[t] = a
 
     end               
     
