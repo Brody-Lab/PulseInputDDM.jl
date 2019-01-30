@@ -5,6 +5,7 @@ using ForwardDiff, Distributed, LinearAlgebra
 using Pandas
 using SpecialFunctions
 using MAT, ROCAnalysis
+#using GLM add later for linear regression
 
 include("latent_DDM_common_functions.jl")
 include("helpers.jl")

@@ -153,7 +153,10 @@ function compute_p0(ΔLR,k,dt;f_str::String="softplus",nconds::Int=7);
     conds_bins, = qcut(vcat(ΔLR...),nconds,labels=false,duplicates="drop",retbins=true)
     fr = map(i -> (1/dt)*mean(vcat(k...)[conds_bins .== i]),0:nconds-1)
 
-    c = linreg(vcat(ΔLR...),vcat(k...))
+    #c = linreg(vcat(ΔLR...),vcat(k...))
+    A = vcat(ΔLR...)
+    b = vcat(k...)
+    c = hcat(ones(size(A, 1)), A) \ b
 
     if f_str == "exp"
         p = vcat(minimum(fr),c[2])
