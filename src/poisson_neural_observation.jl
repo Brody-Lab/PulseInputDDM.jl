@@ -128,9 +128,12 @@ function sample_model(p::Vector{Float64},T::Float64,L::Vector{Float64},R::Vector
     Random.seed!(rng)
     
     pz,py = breakup(p,f_str=f_str)
+    #just to get things working
+    dtMC = dt;
     A = sample_latent(T,L,R,pz;dt=dtMC)
-    A = cat(1,zeros(Int(ts/dtMC)),A)
-    A = decimate(A,Int(dt/dtMC))      
+    #this is just to get things working needs to be fixed
+    #A = cat(1,zeros(Int(ts/dtMC)),A)
+    #A = decimate(A,Int(dt/dtMC))      
     
     #this is if only you want the spike counts of one cell, which happens when I sample the model to get fake data
     #could probably find a better way to do this
