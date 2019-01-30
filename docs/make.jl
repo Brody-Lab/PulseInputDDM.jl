@@ -1,8 +1,8 @@
 push!(LOAD_PATH,"../src/")
 
-using Documenter, spike_data_latent_accum
+using Documenter, pulse_input_DDM
 
-makedocs(sitename="pulse_input_DDM.jl", modules=[spike_data_latent_accum], doctest=false,
+makedocs(sitename="pulse_input_DDM", modules=[pulse_input_DDM], doctest=false,
         pages = Any[
         "Home" => "index.md",
         "Tutorials" => Any[
@@ -16,6 +16,6 @@ makedocs(sitename="pulse_input_DDM.jl", modules=[spike_data_latent_accum], docte
          ])
  
 deploydocs(deps   = Deps.pip("mkdocs", "python-markdown-math"),
-           repo = "github.com/PrincetonUniversity/pulse_input_DDM.jl.git",
+           repo = "github.com/PrincetonUniversity/pulse_input_DDM.git",
            versions = ["stable" => "v^", "v#.#"]
           )
