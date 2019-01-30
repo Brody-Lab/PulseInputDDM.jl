@@ -4,7 +4,7 @@ using StatsBase, Distributions, DSP, Optim, LineSearches, JLD
 using ForwardDiff, Distributed, LinearAlgebra
 using Pandas
 using SpecialFunctions
-using MAT, ROCAnalysis
+using MAT, ROCAnalysis, Random
 #using GLM add later for linear regression
 
 include("latent_DDM_common_functions.jl")

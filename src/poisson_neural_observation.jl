@@ -124,7 +124,8 @@ function sample_model(p::Vector{Float64},T::Float64,L::Vector{Float64},R::Vector
          N::Vector{Int}, dt::Float64; f_str::String="softplus", dtMC::Float64=1e-4, rng::Int=1,
          ts::Float64=0.,get_fr::Bool=false)
     
-    srand(rng)
+    #srand(rng)
+    Random.seed!(rng)
     
     pz,py = breakup(p,f_str=f_str)
     A = sample_latent(T,L,R,pz;dt=dtMC)
