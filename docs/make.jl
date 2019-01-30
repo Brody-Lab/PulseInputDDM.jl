@@ -1,5 +1,4 @@
 push!(LOAD_PATH,"../src/")
-push!(LOAD_PATH,"../src/")
 
 using Documenter, spike_data_latent_accum
 

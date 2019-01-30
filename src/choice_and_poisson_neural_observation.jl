@@ -5,6 +5,8 @@
 #using choice_observation: bias_bin
 #using Distributed, SpecialFunctions, LinearAlgebra
 
+#=
+
 function do_optim(p,fit_vec,dt,data,n;
         f_str="softplus",map_str::String="exp",
         beta::Vector{Vector{Float64}}=Vector{Vector{Float64}}(),
@@ -80,6 +82,8 @@ function ll_wrapper(p_opt::Vector{TT}, p_const::Vector{Float64}, fit_vec::Union{
               
 end
 
+=#
+
 function LL_all_trials(pz::Vector{TT},py::Union{Vector{Vector{TT}},Vector{Vector{Float64}}},bias::TT,
         data::Dict,dt::Float64,n::Int; f_str::String="softplus", comp_posterior::Bool=false) where {TT}
         
@@ -149,6 +153,8 @@ function LL_single_trial(pz::Vector{TT}, P::Vector{TT}, M::Array{TT,2}, dx::TT,
 
 end
 
+#=
+
 function breakup(p::Vector{TT}; f_str::String="softplus") where {TT}
                 
     pz = p[1:dimz];
@@ -172,5 +178,7 @@ function breakup(p::Vector{TT}; f_str::String="softplus") where {TT}
 end
 
 inv_breakup(pz::Vector{TT},bias::TT, py::Vector{Vector{TT}}) where {TT} = vcat(pz,bias,vcat(py...))
+
+=#
 
 #end

@@ -16,8 +16,8 @@ function group_by_neuron(data)
     trials = Vector{Vector{Int}}()
     SC = Vector{Vector{Vector{Int64}}}()
 
-    map(x->push!(trials,Vector{Int}(0)),1:data["N0"])
-    map(x->push!(SC,Vector{Vector{Int}}(0)),1:data["N0"])
+    map(x->push!(trials,Vector{Int}(undef,0)),1:data["N0"])
+    map(x->push!(SC,Vector{Vector{Int}}(undef,0)),1:data["N0"])
 
     map(y->map(x->push!(trials[x],y),data["N"][y]),1:data["trial0"])
     map(n->map(t->append!(SC[n],data["spike_counts"][t][data["N"][t] .== n]),
@@ -563,7 +563,7 @@ function binLR(nT,L,R,dt)
     
 end
 
-function my_callback(os)
+#function my_callback(os)
 
     #so_far = time() - start_time
     #println(" * Time so far:     ", so_far)
@@ -577,12 +577,12 @@ function my_callback(os)
     #    history = cat(2,history,ptemp_opt)
     #    history_gx = cat(2,history_gx,os[i].metadata["g(x)"])
     #end
-    print(os[1]["x"])
+    #print(os[1]["x"])
     #save(ENV["HOME"]*"/spike-data_latent-accum"*"/history.jld", "os", os)
     #print(path)
 
-    return false
+#    return false
 
-end
+#end
 
 #end
