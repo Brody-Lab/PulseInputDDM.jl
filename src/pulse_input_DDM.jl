@@ -19,6 +19,6 @@ include("run_funcs.jl")
 
 export do_LL, poiss_LL, make_data
 export FilterSpikes, nanmean, nanstderr, rate_mat_func_filt
-export diffLR, group_by_neuron, opt_ll, do_optim_ΔLR
+export diffLR, group_by_neuron, opt_ll, do_optim_ΔLR, dimz
 
 end # module
