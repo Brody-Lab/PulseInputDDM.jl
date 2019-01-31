@@ -180,6 +180,9 @@ function breakup(p; f_str::String="softplus")
 
     if f_str == "sig"
         py = reshape(p[dimz+1:end],4,:)
+        
+    elseif f_str == "sig2"
+        py = reshape(p[dimz+1:end],4,:)
 
     elseif f_str == "exp"
         py = reshape(p[dimz+1:end],2,:)
