@@ -248,14 +248,14 @@ function do_optim_ΔLR(dt::Float64,data::Dict,fit_vec::Union{Vector{BitArray{1}}
     
         ###########################################################################################
         ## Map parameters to unbounded domain for optimization
-        inv_map_py!.(p,f_str=f_str)
+        inv_map_py!.(p,f_str=f_str,min_lambda=minimum.(muf))
     
         p = pmap((p,trials,k,fit_vec,muf)->do_optim_ΔLR_single(p,dt,ΔLR[trials],k,fit_vec;
             show_trace=show_trace,f_str=f_str,muf=muf),p,trials,SC,fit_vec,muf)
     
         ###########################################################################################
         ## Remap to bounded domain
-        map_py!.(p,f_str=f_str)
+        map_py!.(p,f_str=f_str,min_lambda=minimum.(muf))
     
 end
 
@@ -289,11 +289,12 @@ function ll_wrapper_ΔLR(p_opt::Vector{TT}, p_const::Vector{Float64},fit_vec::Un
         muf::Vector{Float64}=Vector{Float64}()) where {TT}
     
         p = gather(p_opt, p_const, fit_vec)
-       
-        #check fy because of NaN poiss_LL fiasco
-        map_py!(p,f_str=f_str)
-        λ = fy.([p],vcat(ΔLR...),f_str=f_str)
+    
         λ0 = vcat(map(x->muf[1:length(x)],ΔLR)...)
+    
+        #check fy because of NaN poiss_LL fiasco
+        map_py!(p,f_str=f_str,min_lambda=minimum(muf))
+        λ = fy.([p],vcat(ΔLR...),f_str=f_str)
     
         #-(sum(poiss_LL(λ,vcat(k...),dt)) - sum(gauss_prior(py,mu0,beta)))
         #LL = sum(poiss_LL.(vcat(k...),λ,dt))

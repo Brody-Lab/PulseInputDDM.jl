@@ -178,10 +178,7 @@ function breakup(p; f_str::String="softplus")
                 
     pz = p[1:dimz]
 
-    if f_str == "sig"
-        py = reshape(p[dimz+1:end],4,:)
-        
-    elseif f_str == "sig2"
+    if (f_str == "sig") || (f_str == "sig2")
         py = reshape(p[dimz+1:end],4,:)
 
     elseif f_str == "exp"
@@ -255,7 +252,7 @@ function sample_model(p::Vector{Float64},T::Float64,L::Vector{Float64},R::Vector
     
 end
 
-function map_py!(p::Vector{TT};f_str::String="softplus",map_str::String="exp") where {TT}
+function map_py!(p::Vector{TT};f_str::String="softplus",map_str::String="exp",min_lambda=0.) where {TT}
         
     if f_str == "exp"
         
@@ -275,7 +272,9 @@ function map_py!(p::Vector{TT};f_str::String="softplus",map_str::String="exp") w
         
     elseif f_str == "sig2"
 
-        p[1:4] = p[1:4]
+        p[3:4] = p[3:4]
+        p[1] = p[1]
+        p[2] = exp(p[2]) - min_lambda
         
     elseif f_str == "softplus"
           
@@ -288,7 +287,7 @@ function map_py!(p::Vector{TT};f_str::String="softplus",map_str::String="exp") w
     
 end
 
-function inv_map_py!(p::Vector{TT};f_str::String="softplus",map_str::String="exp") where {TT}
+function inv_map_py!(p::Vector{TT};f_str::String="softplus",map_str::String="exp",min_lambda=0.) where {TT}
      
     if f_str == "exp"
 
@@ -308,7 +307,9 @@ function inv_map_py!(p::Vector{TT};f_str::String="softplus",map_str::String="exp
         
     elseif f_str == "sig2"
 
-        p[1:4] = p[1:4]
+        p[1] = p[1]
+        p[2] = log(p[2]+min_lambda)
+        p[3:4] = p[3:4]
         
     elseif f_str == "softplus"
         
@@ -323,23 +324,7 @@ end
 
 function fy(p::Vector{TT},a::Union{TT,Float64,Int};f_str::String="softplus",x::Float64=0.,mu::Float64=0.,std::Float64=0.) where {TT}
     
-    if f_str == "sig"
-        
-        temp = p[3]*a + p[4]
-
-        if exp(temp) < 1e-150
-            y = p[1] + p[2]
-        elseif exp(temp) >= 1e150
-            y = p[1]
-        else    
-            y = p[1] + p[2]/(1. + exp(temp))
-        end
-
-        #protect from NaN gradient values
-        #y[exp(temp) .<= 1e-150] = p[1] + p[2]
-        #y[exp.(temp) .>= 1e150] = p[1]
-        
-    elseif f_str == "sig2"
+    if (f_str == "sig") || (f_str == "sig2")
         
         temp = p[3]*a + p[4]
 
