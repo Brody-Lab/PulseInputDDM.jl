@@ -210,6 +210,8 @@ function compute_p0(ΔLR,k,dt;f_str::String="softplus",nconds::Int=7);
         p = vcat(minimum(fr),c[2])
     elseif f_str == "sig"
         p = vcat(minimum(fr),maximum(fr)-minimum(fr),c[2],0.)
+    elseif f_str == "sig2"
+        p = vcat(minimum(fr),maximum(fr)-minimum(fr),c[2],0.)
     elseif f_str == "softplus"
         p = vcat(minimum(fr),c[2],0.)
     end
