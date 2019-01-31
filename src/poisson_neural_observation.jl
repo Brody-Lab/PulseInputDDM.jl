@@ -336,6 +336,22 @@ function fy(p::Vector{TT},a::Union{TT,Float64,Int};f_str::String="softplus",x::F
         #y[exp(temp) .<= 1e-150] = p[1] + p[2]
         #y[exp.(temp) .>= 1e150] = p[1]
         
+    elseif f_str == "sig2"
+        
+        temp = p[3]*a + p[4]
+
+        if exp(temp) < 1e-150
+            y = p[1] + p[2]
+        elseif exp(temp) >= 1e150
+            y = p[1]
+        else    
+            y = p[1] + p[2]/(1. + exp(temp))
+        end
+
+        #protect from NaN gradient values
+        #y[exp(temp) .<= 1e-150] = p[1] + p[2]
+        #y[exp.(temp) .>= 1e150] = p[1]
+        
     elseif f_str == "exp"
         
         y = p[1] + exp(p[2]*a)
