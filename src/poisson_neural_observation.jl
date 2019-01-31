@@ -39,8 +39,7 @@ end
 function ll_wrapper(p_opt::Vector{TT}, p_const::Vector{Float64}, fit_vec::Union{BitArray{1},Vector{Bool}}, 
         data::Dict, dt::Float64, n::Int; f_str::String="softplus", map_str::String="exp",
         beta::Vector{Vector{Float64}}=Vector{Vector{Float64}}(0), 
-        mu0::Vector{Vector{Float64}}=Vector{Vector{Float64}}(0),
-        muf::Vector{Vector{Float64}}=Vector{Vector{Float64}}()) where {TT}
+        mu0::Vector{Vector{Float64}}=Vector{Vector{Float64}}(0)) where {TT}
 
     pz,py = breakup(gather(p_opt, p_const, fit_vec),f_str=f_str)
     map_pz!(pz,dt,map_str=map_str)       
@@ -48,7 +47,7 @@ function ll_wrapper(p_opt::Vector{TT}, p_const::Vector{Float64}, fit_vec::Union{
 
     #11/5 changed this to deal with no priors, which is a default now
     #-(sum(LL_all_trials(pz, py, data, f_str=f_str, n=n, dt=dt)) - sum(gauss_prior.(py,mu0,beta)))
-    LL = sum(LL_all_trials(pz, py, data, dt, n, f_str=f_str, muf=muf))
+    LL = sum(LL_all_trials(pz, py, data, dt, n, f_str=f_str))
     
     length(beta) > 0 ? LL += sum(gauss_prior.(py,mu0,beta)) : nothing
     
@@ -57,8 +56,7 @@ function ll_wrapper(p_opt::Vector{TT}, p_const::Vector{Float64}, fit_vec::Union{
 end
     
 function LL_all_trials(pz::Vector{TT},py::Union{Vector{Vector{TT}},Vector{Vector{Float64}}}, 
-        data::Dict, dt::Float64, n::Int; f_str::String="softplus", comp_posterior::Bool=false,
-        muf::Vector{Vector{Float64}}=Vector{Vector{Float64}}()) where {TT}
+        data::Dict, dt::Float64, n::Int; f_str::String="softplus", comp_posterior::Bool=false) where {TT}
         
     P,M,xc,dx, = P_M_xc(pz,n,dt)
     
@@ -66,7 +64,7 @@ function LL_all_trials(pz::Vector{TT},py::Union{Vector{Vector{TT}},Vector{Vector
     #lambday = reshape(vcat(lambday...),n,:);           
                 
     output = pmap((L,R,T,nL,nR,N,SC) -> LL_single_trial(pz, P, M, dx, xc,
-        L, R, T, nL, nR, lambday[:,N], SC, dt, n, comp_posterior=comp_posterior,muf=muf),
+        L, R, T, nL, nR, lambday[:,N], SC, dt, n, comp_posterior=comp_posterior),
         data["leftbups"], data["rightbups"], data["nT"], data["binned_leftbups"], 
         data["binned_rightbups"], data["N"],data["spike_counts"])        
     
@@ -76,7 +74,7 @@ function LL_single_trial(pz::Vector{TT}, P::Vector{TT}, M::Array{TT,2}, dx::TT,
         xc::Vector{TT},L::Vector{Float64}, R::Vector{Float64}, T::Int,
         hereL::Vector{Int}, hereR::Vector{Int},
         lambday::Array{TT,2},spike_counts::Vector{Vector{Int}},dt::Float64,n::Int;
-        comp_posterior::Bool=false,muf::Vector{Vector{Float64}}=Vector{Vector{Float64}}()) where {TT}
+        comp_posterior::Bool=false) where {TT}
     
     #adapt magnitude of the click inputs
     La, Ra = make_adapted_clicks(pz,L,R)
@@ -91,9 +89,9 @@ function LL_single_trial(pz::Vector{TT}, P::Vector{TT}, M::Array{TT,2}, dx::TT,
     @inbounds for t = 1:T
         
         P,F = transition_Pa!(P,F,pz,t,hereL,hereR,La,Ra,M,dx,xc,n,dt)        
-        #P .*= vec(exp.(sum(poiss_LL.(spike_counts[t,:],lambday',dt),dims=1)));
-        lambda0 = vcat(map(x->x[t],muf)...)
-        P .*= vec(exp.(sum(poiss_LL.(spike_counts[t,:],(lambday .+ lambda0)',dt),dims=1)));
+        P .*= vec(exp.(sum(poiss_LL.(spike_counts[t,:],lambday',dt),dims=1)));
+        #lambda0 = vcat(map(x->x[t],muf)...)
+        #P .*= vec(exp.(sum(poiss_LL.(spike_counts[t,:],(lambday .+ lambda0)',dt),dims=1)));
         c[t] = sum(P)
         P /= c[t] 
         comp_posterior ? post[:,t] = P : nothing
@@ -229,7 +227,7 @@ end
 
 function sample_model(p::Vector{Float64},T::Float64,L::Vector{Float64},R::Vector{Float64},
          N::Vector{Int}, dt::Float64; f_str::String="softplus", dtMC::Float64=1e-4, rng::Int=1,
-         ts::Float64=0.,get_fr::Bool=false,muf::Vector{Float64}=Vector{Float64}())
+         ts::Float64=0.,get_fr::Bool=false)
     
     #srand(rng)
     Random.seed!(rng)
@@ -247,7 +245,8 @@ function sample_model(p::Vector{Float64},T::Float64,L::Vector{Float64},R::Vector
     if length(N) > 1 || get_fr == false
         Y = map(py -> poisson_noise.(fy.([py],A,f_str=f_str),dt),py[N])
     else
-        Y = poisson_noise.(fy.(py[N],A,f_str=f_str) + muf[1:length(A)],dt)
+        Y = poisson_noise.(fy.(py[N],A,f_str=f_str),dt)
+        #Y = poisson_noise.(fy.(py[N],A,f_str=f_str) + muf[1:length(A)],dt)
     end
     
 end
