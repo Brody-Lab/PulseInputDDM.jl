@@ -2,7 +2,7 @@ module pulse_input_DDM
 
 using StatsBase, Distributions, DSP, Optim, LineSearches, JLD
 using ForwardDiff, Distributed, LinearAlgebra
-using Pandas
+#using Pandas
 using SpecialFunctions
 using MAT, ROCAnalysis, Random
 #using GLM add later for linear regression

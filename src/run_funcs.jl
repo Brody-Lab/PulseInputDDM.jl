@@ -184,11 +184,21 @@ function do_LL(p,dt,data,n::Int;
     
 end
 
+function my_qcut(y,nconds)
+
+    qvec = nquantile(y,nconds)
+    qidx = map(x->findfirst(x .<= qvec),y)
+    qidx[qidx .== 1] = 2
+    qidx = qidx .- 2
+
+end
+
 function compute_p0(ΔLR,k,dt;f_str::String="softplus",nconds::Int=7);
     
     #### compute linear regression slope of tuning to $\Delta_{LR}$ and miniumum firing based on binning and averaging
 
-    conds_bins, = qcut(vcat(ΔLR...),nconds,labels=false,duplicates="drop",retbins=true)
+    conds_bins = my_qcut(vcat(ΔLR...),nconds)
+    #conds_bins, = qcut(vcat(ΔLR...),nconds,labels=false,duplicates="drop",retbins=true)
     fr = map(i -> (1/dt)*mean(vcat(k...)[conds_bins .== i]),0:nconds-1)
 
     #c = linreg(vcat(ΔLR...),vcat(k...))
