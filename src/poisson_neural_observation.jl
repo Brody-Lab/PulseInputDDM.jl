@@ -229,7 +229,7 @@ end
 
 function sample_model(p::Vector{Float64},T::Float64,L::Vector{Float64},R::Vector{Float64},
          N::Vector{Int}, dt::Float64; f_str::String="softplus", dtMC::Float64=1e-4, rng::Int=1,
-         ts::Float64=0.,get_fr::Bool=false)
+         ts::Float64=0.,get_fr::Bool=false,muf::Vector{Float64}=Vector{Float64}())
     
     #srand(rng)
     Random.seed!(rng)
@@ -247,7 +247,7 @@ function sample_model(p::Vector{Float64},T::Float64,L::Vector{Float64},R::Vector
     if length(N) > 1 || get_fr == false
         Y = map(py -> poisson_noise.(fy.([py],A,f_str=f_str),dt),py[N])
     else
-        Y = poisson_noise.(fy.(py[N],A,f_str=f_str),dt)
+        Y = poisson_noise.(fy.(py[N],A,f_str=f_str) + muf[1:length(A)],dt)
     end
     
 end
