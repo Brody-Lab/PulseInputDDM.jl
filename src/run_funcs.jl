@@ -64,6 +64,44 @@ function do_H(p,fit_vec,dt,data,n::Int;
     
 end
 
+#=
+
+function do_optim(pz,py,pRBF,fit_vec,dt,data,n::Int;
+        f_str="softplus",map_str::String="exp",
+        beta::Vector{Vector{Float64}}=Vector{Vector{Float64}}(),
+        mu0::Vector{Vector{Float64}}=Vector{Vector{Float64}}(),
+        x_tol::Float64=1e-16,f_tol::Float64=1e-16,g_tol::Float64=1e-12,
+        iterations::Int=Int(5e3),show_trace::Bool=false)
+    
+    ###########################################################################################
+    ## Map parameters to unbounded domain for optimization
+    inv_map_pz!(pz,dt,map_str=map_str)     
+    inv_map_py!.(py,f_str=f_str)
+
+    ###########################################################################################
+    ## Concatenate into a single vector and break up into optimization variables and constants
+    p_opt,p_const = inv_gather(inv_breakup(pz,py,pRBF),fit_vec)
+
+    ###########################################################################################
+    ## Optimize
+    ll(x) = ll_wrapper_RBF(x, p_const, fit_vec, data, dt, n; 
+        f_str=f_str, beta=beta, mu0=mu0, map_str=map_str)
+    opt_output, state = opt_ll(p_opt,ll;g_tol=g_tol,x_tol=x_tol,f_tol=f_tol,iterations=iterations,
+        show_trace=show_trace);
+    p_opt = Optim.minimizer(opt_output)
+
+    ###########################################################################################
+    ## Break up optimization vector into functional groups, remap to bounded domain and regroup
+    pz,py = breakup(gather(p_opt, p_const, fit_vec),f_str=f_str)
+    map_pz!(pz,dt,map_str=map_str)       
+    map_py!.(py,f_str=f_str)
+        
+    return pz, py, pRBF, opt_output, state
+    
+end
+
+=#
+
 function do_optim(p,fit_vec,dt,data,n::Int;
         f_str="softplus",map_str::String="exp",
         beta::Vector{Vector{Float64}}=Vector{Vector{Float64}}(),

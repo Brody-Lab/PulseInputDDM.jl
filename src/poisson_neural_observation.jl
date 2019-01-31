@@ -1,7 +1,40 @@
-#module poisson_neural_observation
 
-#using latent_DDM_common_functions, ForwardDiff, Optim, Pandas, Distributions
-#using Distributed, SpecialFunctions, LinearAlgebra
+#=
+
+function ll_wrapper_RBF(p_opt::Vector{TT}, p_const::Vector{Float64}, fit_vec::Union{BitArray{1},Vector{Bool}}, 
+        data::Dict, dt::Float64, n::Int; f_str::String="softplus", map_str::String="exp",
+        beta::Vector{Vector{Float64}}=Vector{Vector{Float64}}(0), 
+        mu0::Vector{Vector{Float64}}=Vector{Vector{Float64}}(0)) where {TT}
+
+    pz,py,pRBF = breakup(gather(p_opt, p_const, fit_vec),f_str=f_str)
+    map_pz!(pz,dt,map_str=map_str)       
+    map_py!.(py,f_str=f_str)
+
+    LL = sum(LL_all_trials(pz, py, pRBF, data, dt, n, f_str=f_str))
+    
+    length(beta) > 0 ? LL += sum(gauss_prior.(py,mu0,beta)) : nothing
+    
+    return -LL
+              
+end
+    
+function LL_all_trials(pz::Vector{TT},py::Union{Vector{Vector{TT}},Vector{Vector{Float64}}},
+        pRBF::Union{Vector{Vector{TT}},Vector{Vector{Float64}}},
+        data::Dict, dt::Float64, n::Int; f_str::String="softplus", comp_posterior::Bool=false) where {TT}
+        
+    P,M,xc,dx, = P_M_xc(pz,n,dt)
+    
+    lambday = fy.(py,xc',f_str=f_str)'
+    #lambday = reshape(vcat(lambday...),n,:);           
+                
+    output = pmap((L,R,T,nL,nR,N,SC) -> LL_single_trial(pz, P, M, dx, xc,
+        L, R, T, nL, nR, lambday[:,N], SC, dt, n, comp_posterior=comp_posterior),
+        data["leftbups"], data["rightbups"], data["nT"], data["binned_leftbups"], 
+        data["binned_rightbups"], data["N"],data["spike_counts"])        
+    
+end
+
+=#
 
 function ll_wrapper(p_opt::Vector{TT}, p_const::Vector{Float64}, fit_vec::Union{BitArray{1},Vector{Bool}}, 
         data::Dict, dt::Float64, n::Int; f_str::String="softplus", map_str::String="exp",
@@ -37,7 +70,10 @@ function LL_all_trials(pz::Vector{TT},py::Union{Vector{Vector{TT}},Vector{Vector
     
 end
 
-function LL_single_trial(pz::Vector{TT}, P::Vector{TT}, M::Array{TT,2}, dx::TT, 
+#=
+
+function LL_single_trial(pz::Vector{TT}, pRBF::Union{Vector{Vector{TT}},Vector{Vector{Float64}}}, 
+        rbf,c,M::Array{TT,2}, dx::TT, 
         xc::Vector{TT},L::Vector{Float64}, R::Vector{Float64}, T::Int,
         hereL::Vector{Int}, hereR::Vector{Int},
         lambday::Array{TT,2},spike_counts::Vector{Vector{Int}},dt::Float64,n::Int;
@@ -55,8 +91,11 @@ function LL_single_trial(pz::Vector{TT}, P::Vector{TT}, M::Array{TT,2}, dx::TT,
 
     @inbounds for t = 1:T
         
-        P,F = transition_Pa!(P,F,pz,t,hereL,hereR,La,Ra,M,dx,xc,n,dt)        
-        P .*= vec(exp.(sum(poiss_LL.(spike_counts[t,:],lambday',dt),dims=1)));
+        P,F = transition_Pa!(P,F,pz,t,hereL,hereR,La,Ra,M,dx,xc,n,dt)
+        
+        lambda0 = vcat(map((x,y,z)->x(y[t])*pRBF,x,c,pRBF)...)
+        
+        P .*= vec(exp.(sum(poiss_LL.(spike_counts[t,:],(lambday .+ lambda0)',dt),dims=1)));
         c[t] = sum(P)
         P /= c[t] 
         comp_posterior ? post[:,t] = P : nothing
@@ -83,6 +122,8 @@ function LL_single_trial(pz::Vector{TT}, P::Vector{TT}, M::Array{TT,2}, dx::TT,
 
 end
 
+=#
+
 function breakup(p; f_str::String="softplus")
                 
     pz = p[1:dimz]
@@ -104,7 +145,23 @@ function breakup(p; f_str::String="softplus")
     
 end
 
+function breakup(p, N, dimy, num_RBFs)
+                
+    pz = p[1:dimz]
+
+    py = reshape(p[dimz+1:dimz+N*dimy],dimy,:)
+    py = map(i->py[:,i],1:size(py,2))
+    
+    pRBF = reshape(p[dimz+N*dimy+1:end],num_RBFs,:)
+    pRBF = map(i->pRBF[:,i],1:size(pRBF,2))
+
+    return pz, py, pRBF
+    
+end
+
 inv_breakup(pz::Vector{TT},py::Vector{Vector{TT}}) where {TT} = vcat(pz,vcat(py...))
+
+inv_breakup(pz::Vector{TT},py::Vector{Vector{TT}},pRBF::Vector{Vector{TT}}) where {TT} = vcat(pz,vcat(py...),vcat(pRBF...))
 
 function sampled_dataset!(data::Dict, p::Vector{Float64}, dt::Float64; 
         f_str::String="softplus", dtMC::Float64=1e-4, num_reps::Int=1, rng::Int=1)
