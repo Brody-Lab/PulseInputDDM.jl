@@ -70,6 +70,52 @@ function LL_all_trials(pz::Vector{TT},py::Union{Vector{Vector{TT}},Vector{Vector
     
 end
 
+function LL_single_trial(pz::Vector{TT}, P::Vector{TT}, M::Array{TT,2}, dx::TT, 
+        xc::Vector{TT},L::Vector{Float64}, R::Vector{Float64}, T::Int,
+        hereL::Vector{Int}, hereR::Vector{Int},
+        lambday::Array{TT,2},spike_counts::Vector{Vector{Int}},dt::Float64,n::Int;
+        comp_posterior::Bool=false) where {TT}
+    
+    #adapt magnitude of the click inputs
+    La, Ra = make_adapted_clicks(pz,L,R)
+
+    #spike count data
+    spike_counts = reshape(vcat(spike_counts...),:,length(spike_counts))
+    
+    c = Vector{TT}(undef,T)
+    comp_posterior ? post = Array{Float64,2}(undef,n,T) : nothing
+    F = zeros(TT,n,n) #empty transition matrix for time bins with clicks
+
+    @inbounds for t = 1:T
+        
+        P,F = transition_Pa!(P,F,pz,t,hereL,hereR,La,Ra,M,dx,xc,n,dt)        
+        P .*= vec(exp.(sum(poiss_LL.(spike_counts[t,:],lambday',dt),dims=1)));
+        c[t] = sum(P)
+        P /= c[t] 
+        comp_posterior ? post[:,t] = P : nothing
+
+    end
+
+    if comp_posterior
+
+        P = ones(Float64,n); #initialze backward pass with all 1's   
+        post[:,T] .*= P;
+
+        @inbounds for t = T-1:-1:1
+            
+            P .*= vec(exp.(sum(poiss_LL.(spike_counts[t+1,:],lambday',dt),dims=1)));           
+            P,F = transition_Pa!(P,F,pz,t+1,hereL,hereR,La,Ra,M,dx,xc,n,dt;backwards=true)
+            P /= c[t+1] 
+            post[:,t] .*= P
+
+        end
+
+    end
+
+    comp_posterior ? (return post) : (return sum(log.(c)))
+
+end
+
 #=
 
 function LL_single_trial(pz::Vector{TT}, pRBF::Union{Vector{Vector{TT}},Vector{Vector{Float64}}}, 
