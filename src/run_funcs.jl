@@ -248,7 +248,8 @@ function do_optim_ΔLR(dt::Float64,data::Dict,fit_vec::Union{Vector{BitArray{1}}
     
         ###########################################################################################
         ## Map parameters to unbounded domain for optimization
-        inv_map_py!.(p,f_str=f_str,min_lambda=minimum.(muf))
+        #inv_map_py!.(p,f_str=f_str,min_lambda=minimum.(muf))
+        map((x,y)->inv_map_py!(x,f_str=f_str,min_lambda=y),p,minimum.(muf))
     
         p = pmap((p,trials,k,fit_vec,muf)->do_optim_ΔLR_single(p,dt,ΔLR[trials],k,fit_vec;
             show_trace=show_trace,f_str=f_str,muf=muf),p,trials,SC,fit_vec,muf)
