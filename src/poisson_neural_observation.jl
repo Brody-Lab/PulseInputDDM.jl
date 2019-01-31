@@ -93,7 +93,7 @@ function LL_single_trial(pz::Vector{TT}, P::Vector{TT}, M::Array{TT,2}, dx::TT,
         P,F = transition_Pa!(P,F,pz,t,hereL,hereR,La,Ra,M,dx,xc,n,dt)        
         #P .*= vec(exp.(sum(poiss_LL.(spike_counts[t,:],lambday',dt),dims=1)));
         lambda0 = vcat(map(x->x[t],muf)...)
-        P .*= vec(exp.(sum(poiss_LL.(spike_counts[t,:],(lambday .+ lambda0)',dt),dims=1)));
+        P .*= vec(exp.(sum(poiss_LL.(spike_counts[t,:],(max.(0,lambday .+ lambda0))',dt),dims=1)));
         c[t] = sum(P)
         P /= c[t] 
         comp_posterior ? post[:,t] = P : nothing
