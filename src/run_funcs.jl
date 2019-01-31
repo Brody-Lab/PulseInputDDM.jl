@@ -107,7 +107,7 @@ function do_optim(p,fit_vec,dt,data,n::Int;
         beta::Vector{Vector{Float64}}=Vector{Vector{Float64}}(),
         mu0::Vector{Vector{Float64}}=Vector{Vector{Float64}}(),
         x_tol::Float64=1e-16,f_tol::Float64=1e-16,g_tol::Float64=1e-12,
-        iterations::Int=Int(5e3),show_trace::Bool=false)
+        iterations::Int=Int(5e3),show_trace::Bool=false, muf::Vector{Vector{Float64}}=Vector{Vector{Float64}}())
     
     ###########################################################################################
     ## break up parameters based on which variables they relate to
@@ -125,7 +125,7 @@ function do_optim(p,fit_vec,dt,data,n::Int;
     ###########################################################################################
     ## Optimize
     ll(x) = ll_wrapper(x, p_const, fit_vec, data, dt, n; 
-        f_str=f_str, beta=beta, mu0=mu0, map_str=map_str)
+        f_str=f_str, beta=beta, mu0=mu0, map_str=map_str,muf=muf)
     opt_output, state = opt_ll(p_opt,ll;g_tol=g_tol,x_tol=x_tol,f_tol=f_tol,iterations=iterations,
         show_trace=show_trace);
     p_opt = Optim.minimizer(opt_output)
