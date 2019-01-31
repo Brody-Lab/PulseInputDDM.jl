@@ -270,6 +270,10 @@ function map_py!(p::Vector{TT};f_str::String="softplus",map_str::String="exp") w
             p[3:4] = -9.99 + 9.99*2 * 0.5*(1+tanh.(p[3:4]))
         end
         
+    elseif f_str == "sig2"
+
+        p[1:4] = p[1:4]
+        
     elseif f_str == "softplus"
           
         p[1] = exp(p[1])
@@ -298,6 +302,10 @@ function inv_map_py!(p::Vector{TT};f_str::String="softplus",map_str::String="exp
             p[1:2] = atanh.(((p[1:2] - 1e-5)/(99.99*0.5)) - 1)
             p[3:4] = atanh.(((p[3:4] + 9.99)/(9.99*2*0.5)) - 1)
         end
+        
+    elseif f_str == "sig2"
+
+        p[1:4] = p[1:4]
         
     elseif f_str == "softplus"
         
