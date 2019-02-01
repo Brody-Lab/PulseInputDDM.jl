@@ -297,7 +297,7 @@ function ll_wrapper_ΔLR(p_opt::Vector{TT}, p_const::Vector{Float64},fit_vec::Un
     
         #-(sum(poiss_LL(λ,vcat(k...),dt)) - sum(gauss_prior(py,mu0,beta)))
         #LL = sum(poiss_LL.(vcat(k...),λ,dt))
-        LL = sum(poiss_LL.(vcat(k...),exp.(λ+λ0),dt))
+        LL = sum(poiss_LL.(vcat(k...),log.(1. .+ exp.(λ+λ0)),dt))
         length(beta) > 0 ? LL += sum(gauss_prior.(p,mu0,beta)) : nothing
     
         return -LL
