@@ -93,7 +93,7 @@ function LL_single_trial(pz::Vector{TT}, P::Vector{TT}, M::Array{TT,2}, dx::TT,
         P,F = transition_Pa!(P,F,pz,t,hereL,hereR,La,Ra,M,dx,xc,n,dt)        
         #P .*= vec(exp.(sum(poiss_LL.(spike_counts[t,:],lambday',dt),dims=1)));
         lambda0 = vcat(map(x->x[t],muf)...)
-        P .*= vec(exp.(sum(poiss_LL.(spike_counts[t,:],(max.(0,lambday .+ lambda0))',dt),dims=1)));
+        P .*= vec(exp.(sum(poiss_LL.(spike_counts[t,:],(exp.(lambday .+ lambda0))',dt),dims=1)));
         c[t] = sum(P)
         P /= c[t] 
         comp_posterior ? post[:,t] = P : nothing
@@ -252,7 +252,7 @@ function sample_model(p::Vector{Float64},T::Float64,L::Vector{Float64},R::Vector
     
 end
 
-function map_py!(p::Vector{TT};f_str::String="softplus",map_str::String="exp",min_lambda=0.) where {TT}
+function map_py!(p::Vector{TT};f_str::String="softplus",map_str::String="exp") where {TT}
         
     if f_str == "exp"
         
@@ -274,7 +274,7 @@ function map_py!(p::Vector{TT};f_str::String="softplus",map_str::String="exp",mi
 
         p[3:4] = p[3:4]
         p[1] = p[1]
-        p[2] = exp(p[2]) - min_lambda
+        p[2] = exp(p[2])
         
     elseif f_str == "softplus"
           
@@ -287,7 +287,7 @@ function map_py!(p::Vector{TT};f_str::String="softplus",map_str::String="exp",mi
     
 end
 
-function inv_map_py!(p::Vector{TT};f_str::String="softplus",map_str::String="exp",min_lambda=0.) where {TT}
+function inv_map_py!(p::Vector{TT};f_str::String="softplus",map_str::String="exp") where {TT}
      
     if f_str == "exp"
 
@@ -308,7 +308,7 @@ function inv_map_py!(p::Vector{TT};f_str::String="softplus",map_str::String="exp
     elseif f_str == "sig2"
 
         p[1] = p[1]
-        p[2] = log(p[2]+min_lambda)
+        p[2] = log(p[2])
         p[3:4] = p[3:4]
         
     elseif f_str == "softplus"
