@@ -13,7 +13,7 @@ var documenterSearchIndex = {"docs": [
     "page": "Home",
     "title": "Latent DDM  Documentation",
     "category": "section",
-    "text": ""
+    "text": "Pages = [\n    \"tutorial/page1.md\",\n    \"tutorial/page2.md\"]\nDepth = 2"
 },
 
 {
