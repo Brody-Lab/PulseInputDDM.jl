@@ -5,13 +5,9 @@ using Documenter, pulse_input_DDM
 makedocs(sitename="pulse_input_DDM", modules=[pulse_input_DDM], doctest=false,
         pages = Any[
         "Home" => "index.md",
-        "Tutorials" => Any[
-          "tutorial/page1.md",
-          "tutorial/page2.md"
-         ],
-         "Section2" => Any[
-           "sec2/page1.md",
-           "sec2/page2.md"
+        "Getting Started" => Any[
+          "man/choice_observation_model.md",
+          "man/neural_observation_model.md"
          ]
          ])
  

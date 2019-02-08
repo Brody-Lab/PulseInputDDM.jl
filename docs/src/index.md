@@ -1,11 +1,11 @@
-# Latent DDM  Documentation
+# Pulse_input_DDM  Documentation
 
 *Code for fitting latent drift diffusion models to pulsed input data and neural activity or behavioral observation data.*
 
 ```@contents
 Pages = [
-    "tutorial/page1.md",
-    "tutorial/page2.md"]
+    "man/choice_observation_model.md",
+    "man/neural_observation_model.md"]
 Depth = 2
 ```
 

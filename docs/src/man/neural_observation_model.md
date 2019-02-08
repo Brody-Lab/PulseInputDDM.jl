@@ -1,8 +1,8 @@
-#Title
+# Fitting a model to neural activity
 
 Some text describing this section
  
-## Subtitle
+## Some important functions
  
 ```@docs
 poiss_LL(k,λ,dt)
