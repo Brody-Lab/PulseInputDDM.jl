@@ -17,11 +17,19 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
+    "location": "#pulse_input_DDM.optimize_model-Union{Tuple{TT}, Tuple{Array{TT,1},TT,Any,Any,Any}} where TT",
+    "page": "Home",
+    "title": "pulse_input_DDM.optimize_model",
+    "category": "method",
+    "text": "optimize_model(pz, bias, pz_fit_vec, bias_fit_vec,\n    data; dt, n, map_str, x_tol,f_tol,g_tol, iterations)\n\nOptimize parameters specified within fit vectors.\n\n\n\n\n\n"
+},
+
+{
     "location": "#Functions-1",
     "page": "Home",
     "title": "Functions",
     "category": "section",
-    "text": "    optimize_model(pz, bias, pz_fit_vec, bias_fit_vec,\n        data; dt, n, map_str, x_tol,f_tol,g_tol, iterations)"
+    "text": "    optimize_model(pz::Vector{TT}, bias::TT, pz_fit_vec, bias_fit_vec,\n        data; dt::Float64=1e-2, n=53, map_str::String=\"exp\",\n        x_tol::Float64=1e-16,f_tol::Float64=1e-16,g_tol::Float64=1e-12,\n        iterations::Int=Int(5e3)) where {TT <: Any}"
 },
 
 {
@@ -45,7 +53,7 @@ var documenterSearchIndex = {"docs": [
     "page": "Fitting a model to choice observations",
     "title": "Fitting a model to choice observations",
     "category": "section",
-    "text": "Some text describing this section"
+    "text": "We can fit the parameters of the latent model uses animal choices."
 },
 
 {
@@ -53,7 +61,7 @@ var documenterSearchIndex = {"docs": [
     "page": "Fitting a model to choice observations",
     "title": "Some important functions",
     "category": "section",
-    "text": "    optimize_model(pz, bias, pz_fit_vec, bias_fit_vec,\n        data; dt, n, map_str, x_tol,f_tol,g_tol, iterations)"
+    "text": "    optimize_model(pz::Vector{TT}, bias::TT, pz_fit_vec, bias_fit_vec,\n        data; dt::Float64=1e-2, n=53, map_str::String=\"exp\",\n        x_tol::Float64=1e-16,f_tol::Float64=1e-16,g_tol::Float64=1e-12,\n        iterations::Int=Int(5e3)) where {TT <: Any}"
 },
 
 {
@@ -73,11 +81,19 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
+    "location": "man/neural_observation_model/#pulse_input_DDM.optimize_model-Union{Tuple{TT}, Tuple{Array{TT,1},Array{Array{TT,1},1},Any,Any,Any}} where TT",
+    "page": "Fitting a model to neural activity",
+    "title": "pulse_input_DDM.optimize_model",
+    "category": "method",
+    "text": "optimize_model(pz,py,pz_fit,py_fit,data;\n    dt::Float64=1e-2, n::Int=53, f_str=\"softplus\",map_str::String=\"exp\",\n    beta::Vector{Vector{Float64}}=Vector{Vector{Float64}}(),\n    mu0::Vector{Vector{Float64}}=Vector{Vector{Float64}}(),\n    x_tol::Float64=1e-16,f_tol::Float64=1e-16,g_tol::Float64=1e-12,\n    iterations::Int=Int(5e3),show_trace::Bool=true, \n    λ0::Vector{Vector{Float64}}=Vector{Vector{Float64}}())\n\nOptimize parameters specified within fit vectors.\n\n\n\n\n\n"
+},
+
+{
     "location": "man/neural_observation_model/#Some-important-functions-1",
     "page": "Fitting a model to neural activity",
     "title": "Some important functions",
     "category": "section",
-    "text": "    optimize_model(pz,py,pz_fit,py_fit,data;\n        dt::Float64=1e-2, n::Int=53, f_str=\"softplus\",map_str::String=\"exp\",\n        beta::Vector{Vector{Float64}}=Vector{Vector{Float64}}(),\n        mu0::Vector{Vector{Float64}}=Vector{Vector{Float64}}(),\n        x_tol::Float64=1e-16,f_tol::Float64=1e-16,g_tol::Float64=1e-12,\n        iterations::Int=Int(5e3),show_trace::Bool=true, \n        λ0::Vector{Vector{Float64}}=Vector{Vector{Float64}}())"
+    "text": "    optimize_model(pz::Vector{TT},py::Vector{Vector{TT}},pz_fit,py_fit,data;\n        dt::Float64=1e-2, n::Int=53, f_str=\"softplus\",map_str::String=\"exp\",\n        beta::Vector{Vector{Float64}}=Vector{Vector{Float64}}(),\n        mu0::Vector{Vector{Float64}}=Vector{Vector{Float64}}(),\n        x_tol::Float64=1e-16,f_tol::Float64=1e-16,g_tol::Float64=1e-12,\n        iterations::Int=Int(5e3),show_trace::Bool=true, \n        λ0::Vector{Vector{Float64}}=Vector{Vector{Float64}}()) where {TT <: Any}"
 },
 
 ]}
