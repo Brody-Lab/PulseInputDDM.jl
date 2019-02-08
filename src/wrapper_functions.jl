@@ -63,9 +63,19 @@ function do_H(pz,bias,pz_fit_vec,bias_fit_vec,data,dt::Float64=1e-2,n::Int=53,ma
     
 end
 
+"""
+    optimize_model(pz::Vector{TT}, bias::TT, pz_fit_vec, bias_fit_vec,
+        data; dt::Float64=1e-2, n=53, map_str::String="exp",
+        x_tol::Float64=1e-16,f_tol::Float64=1e-16,g_tol::Float64=1e-12,
+        iterations::Int=Int(5e3))
+
+    Optimize parameters specified within fit vectors.
+
+"""
 function optimize_model(pz::Vector{TT}, bias::TT, pz_fit_vec, bias_fit_vec,
         data; dt::Float64=1e-2, n=53, map_str::String="exp",
-        x_tol::Float64=1e-16,f_tol::Float64=1e-16,g_tol::Float64=1e-12,iterations::Int=Int(5e3)) where {TT <: Any}
+        x_tol::Float64=1e-16,f_tol::Float64=1e-16,g_tol::Float64=1e-12,
+        iterations::Int=Int(5e3)) where {TT <: Any}
     
     fit_vec = combine_latent_and_observation(pz_fit_vec, bias_fit_vec)
     p_opt, p_const = split_combine_invmap(pz, bias, fit_vec, dt, map_str)
@@ -202,6 +212,18 @@ end
 
 =#
 
+"""
+    optimize_model(pz::Vector{TT},py::Vector{Vector{TT}},pz_fit,py_fit,data;
+        dt::Float64=1e-2, n::Int=53, f_str="softplus",map_str::String="exp",
+        beta::Vector{Vector{Float64}}=Vector{Vector{Float64}}(),
+        mu0::Vector{Vector{Float64}}=Vector{Vector{Float64}}(),
+        x_tol::Float64=1e-16,f_tol::Float64=1e-16,g_tol::Float64=1e-12,
+        iterations::Int=Int(5e3),show_trace::Bool=true, 
+        λ0::Vector{Vector{Float64}}=Vector{Vector{Float64}}())
+
+    Optimize parameters specified within fit vectors.
+
+"""
 function optimize_model(pz::Vector{TT},py::Vector{Vector{TT}},pz_fit,py_fit,data;
         dt::Float64=1e-2, n::Int=53, f_str="softplus",map_str::String="exp",
         beta::Vector{Vector{Float64}}=Vector{Vector{Float64}}(),
