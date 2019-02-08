@@ -6,6 +6,9 @@ os:
 julia:
     - 1.0
 
+env:
+    - PYTHON=""
+
 notifications:
   email: false
     
