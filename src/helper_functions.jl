@@ -1,6 +1,6 @@
-#module helpers
 
-#export qfind
+normtanh(x) = 0.5 * (1. + tanh(x))
+normatanh(x) = atanh(2. * x - 1.)
 
 function qfind(x,ts)
 
@@ -57,4 +57,11 @@ function qfind(x,ts)
 
 end
 
-#end
+function my_qcut(y,nconds)
+
+    qvec = nquantile(y,nconds)
+    qidx = map(x->findfirst(x .<= qvec),y)
+    qidx[qidx .== 1] .= 2
+    qidx .= qidx .- 2
+
+end

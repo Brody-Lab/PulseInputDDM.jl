@@ -1,11 +1,3 @@
-#module initialize_latent_model
-
-const dimy, dt = 4, 2e-2
-
-#using initialize_spike_obs_model, JLD
-#using StatsBase, MAT, helpers
-
-#export load_data, make_data, get_sessid, keep_single_neuron_data!
 
 function load_data(path::String,model_type::Union{String,Array{String}},
         reload_pth::String,map_str::String,ratname::String)
@@ -281,4 +273,63 @@ function my_callback(os)
 
 end
 
+function group_by_neuron(data)
+    
+    trials = Vector{Vector{Int}}()
+    SC = Vector{Vector{Vector{Int64}}}()
+
+    map(x->push!(trials,Vector{Int}(undef,0)),1:data["N0"])
+    map(x->push!(SC,Vector{Vector{Int}}(undef,0)),1:data["N0"])
+
+    map(y->map(x->push!(trials[x],y),data["N"][y]),1:data["trial0"])
+    map(n->map(t->append!(SC[n],data["spike_counts"][t][data["N"][t] .== n]),
+        trials[n]),1:data["N0"])
+    
+    return trials, SC
+    
+end
+
+#function my_callback(os)
+
+    #so_far = time() - start_time
+    #println(" * Time so far:     ", so_far)
+  
+    #history = Array{Float64,2}(sum(fit_vec),0)
+    #history_gx = Array{Float64,2}(sum(fit_vec),0)
+    #for i = 1:length(os)
+    #    ptemp = group_params(os[i].metadata["x"], p_const, fit_vec)
+    #    ptemp = map_func!(ptemp,model_type,"tanh",N=N)
+    #    ptemp_opt, = break_params(ptemp, fit_vec)       
+    #    history = cat(2,history,ptemp_opt)
+    #    history_gx = cat(2,history_gx,os[i].metadata["g(x)"])
+    #end
+    #print(os[1]["x"])
+    #save(ENV["HOME"]*"/spike-data_latent-accum"*"/history.jld", "os", os)
+    #print(path)
+
+#    return false
+
 #end
+
+##############################################################################################################
+
+#should modify this to return the differnece only, and then allow filtering afterwards
+function diffLR(nT,L,R,dt)
+    
+    L,R = binLR(nT,L,R,dt)   
+    cumsum(-L + R)
+    
+end
+
+function binLR(nT,L,R,dt)
+    
+    #compute the cumulative diff of clicks
+    t = 0:dt:nT*dt;
+    L = fit(Histogram,L,t,closed=:left)
+    R = fit(Histogram,R,t,closed=:left)
+    L = L.weights
+    R = R.weights
+    
+    return L,R
+    
+end
