@@ -13,7 +13,7 @@ var documenterSearchIndex = {"docs": [
     "page": "Home",
     "title": "Latent DDM  Documentation",
     "category": "section",
-    "text": "Pages = [\n    \"tutorial/page1.md\",\n    \"tutorial/page2.md\"]\nDepth = 2"
+    "text": "Code for fitting latent drift diffusion models to pulsed input data and neural activity or behavioral observation data.Pages = [\n    \"tutorial/page1.md\",\n    \"tutorial/page2.md\"]\nDepth = 2"
 },
 
 {
@@ -74,15 +74,23 @@ var documenterSearchIndex = {"docs": [
 
 {
     "location": "sec2/page1/#",
-    "page": "-",
-    "title": "-",
+    "page": "Fitting a model to neural activity",
+    "title": "Fitting a model to neural activity",
     "category": "page",
-    "text": "#TitleSome text describing this section"
+    "text": ""
+},
+
+{
+    "location": "sec2/page1/#Fitting-a-model-to-neural-activity-1",
+    "page": "Fitting a model to neural activity",
+    "title": "Fitting a model to neural activity",
+    "category": "section",
+    "text": "Some text describing this section"
 },
 
 {
     "location": "sec2/page1/#Subtitle-1",
-    "page": "-",
+    "page": "Fitting a model to neural activity",
     "title": "Subtitle",
     "category": "section",
     "text": "poiss_LL(k,λ,dt)"
