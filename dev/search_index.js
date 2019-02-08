@@ -41,9 +41,9 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "tutorial/page1/#spike_data_latent_accum.poiss_LL-Tuple{Any,Any,Any}",
+    "location": "tutorial/page1/#pulse_input_DDM.poiss_LL-Tuple{Any,Any,Any}",
     "page": "-",
-    "title": "spike_data_latent_accum.poiss_LL",
+    "title": "pulse_input_DDM.poiss_LL",
     "category": "method",
     "text": "poiss_LL(k,λ,dt)  \n\nreturns poiss LL\n\n\n\n\n\n"
 },
