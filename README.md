@@ -1,6 +1,7 @@
 # pulse_input_DDM
 
 [![](https://img.shields.io/badge/docs-dev-blue.svg)](https://PrincetonUniversity.github.io/pulse_input_DDM/dev)
+[![](https://img.shields.io/travis/com/:user/:repo.svg)](https://travis-ci.com/PrincetonUniversity/pulse_input_DDM.svg?token=WcHBepPGGgEuyqydchVr&branch=master)
 
 # Introduction
 
