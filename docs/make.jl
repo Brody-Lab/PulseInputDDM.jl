@@ -2,7 +2,7 @@ push!(LOAD_PATH,"../src/")
 
 using Documenter, pulse_input_DDM
 
-makedocs(sitename="pulse_input_DDM", modules=[pulse_input_DDM], doctest=false,
+makedocs(sitename="pulse input DDM", modules=[pulse_input_DDM], doctest=false,
         pages = Any[
         "Home" => "index.md",
         "Getting Started" => Any[
