@@ -64,10 +64,8 @@ function do_H(pz,bias,pz_fit_vec,bias_fit_vec,data,dt::Float64=1e-2,n::Int=53,ma
 end
 
 """
-    optimize_model(pz::Vector{TT}, bias::TT, pz_fit_vec, bias_fit_vec,
-        data; dt::Float64=1e-2, n=53, map_str::String="exp",
-        x_tol::Float64=1e-16,f_tol::Float64=1e-16,g_tol::Float64=1e-12,
-        iterations::Int=Int(5e3))
+    optimize_model(pz, bias, pz_fit_vec, bias_fit_vec,
+        data; dt, n, map_str, x_tol,f_tol,g_tol, iterations)
 
     Optimize parameters specified within fit vectors.
 
@@ -213,7 +211,7 @@ end
 =#
 
 """
-    optimize_model(pz::Vector{TT},py::Vector{Vector{TT}},pz_fit,py_fit,data;
+    optimize_model(pz,py,pz_fit,py_fit,data;
         dt::Float64=1e-2, n::Int=53, f_str="softplus",map_str::String="exp",
         beta::Vector{Vector{Float64}}=Vector{Vector{Float64}}(),
         mu0::Vector{Vector{Float64}}=Vector{Vector{Float64}}(),
