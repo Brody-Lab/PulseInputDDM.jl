@@ -15,6 +15,9 @@ makedocs(sitename="pulse input DDM",
           "man/using_spock.md",
           "man/aggregating_sessions.md"
          ],
+        "Getting up and running on scotty or spock" => Any[
+          "man/vpn_is_annoying.md"
+         ],
         "Index" => "links.md",
         "Functions" => "functions.md"
          ])
