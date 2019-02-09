@@ -13,7 +13,7 @@ var documenterSearchIndex = {"docs": [
     "page": "Home",
     "title": "pulse input DDM",
     "category": "section",
-    "text": "Code for fitting latent drift diffusion models to pulsed input data and neural activity or behavioral observation data.Pages = [\n    \"man/using_spock.md\",\n    \"man/aggregating_sessions.md\",\n    \"man/choice_observation_model.md\",\n    \"man/neural_observation_model.md\"]\nDepth = 2"
+    "text": "Code for fitting drift diffusion models (DDMs) to pulsed input data and spiking neural activity or choice observation data.Pages = [\n    \"man/using_spock.md\",\n    \"man/aggregating_sessions.md\",\n    \"man/choice_observation_model.md\",\n    \"man/neural_observation_model.md\"]\nDepth = 2"
 },
 
 {
