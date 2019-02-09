@@ -335,47 +335,24 @@ end
 
 ########################## RBF model ###########################################
 
-#=
-
-function optimize_model(pz::Vector{TT},py::Vector{Vector{TT}},pz_fit,py_fit,data;
+function optimize_model(pz::Vector{TT}, py::Vector{Vector{TT}}, pRBF::Vector{Vector{TT}},
+        pz_fit, py_fit, pRBF_fit, data;
         dt::Float64=1e-2, n::Int=53, f_str="softplus",map_str::String="exp",
         beta::Vector{Vector{Float64}}=Vector{Vector{Float64}}(),
         mu0::Vector{Vector{Float64}}=Vector{Vector{Float64}}(),
         x_tol::Float64=1e-16,f_tol::Float64=1e-16,g_tol::Float64=1e-12,
-        iterations::Int=Int(5e3),show_trace::Bool=true, 
-        λ0::Vector{Vector{Float64}}=Vector{Vector{Float64}}()) where {TT <: Any}
+        iterations::Int=Int(5e3),show_trace::Bool=false) where {TT <: Any}
 
-    fit_vec = combine_latent_and_observation(pz_fit,py_fit)
-    p_opt, p_const = split_combine_invmap(pz, py, fit_vec, dt, f_str, map_str)
+#        λ0::Vector{Vector{Float64}}=Vector{Vector{Float64}}()) where {TT <: Any}
 
-    ###########################################################################################
-    ## Optimize
-    ll(x) = ll_wrapper(x, p_const, fit_vec, data, λ0, f_str; dt=dt, n=n, beta=beta, mu0=mu0, map_str=map_str)
-    opt_output, state = opt_ll(p_opt,ll;g_tol=g_tol, x_tol=x_tol, f_tol=f_tol,
-        iterations=iterations, show_trace=show_trace);
-    p_opt = Optim.minimizer(opt_output)
-
-    pz, py = map_split_combine(p_opt, p_const, fit_vec, dt, f_str, map_str)
-        
-    return pz, py, opt_output, state
-    
-end
-
-function do_optim(pz,py,pRBF,fit_vec,dt,data,n::Int;
-        f_str="softplus",map_str::String="exp",
-        beta::Vector{Vector{Float64}}=Vector{Vector{Float64}}(),
-        mu0::Vector{Vector{Float64}}=Vector{Vector{Float64}}(),
-        x_tol::Float64=1e-16,f_tol::Float64=1e-16,g_tol::Float64=1e-12,
-        iterations::Int=Int(5e3),show_trace::Bool=false)
-
-    fit_vec = combine_latent_and_observation(pz_fit,py_fit)
+    fit_vec = combine_latent_and_observation(pz_fit, py_fit, pRBF_fit)
     p_opt,p_const = split_variable_and_const(combine_latent_and_observation(pz,py,pRBF),fit_vec)
 
     ###########################################################################################
     ## Optimize
-    ll(x) = ll_wrapper(x, p_const, fit_vec, data, dt=dt, n=n; f_str=f_str, beta=beta, mu0=mu0, map_str=map_str)
-    opt_output, state = opt_ll(p_opt,ll;g_tol=g_tol,x_tol=x_tol,f_tol=f_tol,iterations=iterations,
-        show_trace=show_trace);
+    ll(x) = ll_wrapper(x, p_const, fit_vec, data, f_str; dt=dt, n=n, beta=beta, mu0=mu0, map_str=map_str)
+    opt_output, state = opt_ll(p_opt,ll;g_tol=g_tol,x_tol=x_tol,f_tol=f_tol,
+        iterations=iterations, show_trace=show_trace);
     p_opt = Optim.minimizer(opt_output)
 
     pz, py, pRBF = map_split_combine(p_opt, p_const, fit_vec, dt, f_str, map_str)
@@ -384,7 +361,32 @@ function do_optim(pz,py,pRBF,fit_vec,dt,data,n::Int;
     
 end
 
-=#
+function ll_wrapper(p_opt::Vector{TT}, p_const::Vector{Float64}, fit_vec::Union{BitArray{1},Vector{Bool}}, 
+        data::Dict, f_str::String;
+        dt::Float64=1e-2, n::Int=53, map_str::String="exp",
+        beta::Vector{Vector{Float64}}=Vector{Vector{Float64}}(0), 
+        mu0::Vector{Vector{Float64}}=Vector{Vector{Float64}}(0)) where {TT}
+
+    pz, py, pRBF = map_split_combine(p_opt, p_const, fit_vec, dt, f_str, map_str)
+
+    LL = compute_LL(pz, py, pRBF, data, dt=dt, n=n, f_str=f_str, beta=beta, mu0 = mu0)
+    
+    return -LL
+              
+end
+
+function compute_LL(pz::Vector{T},py::Vector{Vector{T}},pRBF::Vector{Vector{T}}, data;
+        dt::Float64=1e-2, n::Int=53,f_str="softplus",
+        beta::Vector{Vector{Float64}}=Vector{Vector{Float64}}(),
+        mu0::Vector{Vector{Float64}}=Vector{Vector{Float64}}()) where {T <: Any}
+    
+    LL = sum(LL_all_trials(pz, py, pRBF, data, dt=dt, n=n, f_str=f_str))
+    
+    length(beta) > 0 ? LL += sum(gauss_prior.(py,mu0,beta)) : nothing
+    
+    return LL
+    
+end
 
 ########################## Priors ###########################################
 

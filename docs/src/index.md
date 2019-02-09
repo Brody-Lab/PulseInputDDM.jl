@@ -79,7 +79,7 @@ Now, copy the url that was created when you launched the jupyter notebook into y
 
 Here is a screen shot of what a typical terminal will look like, showing the url that needs to be copied and pasted:
 
-![notebook-screen-shot](./assets/notebook-screen-shot.png)
+![notebook-screen-shot](assets/notebook-screen-shot.png)
 
 #### Now that everything's set up, how do I open a notebook again?
 
