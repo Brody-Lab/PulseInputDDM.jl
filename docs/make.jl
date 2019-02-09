@@ -8,7 +8,8 @@ makedocs(sitename="pulse input DDM", modules=[pulse_input_DDM], doctest=false,
         "Getting Started" => Any[
           "man/choice_observation_model.md",
           "man/neural_observation_model.md",
-          "man/using_spock.md"
+          "man/using_spock.md",
+          "man/aggregating_sessions.md"
          ]
          ])
  
