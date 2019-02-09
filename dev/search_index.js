@@ -13,31 +13,23 @@ var documenterSearchIndex = {"docs": [
     "page": "Home",
     "title": "pulse input DDM",
     "category": "section",
-    "text": "Code for fitting drift diffusion models (DDMs) to pulsed input data and spiking neural activity or choice observation data.Pages = [\n    \"man/using_spock.md\",\n    \"man/aggregating_sessions.md\",\n    \"man/choice_observation_model.md\",\n    \"man/neural_observation_model.md\"]\nDepth = 2"
+    "text": "This is a package for fitting drift diffusion models (DDMs) to pulsed input data and spiking neural activity or choice observation data."
 },
 
 {
-    "location": "#pulse_input_DDM.optimize_model-Union{Tuple{TT}, Tuple{Array{TT,1},TT,Any,Any,Any}} where TT",
+    "location": "#Getting-Started-1",
     "page": "Home",
-    "title": "pulse_input_DDM.optimize_model",
-    "category": "method",
-    "text": "optimize_model(pz, bias, pz_fit_vec, bias_fit_vec,\n    data; dt, n, map_str, x_tol,f_tol,g_tol, iterations)\n\nOptimize parameters specified within fit vectors.\n\n\n\n\n\n"
-},
-
-{
-    "location": "#Functions-1",
-    "page": "Home",
-    "title": "Functions",
-    "category": "section",
-    "text": "    optimize_model(pz::Vector{TT}, bias::TT, pz_fit_vec, bias_fit_vec,\n        data; dt::Float64=1e-2, n=53, map_str::String=\"exp\",\n        x_tol::Float64=1e-16,f_tol::Float64=1e-16,g_tol::Float64=1e-12,\n        iterations::Int=Int(5e3)) where {TT <: Any}"
-},
-
-{
-    "location": "#Index-1",
-    "page": "Home",
-    "title": "Index",
+    "title": "Getting Started",
     "category": "section",
     "text": ""
+},
+
+{
+    "location": "#Basics-1",
+    "page": "Home",
+    "title": "Basics",
+    "category": "section",
+    "text": "Pages = [\n    \"man/using_spock.md\",\n    \"man/aggregating_sessions.md\",\n    \"man/choice_observation_model.md\",\n    \"man/neural_observation_model.md\"]\nDepth = 2"
 },
 
 {
@@ -142,6 +134,46 @@ var documenterSearchIndex = {"docs": [
     "title": "Key functions",
     "category": "section",
     "text": ""
+},
+
+{
+    "location": "links/#",
+    "page": "Index",
+    "title": "Index",
+    "category": "page",
+    "text": ""
+},
+
+{
+    "location": "links/#Index-1",
+    "page": "Index",
+    "title": "Index",
+    "category": "section",
+    "text": "Order   = [:type, :function]"
+},
+
+{
+    "location": "functions/#",
+    "page": "Functions",
+    "title": "Functions",
+    "category": "page",
+    "text": ""
+},
+
+{
+    "location": "functions/#pulse_input_DDM.optimize_model-Union{Tuple{TT}, Tuple{Array{TT,1},TT,Any,Any,Any}} where TT",
+    "page": "Functions",
+    "title": "pulse_input_DDM.optimize_model",
+    "category": "method",
+    "text": "optimize_model(pz, bias, pz_fit_vec, bias_fit_vec,\n    data; dt, n, map_str, x_tol,f_tol,g_tol, iterations)\n\nOptimize parameters specified within fit vectors.\n\n\n\n\n\n"
+},
+
+{
+    "location": "functions/#Functions-1",
+    "page": "Functions",
+    "title": "Functions",
+    "category": "section",
+    "text": "    optimize_model(pz::Vector{TT}, bias::TT, pz_fit_vec, bias_fit_vec,\n        data; dt::Float64=1e-2, n=53, map_str::String=\"exp\",\n        x_tol::Float64=1e-16,f_tol::Float64=1e-16,g_tol::Float64=1e-12,\n        iterations::Int=Int(5e3)) where {TT <: Any}"
 },
 
 ]}
