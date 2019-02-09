@@ -36,7 +36,9 @@ Presently, you are using the "base" anaconda environment, for which PNI users do
 
 Now that you've created this new environment, you need to use it, 
 
-`source activate julia`. 
+```
+    >> source activate julia
+``` 
 
 Next, you need to install Julia via [anaconda](https://anaconda.org/conda-forge/julia), 
 
@@ -48,24 +50,28 @@ You are using a *whole new version of Julia* (not the same one as when you execu
 
 #### Installing the IJulia package
 
-Once, Julia is installed, you can launch it by typing `julia`. From here, you need to add the IJulia package so you can use Julia in a notebook. This is done in the normal way,
+Once, Julia is installed, you can launch it by typing `>> julia`. From here, you need to add the IJulia package so you can use Julia in a notebook. This is done in the normal way,
 
 ```
     julia > using Pkg
     julia > Pkg.add("IJulia")
 ```
 
-You might now want to add any packages you use, again in the normal way (for example, you can now add the pulse_input_DDM package, as we will do eventually, described in the [Getting the pulse_input_DDM package from GitHub](@ref) section). You're done (with this part)! You can exit Julia.
+You might now want to add any packages you use, again in the normal way (for example, you can now add the pulse_input_DDM package, as we will do eventually, described in the [Getting the pulse input DDM package from GitHub](@ref) section). You're done (with this part)! You can exit Julia.
 
 #### Opening a notebook on scotty and creating a SSH tunnel
 
 Now, that Julia is all set up, you need to launch a Jupyter notebook on scotty (which is possible because you're already using the anaconda module, which contains jupyter). In your ssh connection to scotty, type 
 
-`jupyter notebook`. 
+```
+    >> jupyter notebook
+``` 
 
 Once this has executed, it will pick a port on which to run and provide you a url so that you can launch the notebook in your local browser. But before you can do that, you need to create a "ssh tunnel" from the open port on scotty and a port on your local machine. *In a separate terminal window*, create a *new* ssh connection to scotty, but one that will map the ports, 
 
-`ssh -L <port>:localhost:<port> [username]@scotty.princeton.edu` 
+```
+    >> ssh -L <port>:localhost:<port> [username]@scotty.princeton.edu
+``` 
 
 where `<port>` is the port assigned by scotty, and the second `<port>` is one on your local machine (you can pick the same one that scotty did, if you don't happen to be already using it).
 
@@ -73,21 +79,21 @@ Now, copy the url that was created when you launched the jupyter notebook into y
 
 Here is a screen shot of what a typical terminal will look like, showing the url that needs to be copied and pasted:
 
-![notebook-screen-shot](/assets/notebook-screen-shot.png)
+![notebook-screen-shot](./assets/notebook-screen-shot.png)
 
 #### Now that everything's set up, how do I open a notebook again?
 
 Next time, you only need to:
 
-- SSH into scotty: `ssh scotty`.
-- Load the anaconda module: `module load anacondapy/5.1.0`.
-- Activate the julia environment: `source activate julia`.
-- Launch a jupyter notebook: `jupyter notebook`.
-- Create the ssh tunnel: `ssh -L <port>:localhost:<port> scotty`.
+- SSH into scotty: `>> ssh scotty`.
+- Load the anaconda module: `>> module load anacondapy/5.1.0`.
+- Activate the julia environment: `>> source activate julia`.
+- Launch a jupyter notebook: `>> jupyter notebook`.
+- Create the ssh tunnel: `>> ssh -L <port>:localhost:<port> scotty`.
 
 These instructions can also be found [here](https://brodylabwiki.princeton.edu/wiki/index.php/Internal:IJulia_notebook_on_scotty).
 
-###  Getting the pulse_input_DDM package from GitHub
+###  Getting the pulse input DDM package from GitHub
 
 Now, you need to add the pulse_input_DDM package from the github repository. Startup up a "anaconda julia" REPL the same way we did above when you installed the IJulia pacakge, then  by typing the following commands into a Julia REPL:
 

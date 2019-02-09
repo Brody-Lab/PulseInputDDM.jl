@@ -147,44 +147,6 @@ function compute_CI(H, pz::Vector{Float64}, py::Vector{Vector{Float64}},
     
 end
 
-#=
-
-function do_optim(pz,py,pRBF,fit_vec,dt,data,n::Int;
-        f_str="softplus",map_str::String="exp",
-        beta::Vector{Vector{Float64}}=Vector{Vector{Float64}}(),
-        mu0::Vector{Vector{Float64}}=Vector{Vector{Float64}}(),
-        x_tol::Float64=1e-16,f_tol::Float64=1e-16,g_tol::Float64=1e-12,
-        iterations::Int=Int(5e3),show_trace::Bool=false)
-    
-    ###########################################################################################
-    ## Map parameters to unbounded domain for optimization
-    inv_map_pz!(pz,dt,map_str=map_str)     
-    inv_map_py!.(py,f_str=f_str)
-
-    ###########################################################################################
-    ## Concatenate into a single vector and break up into optimization variables and constants
-    p_opt,p_const = split_variable_and_const(combine_latent_and_observation(pz,py,pRBF),fit_vec)
-
-    ###########################################################################################
-    ## Optimize
-    ll(x) = ll_wrapper_RBF(x, p_const, fit_vec, data, dt, n; 
-        f_str=f_str, beta=beta, mu0=mu0, map_str=map_str)
-    opt_output, state = opt_ll(p_opt,ll;g_tol=g_tol,x_tol=x_tol,f_tol=f_tol,iterations=iterations,
-        show_trace=show_trace);
-    p_opt = Optim.minimizer(opt_output)
-
-    ###########################################################################################
-    ## Break up optimization vector into functional groups, remap to bounded domain and regroup
-    pz,py = split_latent_and_observation(combine_variable_and_const(p_opt, p_const, fit_vec),f_str=f_str)
-    map_pz!(pz,dt,map_str=map_str)       
-    map_py!.(py,f_str=f_str)
-        
-    return pz, py, pRBF, opt_output, state
-    
-end
-
-=#
-
 """
     optimize_model(pz,py,pz_fit,py_fit,data;
         dt::Float64=1e-2, n::Int=53, f_str="softplus",map_str::String="exp",
@@ -370,6 +332,59 @@ function compute_LL(py::Vector{T}, ΔLR::Vector{Vector{Int}}, k::Vector{Vector{I
     return LL
     
 end
+
+########################## RBF model ###########################################
+
+#=
+
+function optimize_model(pz::Vector{TT},py::Vector{Vector{TT}},pz_fit,py_fit,data;
+        dt::Float64=1e-2, n::Int=53, f_str="softplus",map_str::String="exp",
+        beta::Vector{Vector{Float64}}=Vector{Vector{Float64}}(),
+        mu0::Vector{Vector{Float64}}=Vector{Vector{Float64}}(),
+        x_tol::Float64=1e-16,f_tol::Float64=1e-16,g_tol::Float64=1e-12,
+        iterations::Int=Int(5e3),show_trace::Bool=true, 
+        λ0::Vector{Vector{Float64}}=Vector{Vector{Float64}}()) where {TT <: Any}
+
+    fit_vec = combine_latent_and_observation(pz_fit,py_fit)
+    p_opt, p_const = split_combine_invmap(pz, py, fit_vec, dt, f_str, map_str)
+
+    ###########################################################################################
+    ## Optimize
+    ll(x) = ll_wrapper(x, p_const, fit_vec, data, λ0, f_str; dt=dt, n=n, beta=beta, mu0=mu0, map_str=map_str)
+    opt_output, state = opt_ll(p_opt,ll;g_tol=g_tol, x_tol=x_tol, f_tol=f_tol,
+        iterations=iterations, show_trace=show_trace);
+    p_opt = Optim.minimizer(opt_output)
+
+    pz, py = map_split_combine(p_opt, p_const, fit_vec, dt, f_str, map_str)
+        
+    return pz, py, opt_output, state
+    
+end
+
+function do_optim(pz,py,pRBF,fit_vec,dt,data,n::Int;
+        f_str="softplus",map_str::String="exp",
+        beta::Vector{Vector{Float64}}=Vector{Vector{Float64}}(),
+        mu0::Vector{Vector{Float64}}=Vector{Vector{Float64}}(),
+        x_tol::Float64=1e-16,f_tol::Float64=1e-16,g_tol::Float64=1e-12,
+        iterations::Int=Int(5e3),show_trace::Bool=false)
+
+    fit_vec = combine_latent_and_observation(pz_fit,py_fit)
+    p_opt,p_const = split_variable_and_const(combine_latent_and_observation(pz,py,pRBF),fit_vec)
+
+    ###########################################################################################
+    ## Optimize
+    ll(x) = ll_wrapper(x, p_const, fit_vec, data, dt=dt, n=n; f_str=f_str, beta=beta, mu0=mu0, map_str=map_str)
+    opt_output, state = opt_ll(p_opt,ll;g_tol=g_tol,x_tol=x_tol,f_tol=f_tol,iterations=iterations,
+        show_trace=show_trace);
+    p_opt = Optim.minimizer(opt_output)
+
+    pz, py, pRBF = map_split_combine(p_opt, p_const, fit_vec, dt, f_str, map_str)
+        
+    return pz, py, pRBF, opt_output, state
+    
+end
+
+=#
 
 ########################## Priors ###########################################
 
