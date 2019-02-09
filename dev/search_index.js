@@ -96,4 +96,28 @@ var documenterSearchIndex = {"docs": [
     "text": "    optimize_model(pz::Vector{TT},py::Vector{Vector{TT}},pz_fit,py_fit,data;\n        dt::Float64=1e-2, n::Int=53, f_str=\"softplus\",map_str::String=\"exp\",\n        beta::Vector{Vector{Float64}}=Vector{Vector{Float64}}(),\n        mu0::Vector{Vector{Float64}}=Vector{Vector{Float64}}(),\n        x_tol::Float64=1e-16,f_tol::Float64=1e-16,g_tol::Float64=1e-12,\n        iterations::Int=Int(5e3),show_trace::Bool=true, \n        λ0::Vector{Vector{Float64}}=Vector{Vector{Float64}}()) where {TT <: Any}"
 },
 
+{
+    "location": "man/using_spock/#",
+    "page": "Using spock",
+    "title": "Using spock",
+    "category": "page",
+    "text": ""
+},
+
+{
+    "location": "man/using_spock/#Using-spock-1",
+    "page": "Using spock",
+    "title": "Using spock",
+    "category": "section",
+    "text": "We can fit the parameters of the latent model uses animal choices."
+},
+
+{
+    "location": "man/using_spock/#Key-functions-1",
+    "page": "Using spock",
+    "title": "Key functions",
+    "category": "section",
+    "text": ""
+},
+
 ]}
