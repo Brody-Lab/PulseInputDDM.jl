@@ -37,7 +37,7 @@ var documenterSearchIndex = {"docs": [
     "page": "Home",
     "title": "Installing Julia via anaconda",
     "category": "section",
-    "text": "Make a ssh connection with scotty, ssh [username]@scotty.princeton.edu. (If you haven\'t configured your local machine so that you can avoid using the VPN to access scotty, first do that. Instructions for doing so are provided on the Efficient Remote SSH page). Next load an anaconda module (for example, 5.1.0), module load anacondapy/5.1.0. Presently, you are using the \"base\" anaconda environment, for which PNI users do not have write privileges. Thus, you need to create a new environment; \"Julia\" seems like a sensible name, conda create --name julia. Now that you\'ve created this new environment, you need to use it, source activate julia. Next, you need to install Julia via anaconda, conda install -c conda-forge julia. This means that you are using a whole new version of Julia (not the same one as when you execute module load julia), so you will need to re-install lots of stuff, most specifically, the IJulia package."
+    "text": "From your local machine, make a ssh connection with scotty,     >> ssh [username]@scotty.princeton.eduwhere [username] is your scotty username, assuming you have one. If you do not have a username email <pnihelp@princeton.edu>.(If you haven\'t configured your local machine so that you can avoid using the VPN to access scotty, first do that. Instructions for doing so are provided on the Efficient Remote SSH page.)Next load an anaconda module (for example, 5.1.0),     >> module load anacondapy/5.1.0Presently, you are using the \"base\" anaconda environment, for which PNI users do not have write privileges. You need to create a new environment, which we will call \"Julia\",    >> conda create --name juliaNow that you\'ve created this new environment, you need to use it, source activate julia. Next, you need to install Julia via anaconda,     >> conda install -c conda-forge juliaYou are using a whole new version of Julia (not the same one as when you execute module load julia on scotty or spock), so you will need to re-install lots of packages (if you have used Julia on scotty or spock before), most specifically, the IJulia package."
 },
 
 {
@@ -45,7 +45,7 @@ var documenterSearchIndex = {"docs": [
     "page": "Home",
     "title": "Installing the IJulia package",
     "category": "section",
-    "text": "Once, Julia is installed, you can launch it by typing julia. From here, you need to add the IJulia package so you can use Julia in a notebook. This is done in the normal way,Pkg.add(\"IJulia\")You might now want to add any packages you use, again in the normal way. You\'re done (with this part)! You can exit Julia."
+    "text": "Once, Julia is installed, you can launch it by typing julia. From here, you need to add the IJulia package so you can use Julia in a notebook. This is done in the normal way,    julia > using Pkg\n    julia > Pkg.add(\"IJulia\")You might now want to add any packages you use, again in the normal way (for example, you can now add the pulseinputDDM package, as we will do eventually, described in the Getting the pulseinputDDM package from GitHub section). You\'re done (with this part)! You can exit Julia."
 },
 
 {
@@ -53,23 +53,23 @@ var documenterSearchIndex = {"docs": [
     "page": "Home",
     "title": "Opening a notebook on scotty and creating a SSH tunnel",
     "category": "section",
-    "text": "Now, that Julia is all set up, you need to launch a Jupyter notebook on scotty (which is possible because you\'re already using the anaconda module, which contains jupyter). In your ssh connection to scotty, type jupyter notebook. Once this has executed, it will pick a port on which to run and provide you a url so that you can launch the notebook in your local browser. But before you can do that, you need to create a \"ssh tunnel\" from the open port on scotty and a port on your local machine. In a separate terminal window, create a new ssh connection to scotty, but one that will map the ports, ssh -L <port>:localhost:<port> [username]@scotty.princeton.edu where <port> is the port assigned by scotty, and the second <port> is one on your local machine (you can pick the same one that scotty did, if you don\'t happen to be already using it).Now, copy the url that was created when you launched the jupyter notebook into your local browser, and voila!"
+    "text": "Now, that Julia is all set up, you need to launch a Jupyter notebook on scotty (which is possible because you\'re already using the anaconda module, which contains jupyter). In your ssh connection to scotty, type jupyter notebook. Once this has executed, it will pick a port on which to run and provide you a url so that you can launch the notebook in your local browser. But before you can do that, you need to create a \"ssh tunnel\" from the open port on scotty and a port on your local machine. In a separate terminal window, create a new ssh connection to scotty, but one that will map the ports, ssh -L <port>:localhost:<port> [username]@scotty.princeton.edu where <port> is the port assigned by scotty, and the second <port> is one on your local machine (you can pick the same one that scotty did, if you don\'t happen to be already using it).Now, copy the url that was created when you launched the jupyter notebook into your local browser, and voila! On a mac, you can press the \"command\" key (⌘), and the url should become underlined, at which point you can click on it with the  mouse and the link should open in your local browser.Here is a screen shot of what a typical terminal will look like, showing the url that needs to be copied and pasted:(Image: notebook-screen-shot)"
 },
 
 {
-    "location": "#How-do-I-do-this-again?-1",
+    "location": "#Now-that-everything\'s-set-up,-how-do-I-open-a-notebook-again?-1",
     "page": "Home",
-    "title": "How do I do this again?",
+    "title": "Now that everything\'s set up, how do I open a notebook again?",
     "category": "section",
-    "text": "Next time, you only need to:Use the anaconda module: module load anacondapy/5.1.0.\nActivate the julia environment: source activate julia.\nLaunch a jupyter notebook: jupyter notebook.\nCreate the ssh tunnel: ssh -L <port>:localhost:<port> [username]@scotty.princeton.eduThese instructions can also be found here."
+    "text": "Next time, you only need to:SSH into scotty: ssh scotty.\nLoad the anaconda module: module load anacondapy/5.1.0.\nActivate the julia environment: source activate julia.\nLaunch a jupyter notebook: jupyter notebook.\nCreate the ssh tunnel: ssh -L <port>:localhost:<port> scotty.These instructions can also be found here."
 },
 
 {
-    "location": "#Getting-the-necessary-Julia-packages-from-GitHub-1",
+    "location": "#Getting-the-pulse*input*DDM-package-from-GitHub-1",
     "page": "Home",
-    "title": "Getting the necessary Julia packages from GitHub",
+    "title": "Getting the pulseinputDDM package from GitHub",
     "category": "section",
-    "text": "Now, you need to add the package locally, from the github repository, by typing the following commands into a Julia REPL:using Pkg\nPkg.add(PackageSpec(url=\"https://github.com/PrincetonUniversity/pulse_input_DDM/\"))You will be prompted for your github username and password. This will require that you are part of the Princeton University github organization and the Brody Lab team. If you are not, fill out this form to get added and make sure your mention that you want to be added to the Brody Lab team.Then you need to add this package by typing Pkg.clone(https://github.com/PrincetonUniversity/pulse_input_DDM/."
+    "text": "Now, you need to add the pulseinputDDM package from the github repository. Startup up a \"anaconda julia\" REPL the same way we did above when you installed the IJulia pacakge, then  by typing the following commands into a Julia REPL:    julia > using Pkg\n    \n    julia > Pkg.add(PackageSpec(url=\"https://github.com/PrincetonUniversity/pulse_input_DDM/\"))You will be prompted for your github username and password. This will require that you are part of the Princeton University github organization and the Brody Lab team. If you are not, fill out this form to get added and make sure your mention that you want to be added to the Brody Lab team."
 },
 
 {
@@ -78,6 +78,14 @@ var documenterSearchIndex = {"docs": [
     "title": "Basics",
     "category": "section",
     "text": "Pages = [\n    \"man/using_spock.md\",\n    \"man/aggregating_sessions.md\",\n    \"man/choice_observation_model.md\",\n    \"man/neural_observation_model.md\"]\nDepth = 2"
+},
+
+{
+    "location": "#To-do-1",
+    "page": "Home",
+    "title": "To do",
+    "category": "section",
+    "text": "RBF optimization and compare\nInstructions to modify docs\nInstructions to modify package (forking, branching, git related things)\nInstructions for formatting data\nInstructions for running optimizations and looking at results\nInstructions for running on spock.\nShell scripts for running on spock."
 },
 
 {
@@ -197,7 +205,7 @@ var documenterSearchIndex = {"docs": [
     "page": "Efficient Remote SSH",
     "title": "Efficient Remote SSH",
     "category": "section",
-    "text": "(Thanks to Nick Roy of the PillowLab for these instructions!)This page is all about how to ssh into spock, della, scotty or any other campus resource without needing to use VPN.The basic idea here is to use RSA to ssh through an intermediate, open, server. In this case, the two options are nobel (nobel.princeton.edu) and arizona (arizona.princeton.edu). This should work on any unix machine (linux and MAC). Windows people should seek immediate attention. The steps are as follows:Edit (or create and edit) an ssh config on your local machine (usually located at ~/.ssh/config), and add the following code:   Host nobel\n   User UNAME\n   HostName nobel.princeton.edu\n   Host spock\n   User UNAME\n   HostName scotty.princeton.edu\n   ForwardX11 yes\n   ForwardX11Trusted yes\n   ProxyCommand ssh nobel -oClearAllForwardings=yes -W %h:%p\n   In this code, you should replace UNAME with your username (i.e. what you log into each server under) and nobel can be replaced everywhere with arizona if you would like to use arizona as the pass-through server. To access other machines, replace spock with della or scotty.Create RSA keys to facilitate no-password logins more information here. The steps here are to make the RSA key:   >> ssh-keygen -t rsaThen hit enter twice to save the RSA key to the default location and to not include an RSA password. Now add the key to the pass-through server and the remote machine via:   >> ssh-copy-id UNAME@nobel.princeton.edu\n   >> ssh-copy-id UNAME@spock.princeton.eduwhere again UNAME is your login name and you can change the address (spock.princeton.edu) to whichever machine you are trying to access. Make sure to do this first for either arizona or nobel (whichever you decide to use) and then again for the machine you are trying to access.With the above code, you can now simply ssh in via   >> ssh scotty   and not even have to worry about VPN, passwords etc.These instructions can also be found here."
+    "text": "(Thanks to Nick Roy of the PillowLab for these instructions!)This page is all about how to ssh into spock, della, scotty or any other campus resource without needing to use VPN.The basic idea here is to use RSA to ssh through an intermediate, open, server. In this case, the two options are nobel (nobel.princeton.edu) and arizona (arizona.princeton.edu). This should work on any unix machine (linux and MAC). Windows people should seek immediate attention. The steps are as follows:Edit (or create and edit) an ssh config on your local machine (usually located at ~/.ssh/config), and add the following code:   Host nobel\n   User UNAME\n   HostName nobel.princeton.edu\n   Host spock\n   User UNAME\n   HostName scotty.princeton.edu\n   ForwardX11 yes\n   ForwardX11Trusted yes\n   ProxyCommand ssh nobel -oClearAllForwardings=yes -W %h:%p   In this code, you should replace UNAME with your username (i.e. what you log into each server under) and nobel can be replaced everywhere with arizona if you would like to use arizona as the pass-through server. To access other machines, replace spock with della or scotty.Create RSA keys to facilitate no-password logins more information here. The steps here are to make the RSA key:    >> ssh-keygen -t rsaThen hit enter twice to save the RSA key to the default location and to not include an RSA password. Now add the key to the pass-through server and the remote machine via:    >> ssh-copy-id UNAME@nobel.princeton.edu\n    >> ssh-copy-id UNAME@spock.princeton.eduwhere again UNAME is your login name and you can change the address (spock.princeton.edu) to whichever machine you are trying to access. Make sure to do this first for either arizona or nobel (whichever you decide to use) and then again for the machine you are trying to access.With the above code, you can now simply ssh in via    >> ssh scotty   and not even have to worry about VPN, passwords etc.These instructions can also be found here."
 },
 
 {
