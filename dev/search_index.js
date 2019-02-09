@@ -9,11 +9,11 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "#pulse-input-DDM-Documentation-1",
+    "location": "#pulse-input-DDM-1",
     "page": "Home",
-    "title": "pulse input DDM  Documentation",
+    "title": "pulse input DDM",
     "category": "section",
-    "text": "Code for fitting latent drift diffusion models to pulsed input data and neural activity or behavioral observation data.Pages = [\n    \"man/choice_observation_model.md\",\n    \"man/neural_observation_model.md\"]\nDepth = 2"
+    "text": "Code for fitting latent drift diffusion models to pulsed input data and neural activity or behavioral observation data.Pages = [\n    \"man/using_spock.md\",\n    \"man/aggregating_sessions.md\",\n    \"man/choice_observation_model.md\",\n    \"man/neural_observation_model.md\"]\nDepth = 2"
 },
 
 {
@@ -42,26 +42,26 @@ var documenterSearchIndex = {"docs": [
 
 {
     "location": "man/choice_observation_model/#",
-    "page": "Fitting a model to choice observations",
-    "title": "Fitting a model to choice observations",
+    "page": "Fitting a model to choices",
+    "title": "Fitting a model to choices",
     "category": "page",
     "text": ""
 },
 
 {
-    "location": "man/choice_observation_model/#Fitting-a-model-to-choice-observations-1",
-    "page": "Fitting a model to choice observations",
-    "title": "Fitting a model to choice observations",
+    "location": "man/choice_observation_model/#Fitting-a-model-to-choices-1",
+    "page": "Fitting a model to choices",
+    "title": "Fitting a model to choices",
     "category": "section",
     "text": "We can fit the parameters of the latent model uses animal choices."
 },
 
 {
-    "location": "man/choice_observation_model/#Some-important-functions-1",
-    "page": "Fitting a model to choice observations",
-    "title": "Some important functions",
+    "location": "man/choice_observation_model/#Key-functions-1",
+    "page": "Fitting a model to choices",
+    "title": "Key functions",
     "category": "section",
-    "text": "    optimize_model(pz::Vector{TT}, bias::TT, pz_fit_vec, bias_fit_vec,\n        data; dt::Float64=1e-2, n=53, map_str::String=\"exp\",\n        x_tol::Float64=1e-16,f_tol::Float64=1e-16,g_tol::Float64=1e-12,\n        iterations::Int=Int(5e3)) where {TT <: Any}"
+    "text": "Here\'s some test mathfracnk(n - k) = binomnk"
 },
 
 {
