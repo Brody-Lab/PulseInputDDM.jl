@@ -29,6 +29,6 @@ export do_LL, poiss_LL, make_data
 export FilterSpikes, nanmean, nanstderr, rate_mat_func_filt
 export diffLR, group_by_neuron, opt_ll, dimz
 export optimize_model, sample_model, fy, bins, sigmoid_4param, softplus_3param
-export padded_λ_array, compute_LL, compute_Hessian
+export padded_λ_array, compute_LL, compute_Hessian, compute_CI
 
 end # module

@@ -1,9 +1,11 @@
-# pulse input DDM  Documentation
+# pulse input DDM
 
 *Code for fitting latent drift diffusion models to pulsed input data and neural activity or behavioral observation data.*
 
 ```@contents
 Pages = [
+    "man/using_spock.md",
+    "man/aggregating_sessions.md",
     "man/choice_observation_model.md",
     "man/neural_observation_model.md"]
 Depth = 2

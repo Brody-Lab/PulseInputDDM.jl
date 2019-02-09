@@ -1,6 +1,7 @@
 
 function LL_all_trials(pz::Vector{TT},bias::TT,
-        data::Dict, n::Int, dt::Float64; comp_posterior::Bool=false) where {TT}
+        data::Dict; n::Int=53, dt::Float64=1e-2, 
+        comp_posterior::Bool=false) where {TT}
         
     P,M,xc,dx,xe = initialize_latent_model(pz,n,dt)
 

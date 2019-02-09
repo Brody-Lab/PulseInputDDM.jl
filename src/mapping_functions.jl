@@ -30,7 +30,7 @@ function split_combine_invmap(pz::Vector{TT}, bias::TT, fit_vec, dt, map_str::St
 end
 
 split_latent_and_observation(p::Vector{TT}) where {TT} = p[1:dimz],p[dimz+1]
-combine_latent_and_observation(pz::Vector{TT},bias::TT) where {TT} = cat(1,pz,bias)
+combine_latent_and_observation(pz::Vector{TT},bias::TT) where {TT} = vcat(pz,bias)
     
     
 #################################### Poisson neural observation model #########################

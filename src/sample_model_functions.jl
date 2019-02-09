@@ -8,16 +8,16 @@ function construct_inputs!(data::Dict,num_reps::Int)
     data["binned_rightbups"] = map((x,y)->vec(qfind(0.:dt:x*dt,y)),binnedT,data["rightbups"])
     
     #use repmat to make as any copys as needed
-    data["nT"] = repmat(data["nT"],num_reps)
-    data["binned_leftbups"] = repmat(data["binned_leftbups"],num_reps)
-    data["binned_rightbups"] = repmat(data["binned_rightbups"],num_reps)
-    data["T"] = repmat(data["T"],num_reps)
-    data["leftbups"] = repmat(data["leftbups"],num_reps)
-    data["rightbups"] = repmat(data["rightbups"],num_reps)
+    data["nT"] = repeat(data["nT"],inner=num_reps)
+    data["binned_leftbups"] = repeat(data["binned_leftbups"],inner=num_reps)
+    data["binned_rightbups"] = repeat(data["binned_rightbups"],inner=num_reps)
+    data["T"] = repeat(data["T"],inner=num_reps)
+    data["leftbups"] = repeat(data["leftbups"],inner=num_reps)
+    data["rightbups"] = repeat(data["rightbups"],inner=num_reps)
     data["trial0"] = data["trial0"] * num_reps;
     
     if haskey(data,"N")
-        data["N"] = repmat(data["N"],num_reps)   
+        data["N"] = repeat(data["N"],inner=num_reps)   
     end
     
     return data
@@ -47,7 +47,7 @@ end
 
 function generate_stimulus(rng;tmin::Float64=0.2,tmax::Float64=1.0,clicktot::Int=40)
     
-    srand(rng)
+    Random.seed!(rng)
 
     T = tmin + (tmax-tmin)*rand()
 
@@ -101,23 +101,23 @@ end
 
 #################################### Choice observation model #################################
 
-function sampled_dataset!(data::Dict, p::Vector{Float64}; dtMC::Float64=1e-4, num_reps::Int=1, rng::Int = 1)
+function sampled_dataset!(data::Dict, pz::Vector{Float64}, bias::Float64; 
+        dtMC::Float64=1e-4, num_reps::Int=1, rng::Int = 1)
         
     construct_inputs!(data,num_reps)
     
-    srand(rng)
-    data["pokedR"] = pmap((T,leftbups,rightbups,rng) -> sample_model(T,leftbups,rightbups,p,rng=rng),
-        data["T"],data["leftbups"],data["rightbups"],shuffle(1:length(data["T"])));
+    Random.seed!(rng)
+    data["pokedR"] = pmap((T,leftbups,rightbups,rng) -> sample_model(T,leftbups,rightbups,pz,bias,rng=rng),
+        data["T"],data["leftbups"],data["rightbups"], shuffle(1:length(data["T"])));
             
     return data
     
 end
 
 function sample_model(T::Float64,L::Vector{Float64},R::Vector{Float64},
-        p::Vector{Float64};dtMC::Float64=1e-4,rng::Int=1)
+        pz::Vector{Float64},bias::Float64;dtMC::Float64=1e-4,rng::Int=1)
     
-    srand(rng)
-    pz,bias = breakup(p)
+    Random.seed!(rng)
     A = sample_latent(T,L,R,pz;dt=dtMC)
             
     choice = A[end] >= bias;
@@ -126,13 +126,13 @@ end
 
 #################################### Poisson neural observation model #########################
 
-function sampled_dataset!(data::Dict, p::Vector{Float64}, dt::Float64; 
-        f_str::String="softplus", dtMC::Float64=1e-4, num_reps::Int=1, rng::Int=1)
+function sampled_dataset!(data::Dict, pz::Vector{Float64}, py::Vector{Vector{Float64}},
+        dt::Float64; f_str::String="softplus", dtMC::Float64=1e-4, num_reps::Int=1, rng::Int=1)
 
     construct_inputs!(data,num_reps)
     
-    srand(rng)
-    data["spike_counts"] = pmap((T,L,R,N,rng) -> sample_model(p,T,L,R,N,dt;
+    Random.seed!(rng)
+    data["spike_counts"] = pmap((T,L,R,N,rng) -> sample_model(pz,py,T,L,R,N,dt;
             f_str=f_str, rng=rng), data["T"],data["leftbups"],data["rightbups"],
             data["N"], shuffle(1:length(data["T"])));        
     

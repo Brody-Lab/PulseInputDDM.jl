@@ -24,42 +24,30 @@ opt_ll_Newton(p_opt,ll;g_tol::Float64=1e-12,x_tol::Float64=1e-16,f_tol::Float64=
 
 #################################### Choice observation model #################################
 
-function do_H(pz,bias,pz_fit_vec,bias_fit_vec,data,dt::Float64=1e-2,n::Int=53,map_str::String="exp")
+function compute_Hessian(pz::Vector{TT},bias::TT,pz_fit_vec,bias_fit_vec,data;
+        dt::Float64=1e-2,n::Int=53,map_str::String="exp") where {TT <: Any}
     
     fit_vec = combine_latent_and_observation(pz_fit_vec, bias_fit_vec)
     p_opt, p_const = split_combine_invmap(pz, bias, fit_vec, dt, map_str)
     
-    pz, bias = map_split_combine(p_opt, p_const, fit_vec, dt, map_str)
+    ll(x) = ll_wrapper(x, p_const, fit_vec, data, n=n, dt=dt, map_str=map_str)
 
-    ll(x) = ll_wrapper(x, p_const, fit_vec, data, n, dt, map_str=map_str)
+    return H = ForwardDiff.hessian(ll, p_opt);
+        
+end
 
-    H = ForwardDiff.hessian(ll, p_opt);
+function compute_CI(H, pz::Vector{Float64}, bias::Float64, pz_fit_vec, bias_fit_vec, data;
+        dt::Float64=1e-2,n::Int=53,map_str::String="exp")
     
-    #=d,V = eig(H)
+    fit_vec = combine_latent_and_observation(pz_fit_vec, bias_fit_vec)
+    p_opt, p_const = split_combine_invmap(pz, bias, fit_vec, dt, map_str)
     
-    if all(d .> 0)
+    CI = 2*sqrt.(diag(inv(H)))
     
-        CI = 2*sqrt.(diag(inv(H)));
+    CIz_plus, CIbias_plus = map_split_combine(p_opt + CI, p_const, fit_vec, dt, map_str)
+    CIz_minus, CIbias_minus = map_split_combine(p_opt - CI, p_const, fit_vec, dt, map_str)
     
-        CIz_plus, CIbias_plus = split_latent_and_observation(combine_variable_and_const(p_opt + CI, p_const, fit_vec))
-        map_pz!(CIz_plus,dt,map_str=map_str) 
-
-        CIz_minus, CIbias_minus = split_latent_and_observation(combine_variable_and_const(p_opt - CI, p_const, fit_vec))
-        map_pz!(CIz_minus,dt,map_str=map_str)
-        
-    else
-        
-        CIz_plus, CIz_minus = similar(pz),similar(pz)
-        CIbias_plus, CIbias_minus = 1e-150,1e-150
-        
-    end
-    
-    CIplus = combine_latent_and_observation(CIz_plus,CIbias_plus) 
-    CIminus = combine_latent_and_observation(CIz_minus,CIbias_minus)    
-    
-    return CIplus, CIminus, H =#
-    
-    return H
+    return CIz_plus, CIbias_plus, CIz_minus, CIbias_minus
     
 end
 
@@ -94,7 +82,7 @@ function ll_wrapper(p_opt::Vector{TT}, p_const::Vector{Float64},
         fit_vec::Union{BitArray{1},Vector{Bool}}, 
         data::Dict; n::Int=53, dt::Float64=1e-2, map_str::String="exp") where {TT}
           
-    pz, bias = map_split_combine(p_opt, p_const, fit_vec, dt; map_str=map_str)
+    pz, bias = map_split_combine(p_opt, p_const, fit_vec, dt, map_str)
     
     #lapse is like adding a prior out here?
     #modified 11/8 lapse needs to be dealt with different not clear that old way was correct
@@ -139,36 +127,23 @@ function compute_Hessian(pz,py,pz_fit,py_fit,data;
     
     ll(x) = ll_wrapper(x, p_const, fit_vec, data, λ0, f_str; dt=dt, n=n, beta=beta, mu0=mu0, map_str=map_str)
     
-    H = ForwardDiff.hessian(ll, p_opt)
-   
-    #d = eigvals(H)
-    
-    #=
-    if all(d .> 0)
-    
-        CI = 2*sqrt.(diag(inv(H)));
-    
-        CIz_plus, CIpy_plus = split_latent_and_observation(combine_variable_and_const(p_opt + CI, p_const, fit_vec),f_str=f_str)
-        map_pz!(CIz_plus,dt,map_str=map_str)
-        map_py!.(CIpy_plus,f_str=f_str)
+    return H = ForwardDiff.hessian(ll, p_opt)
+        
+end
 
-        CIz_minus, CIpy_minus = split_latent_and_observation(combine_variable_and_const(p_opt - CI, p_const, fit_vec),f_str=f_str)
-        map_pz!(CIz_minus,dt,map_str=map_str)
-        map_py!.(CIpy_minus,f_str=f_str)
+function compute_CI(H, pz::Vector{Float64}, py::Vector{Vector{Float64}}, 
+        pz_fit_vec, py_fit, data;
+        dt::Float64=1e-2, n::Int=53, f_str="softplus", map_str::String="exp")
     
-    else
-        
-        CIz_plus, CIz_minus = similar(pz),similar(pz)
-        CIpy_plus, CIpy_minus = map(x->similar(x),deepcopy(py)),map(x->similar(x),deepcopy(py))
-        
-    end
+    fit_vec = combine_latent_and_observation(pz_fit,py_fit)
+    p_opt, p_const = split_combine_invmap(pz, py, fit_vec, dt, f_str, map_str)
     
-    CIplus = vcat(CIz_plus,CIpy_plus) 
-    CIminus = vcat(CIz_minus,CIpy_minus)    
+    CI = 2*sqrt.(diag(inv(H)))
     
-    =#
+    CIz_plus, CIbias_plus = map_split_combine(p_opt + CI, p_const, fit_vec, dt, map_str)
+    CIz_minus, CIbias_minus = map_split_combine(p_opt - CI, p_const, fit_vec, dt, map_str)
     
-    return H
+    return CIplus, CIminus = combine_latent_and_observation(CIz_plus,CIbias_plus), combine_latent_and_observation(CIz_minus,CIbias_minus)
     
 end
 
