@@ -9,12 +9,14 @@ makedocs(sitename="pulse input DDM",
         assets = ["assets/favicon.ico"],
         pages = Any[
         "Home" => "index.md",
-        "Getting Started" => Any[
+        "Basics" => Any[
           "man/choice_observation_model.md",
           "man/neural_observation_model.md",
           "man/using_spock.md",
           "man/aggregating_sessions.md"
-         ]
+         ],
+        "Index" => "links.md",
+        "Functions" => "functions.md"
          ])
  
 deploydocs(deps   = Deps.pip("mkdocs", "python-markdown-math"),
