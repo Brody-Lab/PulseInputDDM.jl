@@ -120,4 +120,28 @@ var documenterSearchIndex = {"docs": [
     "text": ""
 },
 
+{
+    "location": "man/aggregating_sessions/#",
+    "page": "Aggregating data from separate recording sessions",
+    "title": "Aggregating data from separate recording sessions",
+    "category": "page",
+    "text": ""
+},
+
+{
+    "location": "man/aggregating_sessions/#Aggregating-data-from-separate-recording-sessions-1",
+    "page": "Aggregating data from separate recording sessions",
+    "title": "Aggregating data from separate recording sessions",
+    "category": "section",
+    "text": "We can fit the parameters of the latent model uses animal choices."
+},
+
+{
+    "location": "man/aggregating_sessions/#Key-functions-1",
+    "page": "Aggregating data from separate recording sessions",
+    "title": "Key functions",
+    "category": "section",
+    "text": ""
+},
+
 ]}
