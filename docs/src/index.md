@@ -1,6 +1,6 @@
 # pulse input DDM
 
-*Code for fitting latent drift diffusion models to pulsed input data and neural activity or behavioral observation data.*
+*Code for fitting drift diffusion models (DDMs) to pulsed input data and spiking neural activity or choice observation data.*
 
 ```@contents
 Pages = [
