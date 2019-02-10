@@ -40,9 +40,9 @@ combine_latent_and_observation(pz::Vector{TT},bias::TT) where {TT} = vcat(pz,bia
 
     Combine constant and variable optimization components, split into functional groups and map to bounded domain
 """
-function map_split_combine(p_opt, p_const, fit_vec, dt, f_str::String, map_str::String)
+function map_split_combine(p_opt, p_const, fit_vec, dt, f_str::String, map_str::String, N::Int, dimy::Int)
 
-    pz,py = split_latent_and_observation(combine_variable_and_const(p_opt, p_const, fit_vec),f_str=f_str)
+    pz,py = split_latent_and_observation(combine_variable_and_const(p_opt, p_const, fit_vec), N, dimy)
     pz = map_pz!(pz,dt,map_str=map_str)       
     py = map_py!.(py,f_str=f_str)
     
@@ -66,29 +66,17 @@ function split_combine_invmap(pz::Vector{TT}, py::Vector{Vector{TT}}, fit_vec, d
     
 end
 
-function split_latent_and_observation(p; f_str::String="softplus")
+function split_latent_and_observation(p::Vector{T}, N::Int, dimy::Int) where {T <: Any}
                 
     pz = p[1:dimz]
-
-    if (f_str == "sig") || (f_str == "sig2")
-        py = reshape(p[dimz+1:end],4,:)
-
-    elseif f_str == "exp"
-        py = reshape(p[dimz+1:end],2,:)
-
-    elseif f_str == "softplus"
-        py = reshape(p[dimz+1:end],3,:)
-
-    end
-
-    py = map(i->py[:,i],1:size(py,2))
+    py = reshape(p[dimz+1:dimz+dimy*N],dimy,N)
+    py = map(i->py[:,i],1:N)
 
     return pz, py
     
 end
 
 combine_latent_and_observation(pz,py) = vcat(pz,vcat(py...))
-#combine_latent_and_observation(pz::Vector{TT},py::Vector{Vector{TT}},pRBF::Vector{Vector{TT}}) where {TT} = vcat(pz,vcat(py...),vcat(pRBF...))
     
 function map_py!(p::Vector{TT};f_str::String="softplus",map_str::String="exp") where {TT}
         
@@ -157,6 +145,54 @@ function inv_map_py!(p::Vector{TT};f_str::String="softplus",map_str::String="exp
     end
     
     return p
+    
+end
+
+#################################### Poisson neural observation model w/ RBF #########################
+
+function split_latent_and_observation(p::Vector{T}, N::Int, dimy::Int, numRBF::Int) where {T <: Any}
+                
+    pz = p[1:dimz]
+    py = reshape(p[dimz+1:dimz+dimy*N],dimy,N)
+    py = map(i->py[:,i],1:N)
+    pRBF = reshape(p[dimz+dimy*N+1:dimz+dimy*N+numRBF*N],numRBF,N)
+    pRBF = map(i->pRBF[:,i],1:N)
+
+    return pz, py, pRBF
+    
+end
+
+combine_latent_and_observation(pz,py,pRBF) = vcat(pz,vcat(py...),vcat(pRBF...))
+
+"""
+    split_combine_invmap(pz::Vector{TT}, py::Vector{Vector{TT}}, pRBF::Vector{Vector{TT}}, fit_vec, dt, f_str::String, map_str::String)
+
+    Inverse map parameters to unbounded domain for optimization, combine functional groups and split into optimization variables and constants
+"""
+function split_combine_invmap(pz::Vector{TT}, py::Vector{Vector{TT}}, pRBF::Vector{Vector{TT}},
+        fit_vec, dt, f_str::String, 
+        map_str::String) where {TT <: Any}
+
+    pz = inv_map_pz!(copy(pz), dt, map_str=map_str)     
+    py = inv_map_py!.(deepcopy(py), f_str=f_str)
+    p_opt, p_const = split_variable_and_const(combine_latent_and_observation(pz,py,pRBF),fit_vec)
+    
+    return p_opt, p_const
+    
+end
+
+"""
+    map_split_combine(p_opt, p_const, fit_vec, dt, f_str::String, map_str::String)  
+
+    Combine constant and variable optimization components, split into functional groups and map to bounded domain
+"""
+function map_split_combine(p_opt, p_const, fit_vec, dt, f_str::String, map_str::String, N::Int, dimy::Int, numRBF::Int)
+
+    pz,py,pRBF = split_latent_and_observation(combine_variable_and_const(p_opt, p_const, fit_vec), N, dimy, numRBF)
+    pz = map_pz!(pz,dt,map_str=map_str)       
+    py = map_py!.(py,f_str=f_str)
+    
+    return pz,py,pRBF
     
 end
       

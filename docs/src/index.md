@@ -1,14 +1,14 @@
 # pulse input DDM
 
-This is a package for inferring the parameters of drift diffusion models (DDMs) using gradient descent from spiking neural activity or choice data collected when a subject is performing a pulsed input evidence accumlation task.
+This is a package for inferring the parameters of drift diffusion models (DDMs) using gradient descent from neural activity or behavioral data collected when a subject is performing a pulse-based input evidence accumlation task.
 
 ## Getting Started
 
-If you want to fit the model to some data, but want to interact with Julia, I recommend using a Jupyter notebook and scotty. This is somewhat involved to set up, but worth the time. Here are the steps necessary to do this.
+If you want to fit the model to some data but want to interact with Julia, I recommend using a Jupyter notebook and scotty. This is somewhat involved to set up but worth the time. Here are the necessary steps.
 
 ### Fitting the model interactively on scotty
 
-First you need to install Julia in your local scotty user directory via anaconda. This will be a whole new installation of Julia (not the installation you might normally use on scotty if you typed `module load julia`) which means if you've used another installation of Julia on scotty before, all of the packages you might have added won't be there. The reason for using a new anaconda installation of Julia is that 
+First you need to install Julia in your scotty user directory via anaconda. This will be a *whole new installation of Julia* (not the installation you might normally use on scotty if you typed `module load julia`) which means if you've used another installation of Julia on scotty before, all the packages you might have added won't be there. Using a new anaconda installation of Julia allows easier use of Jupyter notebooks via a SSH tunnel. 
 
 #### Installing Julia via anaconda
 
@@ -18,11 +18,11 @@ From your local machine, make a ssh connection with scotty,
     >> ssh [username]@scotty.princeton.edu
 ```
 
-where `[username]` is your scotty username, assuming you have one. If you do not have a username email <pnihelp@princeton.edu>.
+where `[username]` is your scotty username, assuming you have one. If you do not have a username email [PNI help](mailto:pnihelp@princeton.edu).
 
-(If you haven't configured your local machine so that you can avoid using the VPN to access scotty, first do that. Instructions for doing so are provided on the [Efficient Remote SSH](@ref) page.)
+(If you haven't configured your local machine so that you can avoid using the VPN to access scotty, do that first. Instructions are provided on the [Efficient Remote SSH](@ref) page.)
 
-Next load an anaconda module (for example, 5.1.0), 
+Next load an anaconda module on scotty (for example, 5.1.0), 
 
 ```
     >> module load anacondapy/5.1.0
@@ -34,27 +34,26 @@ Presently, you are using the "base" anaconda environment, for which PNI users do
     >> conda create --name julia
 ``` 
 
-Now that you've created this new environment, you need to use it, 
+Now that you've created this new environment, you need to "activate" it, 
 
 ```
     >> source activate julia
 ``` 
 
-Next, you need to install Julia via [anaconda](https://anaconda.org/conda-forge/julia), 
+Next, you need to install Julia within this environment via [anaconda](https://anaconda.org/conda-forge/julia), 
 
 ```
     >> conda install -c conda-forge julia
 ```
 
-You are using a *whole new version of Julia* (not the same one as when you execute `module load julia` on scotty or spock), so you will need to re-install lots of packages (if you have used Julia on scotty or spock before), most specifically, the IJulia package.
+You are using a *whole new version of Julia* (_not_ the one you use when you execute `module load julia` on scotty or spock), so you will need to re-install lots of packages (if you have used Julia on scotty or spock before), most specifically, the IJulia package so you can use Julia in a Jupyter notebook.
 
 #### Installing the IJulia package
 
-Once, Julia is installed, you can launch it by typing `>> julia`. From here, you need to add the IJulia package so you can use Julia in a notebook. This is done in the normal way,
+Once, Julia is installed, you can launch it by typing `julia`. From here, you need to add the IJulia package so you can use Julia in a notebook. In Julia 1.0, you can access the "package manager" by pressing `]`. From there, enter
 
 ```
-    julia > using Pkg
-    julia > Pkg.add("IJulia")
+    (v1.0) pkg > add IJulia
 ```
 
 You might now want to add any packages you use, again in the normal way (for example, you can now add the pulse_input_DDM package, as we will do eventually, described in the [Getting the pulse input DDM package from GitHub](@ref) section). You're done (with this part)! You can exit Julia.
@@ -77,7 +76,7 @@ where `<port>` is the port assigned by scotty, and the second `<port>` is one on
 
 Now, copy the url that was created when you launched the jupyter notebook into your local browser, and voila! On a mac, you can press the "command" key (⌘), and the url should become underlined, at which point you can click on it with the  mouse and the link should open in your local browser.
 
-Here is a screen shot of what a typical terminal will look like, showing the url that needs to be copied and pasted:
+Here is a screen shot of what a typical terminal will look like, showing the url (at the bottom) that needs to be copied and pasted or clicked on:
 
 ![notebook-screen-shot](assets/notebook-screen-shot.png)
 
@@ -95,15 +94,28 @@ These instructions can also be found [here](https://brodylabwiki.princeton.edu/w
 
 ###  Getting the pulse input DDM package from GitHub
 
-Now, you need to add the pulse_input_DDM package from the github repository. Startup up a "anaconda julia" REPL the same way we did above when you installed the IJulia pacakge, then  by typing the following commands into a Julia REPL:
+Now you need to add the pulse_input_DDM package from the github repository. Startup up a "anaconda julia" REPL the same way we did above when you installed the IJulia pacakge
 
 ```
-    julia > using Pkg
-    
+    >> ssh scotty
+    >> module load anacondapy/5.1.0
+    >> julia
+```
+
+then add the package in julia by entering the `pkg` mode (by typing `]`)
+
+```
+    (v1.0) pkg > add https://github.com/PrincetonUniversity/pulse_input_DDM/
+```
+
+Another way to add the package (without typing `]`) is to do the following, in the normal julia mode:
+
+```
+    julia > using Pkg    
     julia > Pkg.add(PackageSpec(url="https://github.com/PrincetonUniversity/pulse_input_DDM/"))
 ```
 
-You will be prompted for your github username and password. This will require that you are part of the Princeton University github organization and the Brody Lab team. If you are not, fill out [this form](https://forms.rc.princeton.edu/github) to get added and make sure your mention that you want to be added to the Brody Lab team.
+In either case, you will be prompted for your github username and password. This will require that you are part of the Princeton University github organization and the Brody Lab team. If you are not, fill out [this form](https://forms.rc.princeton.edu/github) to get added and make sure your mention that you want to be added to the Brody Lab team.
 
 ### Basics
 

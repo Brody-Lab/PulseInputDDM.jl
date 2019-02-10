@@ -179,16 +179,16 @@ function package_data!(data,rawdata,model_type::String,ratname::String;dt::Float
         if organize == "by_trial"
     
             append!(data["spike_counts"],map((x,y)->map(z->fit(Histogram,vec(collect(y[z])), 
-                    0.:dt:x*dt,closed=:left).weights,1:N),binnedT,rawdata["St"]));
-            append!(data["N"],repeat([collect(data["N0"]+1:data["N0"]+N)],inner=ntrials));
-            #append!(data["N"],repmat([collect(data["N0"]+1:data["N0"]+N)],ntrials));
+                    0.:dt:x*dt,closed=:left).weights,1:N),binnedT,rawdata["St"]))
+            append!(data["N"],repeat([collect(data["N0"]+1:data["N0"]+N)],inner=ntrials))
+            #added 2/5 to note which trials have which neurons
+            append!(data["trial"],repeat([data["trial0"]+1:data["trial0"]+ntrials],inner=N))
 
         elseif organize == "by_neuron"
             
             append!(data["spike_counts"],map!(z -> map!((x,y) -> fit(Histogram,vec(collect(y[z])), 
                     0.:dt:x*dt,closed=:left).weights,Vector{Vector}(undef,ntrials),
                     binnedT,rawdata["St"]),Vector{Vector}(undef,N),1:N));
-            #append!(data["trial"],repmat([data["trial0"]+1:data["trial0"]+ntrials],N));
             append!(data["trial"],repeat([data["trial0"]+1:data["trial0"]+ntrials],inner=N));
 
         end

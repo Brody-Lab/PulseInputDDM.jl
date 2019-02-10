@@ -1,11 +1,11 @@
-module gaussian_neural_observation
+#module gaussian_neural_observation
 
-using global_functions, Optim, LineSearches
-using Distributions
+#using global_functions, Optim, LineSearches
+#using Distributions
 
-const dimz = 5
+#const dimz = 5
 
-export do_optim_ΔLR, do_optim
+#export do_optim_ΔLR, do_optim
 
 function do_optim(pz,py,pstd,std0,dt,data,f_str,N;n::Int=103,
         x_tol::Float64=1e-16,f_tol::Float64=1e-16,g_tol::Float64=1e-12)
@@ -240,4 +240,12 @@ gauss_LL(x,mu,sigma) = log(1/sqrt(2*pi*sigma^2)) - (x-mu)^2/(2*sigma^2);
 
 samples(mu,std) = rand(Normal(mu,std))
         
-end
+#end
+
+
+#function fy(p::Vector{TT},a::Union{TT,Float64,Int},
+#        x::Float64,mu::Float64,std::Float64) where {TT}
+#            
+#        y = p[1] + exp(p[2]*a*pdf(Normal(mu,std),x))
+#                
+#end

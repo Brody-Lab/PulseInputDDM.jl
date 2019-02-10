@@ -117,15 +117,18 @@ compute_LL(pz::Vector{T},bias::T,data;dt::Float64=1e-2,n::Int=53) where {T <: An
 
 """
 function compute_Hessian(pz,py,pz_fit,py_fit,data;
-        dt::Float64=1e-2, n::Int=53, f_str="softplus",map_str::String="exp",
+        dt::Float64=1e-2, n::Int=53, f_str="sig",map_str::String="exp",
         beta::Vector{Vector{Float64}}=Vector{Vector{Float64}}(),
         mu0::Vector{Vector{Float64}}=Vector{Vector{Float64}}(),
-        λ0::Vector{Vector{Float64}}=Vector{Vector{Float64}}())
+        λ0::Vector{Vector{Float64}}=Vector{Vector{Float64}}(),
+        dimy::Int=4)
     
+    N = length(py)
     fit_vec = combine_latent_and_observation(pz_fit,py_fit)
     p_opt, p_const = split_combine_invmap(pz, py, fit_vec, dt, f_str, map_str)
     
-    ll(x) = ll_wrapper(x, p_const, fit_vec, data, λ0, f_str; dt=dt, n=n, beta=beta, mu0=mu0, map_str=map_str)
+    ll(x) = ll_wrapper(x, p_const, fit_vec, data, λ0, f_str, N; dt=dt, n=n, beta=beta, 
+        mu0=mu0, map_str=map_str, dimy=dimy)
     
     return H = ForwardDiff.hessian(ll, p_opt)
         
@@ -133,17 +136,19 @@ end
 
 function compute_CI(H, pz::Vector{Float64}, py::Vector{Vector{Float64}}, 
         pz_fit_vec, py_fit, data;
-        dt::Float64=1e-2, n::Int=53, f_str="softplus", map_str::String="exp")
+        dt::Float64=1e-2, n::Int=53, f_str="sig", map_str::String="exp",
+        dimy::Int=4)
     
+    N = length(py)
     fit_vec = combine_latent_and_observation(pz_fit,py_fit)
     p_opt, p_const = split_combine_invmap(pz, py, fit_vec, dt, f_str, map_str)
     
     CI = 2*sqrt.(diag(inv(H)))
     
-    CIz_plus, CIbias_plus = map_split_combine(p_opt + CI, p_const, fit_vec, dt, map_str)
-    CIz_minus, CIbias_minus = map_split_combine(p_opt - CI, p_const, fit_vec, dt, map_str)
+    CIz_plus, CIbias_plus = map_split_combine(p_opt + CI, p_const, fit_vec, dt, map_str, N, dimy)
+    CIz_minus, CIbias_minus = map_split_combine(p_opt - CI, p_const, fit_vec, dt, map_str, N, dimy)
     
-    return CIplus, CIminus = combine_latent_and_observation(CIz_plus,CIbias_plus), combine_latent_and_observation(CIz_minus,CIbias_minus)
+    return CIz_plus, CIbias_plus, CIz_minus, CIbias_minus
     
 end
 
@@ -160,36 +165,40 @@ end
 
 """
 function optimize_model(pz::Vector{TT},py::Vector{Vector{TT}},pz_fit,py_fit,data;
-        dt::Float64=1e-2, n::Int=53, f_str="softplus",map_str::String="exp",
+        dt::Float64=1e-2, n::Int=53, f_str="sig",map_str::String="exp",
         beta::Vector{Vector{Float64}}=Vector{Vector{Float64}}(),
         mu0::Vector{Vector{Float64}}=Vector{Vector{Float64}}(),
         x_tol::Float64=1e-16,f_tol::Float64=1e-16,g_tol::Float64=1e-12,
         iterations::Int=Int(5e3),show_trace::Bool=true, 
-        λ0::Vector{Vector{Float64}}=Vector{Vector{Float64}}()) where {TT <: Any}
+        λ0::Vector{Vector{Float64}}=Vector{Vector{Float64}}(),
+        dimy::Int=4) where {TT <: Any}
 
+    N = length(py)
     fit_vec = combine_latent_and_observation(pz_fit,py_fit)
     p_opt, p_const = split_combine_invmap(pz, py, fit_vec, dt, f_str, map_str)
 
     ###########################################################################################
     ## Optimize
-    ll(x) = ll_wrapper(x, p_const, fit_vec, data, λ0, f_str; dt=dt, n=n, beta=beta, mu0=mu0, map_str=map_str)
+    ll(x) = ll_wrapper(x, p_const, fit_vec, data, λ0, f_str, N; dt=dt, n=n, beta=beta, 
+        mu0=mu0, map_str=map_str, dimy=dimy)
     opt_output, state = opt_ll(p_opt,ll;g_tol=g_tol, x_tol=x_tol, f_tol=f_tol,
         iterations=iterations, show_trace=show_trace);
     p_opt = Optim.minimizer(opt_output)
 
-    pz, py = map_split_combine(p_opt, p_const, fit_vec, dt, f_str, map_str)
+    pz, py = map_split_combine(p_opt, p_const, fit_vec, dt, f_str, map_str, N, dimy)
         
     return pz, py, opt_output, state
     
 end
 
 function ll_wrapper(p_opt::Vector{TT}, p_const::Vector{Float64}, fit_vec::Union{BitArray{1},Vector{Bool}}, 
-        data::Dict, λ0::Vector{Vector{Float64}}, f_str::String;
+        data::Dict, λ0::Vector{Vector{Float64}}, f_str::String, N::Int;
         dt::Float64=1e-2, n::Int=53, map_str::String="exp",
         beta::Vector{Vector{Float64}}=Vector{Vector{Float64}}(0), 
-        mu0::Vector{Vector{Float64}}=Vector{Vector{Float64}}(0)) where {TT}
+        mu0::Vector{Vector{Float64}}=Vector{Vector{Float64}}(0),
+        dimy::Int=4) where {TT}
 
-    pz, py = map_split_combine(p_opt, p_const, fit_vec, dt, f_str, map_str)
+    pz, py = map_split_combine(p_opt, p_const, fit_vec, dt, f_str, map_str, N, dimy)
 
     LL = compute_LL(pz, py, data, dt=dt, n=n, f_str=f_str, λ0=λ0, beta=beta, mu0 = mu0)
     
@@ -337,37 +346,39 @@ end
 
 function optimize_model(pz::Vector{TT}, py::Vector{Vector{TT}}, pRBF::Vector{Vector{TT}},
         pz_fit, py_fit, pRBF_fit, data;
-        dt::Float64=1e-2, n::Int=53, f_str="softplus",map_str::String="exp",
+        dt::Float64=1e-2, n::Int=53, f_str="sig",map_str::String="exp",
         beta::Vector{Vector{Float64}}=Vector{Vector{Float64}}(),
         mu0::Vector{Vector{Float64}}=Vector{Vector{Float64}}(),
         x_tol::Float64=1e-16,f_tol::Float64=1e-16,g_tol::Float64=1e-12,
-        iterations::Int=Int(5e3),show_trace::Bool=false) where {TT <: Any}
+        iterations::Int=Int(5e3),show_trace::Bool=false,
+        dimy::Int=4, numRBF::Int=20) where {TT <: Any}
 
-#        λ0::Vector{Vector{Float64}}=Vector{Vector{Float64}}()) where {TT <: Any}
-
+    N = length(py)
     fit_vec = combine_latent_and_observation(pz_fit, py_fit, pRBF_fit)
     p_opt,p_const = split_variable_and_const(combine_latent_and_observation(pz,py,pRBF),fit_vec)
 
     ###########################################################################################
     ## Optimize
-    ll(x) = ll_wrapper(x, p_const, fit_vec, data, f_str; dt=dt, n=n, beta=beta, mu0=mu0, map_str=map_str)
+    ll(x) = ll_wrapper(x, p_const, fit_vec, data, f_str, N; dt=dt, n=n, beta=beta, 
+        mu0=mu0, map_str=map_str, dimy=dimy, numRBF=numRBF)
     opt_output, state = opt_ll(p_opt,ll;g_tol=g_tol,x_tol=x_tol,f_tol=f_tol,
         iterations=iterations, show_trace=show_trace);
     p_opt = Optim.minimizer(opt_output)
-
-    pz, py, pRBF = map_split_combine(p_opt, p_const, fit_vec, dt, f_str, map_str)
+    
+    pz, py, pRBF = map_split_combine(p_opt, p_const, fit_vec, dt, f_str, map_str, N, dimy, numRBF)
         
     return pz, py, pRBF, opt_output, state
     
 end
 
 function ll_wrapper(p_opt::Vector{TT}, p_const::Vector{Float64}, fit_vec::Union{BitArray{1},Vector{Bool}}, 
-        data::Dict, f_str::String;
+        data::Dict, f_str::String, N::Int;
         dt::Float64=1e-2, n::Int=53, map_str::String="exp",
         beta::Vector{Vector{Float64}}=Vector{Vector{Float64}}(0), 
-        mu0::Vector{Vector{Float64}}=Vector{Vector{Float64}}(0)) where {TT}
+        mu0::Vector{Vector{Float64}}=Vector{Vector{Float64}}(0),
+        dimy::Int=4, numRBF::Int=20) where {TT}
 
-    pz, py, pRBF = map_split_combine(p_opt, p_const, fit_vec, dt, f_str, map_str)
+    pz, py, pRBF = map_split_combine(p_opt, p_const, fit_vec, dt, f_str, map_str, N, dimy, numRBF)
 
     LL = compute_LL(pz, py, pRBF, data, dt=dt, n=n, f_str=f_str, beta=beta, mu0 = mu0)
     

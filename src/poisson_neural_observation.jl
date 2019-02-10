@@ -132,21 +132,16 @@ softplus_3param(p::Vector{T}, x::Array{U}) where {T,U <: Any} = p[1] .+ log.(1. 
 
 ########################## Model with RBF #################################################################
 
-function fy(p::Vector{TT},a::Union{TT,Float64,Int},
-        x::Float64,mu::Float64,std::Float64) where {TT}
-            
-        y = p[1] + exp(p[2]*a*pdf(Normal(mu,std),x))
-                
-end
-
-function LL_all_trials(pz::Vector{TT},py::Vector{Vector{TT}}, pRBF::Vector{Vector{TT}}, 
-        data::Dict; dt::Float64=1e-2, n::Int=53, f_str::String="softplus", comp_posterior::Bool=false,
-        λ0::Vector{Vector{Float64}}=Vector{Vector{Float64}}()) where {TT <: Any}
+function LL_all_trials(pz::Vector{TT}, py::Vector{Vector{TT}}, pRBF::Vector{Vector{TT}}, 
+        data::Dict; dt::Float64=1e-2, n::Int=53, 
+        f_str::String="softplus", comp_posterior::Bool=false) where {TT <: Any}
         
     P,M,xc,dx, = initialize_latent_model(pz,n,dt)
     
     λ = hcat(fy.(py,[xc],f_str=f_str)...)
-    #define these in terms of RBF parameters and can use same single trial code λ0 
+    c = map(x->dt:dt:maximum(data["nT"][x])*dt,data["trial"])
+    rbf = map(x->UniformRBFE(x,num_RBFs),c);
+    λ0 = map((x,y,z)->x(y)*z, rbf, c, pRBF)
                     
     output = pmap((L,R,T,nL,nR,N,SC) -> LL_single_trial(pz, P, M, dx, xc,
         L, R, T, nL, nR, λ[:,N], SC, dt, n, λ0=λ0[N]),

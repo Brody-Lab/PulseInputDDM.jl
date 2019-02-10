@@ -2,16 +2,17 @@
 
 (Thanks to Nick Roy of the PillowLab for these instructions!)
 
-This page is all about how to ssh into spock, della, scotty or any other campus resource without needing to use VPN.
+This page is all about how to SSH into spock, della, scotty or any other campus resource _without_ needing to use VPN.
 
-The basic idea here is to use RSA to ssh through an intermediate, open, server. In this case, the two options are nobel (nobel.princeton.edu) and arizona (arizona.princeton.edu). This should work on any unix machine (linux and MAC). Windows people should seek immediate attention. The steps are as follows:
+The basic idea here is to use RSA to SSH through an intermediate, open, server. In this case, the two options are nobel (nobel.princeton.edu) and arizona (arizona.princeton.edu). This should work on any unix machine (linux and MAC). Windows people should seek immediate attention. The steps are as follows:
 
-Edit (or create and edit) an ssh config on your local machine (usually located at ~/.ssh/config), and add the following code:
+Edit (or create and edit) an ssh config on your local machine (usually located at ~/.ssh/config) using VIM or your favorite text editor. Add the following code:
 
 ```
    Host nobel
    User [username]
    HostName nobel.princeton.edu
+   
    Host spock
    User [username]
    HostName scotty.princeton.edu
@@ -35,7 +36,7 @@ Then hit enter twice to save the RSA key to the default location and to not incl
     >> ssh-copy-id [username]@spock.princeton.edu
 ```
 
-where again UNAME is your login name and you can change the address (spock.princeton.edu) to whichever machine you are trying to access. Make sure to do this first for either arizona or nobel (whichever you decide to use) and then again for the machine you are trying to access.
+where again `[username]` is your login name and you can change the address (spock.princeton.edu) to whichever machine you are trying to access. Make sure to do this first for either arizona or nobel (whichever you decide to use) and then again for the machine you are trying to access.
 
 With the above code, you can now simply ssh in via
 
