@@ -10,13 +10,14 @@ makedocs(sitename="pulse input DDM",
         pages = Any[
         "Home" => "index.md",
         "Basics" => Any[
+          "man/setting_things_up_on_scotty.md",
+          "man/getting_the_package.md",
+          "man/working_interactively_on_scotty.md",
+          "man/using_spock.md",
+          "man/vpn_is_annoying.md"
           "man/choice_observation_model.md",
           "man/neural_observation_model.md",
-          "man/using_spock.md",
           "man/aggregating_sessions.md"
-         ],
-        "Getting up and running on scotty or spock" => Any[
-          "man/vpn_is_annoying.md"
          ],
         "Index" => "links.md",
         "Functions" => "functions.md"

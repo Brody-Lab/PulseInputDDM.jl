@@ -18,7 +18,7 @@ function LL_single_trial(pz::Vector{TT}, P::Vector{TT}, M::Array{TT,2}, dx::TT,
         xc::Vector{TT},L::Vector{Float64}, R::Vector{Float64}, T::Int,
         hereL::Vector{Int}, hereR::Vector{Int},
         λ::Array{TT,2},spike_counts::Vector{Vector{Int}},dt::Float64,n::Int;
-        λ0::Vector{Vector{Float64}}=Vector{Vector{Float64}}()) where {TT}
+        λ0::Vector{Vector{UU}}=Vector{Vector{UU}}()) where {UU,TT <: Any}
     
     #adapt magnitude of the click inputs
     La, Ra = make_adapted_clicks(pz,L,R)
@@ -51,7 +51,7 @@ end
 function posterior_single_trial(pz::Vector{TT}, P::Vector{TT}, M::Array{TT,2}, dx::TT, 
         xc::Vector{TT},L::Vector{Float64}, R::Vector{Float64}, T::Int,
         hereL::Vector{Int}, hereR::Vector{Int},
-        lambday::Array{TT,2},spike_counts::Vector{Vector{Int}},dt::Float64,n::Int;
+        lambday::Array{TT,2}, spike_counts::Vector{Vector{Int}},dt::Float64,n::Int;
         muf::Vector{Vector{Float64}}=Vector{Vector{Float64}}()) where {TT}
     
     #adapt magnitude of the click inputs
@@ -134,18 +134,30 @@ softplus_3param(p::Vector{T}, x::Array{U}) where {T,U <: Any} = p[1] .+ log.(1. 
 
 function LL_all_trials(pz::Vector{TT}, py::Vector{Vector{TT}}, pRBF::Vector{Vector{TT}}, 
         data::Dict; dt::Float64=1e-2, n::Int=53, 
-        f_str::String="softplus", comp_posterior::Bool=false) where {TT <: Any}
+        f_str::String="softplus", comp_posterior::Bool=false,
+        numRBF::Int=20) where {TT <: Any}
         
     P,M,xc,dx, = initialize_latent_model(pz,n,dt)
     
     λ = hcat(fy.(py,[xc],f_str=f_str)...)
-    c = map(x->dt:dt:maximum(data["nT"][x])*dt,data["trial"])
-    rbf = map(x->UniformRBFE(x,num_RBFs),c);
-    λ0 = map((x,y,z)->x(y)*z, rbf, c, pRBF)
+    #c = map(x->dt:dt:maximum(data["nT"][x])*dt,data["trial"])
+    #rbf = map(x->UniformRBFE(x,numRBF),c);
+    #λ0 = map((x,y,z)->x(y)*z, rbf, c, pRBF)
+    
+    λ0 = λ0_from_RBFs(pRBF,data;dt=dt,numRBF=numRBF)
                     
     output = pmap((L,R,T,nL,nR,N,SC) -> LL_single_trial(pz, P, M, dx, xc,
         L, R, T, nL, nR, λ[:,N], SC, dt, n, λ0=λ0[N]),
         data["leftbups"], data["rightbups"], data["nT"], data["binned_leftbups"], 
         data["binned_rightbups"], data["N"],data["spike_counts"])        
+    
+end
+
+function λ0_from_RBFs(pRBF::Vector{Vector{TT}},data::Dict;
+        dt::Float64=1e-2,numRBF::Int=20) where {TT <: Any}
+    
+    c = map(x->dt:dt:maximum(data["nT"][x])*dt,data["trial"])
+    rbf = map(x->UniformRBFE(x,numRBF),c);
+    λ0 = map((x,y,z)->x(y)*z, rbf, c, pRBF)
     
 end

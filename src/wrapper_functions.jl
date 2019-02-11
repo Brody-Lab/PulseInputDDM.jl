@@ -24,6 +24,26 @@ opt_ll_Newton(p_opt,ll;g_tol::Float64=1e-12,x_tol::Float64=1e-16,f_tol::Float64=
 
 #################################### Choice observation model #################################
 
+function load_and_optimize(path::String, sessids, ratnames; dt::Float64=1e-2, n::Int=53,
+        fit_bias::Bool=true, fit_latent::BitArray{1}=trues(dimz))
+    
+    data = make_data(path,sessids,ratnames,dt)
+    
+    #parameters of the latent model
+    pz = DataFrames.DataFrame(name = vcat("σ_i","B", "λ", "σ_a","σ_s","ϕ","τ_ϕ"),
+        fit = fit_latent,
+        initial = vcat(1.,5.,-5,100.,2.,0.2,0.08));
+    
+    #parameters for the choice observation
+    pd = DataFrames.DataFrame(name = "bias", fit = fit_bias, initial = 0.);
+    
+    pz[:final], pd[:final], = optimize_model(pz[:initial], pd[:initial][1], 
+        pz[:fit], pd[:fit], data; dt=dt, n=n)
+    
+    return pz, pd
+    
+end
+
 function compute_Hessian(pz::Vector{TT},bias::TT,pz_fit_vec,bias_fit_vec,data;
         dt::Float64=1e-2,n::Int=53,map_str::String="exp") where {TT <: Any}
     
@@ -346,7 +366,7 @@ end
 
 function optimize_model(pz::Vector{TT}, py::Vector{Vector{TT}}, pRBF::Vector{Vector{TT}},
         pz_fit, py_fit, pRBF_fit, data;
-        dt::Float64=1e-2, n::Int=53, f_str="sig",map_str::String="exp",
+        dt::Float64=1e-2, n::Int=53, f_str="sig2",map_str::String="exp",
         beta::Vector{Vector{Float64}}=Vector{Vector{Float64}}(),
         mu0::Vector{Vector{Float64}}=Vector{Vector{Float64}}(),
         x_tol::Float64=1e-16,f_tol::Float64=1e-16,g_tol::Float64=1e-12,
@@ -354,8 +374,8 @@ function optimize_model(pz::Vector{TT}, py::Vector{Vector{TT}}, pRBF::Vector{Vec
         dimy::Int=4, numRBF::Int=20) where {TT <: Any}
 
     N = length(py)
-    fit_vec = combine_latent_and_observation(pz_fit, py_fit, pRBF_fit)
-    p_opt,p_const = split_variable_and_const(combine_latent_and_observation(pz,py,pRBF),fit_vec)
+    fit_vec = combine_latent_and_observation(pz_fit, py_fit, pRBF_fit)    
+    p_opt, p_const = split_combine_invmap(pz, py, pRBF, fit_vec, dt, f_str, map_str)
 
     ###########################################################################################
     ## Optimize
@@ -380,18 +400,19 @@ function ll_wrapper(p_opt::Vector{TT}, p_const::Vector{Float64}, fit_vec::Union{
 
     pz, py, pRBF = map_split_combine(p_opt, p_const, fit_vec, dt, f_str, map_str, N, dimy, numRBF)
 
-    LL = compute_LL(pz, py, pRBF, data, dt=dt, n=n, f_str=f_str, beta=beta, mu0 = mu0)
+    LL = compute_LL(pz, py, pRBF, data, dt=dt, n=n, f_str=f_str, beta=beta, mu0=mu0, numRBF=numRBF)
     
     return -LL
               
 end
 
 function compute_LL(pz::Vector{T},py::Vector{Vector{T}},pRBF::Vector{Vector{T}}, data;
-        dt::Float64=1e-2, n::Int=53,f_str="softplus",
+        dt::Float64=1e-2, n::Int=53, f_str="sig2",
         beta::Vector{Vector{Float64}}=Vector{Vector{Float64}}(),
-        mu0::Vector{Vector{Float64}}=Vector{Vector{Float64}}()) where {T <: Any}
+        mu0::Vector{Vector{Float64}}=Vector{Vector{Float64}}(),
+        numRBF::Int=20) where {T <: Any}
     
-    LL = sum(LL_all_trials(pz, py, pRBF, data, dt=dt, n=n, f_str=f_str))
+    LL = sum(LL_all_trials(pz, py, pRBF, data, dt=dt, n=n, f_str=f_str, numRBF=numRBF))
     
     length(beta) > 0 ? LL += sum(gauss_prior.(py,mu0,beta)) : nothing
     
