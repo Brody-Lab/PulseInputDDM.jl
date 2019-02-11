@@ -364,6 +364,8 @@ end
 
 ########################## RBF model ###########################################
 
+#=
+
 function optimize_model(pz::Vector{TT}, py::Vector{Vector{TT}}, pRBF::Vector{Vector{TT}},
         pz_fit, py_fit, pRBF_fit, data;
         dt::Float64=1e-2, n::Int=53, f_str="sig2",map_str::String="exp",
@@ -419,6 +421,8 @@ function compute_LL(pz::Vector{T},py::Vector{Vector{T}},pRBF::Vector{Vector{T}},
     return LL
     
 end
+
+=#
 
 ########################## Priors ###########################################
 

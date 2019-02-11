@@ -1,8 +1,11 @@
-path = ARGS[1]
+
 @everywhere using Pkg
 @everywhere Pkg.activate("/mnt/bucket/people/briandd/Projects/pulse_input_DDM.jl")
 @everywhere using pulse_input_DDM
-using JLD
+
+using JLD, DataFrames
+
+path = ARGS[1]
 
 data_path = path*"/data/hanks_data_sessions"
 region = "FOF"
@@ -47,4 +50,4 @@ pz, pd = load_and_optimize(data_path,sessids,ratnames)
 
 save_path = path*"/data/results"
 mkpath(save_path)
-@save save_path*"/"*region*"_fit_results.jld"
+@save save_path*"/"*region*"_fit_results.jld" pz pd

@@ -132,6 +132,8 @@ softplus_3param(p::Vector{T}, x::Array{U}) where {T,U <: Any} = p[1] .+ log.(1. 
 
 ########################## Model with RBF #################################################################
 
+#=
+
 function LL_all_trials(pz::Vector{TT}, py::Vector{Vector{TT}}, pRBF::Vector{Vector{TT}}, 
         data::Dict; dt::Float64=1e-2, n::Int=53, 
         f_str::String="softplus", comp_posterior::Bool=false,
@@ -161,3 +163,5 @@ function λ0_from_RBFs(pRBF::Vector{Vector{TT}},data::Dict;
     λ0 = map((x,y,z)->x(y)*z, rbf, c, pRBF)
     
 end
+
+=#

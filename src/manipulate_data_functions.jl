@@ -4,12 +4,18 @@
 
 function make_data(path::String, sessids::Vector{Vector{Int}}, ratnames::Vector{String}, dt::Float64)
 
+    #data = Dict("leftbups" => Vector{Vector{Float64}}(), "rightbups" => Vector{Vector{Float64}}(), 
+    #            "binned_leftbups" => Vector{Vector{Int64}}(), "binned_rightbups" => Vector{Vector{Int64}}(),
+    #            "T" => Vector{Float64}(), "nT" => Vector{Int64}(), 
+    #            "pokedR" => Vector{Bool}(), "correct_dir" => Vector{Bool}(), 
+    #            "sessid" => Vector{Int}(), "ratname" => Vector{String}(),
+    #            "dt" => dt);
+    
     data = Dict("leftbups" => Vector{Vector{Float64}}(), "rightbups" => Vector{Vector{Float64}}(), 
-                "binned_leftbups" => Vector{Vector{Int64}}(), "binned_rightbups" => Vector{Vector{Int64}}(),
-                "T" => Vector{Float64}(), "nT" => Vector{Int64}(), 
-                "pokedR" => Vector{Bool}(), "correct_dir" => Vector{Bool}(), 
-                "sessid" => Vector{Int}(), "ratname" => Vector{String}(),
-                "dt" => dt);
+            "binned_leftbups" => Vector{Vector{Int64}}(), "binned_rightbups" => Vector{Vector{Int64}}(),
+            "T" => Vector{Float64}(), "nT" => Vector{Int64}(), 
+            "pokedR" => Vector{Bool}(), "correct_dir" => Vector{Bool}(), 
+            "dt" => dt)
     
     for j = 1:length(ratnames)
         for i = 1:length(sessids[j])
@@ -37,8 +43,8 @@ function package_data!(data::Dict,rawdata::Dict,ratname::String,dt::Float64=1e-2
     append!(data["rightbups"],map(x->vec(collect(x)),rawdata["rightbups"]))
     append!(data["binned_leftbups"],map((x,y)->vec(qfind(0.:dt:x*dt,y)),binnedT,rawdata["leftbups"]))
     append!(data["binned_rightbups"],map((x,y)->vec(qfind(0.:dt:x*dt,y)),binnedT,rawdata["rightbups"]))
-    append!(data["sessid"],map(x->x[1],rawdata["sessid"]))
-    append!(data["ratname"],map(x->ratname,rawdata["sessid"]))
+    #append!(data["sessid"],map(x->x[1],rawdata["sessid"]))
+    #append!(data["ratname"],map(x->ratname,rawdata["sessid"]))
 
     return data
 

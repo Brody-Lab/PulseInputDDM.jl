@@ -1,13 +1,14 @@
 module pulse_input_DDM
 
-using Revise
+#using Revise
 using StatsBase, Distributions, DSP, Optim, LineSearches, JLD
 using ForwardDiff, Distributed, LinearAlgebra
 using Pandas
 using SpecialFunctions
 using MAT, ROCAnalysis, Random
 using ImageFiltering
-using DataFrames, BasisFunctionExpansions
+using DataFrames
+#using BasisFunctionExpansions
 
 #using GLM add later for linear regression
 
@@ -28,6 +29,6 @@ export FilterSpikes, nanmean, nanstderr, rate_mat_func_filt
 export diffLR, group_by_neuron, opt_ll, dimz
 export optimize_model, sample_model, fy, bins, sigmoid_4param, softplus_3param
 export padded_λ_array, compute_LL, compute_Hessian, compute_CI, load_and_optimize
-export λ0_from_RBFs
+#export λ0_from_RBFs
 
 end # module

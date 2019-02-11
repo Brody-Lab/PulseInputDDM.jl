@@ -13,12 +13,14 @@ makedocs(sitename="pulse input DDM",
           "man/setting_things_up_on_scotty.md",
           "man/getting_the_package.md",
           "man/working_interactively_on_scotty.md",
-          "man/using_spock.md",
-          "man/vpn_is_annoying.md"
           "man/choice_observation_model.md",
           "man/neural_observation_model.md",
-          "man/aggregating_sessions.md"
+          "man/using_spock.md"
          ],
+        "Other helpful info" => Any[
+           "man/vpn_is_annoying.md"
+        ],
+        "Development" => "man/development.md",
         "Index" => "links.md",
         "Functions" => "functions.md"
          ])

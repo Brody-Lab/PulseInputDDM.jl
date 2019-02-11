@@ -5,9 +5,11 @@
 #SBATCH -p Brody
 #SBATCH --time=24:00:00
 #SBATCH --mem=64000
-#SBATCH -c 12
+#SBATCH -c 44
 
 module load anacondapy/5.1.0
 source activate julia
 path=$HOME/Projects/pulse_input_DDM.jl/
+
+#julia -p auto -L $path/src/test_recovery_choice_model-v2.jl $path
 julia -p auto $path/src/load_and_optimize.jl $path

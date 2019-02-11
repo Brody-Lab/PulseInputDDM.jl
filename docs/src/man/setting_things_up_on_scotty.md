@@ -83,3 +83,13 @@ Next time, you only need to:
 - Create the ssh tunnel: `>> ssh -L <port>:localhost:<port> scotty`.
 
 These instructions can also be found [here](https://brodylabwiki.princeton.edu/wiki/index.php/Internal:IJulia_notebook_on_scotty).
+
+## Running interactively on spock-brody instead
+
+I'm not sure if this is technically supported by PNI IT or not, but sometimes scotty can be bogged down with lots of jobs. Our personal computing cluster that PNI manages is mostly set up for batch jobs (like spock) but can be hyjacked to run interactively by executing the following from spock (once you made a SSH connection to it):
+
+```
+    >> salloc -p Brody -t 24:00:00 -c 44 srun --pty bash
+```
+
+This will request 1 node (44 cores) for 24 hours from the Brody partition. The second bit `srun --pty bash` will open a bash shell on the compute node you just requested. You can now use it like you used scotty above. 

@@ -1,3 +1,5 @@
+path = ARGS[1]
+
 @everywhere using Pkg
 @everywhere Pkg.activate("/mnt/bucket/people/briandd/Projects/pulse_input_DDM.jl")
 @everywhere using pulse_input_DDM
