@@ -31,7 +31,6 @@ end
 
 function package_data!(data::Dict,rawdata::Dict,ratname::String,dt::Float64=1e-2)
 
-    ntrials = length(rawdata["T"])
     binnedT = ceil.(Int,rawdata["T"]/dt);
 
     append!(data["T"],rawdata["T"])
@@ -52,80 +51,70 @@ end
 
 #################################### Poisson neural observation model #########################
 
-function make_data(path::String,sessids::Vector{Vector{Int}},ratnames::Vector{String};
-        model_type::String="spikes",dt::Float64=1e-2,organize::String="by_trial",shifted::Bool=false)
+function make_data(path::String, sessids::Vector{Vector{Int}}, ratnames::Vector{String}, 
+        dt::Float64, organize::String)
 
     data = Dict("leftbups" => Vector{Vector{Float64}}(), "rightbups" => Vector{Vector{Float64}}(), 
                 "binned_leftbups" => Vector{Vector{Int64}}(), "binned_rightbups" => Vector{Vector{Int64}}(),
                 "T" => Vector{Float64}(), "nT" => Vector{Int64}(), 
-                "pokedR" => Vector{Bool}(), "correct_dir" => Vector{Bool}(), 
-                "spike_counts" => Vector{Vector{Vector{Int64}}}(),"N" => Vector{Vector{Int64}}(),
+                "pokedR" => Vector{Bool}(), "correct_dir" => Vector{Bool}(),
+                "dt" => dt,
+                "spike_counts" => Vector{Vector{Vector{Int64}}}(),
+                "spike_counts_all" => Vector{Vector{Vector{Int64}}}(),
+                "N" => Vector{Vector{Int64}}(),
                 "trial" => Vector{UnitRange{Int64}}(),
-                "sessid" => Vector{Int}(), "N0" => 0, "trial0" => 0,
-                "cell" => Vector{Vector{Int}}(),"ratname" => Vector{String}());
+                "N0" => 0, "trial0" => 0,
+                "cellID" => Vector{Vector{Int}}(),
+                "stim_start" => Vector{Float64}());
     
     for j = 1:length(ratnames)
         for i = 1:length(sessids[j])
-            if shifted
-                file = matopen(path*"/shifted_"*ratnames[j]*"_"*string(sessids[j][i])*".mat")
-            else
-                file = matopen(path*"/"*ratnames[j]*"_"*string(sessids[j][i])*".mat")
-            end
+            file = matopen(path*"/"*ratnames[j]*"_"*string(sessids[j][i])*".mat")
             rawdata = read(file,"rawdata")
-            data = package_data!(data,rawdata,model_type,ratnames[j],dt=dt,organize=organize)
+            data = package_data!(data,rawdata,ratnames[j],dt)
+            data = package_data!(data,rawdata,ratnames[j],dt,organize)
         end
     end
 
     N = data["N0"]
-    data["dt"] = dt
     
     return data, N
     
 end
 
-function package_data!(data,rawdata,model_type::String,ratname::String;dt::Float64=2e-2,organize::String="by_trial")
+function package_data!(data, rawdata, ratname::String, dt::Float64, organize::String)
 
     ntrials = length(rawdata["T"])
-    binnedT = ceil.(Int,rawdata["T"]/dt);
+    binnedT = ceil.(Int,rawdata["T"]/dt)
+    N = size(rawdata["spike_times"][1],2)
 
-    append!(data["T"],rawdata["T"])
-    append!(data["nT"],binnedT)
-    append!(data["pokedR"],vec(convert(BitArray,rawdata["pokedR"])))
-    append!(data["correct_dir"],vec(convert(BitArray,rawdata["correct_dir"])))
-    
-    append!(data["leftbups"],map(x->vec(collect(x)),rawdata["leftbups"]))
-    append!(data["rightbups"],map(x->vec(collect(x)),rawdata["rightbups"]))
-    append!(data["binned_leftbups"],map((x,y)->vec(qfind(0.:dt:x*dt,y)),binnedT,rawdata["leftbups"]))
-    append!(data["binned_rightbups"],map((x,y)->vec(qfind(0.:dt:x*dt,y)),binnedT,rawdata["rightbups"]))
-    append!(data["sessid"],map(x->x[1],rawdata["sessid"]))
-    append!(data["cell"],map(x->vec(collect(x)),rawdata["cell"]))
-    append!(data["ratname"],map(x->ratname,rawdata["cell"]))
-    
-    if any(model_type .== "spikes")
+    append!(data["cellID"],map(x->vec(collect(x)),rawdata["cellID"]))  
+    append!(data["stim_start"],rawdata["stim_start"])
+
+    if organize == "by_trial"
+
+        append!(data["spike_counts"],map((x,y) -> map(z -> fit(Histogram,vec(collect(y[z])), 
+                0.:dt:x*dt,closed=:left).weights,1:N), binnedT, rawdata["spike_times"]))
+        append!(data["N"],repeat([collect(data["N0"]+1:data["N0"]+N)],inner=ntrials))
+        #added 2/5 to note which trials have which neurons
+        append!(data["trial"],repeat([data["trial0"]+1:data["trial0"]+ntrials],inner=N))
+
+    elseif organize == "by_neuron"
+
+        append!(data["spike_counts"],map!(z -> map!((x,y) -> fit(Histogram,vec(collect(y[z])), 
+                0.:dt:x*dt,closed=:left).weights, Vector{Vector}(undef,ntrials),
+                binnedT,rawdata["spike_times"]), Vector{Vector}(undef,N),1:N))
         
-        N = size(rawdata["St"][1],2)
-
-        if organize == "by_trial"
-    
-            append!(data["spike_counts"],map((x,y)->map(z->fit(Histogram,vec(collect(y[z])), 
-                    0.:dt:x*dt,closed=:left).weights,1:N),binnedT,rawdata["St"]))
-            append!(data["N"],repeat([collect(data["N0"]+1:data["N0"]+N)],inner=ntrials))
-            #added 2/5 to note which trials have which neurons
-            append!(data["trial"],repeat([data["trial0"]+1:data["trial0"]+ntrials],inner=N))
-
-        elseif organize == "by_neuron"
-            
-            append!(data["spike_counts"],map!(z -> map!((x,y) -> fit(Histogram,vec(collect(y[z])), 
-                    0.:dt:x*dt,closed=:left).weights,Vector{Vector}(undef,ntrials),
-                    binnedT,rawdata["St"]),Vector{Vector}(undef,N),1:N));
-            append!(data["trial"],repeat([data["trial0"]+1:data["trial0"]+ntrials],inner=N));
-
-        end
+        append!(data["spike_counts_all"], map!(z -> map!((x,y) -> fit(Histogram,vec(collect(y[z])), 
+                0.:dt:x*dt, closed=:left).weights, Vector{Vector}(undef,ntrials),
+                binnedT, rawdata["spike_times"]), Vector{Vector}(undef,N), 1:N))
         
-        data["N0"] += N
-        data["trial0"] += ntrials
+        append!(data["trial"],repeat([data["trial0"]+1:data["trial0"]+ntrials],inner=N))
 
     end
+
+    data["N0"] += N
+    data["trial0"] += ntrials
 
     return data
 
