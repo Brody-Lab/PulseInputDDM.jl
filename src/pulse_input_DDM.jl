@@ -24,11 +24,12 @@ include("wrapper_functions.jl")
 include("mapping_functions.jl")
 include("sample_model_functions.jl")
 
-export do_LL, poiss_LL, make_data
-export FilterSpikes, nanmean, nanstderr, rate_mat_func_filt
-export diffLR, group_by_neuron, opt_ll, dimz
+export poiss_LL, aggregate_spiking_data, aggregate_choice_data
+export nanmean, nanstderr
+export diffLR, group_by_neuron, dimz
 export optimize_model, sample_model, fy, bins, sigmoid_4param, softplus_3param
 export padded_λ_array, compute_LL, compute_Hessian, compute_CI, load_and_optimize
 #export λ0_from_RBFs
+export filter_data_by_cell!
 
 end # module

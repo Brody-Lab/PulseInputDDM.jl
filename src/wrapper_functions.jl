@@ -25,7 +25,7 @@ opt_ll_Newton(p_opt,ll;g_tol::Float64=1e-12,x_tol::Float64=1e-16,f_tol::Float64=
 #################################### Choice observation model #################################
 
 function load_and_optimize(path::String, sessids, ratnames; dt::Float64=1e-2, n::Int=53,
-        fit_bias::Bool=true, fit_latent::BitArray{1}=trues(dimz))
+        fit_latent::BitArray{1}=trues(dimz), show_trace::Bool=true)
     
     data = make_data(path,sessids,ratnames,dt)
     
@@ -35,10 +35,10 @@ function load_and_optimize(path::String, sessids, ratnames; dt::Float64=1e-2, n:
         initial = vcat(1.,5.,-5,100.,2.,0.2,0.08));
     
     #parameters for the choice observation
-    pd = DataFrames.DataFrame(name = "bias", fit = fit_bias, initial = 0.);
+    pd = DataFrames.DataFrame(name = "bias", fit = true, initial = 0.);
     
     pz[:final], pd[:final], = optimize_model(pz[:initial], pd[:initial][1], 
-        pz[:fit], pd[:fit], data; dt=dt, n=n)
+        pz[:fit], pd[:fit], data; dt=dt, n=n, show_trace=show_trace)
     
     return pz, pd
     
@@ -81,7 +81,7 @@ end
 function optimize_model(pz::Vector{TT}, bias::TT, pz_fit_vec, bias_fit_vec,
         data; dt::Float64=1e-2, n=53, map_str::String="exp",
         x_tol::Float64=1e-16,f_tol::Float64=1e-16,g_tol::Float64=1e-12,
-        iterations::Int=Int(5e3)) where {TT <: Any}
+        iterations::Int=Int(5e3),show_trace::Bool=true) where {TT <: Any}
     
     fit_vec = combine_latent_and_observation(pz_fit_vec, bias_fit_vec)
     p_opt, p_const = split_combine_invmap(pz, bias, fit_vec, dt, map_str)
@@ -89,7 +89,8 @@ function optimize_model(pz::Vector{TT}, bias::TT, pz_fit_vec, bias_fit_vec,
     ###########################################################################################
     ## Optimize
     ll(x) = ll_wrapper(x, p_const, fit_vec, data, n=n, dt=dt, map_str=map_str)
-    opt_output, state = opt_ll(p_opt,ll;g_tol=g_tol,x_tol=x_tol,f_tol=f_tol,iterations=iterations);
+    opt_output, state = opt_ll(p_opt,ll;g_tol=g_tol,x_tol=x_tol,f_tol=f_tol,iterations=iterations,
+        show_trace=show_trace)
     p_opt = Optim.minimizer(opt_output)
     
     pz, bias = map_split_combine(p_opt, p_const, fit_vec, dt, map_str)
@@ -125,6 +126,54 @@ compute_LL(pz::Vector{T},bias::T,data;dt::Float64=1e-2,n::Int=53) where {T <: An
     sum(LL_all_trials(pz, bias, data, n=n, dt=dt))
 
 #################################### Poisson neural observation model #########################
+
+function load_and_optimize(data, N; dt::Float64=1e-2, n::Int=53,
+        fit_latent::BitArray{1}=trues(dimz), dimy::Int=4, show_trace::Bool=true,
+        λ0::Vector{Vector{Float64}}=Vector{Vector{Float64}}(), f_str="sig")
+        
+    #parameters of the latent model
+    pz = DataFrames.DataFrame(name = vcat("σ_i","B", "λ", "σ_a","σ_s","ϕ","τ_ϕ"),
+        fit = fit_latent,
+        initial = vcat(1e-6,15.,-5,100.,2.,1.,0.08));
+    
+    #parameters for the neural observation model
+    py = DataFrames.DataFrame(name = repeat(["neuron"],outer=N),
+        fit = repeat([trues(dimy)],outer=N),
+        initial = repeat([Vector{Float64}(undef,dimy)],outer=N))
+    
+    py[:initial] = optimize_model(dt,data,py[:fit],show_trace=false,λ0=λ0,f_str=f_str)
+    
+    pz[:final],py[:final],opt_output, state = optimize_model(pz[:initial],py[:initial],
+        pz[:fit], py[:fit], data; λ0=λ0, f_str=f_str, show_trace=show_trace, n=n, dt=dt)
+    
+    return pz, py
+    
+end
+
+function load_and_optimize(path::String, sessids, ratnames, N; dt::Float64=1e-2, n::Int=53,
+        fit_latent::BitArray{1}=trues(dimz), dimy::Int=4, show_trace::Bool=true,
+        λ0::Vector{Vector{Float64}}=Vector{Vector{Float64}}(), f_str="sig")
+    
+    data = make_data(path,sessids,ratnames,dt)
+    
+    #parameters of the latent model
+    pz = DataFrames.DataFrame(name = vcat("σ_i","B", "λ", "σ_a","σ_s","ϕ","τ_ϕ"),
+        fit = fit_latent,
+        initial = vcat(1e-6,15.,-5,100.,2.,1.,0.08));
+    
+    #parameters for the neural observation model
+    py = DataFrames.DataFrame(name = repeat(["neuron"],outer=N),
+        fit = repeat([trues(dimy)],outer=N),
+        initial = repeat([Vector{Float64}(undef,dimy)],outer=N))
+    
+    py[:initial] = optimize_model(dt,data,py[:fit],show_trace=false,λ0=λ0,f_str=f_str)
+    
+    pz[:final],py[:final],opt_output, state = optimize_model(pz[:initial],py[:initial],
+        pz[:fit], py[:fit], data; λ0=λ0, f_str=f_str, show_trace=show_trace, n=n, dt=dt)
+    
+    return pz, py
+    
+end
 
 """
     compute_Hessian(pz,py,pz_fit,py_fit,data;
@@ -241,6 +290,30 @@ function compute_LL(pz::Vector{T},py::Vector{Vector{T}},data;
 end
 
 ######################### Deterministic latent variable model ####################################
+    
+function optimize_model(dt::Float64,data::Dict,fit_vec::Union{Vector{BitArray{1}},Vector{Vector{Bool}}};
+        beta::Vector{Vector{Float64}}=Vector{Vector{Float64}}(),
+        mu0::Vector{Vector{Float64}}=Vector{Vector{Float64}}(),
+        f_str::String="softplus",
+        x_tol::Float64=1e-16,f_tol::Float64=1e-16,g_tol::Float64=1e-12,
+        iterations::Int=Int(5e3),show_trace::Bool=true,
+        λ0::Vector{Vector{Float64}}=Vector{Vector{Float64}}())
+    
+        p = do_p0(dt,data;f_str=f_str) 
+
+        ###########################################################################################
+        ## Compute click difference and organize spikes by neuron
+        ΔLR = pmap((T,L,R)->diffLR(T,L,R,data["dt"]),data["nT"],data["leftbups"],data["rightbups"])    
+        trials, SC = group_by_neuron(data)   
+    
+        inv_map_py!.(p,f_str=f_str)
+    
+        p = pmap((p,trials,k,fit_vec,λ0)->optimize_model(p,dt,ΔLR[trials],k,fit_vec;
+            show_trace=show_trace,f_str=f_str,λ0=λ0),p,trials,SC,fit_vec,λ0)
+    
+        map_py!.(p,f_str=f_str)
+    
+end
 
 function compute_p0(ΔLR,k,dt;f_str::String="softplus",nconds::Int=7);
     
@@ -281,30 +354,6 @@ function do_p0(dt::Float64,data::Dict;f_str::String="softplus")
     trials, SC = group_by_neuron(data)
     
     pmap((trials,k)->compute_p0(ΔLR[trials],k,dt;f_str=f_str),trials,SC)
-    
-end
-    
-function optimize_model(dt::Float64,data::Dict,fit_vec::Union{Vector{BitArray{1}},Vector{Vector{Bool}}};
-        beta::Vector{Vector{Float64}}=Vector{Vector{Float64}}(),
-        mu0::Vector{Vector{Float64}}=Vector{Vector{Float64}}(),
-        f_str::String="softplus",
-        x_tol::Float64=1e-16,f_tol::Float64=1e-16,g_tol::Float64=1e-12,
-        iterations::Int=Int(5e3),show_trace::Bool=true,
-        λ0::Vector{Vector{Float64}}=Vector{Vector{Float64}}())
-    
-        p = do_p0(dt,data;f_str=f_str) 
-
-        ###########################################################################################
-        ## Compute click difference and organize spikes by neuron
-        ΔLR = pmap((T,L,R)->diffLR(T,L,R,data["dt"]),data["nT"],data["leftbups"],data["rightbups"])    
-        trials, SC = group_by_neuron(data)   
-    
-        inv_map_py!.(p,f_str=f_str)
-    
-        p = pmap((p,trials,k,fit_vec,λ0)->optimize_model(p,dt,ΔLR[trials],k,fit_vec;
-            show_trace=show_trace,f_str=f_str,λ0=λ0),p,trials,SC,fit_vec,λ0)
-    
-        map_py!.(p,f_str=f_str)
     
 end
 
