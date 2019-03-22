@@ -74,3 +74,6 @@ function bias_bin(bias::TT,xe::Vector{TT},dx::TT,n::Int) where {TT}
     return nbinsL, Sfrac
     
 end
+
+choice_null(choices) = sum(choices .== true)*log(sum(choices .== true)/length(choices)) + 
+    sum(choices .== false)*log(sum(choices .== false)/length(choices))

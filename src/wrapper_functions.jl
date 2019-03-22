@@ -1,3 +1,44 @@
+function splitdata_train_test(data, trunc_μ_λ; frac::Float64=0.8, dt::Float64=1e-2)
+    
+    divided_data, divided_λ = train_test_divide(data, trunc_μ_λ, frac)
+    
+    pz, py = load_and_optimize(divided_data["train"], divided_data["train"]["N0"]; 
+        fit_latent= vcat(falses(1),trues(4),falses(2)), 
+        show_trace= false, λ0=divided_λ["train"], f_str="softplus",dimy=3)
+    
+    LL_stim = compute_LL(pz[:final], py[:final], 
+            divided_data["test"]; λ0=divided_λ["test"]["by_trial"], f_str="softplus")
+    
+    #LL_null = compute_LL(pz[:final], [vcat(py[:final][1][1],0.,py[:final][1][3])], 
+    #        divided_data["test"]; λ0=divided_λ["test"]["by_trial"], f_str="softplus")
+    
+    LL_null = neural_null(vcat(vcat(divided_data["test"]["spike_counts"]...)...),
+        vcat(vcat(divided_λ["test"]["by_trial"]...)...), dt) 
+
+    LL_stim - LL_null
+    
+end
+
+function splitdata_train_test_multi(data, trunc_μ_λ; frac::Float64=0.9)
+    
+    divided_data, divided_λ = train_test_divide_multi(data ,trunc_μ_λ, frac)
+    
+    pz, py = load_and_optimize(divided_data["train"], divided_data["train"]["N0"]; 
+        fit_latent= vcat(falses(1),trues(4),falses(2)), 
+        show_trace= false, λ0=divided_λ["train"], f_str="softplus", dimy = 3)
+    
+    LL_stim = compute_LL(pz[:final], py[:final], 
+            divided_data["test"]; λ0=divided_λ["test"]["by_trial"], f_str="softplus")
+    
+    LL_null = compute_LL(pz[:final], [vcat(py[:final][1][1],0.,py[:final][1][3])], 
+            divided_data["test"]; λ0=divided_λ["test"]["by_trial"], f_str="softplus")
+
+    LL_stim - LL_null
+    
+end
+
+
+
 
 function opt_ll(p_opt,ll;g_tol::Float64=1e-12,x_tol::Float64=1e-16,f_tol::Float64=1e-16,iterations::Int=Int(5e3),
         show_trace::Bool=true)
@@ -25,20 +66,40 @@ opt_ll_Newton(p_opt,ll;g_tol::Float64=1e-12,x_tol::Float64=1e-16,f_tol::Float64=
 #################################### Choice observation model #################################
 
 function load_and_optimize(path::String, sessids, ratnames; dt::Float64=1e-2, n::Int=53,
-        fit_latent::BitArray{1}=trues(dimz), show_trace::Bool=true)
+        fit_latent::BitArray{1}=trues(dimz), show_trace::Bool=true,
+        map_str::String="exp")
     
     data = make_data(path,sessids,ratnames,dt)
     
     #parameters of the latent model
     pz = DataFrames.DataFrame(name = vcat("σ_i","B", "λ", "σ_a","σ_s","ϕ","τ_ϕ"),
         fit = fit_latent,
-        initial = vcat(1.,5.,-5,100.,2.,0.2,0.08));
+        initial = vcat(1e-6,20.,-0.1,100.,5.,1.,0.08));
     
     #parameters for the choice observation
     pd = DataFrames.DataFrame(name = "bias", fit = true, initial = 0.);
     
     pz[:final], pd[:final], = optimize_model(pz[:initial], pd[:initial][1], 
-        pz[:fit], pd[:fit], data; dt=dt, n=n, show_trace=show_trace)
+        pz[:fit], pd[:fit], data; dt=dt, n=n, show_trace=show_trace, map_str=map_str)
+    
+    return pz, pd
+    
+end
+
+function load_and_optimize(data; dt::Float64=1e-2, n::Int=53,
+        fit_latent::BitArray{1}=trues(dimz), show_trace::Bool=true,
+        map_str::String="exp")
+        
+    #parameters of the latent model
+    pz = DataFrames.DataFrame(name = vcat("σ_i","B", "λ", "σ_a","σ_s","ϕ","τ_ϕ"),
+        fit = fit_latent,
+        initial = vcat(1e-6,20.,-0.1,100.,5.,1.,0.08));
+    
+    #parameters for the choice observation
+    pd = DataFrames.DataFrame(name = "bias", fit = true, initial = 0.);
+    
+    pz[:final], pd[:final], = optimize_model(pz[:initial], pd[:initial][1], 
+        pz[:fit], pd[:fit], data; dt=dt, n=n, show_trace=show_trace, map_str=map_str)
     
     return pz, pd
     
@@ -80,8 +141,8 @@ end
 """
 function optimize_model(pz::Vector{TT}, bias::TT, pz_fit_vec, bias_fit_vec,
         data; dt::Float64=1e-2, n=53, map_str::String="exp",
-        x_tol::Float64=1e-16,f_tol::Float64=1e-16,g_tol::Float64=1e-12,
-        iterations::Int=Int(5e3),show_trace::Bool=true) where {TT <: Any}
+        x_tol::Float64=1e-16,f_tol::Float64=1e-16,g_tol::Float64=1e-4,
+        iterations::Int=Int(2e3),show_trace::Bool=true) where {TT <: Any}
     
     fit_vec = combine_latent_and_observation(pz_fit_vec, bias_fit_vec)
     p_opt, p_const = split_combine_invmap(pz, bias, fit_vec, dt, map_str)
@@ -129,22 +190,23 @@ compute_LL(pz::Vector{T},bias::T,data;dt::Float64=1e-2,n::Int=53) where {T <: An
 
 function load_and_optimize(data, N; dt::Float64=1e-2, n::Int=53,
         fit_latent::BitArray{1}=trues(dimz), dimy::Int=4, show_trace::Bool=true,
-        λ0::Vector{Vector{Float64}}=Vector{Vector{Float64}}(), f_str="sig")
+        λ0::Dict=Dict(), f_str="sig", iterations::Int=Int(2e3), map_str::String="exp")
         
     #parameters of the latent model
     pz = DataFrames.DataFrame(name = vcat("σ_i","B", "λ", "σ_a","σ_s","ϕ","τ_ϕ"),
         fit = fit_latent,
-        initial = vcat(1e-6,15.,-5,100.,2.,1.,0.08));
+        initial = vcat(1e-6,15.,-0.1,10.,1.,1.,0.08));
     
     #parameters for the neural observation model
     py = DataFrames.DataFrame(name = repeat(["neuron"],outer=N),
         fit = repeat([trues(dimy)],outer=N),
         initial = repeat([Vector{Float64}(undef,dimy)],outer=N))
     
-    py[:initial] = optimize_model(dt,data,py[:fit],show_trace=false,λ0=λ0,f_str=f_str)
+    py[:initial] = optimize_model(dt,data,py[:fit],show_trace=false,λ0=λ0["by_neuron"],f_str=f_str)
     
     pz[:final],py[:final],opt_output, state = optimize_model(pz[:initial],py[:initial],
-        pz[:fit], py[:fit], data; λ0=λ0, f_str=f_str, show_trace=show_trace, n=n, dt=dt)
+        pz[:fit], py[:fit], data; λ0=λ0["by_trial"], f_str=f_str, show_trace=show_trace, n=n, dt=dt,
+        iterations=iterations, dimy=dimy, map_str=map_str)
     
     return pz, py
     
@@ -152,24 +214,24 @@ end
 
 function load_and_optimize(path::String, sessids, ratnames, N; dt::Float64=1e-2, n::Int=53,
         fit_latent::BitArray{1}=trues(dimz), dimy::Int=4, show_trace::Bool=true,
-        λ0::Vector{Vector{Float64}}=Vector{Vector{Float64}}(), f_str="sig")
+        λ0::Dict=Dict(), f_str="sig")
     
     data = make_data(path,sessids,ratnames,dt)
     
     #parameters of the latent model
     pz = DataFrames.DataFrame(name = vcat("σ_i","B", "λ", "σ_a","σ_s","ϕ","τ_ϕ"),
         fit = fit_latent,
-        initial = vcat(1e-6,15.,-5,100.,2.,1.,0.08));
+        initial = vcat(1e-6,15.,-0.1,10.,1.,1.,0.08));
     
     #parameters for the neural observation model
     py = DataFrames.DataFrame(name = repeat(["neuron"],outer=N),
         fit = repeat([trues(dimy)],outer=N),
         initial = repeat([Vector{Float64}(undef,dimy)],outer=N))
     
-    py[:initial] = optimize_model(dt,data,py[:fit],show_trace=false,λ0=λ0,f_str=f_str)
+    py[:initial] = optimize_model(dt,data,py[:fit],show_trace=false,λ0=λ0["by_neuron"],f_str=f_str)
     
     pz[:final],py[:final],opt_output, state = optimize_model(pz[:initial],py[:initial],
-        pz[:fit], py[:fit], data; λ0=λ0, f_str=f_str, show_trace=show_trace, n=n, dt=dt)
+        pz[:fit], py[:fit], data; λ0=λ0["by_trial"], f_str=f_str, show_trace=show_trace, n=n, dt=dt)
     
     return pz, py
     
@@ -189,7 +251,7 @@ function compute_Hessian(pz,py,pz_fit,py_fit,data;
         dt::Float64=1e-2, n::Int=53, f_str="sig",map_str::String="exp",
         beta::Vector{Vector{Float64}}=Vector{Vector{Float64}}(),
         mu0::Vector{Vector{Float64}}=Vector{Vector{Float64}}(),
-        λ0::Vector{Vector{Float64}}=Vector{Vector{Float64}}(),
+        λ0::Vector{Vector{Vector{Float64}}}=Vector{Vector{Vector{Float64}}},
         dimy::Int=4)
     
     N = length(py)
@@ -237,9 +299,9 @@ function optimize_model(pz::Vector{TT},py::Vector{Vector{TT}},pz_fit,py_fit,data
         dt::Float64=1e-2, n::Int=53, f_str="sig",map_str::String="exp",
         beta::Vector{Vector{Float64}}=Vector{Vector{Float64}}(),
         mu0::Vector{Vector{Float64}}=Vector{Vector{Float64}}(),
-        x_tol::Float64=1e-16,f_tol::Float64=1e-16,g_tol::Float64=1e-12,
-        iterations::Int=Int(5e3),show_trace::Bool=true, 
-        λ0::Vector{Vector{Float64}}=Vector{Vector{Float64}}(),
+        x_tol::Float64=1e-16,f_tol::Float64=1e-16,g_tol::Float64=1e-4,
+        iterations::Int=Int(2e3),show_trace::Bool=true, 
+        λ0::Vector{Vector{Vector{Float64}}}=Vector{Vector{Vector{Float64}}},
         dimy::Int=4) where {TT <: Any}
 
     N = length(py)
@@ -261,7 +323,7 @@ function optimize_model(pz::Vector{TT},py::Vector{Vector{TT}},pz_fit,py_fit,data
 end
 
 function ll_wrapper(p_opt::Vector{TT}, p_const::Vector{Float64}, fit_vec::Union{BitArray{1},Vector{Bool}}, 
-        data::Dict, λ0::Vector{Vector{Float64}}, f_str::String, N::Int;
+        data::Dict, λ0::Vector{Vector{Vector{Float64}}}, f_str::String, N::Int;
         dt::Float64=1e-2, n::Int=53, map_str::String="exp",
         beta::Vector{Vector{Float64}}=Vector{Vector{Float64}}(0), 
         mu0::Vector{Vector{Float64}}=Vector{Vector{Float64}}(0),
@@ -279,7 +341,7 @@ function compute_LL(pz::Vector{T},py::Vector{Vector{T}},data;
         dt::Float64=1e-2, n::Int=53,f_str="softplus",
         beta::Vector{Vector{Float64}}=Vector{Vector{Float64}}(),
         mu0::Vector{Vector{Float64}}=Vector{Vector{Float64}}(),
-        λ0::Vector{Vector{Float64}}=Vector{Vector{Float64}}()) where {T <: Any}
+        λ0::Vector{Vector{Vector{Float64}}}=Vector{Vector{Vector{Float64}}}()) where {T <: Any}
     
     LL = sum(LL_all_trials(pz, py, data, dt=dt, n=n, f_str=f_str, λ0=λ0))
     
@@ -295,65 +357,22 @@ function optimize_model(dt::Float64,data::Dict,fit_vec::Union{Vector{BitArray{1}
         beta::Vector{Vector{Float64}}=Vector{Vector{Float64}}(),
         mu0::Vector{Vector{Float64}}=Vector{Vector{Float64}}(),
         f_str::String="softplus",
-        x_tol::Float64=1e-16,f_tol::Float64=1e-16,g_tol::Float64=1e-12,
-        iterations::Int=Int(5e3),show_trace::Bool=true,
-        λ0::Vector{Vector{Float64}}=Vector{Vector{Float64}}())
+        x_tol::Float64=1e-16,f_tol::Float64=1e-16,g_tol::Float64=1e-4,
+        iterations::Int=Int(1e1),show_trace::Bool=true,
+        λ0::Vector{Vector{Vector{Float64}}}=Vector{Vector{Vector{Float64}}}())
     
-        p = do_p0(dt,data;f_str=f_str) 
-
         ###########################################################################################
         ## Compute click difference and organize spikes by neuron
-        ΔLR = pmap((T,L,R)->diffLR(T,L,R,data["dt"]),data["nT"],data["leftbups"],data["rightbups"])    
-        trials, SC = group_by_neuron(data)   
+        ΔLR = map((T,L,R)-> diffLR(T,L,R,data["dt"]), data["nT"], data["leftbups"], data["rightbups"])    
+    
+        p = map((trials,k)-> compute_p0(ΔLR[trials], k, dt; f_str=f_str), data["trial"], data["spike_counts_by_neuron"]) 
     
         inv_map_py!.(p,f_str=f_str)
     
-        p = pmap((p,trials,k,fit_vec,λ0)->optimize_model(p,dt,ΔLR[trials],k,fit_vec;
-            show_trace=show_trace,f_str=f_str,λ0=λ0),p,trials,SC,fit_vec,λ0)
+        p = map((p,trials,k,fit_vec,λ0)-> optimize_model(p,dt,ΔLR[trials],k,fit_vec;
+            show_trace=show_trace, f_str=f_str, λ0=λ0), p, data["trial"], data["spike_counts_by_neuron"], fit_vec, λ0)
     
         map_py!.(p,f_str=f_str)
-    
-end
-
-function compute_p0(ΔLR,k,dt;f_str::String="softplus",nconds::Int=7);
-    
-    #### compute linear regression slope of tuning to $\Delta_{LR}$ and miniumum firing based on binning and averaging
-
-    #conds_bins = my_qcut(vcat(ΔLR...),nconds)
-    conds_bins, = qcut(vcat(ΔLR...),nconds,labels=false,duplicates="drop",retbins=true)
-    fr = map(i -> (1/dt)*mean(vcat(k...)[conds_bins .== i]),0:nconds-1)
-
-    #c = linreg(vcat(ΔLR...),vcat(k...))
-    A = vcat(ΔLR...)
-    b = vcat(k...)
-    c = hcat(ones(size(A, 1)), A) \ b
-
-    if f_str == "exp"
-        p = vcat(minimum(fr),c[2])
-    elseif f_str == "sig"
-        p = vcat(minimum(fr),maximum(fr)-minimum(fr),c[2],0.)
-    elseif f_str == "sig2"
-        p = vcat(minimum(fr),maximum(fr)-minimum(fr),c[2],0.)
-    elseif f_str == "softplus"
-        p = vcat(minimum(fr),c[2],0.)
-    end
-        
-end
-
-"""
-    do_p0(dt::Float64,data::Dict;f_str::String="softplus")
-
-    Compute p0 by linear regression
-
-"""
-function do_p0(dt::Float64,data::Dict;f_str::String="softplus")
-    
-    ###########################################################################################
-    ## Compute click difference and organize spikes by neuron
-    ΔLR = pmap((T,L,R)->diffLR(T,L,R,data["dt"]),data["nT"],data["leftbups"],data["rightbups"])    
-    trials, SC = group_by_neuron(data)
-    
-    pmap((trials,k)->compute_p0(ΔLR[trials],k,dt;f_str=f_str),trials,SC)
     
 end
 
@@ -361,9 +380,9 @@ function optimize_model(p::Vector{Float64},dt::Float64,ΔLR::Vector{Vector{Int}}
         k::Vector{Vector{Int}},fit_vec::Union{BitArray{1},Vector{Bool}};
         beta::Vector{Float64}=Vector{Float64}(),
         mu0::Vector{Float64}=Vector{Float64}(),f_str::String="softplus",
-        x_tol::Float64=1e-16,f_tol::Float64=1e-16,g_tol::Float64=1e-12,iterations::Int=Int(5e3),
+        x_tol::Float64=1e-16,f_tol::Float64=1e-16,g_tol::Float64=1e-4,iterations::Int=Int(1e1),
         show_trace::Bool=false,
-        λ0::Vector{Float64}=Vector{Float64}())
+        λ0::Vector{Vector{Float64}}=Vector{Vector{Float64}}())
         
         p_opt,p_const = split_variable_and_const(p,fit_vec)
     
@@ -384,7 +403,7 @@ function ll_wrapper(p_opt::Vector{TT}, p_const::Vector{Float64}, fit_vec::Union{
         beta::Vector{Float64}=Vector{Float64}(0),
         mu0::Vector{Float64}=Vector{Float64}(0),
         f_str::String="softplus",
-        λ0::Vector{Float64}=Vector{Float64}()) where {TT}
+        λ0::Vector{Vector{Float64}}=Vector{Vector{Float64}}()) where {TT}
     
         py = combine_variable_and_const(p_opt, p_const, fit_vec)    
         map_py!(py,f_str=f_str)
@@ -395,16 +414,16 @@ function ll_wrapper(p_opt::Vector{TT}, p_const::Vector{Float64}, fit_vec::Union{
             
 end
 
-function compute_LL(py::Vector{T}, ΔLR::Vector{Vector{Int}}, k::Vector{Vector{Int}};
-        dt::Float64=1e-2, f_str="softplus",
-        beta::Vector{Float64}=Vector{Float64}(),
-        mu0::Vector{Float64}=Vector{Float64}(),
-        λ0::Vector{Float64}=Vector{Float64}()) where {T <: Any}
+########################## Choice and neural model ###########################################
+
+function compute_LL(pz::Vector{T}, py::Vector{Vector{T}}, bias::T, data::Dict;
+        dt::Float64=1e-2, n::Int=53, f_str="softplus",
+        beta::Vector{Vector{Float64}}=Vector{Vector{Float64}}(),
+        mu0::Vector{Vector{Float64}}=Vector{Vector{Float64}}(),
+        λ0::Vector{Vector{Vector{Float64}}}=Vector{Vector{Vector{Float64}}}()) where {T <: Any}
     
-    λ = fy(py,vcat(ΔLR...),f_str=f_str)
-    λ0 = vcat(map(x->λ0[1:length(x)],ΔLR)...)
+    LL = sum(LL_all_trials(pz, py, bias, data, dt=dt, n=n, f_str=f_str, λ0=λ0))
     
-    LL = sum(poiss_LL.(vcat(k...), softplus_3param([0.,1.,0.],λ+λ0),dt))
     length(beta) > 0 ? LL += sum(gauss_prior.(py,mu0,beta)) : nothing
     
     return LL

@@ -5,6 +5,65 @@ nanmean(x,y) = mapslices(nanmean,x,dims=y)
 nanstderr(x) = std(filter(!isnan,x))/sqrt(length(filter(!isnan,x)))
 nanstderr(x,y) = mapslices(nanstderr,x,dims=y)
 
+#should modify this to return the differnece only, and then allow filtering afterwards
+function diffLR(nT,L,R,dt)
+    
+    L,R = binLR(nT,L,R,dt)   
+    cumsum(-L + R)
+    
+end
+
+function binLR(nT,L,R,dt)
+    
+    #compute the cumulative diff of clicks
+    t = 0:dt:nT*dt;
+    L = fit(Histogram,L,t,closed=:left)
+    R = fit(Histogram,R,t,closed=:left)
+    L = L.weights
+    R = R.weights
+    
+    return L,R
+    
+end
+
+function predict_choice_Y(pz, py, bias, data; dt::Float64=1e-2, n::Int=53, f_str::String="softplus",
+        λ0::Vector{Vector{Vector{Float64}}}=Vector{Vector{Vector{Float64}}}()) 
+
+    PS = pulse_input_DDM.PY_all_trials(pz, py, data; λ0=λ0, f_str=f_str)
+    
+    xc,dx,xe = pulse_input_DDM.bins(pz[2],n);
+    nbinsL, Sfrac = pulse_input_DDM.bias_bin(bias,xe,dx,n)
+    Pd = vcat(1. * ones(nbinsL), 1. * Sfrac + 0. * (1. - Sfrac), 0. * ones(n - (nbinsL + 1)))
+
+    predicted_choice = map(x-> !Bool(round(sum(x[:, end] .* Pd))) , PS)
+    
+    per_corr = sum(predicted_choice .== data["pokedR"]) / length(data["pokedR"])
+    
+    return per_corr, predicted_choice
+    
+end
+
+function predict_choice(pz, bias, data; n::Int=53)
+
+    PS = P_all_trials(pz, data)
+    
+    xc,dx,xe = pulse_input_DDM.bins(pz[2],n);
+    nbinsL, Sfrac = pulse_input_DDM.bias_bin(bias,xe,dx,n)
+    Pd = vcat(1. * ones(nbinsL), 1. * Sfrac + 0. * (1. - Sfrac), 0. * ones(n - (nbinsL + 1)))
+
+    predicted_choice = map(x-> !Bool(round(sum(x[:, end] .* Pd))) , PS)
+    
+    per_corr = sum(predicted_choice .== data["pokedR"]) / length(data["pokedR"])
+    
+    return per_corr, predicted_choice
+    
+end
+
+function dprime(FR,choice)
+    (mean(FR[choice .== false]) - mean(FR[choice .== true])) / 
+        sqrt(0.5 * (var(FR[choice .== false])^2 + var(FR[choice .== true])^2))
+end
+
 function padded_λ_array(nspikes,dt,filtSD)
     
     nT = length.(nspikes)

@@ -159,7 +159,16 @@ function sample_model(pz,py,T::Float64,L::Vector{Float64},R::Vector{Float64},
     if length(N) > 1 || get_fr == false
         Y = poisson_noise.(fy.(py,[A],f_str=f_str),dt)
     else
-        Y = poisson_noise.(softplus_3param([0.,1.,0.], fy(py,A,f_str=f_str) + λ0[1:length(A)]),dt)
+        #Y = poisson_noise.(softplus_3param([0.,1.,0.], fy(py,A,f_str=f_str) + λ0[1:length(A)]),dt)
+        #Y = poisson_noise.(softplus_3param([0.,1.,0.], fy(py,A,f_str=f_str) + λ0),dt)
+        
+        #y = exp.((py[3] .* A .+ py[4]) + λ0)
+        #y[y .< 1e-150] .= py[1] + py[2]
+        #y[y .>= 1e150] .= py[1]
+        #y[(y .>= 1e-150) .& (y .< 1e150)] = py[1] .+ py[2] ./ (1. .+ y[(y .>= 1e-150) .& (y .< 1e150)])
+        #y = py[1] .+ log.(1. .+ exp.((py[2] .* A .+ py[3]) + λ0))
+        Y = poisson_noise.(fy22(py, A, λ0, f_str=f_str) ,dt)
+        
     end
     
 end

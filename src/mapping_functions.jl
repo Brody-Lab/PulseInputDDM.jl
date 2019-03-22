@@ -200,8 +200,8 @@ end
      
 function map_pz!(x,dt;map_str::String="exp")
     
-    lb = [eps(), 2, -1. /(2*dt), eps(), eps(), eps(), eps()]
-    ub = [10., 100, 1. /(2*dt), 800., 40., 2., 10.]
+    lb = [eps(), 10., -5., eps(), eps(), eps(), eps()]
+    ub = [10., 100, 5., 800., 40., 2., 10.]
     
     x[3] = lb[3] + (ub[3] - lb[3]) .* normtanh.(x[3])
     
@@ -217,8 +217,8 @@ end
 
 function inv_map_pz!(x,dt;map_str::String="exp")
     
-    lb = [eps(), 2, -1. /(2*dt), eps(), eps(), eps(), eps()]
-    ub = [10., 100, 1. /(2*dt), 800., 40., 2., 10.]
+    lb = [eps(), 10., -5., eps(), eps(), eps(), eps()]
+    ub = [10., 100, 5., 800., 40., 2., 10.]
     
     x[3] = normatanh.((x[3] - lb[3])./(ub[3] - lb[3]))
     

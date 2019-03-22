@@ -1,6 +1,147 @@
-#################################### Choice observation model #################################
+function train_test_divide(data,λ,frac)
 
-#check about this and other make_data functions to make sure they're OK
+    divided_data = Dict("train" => Dict(), "test" => Dict())    
+    divided_λ = Dict("train" => Dict(), "test" => Dict())
+    
+    tot_trials = vcat(data["trial"]...)
+    
+    train_trials = StatsBase.sample(tot_trials, Int(ceil(frac * length(tot_trials))), replace = false)
+    test_trials = setdiff(tot_trials, train_trials)
+    
+    my_keys = collect(keys(divided_data))
+    
+    for i = 1:length(my_keys)
+        
+        my_keys[i] == "train" ? trials = train_trials : trials = test_trials
+                
+        divided_data[my_keys[i]]["trial"] = [1:length(trials)]
+
+        divided_data[my_keys[i]]["binned_leftbups"] = data["binned_leftbups"][trials]
+        divided_data[my_keys[i]]["binned_rightbups"] = data["binned_rightbups"][trials]
+        divided_data[my_keys[i]]["rightbups"] = data["rightbups"][trials]
+        divided_data[my_keys[i]]["leftbups"] = data["leftbups"][trials]
+        divided_data[my_keys[i]]["T"] = data["T"][trials]
+        divided_data[my_keys[i]]["nT"] = data["nT"][trials]
+        divided_data[my_keys[i]]["pokedR"] = data["pokedR"][trials]
+        divided_data[my_keys[i]]["correct_dir"] = data["correct_dir"][trials]
+        divided_data[my_keys[i]]["sessID"] = data["sessID"][trials]
+        divided_data[my_keys[i]]["ratID"] = data["ratID"][trials]
+        divided_data[my_keys[i]]["stim_start"] = data["stim_start"][trials]
+        divided_data[my_keys[i]]["N"] = data["N"][trials]
+        divided_data[my_keys[i]]["spike_counts"] = data["spike_counts"][trials]
+        divided_data[my_keys[i]]["cellID"] = data["cellID"][trials]
+        divided_data[my_keys[i]]["N0"] = data["N0"]
+        divided_data[my_keys[i]]["dt"] = data["dt"]
+
+        divided_data[my_keys[i]]["spike_counts_by_neuron"] = map(x-> x[trials], data["spike_counts_by_neuron"])
+        
+        divided_λ[my_keys[i]]["by_neuron"] = map(x-> x[trials], λ["by_neuron"])       
+        divided_λ[my_keys[i]]["by_trial"] = λ["by_trial"][trials]
+           
+    end
+    
+    return divided_data, divided_λ
+                              
+end
+
+function train_test_divide_multi(data,λ,frac)
+    
+    divided_data = Dict("train" => Dict(), "test" => Dict())    
+    divided_λ = Dict("train" => Dict(), "test" => Dict())
+    
+    my_keys = collect(keys(divided_data))
+
+    #tot_trials = 1:data["trial0"]
+
+    #train_trials = sort(StatsBase.sample(tot_trials, Int(ceil(frac * length(tot_trials))), replace = false))
+    #test_trials = sort(setdiff(tot_trials, train_trials))
+    
+    blah = fill!(Array{Float64,2}(undef,data["N0"],2),0.)
+    tot_trials = 1:data["trial0"]
+
+    while any(blah .== 0)
+
+        #not sure abou this...
+        global train_trials = sort(StatsBase.sample(tot_trials, Int(ceil(frac * length(tot_trials))), replace = false))
+        global test_trials = sort(setdiff(tot_trials, train_trials));
+
+        for i = 1:data["N0"]
+            blah[i,1] = length(intersect(data["trial"][i], train_trials))
+            blah[i,2] = length(intersect(data["trial"][i], test_trials))
+        end
+    end
+
+    for i = 1:length(my_keys)
+
+        my_keys[i] == "train" ? trials = train_trials : trials = test_trials
+        
+        divided_data[my_keys[i]]["trial0"] = 0
+
+        divided_data[my_keys[i]]["binned_leftbups"] = data["binned_leftbups"][trials]
+        divided_data[my_keys[i]]["binned_rightbups"] = data["binned_rightbups"][trials]
+        divided_data[my_keys[i]]["rightbups"] = data["rightbups"][trials]
+        divided_data[my_keys[i]]["leftbups"] = data["leftbups"][trials]
+        divided_data[my_keys[i]]["T"] = data["T"][trials]
+        divided_data[my_keys[i]]["nT"] = data["nT"][trials]
+        divided_data[my_keys[i]]["pokedR"] = data["pokedR"][trials]
+        divided_data[my_keys[i]]["correct_dir"] = data["correct_dir"][trials]
+        divided_data[my_keys[i]]["sessID"] = data["sessID"][trials]
+        divided_data[my_keys[i]]["ratID"] = data["ratID"][trials]
+        divided_data[my_keys[i]]["stim_start"] = data["stim_start"][trials]
+        divided_data[my_keys[i]]["N"] = data["N"][trials]
+        divided_data[my_keys[i]]["spike_counts"] = data["spike_counts"][trials]
+        divided_data[my_keys[i]]["cellID"] = data["cellID"][trials]
+        divided_data[my_keys[i]]["N0"] = data["N0"]
+        divided_data[my_keys[i]]["dt"] = data["dt"]
+
+        divided_λ[my_keys[i]]["by_trial"] = λ["by_trial"][trials]
+        
+        temp = Vector{Vector{Int}}(undef,  divided_data[my_keys[i]]["N0"])
+        map(k-> temp[k] = Vector{Int}(), 1:divided_data[my_keys[i]]["N0"]);
+
+        for k = 1:length(divided_data[my_keys[i]]["N"])
+            for j = 1:length(divided_data[my_keys[i]]["N"][k])
+                push!(temp[divided_data[my_keys[i]]["N"][k][j]], Int(k))
+            end
+        end
+
+        divided_data[my_keys[i]]["trial"] = Vector{UnitRange{Int64}}(undef, divided_data[my_keys[i]]["N0"])
+
+        for k = 1:divided_data[my_keys[i]]["N0"]
+           divided_data[my_keys[i]]["trial"][k] = temp[k][1]:temp[k][end]
+        end
+        
+        divided_data[my_keys[i]]["spike_counts_by_neuron"] = Vector{Vector{Vector{Int64}}}()
+        divided_λ[my_keys[i]]["by_neuron"] = Vector{Vector{Vector{Float64}}}()
+        
+        map(x-> push!(divided_data[my_keys[i]]["spike_counts_by_neuron"], 
+                Vector{Vector{Int}}(undef,0)), 1:divided_data[my_keys[i]]["N0"])
+        map(x-> push!(divided_λ[my_keys[i]]["by_neuron"], 
+                Vector{Vector{Float64}}(undef,0)), 1:divided_data[my_keys[i]]["N0"])
+        
+        for j = 1:divided_data[my_keys[i]]["N0"]
+            
+            ntrials = length(intersect(data["trial"][j],trials))
+            divided_data[my_keys[i]]["trial0"] += ntrials
+            
+            map(t-> append!(divided_data[my_keys[i]]["spike_counts_by_neuron"][j],
+                divided_data[my_keys[i]]["spike_counts"][t][divided_data[my_keys[i]]["N"][t] .== j]), 
+                divided_data[my_keys[i]]["trial"][j])
+            
+            map(t-> append!(divided_λ[my_keys[i]]["by_neuron"][j],
+                divided_λ[my_keys[i]]["by_trial"][t][divided_data[my_keys[i]]["N"][t] .== j]), 
+                divided_data[my_keys[i]]["trial"][j])
+            
+        end    
+
+    end
+    
+    return divided_data, divided_λ
+            
+end
+
+
+#################################### Choice observation model #################################
 
 function aggregate_choice_data(path::String, sessids::Vector{Vector{Int}}, ratnames::Vector{String}, dt::Float64)
 
@@ -15,12 +156,13 @@ function aggregate_choice_data(path::String, sessids::Vector{Vector{Int}}, ratna
             "binned_leftbups" => Vector{Vector{Int64}}(), "binned_rightbups" => Vector{Vector{Int64}}(),
             "T" => Vector{Float64}(), "nT" => Vector{Int64}(), 
             "pokedR" => Vector{Bool}(), "correct_dir" => Vector{Bool}(), 
-            "dt" => dt, "sessID" => Vector{Int}(), "ratID" => Vector{String}())
+            "dt" => dt, "sessID" => Vector{Int}(), "ratID" => Vector{String}(),
+            "stim_start" => Vector{Float64}(), "cpoke_end" => Vector{Float64}())
     
     for j = 1:length(ratnames)
         for i = 1:length(sessids[j])
             rawdata = read(matopen(path*"/"*ratnames[j]*"_"*string(sessids[j][i])*".mat"),"rawdata")
-            data = append_data!(data,rawdata,ratnames[j],sessids[j][i],dt)
+            data = append_choice_data!(data,rawdata,ratnames[j],sessids[j][i],dt)
         end
     end
     
@@ -28,22 +170,25 @@ function aggregate_choice_data(path::String, sessids::Vector{Vector{Int}}, ratna
     
 end
 
-function append_data!(data::Dict, rawdata::Dict, ratname::String, sessID::Int, dt::Float64=1e-2)
+function append_choice_data!(data::Dict, rawdata::Dict, ratname::String, sessID::Int, dt::Float64=1e-2)
 
     ntrials = length(rawdata["T"])
     binnedT = ceil.(Int,rawdata["T"]/dt);
 
-    append!(data["T"],rawdata["T"])
-    append!(data["nT"],binnedT)
+    append!(data["T"], rawdata["T"])
+    append!(data["nT"], binnedT)
     append!(data["pokedR"], vec(convert(BitArray,rawdata["pokedR"])))
     append!(data["correct_dir"], vec(convert(BitArray,rawdata["correct_dir"])))
     
-    append!(data["leftbups"], map(x->vec(collect(x)), rawdata["leftbups"]))
-    append!(data["rightbups"], map(x->vec(collect(x)), rawdata["rightbups"]))
-    append!(data["binned_leftbups"], map((x,y)->vec(qfind(0.:dt:x*dt,y)),binnedT,rawdata["leftbups"]))
-    append!(data["binned_rightbups"], map((x,y)->vec(qfind(0.:dt:x*dt,y)),binnedT,rawdata["rightbups"]))
+    append!(data["leftbups"], map(x-> vec(collect(x)), rawdata["leftbups"]))
+    append!(data["rightbups"], map(x-> vec(collect(x)), rawdata["rightbups"]))
+    append!(data["binned_leftbups"], map((x,y)-> vec(qfind(0.:dt:x*dt,y)), binnedT, rawdata["leftbups"]))
+    append!(data["binned_rightbups"], map((x,y)-> vec(qfind(0.:dt:x*dt,y)), binnedT, rawdata["rightbups"]))
     append!(data["sessID"], repeat([sessID], inner=ntrials))
     append!(data["ratID"], repeat([ratname], inner=ntrials))
+    
+    append!(data["stim_start"], rawdata["stim_start"])
+    append!(data["cpoke_end"], rawdata["cpoke_end"])
 
     return data
 
@@ -51,49 +196,125 @@ end
 
 #################################### Poisson neural observation model #########################
 
-function aggregate_spiking_data(path::String, sessids::Vector{Vector{Int}}, ratnames::Vector{String}, dt::Float64)
+function aggregate_spiking_data(path::String, sessids::Vector{Vector{Int}}, ratnames::Vector{String}, dt::Float64;
+        delay::Float64=0.)
 
     data = Dict("leftbups" => Vector{Vector{Float64}}(), "rightbups" => Vector{Vector{Float64}}(), 
                 "binned_leftbups" => Vector{Vector{Int64}}(), "binned_rightbups" => Vector{Vector{Int64}}(),
                 "T" => Vector{Float64}(), "nT" => Vector{Int64}(), 
                 "pokedR" => Vector{Bool}(), "correct_dir" => Vector{Bool}(),
                 "dt" => dt, "sessID" => Vector{Int}(), "ratID" => Vector{String}(),
+                "stim_start" => Vector{Float64}(), "cpoke_end" => Vector{Float64}(),
                 "spike_counts" => Vector{Vector{Vector{Int64}}}(),
-                "spike_counts_all" => Vector{Vector{Vector{Int64}}}(),
                 "N" => Vector{Vector{Int64}}(),
                 "trial" => Vector{UnitRange{Int64}}(),
                 "N0" => 0, "trial0" => 0,
-                "cellID" => Vector{Vector{Int}}(),
-                "stim_start" => Vector{Float64}());
+                "cellID" => Vector{Vector{Int}}(), "cellID_by_neuron" => Vector{Int}(),
+                "sessID_by_neuron" => Vector{Int}(), "ratID_by_neuron" => Vector{String}())
     
     for j = 1:length(ratnames)
         for i = 1:length(sessids[j])
             rawdata = read(matopen(path*"/"*ratnames[j]*"_"*string(sessids[j][i])*".mat"),"rawdata")
-            data = append_data!(data,rawdata,ratnames[j],sessids[j][i],dt)
-            data = append_data!(data,rawdata,ratnames[j],dt)
+            data = append_choice_data!(data,rawdata,ratnames[j],sessids[j][i],dt)
+            data = append_neural_data!(data,rawdata,ratnames[j],sessids[j][i],dt,delay=delay)
         end
     end
+    
+    data = group_by_neuron!(data)
     
     return data
     
 end
 
-function append_data!(data::Dict, rawdata::Dict, ratname::String, dt::Float64)
+function aggregate_and_append_extended_spiking_data!(data::Dict, path::String, sessids::Vector{Vector{Int}}, 
+        ratnames::Vector{String}, dt::Float64, ts::Float64, tf::Float64; delay::Float64=0.)
 
-    ntrials = length(rawdata["T"])
-    binnedT = ceil.(Int,rawdata["T"]/dt)
+    data["spike_counts_stimulus_aligned_extended"] = Vector{Vector{Vector{Int64}}}()
+    data["spike_counts_cpoke_aligned_extended"] = Vector{Vector{Vector{Int64}}}() 
+    data["spike_counts_stimulus_aligned_extended_by_neuron"] = Vector{Vector{Vector{Int64}}}()
+    data["spike_counts_cpoke_aligned_extended_by_neuron"] = Vector{Vector{Vector{Int64}}}()
+    map(x-> push!(data["spike_counts_stimulus_aligned_extended_by_neuron"], Vector{Vector{Int}}(undef,0)), 1:data["N0"])
+    map(x-> push!(data["spike_counts_cpoke_aligned_extended_by_neuron"], Vector{Vector{Int}}(undef,0)), 1:data["N0"])
+    data["time_basis_edges"] = (floor.(ts/dt) * dt) : dt : (ceil.(tf/dt) * dt)
+    #data["time_basis_centers"] = (data["time_basis_edges"][1] + dt/2): dt: (data["time_basis_edges"][end-1] + dt/2)
+    data["time_basis_centers"] = data["time_basis_edges"][1:end-1]
+    
+    for j = 1:length(ratnames)
+        for i = 1:length(sessids[j])
+            rawdata = read(matopen(path*"/"*ratnames[j]*"_"*string(sessids[j][i])*".mat"),"rawdata")
+            data = append_extended_neural_data!(data, rawdata, dt, ts, tf, delay=delay)
+        end
+    end
+
+    map(n-> map(t-> append!(data["spike_counts_stimulus_aligned_extended_by_neuron"][n],
+        data["spike_counts_stimulus_aligned_extended"][t][data["N"][t] .== n]), data["trial"][n]), 1:data["N0"])
+
+    map(n-> map(t-> append!(data["spike_counts_cpoke_aligned_extended_by_neuron"][n],
+        data["spike_counts_cpoke_aligned_extended"][t][data["N"][t] .== n]), data["trial"][n]), 1:data["N0"])
+        
+    return data
+    
+end
+
+function append_extended_neural_data!(data::Dict, rawdata::Dict, dt::Float64, ts::Float64, tf::Float64;
+        delay::Float64=0.)
+
     N = size(rawdata["spike_times"][1],2)
+    ntrials = length(rawdata["T"])
+                
+    #time = data["time_basis_edges"]
+    
+    binnedT = ceil.(Int,rawdata["T"]/dt)
 
-    append!(data["cellID"], map(x->vec(collect(x)), rawdata["cellID"]))  
-    append!(data["stim_start"], rawdata["stim_start"])
+    append!(data["spike_counts_stimulus_aligned_extended"], map((t,tri) -> map(n -> fit(Histogram, vec(collect(tri[n] .- delay)), 
+        -10*dt:dt:((t+10)*dt), closed=:left).weights, 1:N), binnedT, rawdata["spike_times"]))
+
+    #append!(data["spike_counts_cpoke_aligned_extended"], map(tri -> map(n -> fit(Histogram, vec(collect(tri[n])), 
+    #    time, closed=:left).weights, 1:N), rawdata["spike_times"]))
+
+    time = data["time_basis_edges"]
+    
+    for i = 1:ntrials
+
+        blah = map(n -> fit(Histogram, vec(collect(rawdata["spike_times"][i][n] .+ rawdata["stim_start"][i] .- delay)),  
+                time, closed=:left).weights, 1:N)
+        push!(data["spike_counts_cpoke_aligned_extended"], blah)
+
+    end            
+
+    return data
+
+end
+
+function append_neural_data!(data::Dict, rawdata::Dict, ratname::String, sessID::Int, dt::Float64;
+        delay::Float64=0.)
+
+    N = size(rawdata["spike_times"][1],2)
+    ntrials = length(rawdata["T"])
+    
+    #by trial
+    #append!(data["cellID"], map(x-> vec(collect(x)), rawdata["cellID"])) 
+    #append!(data["stim_start"], rawdata["stim_start"])
+    
+    #by neuron
+    append!(data["cellID_by_neuron"], rawdata["cellID"][1])
+    append!(data["sessID_by_neuron"], repeat([sessID], inner=N))
+    append!(data["ratID_by_neuron"], repeat([ratname], inner=N))
+    append!(data["trial"], repeat([data["trial0"]+1 : data["trial0"]+ntrials], inner=N))
 
     #if organize == "by_trial"
 
-        append!(data["spike_counts"],map((x,y) -> map(z -> fit(Histogram,vec(collect(y[z])), 
-                0.:dt:x*dt,closed=:left).weights,1:N), binnedT, rawdata["spike_times"]))
-        append!(data["N"],repeat([collect(data["N0"]+1:data["N0"]+N)],inner=ntrials))
-        #added 2/5 to note which trials have which neurons
-        append!(data["trial"],repeat([data["trial0"]+1:data["trial0"]+ntrials],inner=N))
+    #by trial 
+    binnedT = ceil.(Int,rawdata["T"]/dt)
+    
+    append!(data["cellID"], map(x-> vec(collect(x)), rawdata["cellID"])) 
+    
+    append!(data["spike_counts"], map((x,y) -> map(z -> fit(Histogram, vec(collect(y[z] .- delay)), 
+            0.:dt:x*dt, closed=:left).weights, 1:N), binnedT, rawdata["spike_times"]))
+    append!(data["N"], repeat([collect(data["N0"]+1 : data["N0"]+N)], inner=ntrials))
+
+    #by neuron
+    #append!(data["trial"], repeat([data["trial0"]+1 : data["trial0"]+ntrials], inner=N))
 
     #elseif organize == "by_neuron"
 
@@ -116,6 +337,91 @@ function append_data!(data::Dict, rawdata::Dict, ratname::String, dt::Float64)
 
 end
 
+function λ0_by_trial(data::Dict, μ_λ; cpoke_aligned::Bool=false,
+        extended::Bool=false)
+    
+    λ0 = Dict("by_trial" => Vector{Vector{Vector{Float64}}}(undef,0),
+        "by_neuron" => Vector{Vector{Vector{Float64}}}())
+    
+    map(x->push!(λ0["by_trial"] , Vector{Vector{Float64}}(undef,0)), 1:data["trial0"])
+    map(x-> push!(λ0["by_neuron"], Vector{Vector{Float64}}(undef,0)), 1:data["N0"])
+    
+    for i = 1:data["N0"]
+        for j = 1:length(data["trial"][i])
+            
+            if extended
+                
+                if cpoke_aligned
+                    stim_start = data["stim_start"][data["trial"][i][j]]
+                else
+                    stim_start =  0.
+                end
+                T0 = findlast(collect(data["time_basis_edges"]) .<= stim_start)
+                
+            else
+                T0 = 1
+            end
+                        
+            nT = data["nT"][data["trial"][i][j]]
+
+            push!(λ0["by_trial"][data["trial"][i][j]], μ_λ[i][T0: T0+ nT - 1])
+            
+        end        
+    end
+    
+    map(n-> map(t-> append!(λ0["by_neuron"][n],
+                λ0["by_trial"][t][data["N"][t] .== n]), data["trial"][n]), 1:data["N0"])
+    
+    return λ0
+    
+end
+
+function group_by_neuron!(data)
+    
+    #trials = Vector{Vector{Int}}()
+    data["spike_counts_by_neuron"] = Vector{Vector{Vector{Int64}}}()
+
+    #map(x->push!(trials,Vector{Int}(undef,0)),1:data["N0"])
+    map(x-> push!(data["spike_counts_by_neuron"], Vector{Vector{Int}}(undef,0)), 1:data["N0"])
+
+    #map(y->map(x->push!(trials[x],y),data["N"][y]),1:data["trial0"])
+    map(n-> map(t-> append!(data["spike_counts_by_neuron"][n],
+                data["spike_counts"][t][data["N"][t] .== n]), data["trial"][n]), 1:data["N0"])
+    
+    #return trials, SC
+    
+    #=
+    
+    if (haskey(data,"spike_counts_stimulus_aligned_extended_by_neuron") | 
+        haskey(data, "spike_counts_cpoke_aligned_extended_by_neuron"))
+        
+        #trials = Vector{Vector{Int}}()
+        data["spike_counts_stimulus_aligned_extended_by_neuron"] = Vector{Vector{Vector{Int64}}}()
+
+        #map(x->push!(trials,Vector{Int}(undef,0)),1:data["N0"])
+        map(x-> push!(data["spike_counts_stimulus_aligned_extended_by_neuron"], Vector{Vector{Int}}(undef,0)), 1:data["N0"])
+
+        #map(y->map(x->push!(trials[x],y),data["N"][y]),1:data["trial0"])
+        map(n-> map(t-> append!(data["spike_counts_stimulus_aligned_extended_by_neuron"][n],
+            data["spike_counts_stimulus_aligned_extended"][t][data["N"][t] .== n]), data["trial"][n]), 1:data["N0"])
+
+        #trials = Vector{Vector{Int}}()
+        data["spike_counts_cpoke_aligned_extended_by_neuron"] = Vector{Vector{Vector{Int64}}}()
+        #map(x->push!(trials,Vector{Int}(undef,0)),1:data["N0"])
+        map(x-> push!(data["spike_counts_cpoke_aligned_extended_by_neuron"], Vector{Vector{Int}}(undef,0)), 1:data["N0"])
+
+        #map(y->map(x->push!(trials[x],y),data["N"][y]),1:data["trial0"])
+        map(n-> map(t-> append!(data["spike_counts_cpoke_aligned_extended_by_neuron"][n],
+            data["spike_counts_cpoke_aligned_extended"][t][data["N"][t] .== n]), data["trial"][n]), 1:data["N0"])
+        
+    end
+    
+    =#
+    
+    return data
+    
+end
+
 #################################### Data filtering #########################
 
 function filter_data_by_cell!(data,cell_index)
@@ -124,7 +430,20 @@ function filter_data_by_cell!(data,cell_index)
     
     #organized by neurons, so filter by neurons
     data["spike_counts_by_neuron"] = data["spike_counts_by_neuron"][cell_index]
-    data["trial"] = data["trial"][cell_index]   
+    data["trial"] = data["trial"][cell_index]
+    data["cellID_by_neuron"] = data["cellID_by_neuron"][cell_index] 
+    data["sessID_by_neuron"] = data["sessID_by_neuron"][cell_index] 
+    data["ratID_by_neuron"] = data["ratID_by_neuron"][cell_index]  
+    
+    if (haskey(data,"spike_counts_stimulus_aligned_extended_by_neuron") | 
+        haskey(data, "spike_counts_cpoke_aligned_extended_by_neuron"))
+        
+        data["spike_counts_stimulus_aligned_extended_by_neuron"] = 
+            data["spike_counts_stimulus_aligned_extended_by_neuron"][cell_index]
+        data["spike_counts_cpoke_aligned_extended_by_neuron"] = 
+            data["spike_counts_cpoke_aligned_extended_by_neuron"][cell_index]
+        
+    end
     
     trial_index = unique(collect(vcat(data["trial"]...)))
     data["trial0"] = length(trial_index)
@@ -140,7 +459,8 @@ function filter_data_by_cell!(data,cell_index)
     data["correct_dir"] = data["correct_dir"][trial_index]
     data["sessID"] = data["sessID"][trial_index]
     data["ratID"] = data["ratID"][trial_index]
-    data["stim_start"] = data["stim_start"][trial_index]   
+    data["stim_start"] = data["stim_start"][trial_index]
+    data["cpoke_end"] = data["cpoke_end"][trial_index]   
 
     #this subtracts the minimum current trial index from all of the trial indices
     #for i = 1:data["N0"]
@@ -178,7 +498,7 @@ function filter_data_by_cell!(data,cell_index)
         for j = 1:length(data["trial"][i])
             
             push!(data["N"][data["trial"][i][j]], i)
-            push!(data["cellID"][data["trial"][i][j]], cell_index[i])
+            push!(data["cellID"][data["trial"][i][j]], data["cellID_by_neuron"][i])
             push!(data["spike_counts"][data["trial"][i][j]], data["spike_counts_by_neuron"][i][j])
             
         end        
@@ -188,38 +508,7 @@ function filter_data_by_cell!(data,cell_index)
 
 end
 
-#################################### OLD #########################
-
-function get_sessid(ratname::String)
-    
-    if ratname == "B053"
-        sessid = [51344, 52162,52425, 53154,54377]    
-    elseif ratname == "B068"
-        sessid = [46331,46484,46630,47745,48117,48988,49313,49380,49545,49819,50353,50838,50951,51621,51852,52307]
-    elseif ratname == "T011"
-        #sessid = [153219,153382,153510,154806,154950,155375,155816,155954,157026,157178,157483,158231,161057,161351,164574,165972]   
-        sessid = [153219,153382,153510,154806,154950,155375,155816,155954,157026,157178,157483]   
-    elseif ratname == "T034"
-        #sessid = [151801,152157,152272,152370,152509,152967,153253,153859,154807,154949,
-        #    157482,161543,163862,163993,164420,164573,165023,168608,169683];
-        sessid = [153253,154807,154949,157482,164573,169683];
-    elseif ratname == "T035"
-        #sessid = [152177,153274,153536,154288,154440,155839,156150,156443,156896,
-        #    157200,157359,161394,162142, 162258,163098,163885,164449,164604,164752,164900,165058,166135,
-        #    166590,167725,167855,167993,168132,168628,169448,169736,169873,169993]
-        sessid = [169448,167725,166135,164900]
-    elseif ratname == "T036"
-        #sessid = [154154,154291,154448,154991,155124,155247,155840,157201,157357,157507,168499,168627]
-        #sessid = [157201,157357,157507,168499]
-        sessid = [157201]
-    elseif ratname == "T063"
-        sessid = [191956,193936,194554,194649,194770,194898,195271,195546,195676,195791,196336,196580,
-            196708,197075,197212,197479,198004]
-    elseif ratname == "T068"
-        sessid = [195545,195790,196335,196579,196709,197204,197478,198003,198137,198249]
-    end
-    
-end
+#=
 
 function package_extended_data!(data,rawdata,model_type::String,ratname,ts::Float64;dt::Float64=2e-2,organize::String="by_trial")
 
@@ -302,22 +591,6 @@ function my_callback(os)
 
 end
 
-function group_by_neuron(data)
-    
-    trials = Vector{Vector{Int}}()
-    SC = Vector{Vector{Vector{Int64}}}()
-
-    map(x->push!(trials,Vector{Int}(undef,0)),1:data["N0"])
-    map(x->push!(SC,Vector{Vector{Int}}(undef,0)),1:data["N0"])
-
-    map(y->map(x->push!(trials[x],y),data["N"][y]),1:data["trial0"])
-    map(n->map(t->append!(SC[n],data["spike_counts"][t][data["N"][t] .== n]),
-        trials[n]),1:data["N0"])
-    
-    return trials, SC
-    
-end
-
 #function my_callback(os)
 
     #so_far = time() - start_time
@@ -340,25 +613,4 @@ end
 
 #end
 
-##############################################################################################################
-
-#should modify this to return the differnece only, and then allow filtering afterwards
-function diffLR(nT,L,R,dt)
-    
-    L,R = binLR(nT,L,R,dt)   
-    cumsum(-L + R)
-    
-end
-
-function binLR(nT,L,R,dt)
-    
-    #compute the cumulative diff of clicks
-    t = 0:dt:nT*dt;
-    L = fit(Histogram,L,t,closed=:left)
-    R = fit(Histogram,R,t,closed=:left)
-    L = L.weights
-    R = R.weights
-    
-    return L,R
-    
-end
+=#

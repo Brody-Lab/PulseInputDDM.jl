@@ -1,9 +1,57 @@
-#module choice_and_poisson_neural_observation
+function LL_all_trials(pz::Vector{TT}, py::Vector{Vector{UU}}, bias::TT,
+        data::Dict; dt::Float64=1e-2, n::Int=53, f_str::String="softplus", comp_posterior::Bool=false,
+        λ0::Vector{Vector{Vector{Float64}}}=Vector{Vector{Vector{Float64}}}()) where {TT,UU <: Any}
+        
+    P,M,xc,dx,xe = initialize_latent_model(pz,n,dt)
 
-#using latent_DDM_common_functions, ForwardDiff, Optim, Pandas, Distributions
-#using poisson_neural_observation: gauss_prior, poiss_LL, inv_map_py!, map_py!, fy
-#using choice_observation: bias_bin
-#using Distributed, SpecialFunctions, LinearAlgebra
+    nbinsL, Sfrac = bias_bin(bias,xe,dx,n)
+            
+    output = pmap((L,R,T,nL,nR,N,SC,pokedR,λ0) -> LL_single_trial(pz, P, M, dx, xc,
+        L, R, T, nL, nR, py[N], SC, nbinsL, Sfrac, pokedR, dt, n, λ0=λ0, f_str=f_str),
+        data["leftbups"], data["rightbups"], data["nT"], data["binned_leftbups"], 
+        data["binned_rightbups"], data["N"],data["spike_counts"],data["pokedR"],λ0)    
+    
+end
+
+function LL_single_trial(pz::Vector{TT}, P::Vector{TT}, M::Array{TT,2}, dx::TT, 
+        xc::Vector{TT}, L::Vector{Float64}, R::Vector{Float64}, T::Int,
+        hereL::Vector{Int}, hereR::Vector{Int},
+        py::Vector{Vector{TT}}, spike_counts::Vector{Vector{Int}},
+        nbinsL::Union{TT,Int}, Sfrac::TT, pokedR::Bool, 
+        dt::Float64, n::Int; λ0::Vector{Vector{UU}}=Vector{Vector{UU}}(),
+        f_str::String="softplus") where {TT,UU <: Any}
+    
+    #adapt magnitude of the click inputs
+    La, Ra = make_adapted_clicks(pz,L,R)
+
+    #vector to sum choice evidence
+    pokedL = convert(TT,!pokedR); pokedR = convert(TT,pokedR)
+    Pd = vcat(pokedL * ones(nbinsL), pokedL * Sfrac + pokedR * (one(Sfrac) - Sfrac), pokedR * ones(n - (nbinsL + 1)))
+    
+    #construct T x N spike count array
+    spike_counts = hcat(spike_counts...)   
+    
+    #construct T x N mean firing rate array
+    λ0 = hcat(λ0...)
+    
+    c = Vector{TT}(undef,T)
+    F = zeros(TT,n,n)    #empty transition matrix for time bins with clicks
+
+    @inbounds for t = 1:T
+        
+        P,F = latent_one_step!(P,F,pz,t,hereL,hereR,La,Ra,M,dx,xc,n,dt)
+        y = hcat(map((py,c)-> fy2(py,xc,c, f_str=f_str), py, λ0[t,:])...)
+        P .*= vec(exp.(sum(poiss_LL.(spike_counts[t,:], transpose(y), dt), dims=1)))
+        (t == T) && (P .*=  Pd)
+        
+        c[t] = sum(P)
+        P /= c[t] 
+
+    end
+    
+    return sum(log.(c))
+
+end
 
 #=
 
@@ -82,24 +130,6 @@ function ll_wrapper(p_opt::Vector{TT}, p_const::Vector{Float64}, fit_vec::Union{
               
 end
 
-=#
-
-function LL_all_trials(pz::Vector{TT},py::Union{Vector{Vector{TT}},Vector{Vector{Float64}}},bias::TT,
-        data::Dict,dt::Float64,n::Int; f_str::String="softplus", comp_posterior::Bool=false) where {TT}
-        
-    P,M,xc,dx,xe = P_M_xc(pz,n,dt)
-
-    nbinsL, Sfrac = bias_bin(bias,xe,dx,n)
-    lambday = fy.(py,xc',f_str=f_str)'
-            
-    output = pmap((L,R,T,nL,nR,N,SC,choice) -> LL_single_trial(pz, P, M, dx, xc,
-        L, R, T, nL, nR, lambday[:,N], SC, nbinsL, Sfrac, choice, dt, n;
-            comp_posterior=comp_posterior),
-        data["leftbups"], data["rightbups"], data["nT"], data["binned_leftbups"], 
-        data["binned_rightbups"],data["N"],data["spike_counts"],data["pokedR"])   
-    
-end
-
 function LL_single_trial(pz::Vector{TT}, P::Vector{TT}, M::Array{TT,2}, dx::TT, 
         xc::Vector{TT},L::Vector{Float64}, R::Vector{Float64}, T::Int,
         hereL::Vector{Int}, hereR::Vector{Int},
@@ -153,8 +183,6 @@ function LL_single_trial(pz::Vector{TT}, P::Vector{TT}, M::Array{TT,2}, dx::TT,
 
 end
 
-#=
-
 function breakup(p::Vector{TT}; f_str::String="softplus") where {TT}
                 
     pz = p[1:dimz];
@@ -180,5 +208,3 @@ end
 inv_breakup(pz::Vector{TT},bias::TT, py::Vector{Vector{TT}}) where {TT} = vcat(pz,bias,vcat(py...))
 
 =#
-
-#end

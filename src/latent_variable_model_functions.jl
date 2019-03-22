@@ -70,7 +70,10 @@ function M!(F::Array{TT,2},vara::TT,lambda::TT,h::Union{TT,Float64},dx::TT,xc::V
     
     F[1,1] = one(TT); F[n,n] = one(TT); F[:,2:n-1] = zeros(TT,n,n-2)
 
-    ndeltas = max(70,ceil(Int, 10. *sqrt(vara)/dx));
+    #changed 2/17 to keep to less than 1000 bins, haven't checked how that effects returned results
+    ndeltas = max(70,ceil(Int, 10. *sqrt(vara)/dx))   
+    #ndeltas = 70 + (1000 - 70) * ceil(Int, 0.5*(1+tanh(10. *sqrt(vara)/dx)))
+    ndeltas > 1000 ? ndeltas = 1000 : nothing
 
     (ndeltas > 1e3 && h == zero(TT)) ? (println(vara); println(dx); println(ndeltas)) : nothing
 
@@ -175,6 +178,8 @@ end
 
 ##############################################################################################################
 
+#=
+
 muf(x,lambda,h,dt) = abs(lambda) < 1e-150 ? mu = x + h * dt : mu = exp(lambda*dt)*(x + h/lambda) - h/lambda
 
 function newM!(F::Array{TT,2},vara::TT,lambda::TT,h::Union{TT,Float64},dx::TT,xc::Vector{TT}; n::Int=203, dt::Float64=2e-2) where {TT}
@@ -250,3 +255,5 @@ function newM!(F::Array{TT,2},vara::TT,lambda::TT,h::Union{TT,Float64},dx::TT,xc
     end
 
 end
+
+=#
