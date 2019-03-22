@@ -69,7 +69,8 @@ function load_and_optimize(path::String, sessids, ratnames; dt::Float64=1e-2, n:
         fit_latent::BitArray{1}=trues(dimz), show_trace::Bool=true,
         map_str::String="exp")
     
-    data = make_data(path,sessids,ratnames,dt)
+    #data = make_data(path,sessids,ratnames,dt)
+    data = aggregate_choice_data(path,sessids,ratnames,dt)
     
     #parameters of the latent model
     pz = DataFrames.DataFrame(name = vcat("σ_i","B", "λ", "σ_a","σ_s","ϕ","τ_ϕ"),
