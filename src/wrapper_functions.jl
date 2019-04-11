@@ -67,7 +67,7 @@ opt_ll_Newton(p_opt,ll;g_tol::Float64=1e-12,x_tol::Float64=1e-16,f_tol::Float64=
 
 function load_and_optimize(path::String, sessids, ratnames; dt::Float64=1e-2, n::Int=53,
         fit_latent::BitArray{1}=trues(dimz), show_trace::Bool=true,
-        map_str::String="exp")
+        map_str::String="exp", fit_initial::Vector{Float64}=vcat(1e-6,20.,-0.1,100.,5.,1.,0.08))
     
     #data = make_data(path,sessids,ratnames,dt)
     data = aggregate_choice_data(path,sessids,ratnames,dt)
@@ -75,7 +75,7 @@ function load_and_optimize(path::String, sessids, ratnames; dt::Float64=1e-2, n:
     #parameters of the latent model
     pz = DataFrames.DataFrame(name = vcat("σ_i","B", "λ", "σ_a","σ_s","ϕ","τ_ϕ"),
         fit = fit_latent,
-        initial = vcat(1e-6,20.,-0.1,100.,5.,1.,0.08));
+        initial = fit_initial);
     
     #parameters for the choice observation
     pd = DataFrames.DataFrame(name = "bias", fit = true, initial = 0.);
@@ -89,12 +89,12 @@ end
 
 function load_and_optimize(data; dt::Float64=1e-2, n::Int=53,
         fit_latent::BitArray{1}=trues(dimz), show_trace::Bool=true,
-        map_str::String="exp")
+        map_str::String="exp", fit_initial::Vector{Float64}=vcat(1e-6,20.,-0.1,100.,5.,1.,0.08))
         
     #parameters of the latent model
     pz = DataFrames.DataFrame(name = vcat("σ_i","B", "λ", "σ_a","σ_s","ϕ","τ_ϕ"),
         fit = fit_latent,
-        initial = vcat(1e-6,20.,-0.1,100.,5.,1.,0.08));
+        initial = fit_initial);
     
     #parameters for the choice observation
     pd = DataFrames.DataFrame(name = "bias", fit = true, initial = 0.);
@@ -191,12 +191,13 @@ compute_LL(pz::Vector{T},bias::T,data;dt::Float64=1e-2,n::Int=53) where {T <: An
 
 function load_and_optimize(data, N; dt::Float64=1e-2, n::Int=53,
         fit_latent::BitArray{1}=trues(dimz), dimy::Int=4, show_trace::Bool=true,
-        λ0::Dict=Dict(), f_str="sig", iterations::Int=Int(2e3), map_str::String="exp")
+        λ0::Dict=Dict(), f_str="sig", iterations::Int=Int(2e3), map_str::String="exp",
+        fit_initial::Vector{Float64}=vcat(1e-6,15.,-0.1,10.,1.,1.,0.08))
         
     #parameters of the latent model
     pz = DataFrames.DataFrame(name = vcat("σ_i","B", "λ", "σ_a","σ_s","ϕ","τ_ϕ"),
         fit = fit_latent,
-        initial = vcat(1e-6,15.,-0.1,10.,1.,1.,0.08));
+        initial = fit_initial);
     
     #parameters for the neural observation model
     py = DataFrames.DataFrame(name = repeat(["neuron"],outer=N),
