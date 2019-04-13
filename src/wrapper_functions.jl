@@ -3,8 +3,8 @@ function splitdata_train_test(data, trunc_μ_λ; frac::Float64=0.8, dt::Float64=
     divided_data, divided_λ = train_test_divide(data, trunc_μ_λ, frac)
     
     pz, py = load_and_optimize(divided_data["train"], divided_data["train"]["N0"]; 
-        fit_latent= vcat(falses(1),trues(4),falses(2)), 
-        show_trace= false, λ0=divided_λ["train"], f_str="softplus",dimy=3)
+        fit_latent= vcat(trues(7)), fit_initial=vcat(1e-1,15.,-0.1,10.,1.,0.2,0.005), 
+        show_trace= true, λ0=divided_λ["train"], f_str="softplus",dimy=3)
     
     LL_stim = compute_LL(pz[:final], py[:final], 
             divided_data["test"]; λ0=divided_λ["test"]["by_trial"], f_str="softplus")
@@ -67,7 +67,7 @@ opt_ll_Newton(p_opt,ll;g_tol::Float64=1e-12,x_tol::Float64=1e-16,f_tol::Float64=
 
 function load_and_optimize(path::String, sessids, ratnames; dt::Float64=1e-2, n::Int=53,
         fit_latent::BitArray{1}=trues(dimz), show_trace::Bool=true,
-        map_str::String="exp", fit_initial::Vector{Float64}=vcat(1e-6,20.,-0.1,100.,5.,1.,0.08))
+        map_str::String="exp", fit_initial::Vector{Float64}=vcat(1e-6,20.,-0.1,100.,5.,0.2,0.005))
     
     #data = make_data(path,sessids,ratnames,dt)
     data = aggregate_choice_data(path,sessids,ratnames,dt)
@@ -89,7 +89,7 @@ end
 
 function load_and_optimize(data; dt::Float64=1e-2, n::Int=53,
         fit_latent::BitArray{1}=trues(dimz), show_trace::Bool=true,
-        map_str::String="exp", fit_initial::Vector{Float64}=vcat(1e-6,20.,-0.1,100.,5.,1.,0.08))
+        map_str::String="exp", fit_initial::Vector{Float64}=vcat(1e-6,20.,-0.1,100.,5.,0.2,0.005))
         
     #parameters of the latent model
     pz = DataFrames.DataFrame(name = vcat("σ_i","B", "λ", "σ_a","σ_s","ϕ","τ_ϕ"),
@@ -192,7 +192,7 @@ compute_LL(pz::Vector{T},bias::T,data;dt::Float64=1e-2,n::Int=53) where {T <: An
 function load_and_optimize(data, N; dt::Float64=1e-2, n::Int=53,
         fit_latent::BitArray{1}=trues(dimz), dimy::Int=4, show_trace::Bool=true,
         λ0::Dict=Dict(), f_str="sig", iterations::Int=Int(2e3), map_str::String="exp",
-        fit_initial::Vector{Float64}=vcat(1e-6,15.,-0.1,10.,1.,1.,0.08))
+        fit_initial::Vector{Float64}=vcat(1e-6,15.,-0.1,10.,1.,0.2,0.005))
         
     #parameters of the latent model
     pz = DataFrames.DataFrame(name = vcat("σ_i","B", "λ", "σ_a","σ_s","ϕ","τ_ϕ"),
@@ -223,7 +223,7 @@ function load_and_optimize(path::String, sessids, ratnames, N; dt::Float64=1e-2,
     #parameters of the latent model
     pz = DataFrames.DataFrame(name = vcat("σ_i","B", "λ", "σ_a","σ_s","ϕ","τ_ϕ"),
         fit = fit_latent,
-        initial = vcat(1e-6,15.,-0.1,10.,1.,1.,0.08));
+        initial = vcat(1e-6,15.,-0.1,10.,1.,0.2,0.005));
     
     #parameters for the neural observation model
     py = DataFrames.DataFrame(name = repeat(["neuron"],outer=N),
