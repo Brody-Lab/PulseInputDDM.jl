@@ -65,6 +65,33 @@ opt_ll_Newton(p_opt,ll;g_tol::Float64=1e-12,x_tol::Float64=1e-16,f_tol::Float64=
 
 #################################### Choice observation model #################################
 
+function compute_Hessian(pz::Vector{TT}, pd::Vector{TT}, pz_fit_vec, pd_fit_vec,data;
+        dt::Float64=1e-2,n::Int=53,map_str::String="exp") where {TT <: Any}
+    
+    fit_vec = combine_latent_and_observation(pz_fit_vec, pd_fit_vec)
+    p_opt, p_const = split_combine_invmap(pz, pd, fit_vec, dt, map_str)
+    
+    ll(x) = ll_wrapper(x, p_const, fit_vec, data, n=n, dt=dt, map_str=map_str)
+
+    return H = ForwardDiff.hessian(ll, p_opt);
+        
+end
+
+function compute_CI(H, pz::Vector{Float64}, pd::Vector{Float64}, pz_fit_vec, pd_fit_vec, data;
+        dt::Float64=1e-2,n::Int=53,map_str::String="exp")
+    
+    fit_vec = combine_latent_and_observation(pz_fit_vec, pd_fit_vec)
+    p_opt, p_const = split_combine_invmap(pz, pd, fit_vec, dt, map_str)
+    
+    CI = 2*sqrt.(diag(inv(H)))
+    
+    CIz_plus, CId_plus = map_split_combine(p_opt + CI, p_const, fit_vec, dt, map_str)
+    CIz_minus, CId_minus = map_split_combine(p_opt - CI, p_const, fit_vec, dt, map_str)
+    
+    return CIz_plus, CId_plus, CIz_minus, CId_minus
+    
+end
+
 function load_and_optimize(path::String, sessids, ratnames; dt::Float64=1e-2, n::Int=53,
         fit_latent::BitArray{1}=trues(dimz), show_trace::Bool=true,
         map_str::String="exp", fit_initial::Vector{Float64}=vcat(1e-6,20.,-0.1,100.,5.,0.2,0.005))
@@ -75,12 +102,14 @@ function load_and_optimize(path::String, sessids, ratnames; dt::Float64=1e-2, n:
     #parameters of the latent model
     pz = DataFrames.DataFrame(name = vcat("σ_i","B", "λ", "σ_a","σ_s","ϕ","τ_ϕ"),
         fit = fit_latent,
-        initial = fit_initial);
+        initial = fit_initial)
     
     #parameters for the choice observation
-    pd = DataFrames.DataFrame(name = "bias", fit = true, initial = 0.);
+    pd = DataFrames.DataFrame(name = vcat("bias", "lapse"), 
+            fit = trues(2), 
+            initial = vcat(0., 0.5))
     
-    pz[:final], pd[:final], = optimize_model(pz[:initial], pd[:initial][1], 
+    pz[:final], pd[:final], = optimize_model(pz[:initial], pd[:initial], 
         pz[:fit], pd[:fit], data; dt=dt, n=n, show_trace=show_trace, map_str=map_str)
     
     return pz, pd
@@ -97,39 +126,14 @@ function load_and_optimize(data; dt::Float64=1e-2, n::Int=53,
         initial = fit_initial);
     
     #parameters for the choice observation
-    pd = DataFrames.DataFrame(name = "bias", fit = true, initial = 0.);
+    pd = DataFrames.DataFrame(name = vcat("bias", "lapse"), 
+            fit = trues(2), 
+            initial = vcat(0., 0.5));
     
-    pz[:final], pd[:final], = optimize_model(pz[:initial], pd[:initial][1], 
+    pz[:final], pd[:final] = optimize_model(pz[:initial], pd[:initial], 
         pz[:fit], pd[:fit], data; dt=dt, n=n, show_trace=show_trace, map_str=map_str)
     
     return pz, pd
-    
-end
-
-function compute_Hessian(pz::Vector{TT},bias::TT,pz_fit_vec,bias_fit_vec,data;
-        dt::Float64=1e-2,n::Int=53,map_str::String="exp") where {TT <: Any}
-    
-    fit_vec = combine_latent_and_observation(pz_fit_vec, bias_fit_vec)
-    p_opt, p_const = split_combine_invmap(pz, bias, fit_vec, dt, map_str)
-    
-    ll(x) = ll_wrapper(x, p_const, fit_vec, data, n=n, dt=dt, map_str=map_str)
-
-    return H = ForwardDiff.hessian(ll, p_opt);
-        
-end
-
-function compute_CI(H, pz::Vector{Float64}, bias::Float64, pz_fit_vec, bias_fit_vec, data;
-        dt::Float64=1e-2,n::Int=53,map_str::String="exp")
-    
-    fit_vec = combine_latent_and_observation(pz_fit_vec, bias_fit_vec)
-    p_opt, p_const = split_combine_invmap(pz, bias, fit_vec, dt, map_str)
-    
-    CI = 2*sqrt.(diag(inv(H)))
-    
-    CIz_plus, CIbias_plus = map_split_combine(p_opt + CI, p_const, fit_vec, dt, map_str)
-    CIz_minus, CIbias_minus = map_split_combine(p_opt - CI, p_const, fit_vec, dt, map_str)
-    
-    return CIz_plus, CIbias_plus, CIz_minus, CIbias_minus
     
 end
 
@@ -140,13 +144,13 @@ end
     Optimize parameters specified within fit vectors.
 
 """
-function optimize_model(pz::Vector{TT}, bias::TT, pz_fit_vec, bias_fit_vec,
+function optimize_model(pz::Vector{TT}, pd::Vector{TT}, pz_fit_vec, pd_fit_vec,
         data; dt::Float64=1e-2, n=53, map_str::String="exp",
         x_tol::Float64=1e-16,f_tol::Float64=1e-16,g_tol::Float64=1e-4,
         iterations::Int=Int(2e3),show_trace::Bool=true) where {TT <: Any}
     
-    fit_vec = combine_latent_and_observation(pz_fit_vec, bias_fit_vec)
-    p_opt, p_const = split_combine_invmap(pz, bias, fit_vec, dt, map_str)
+    fit_vec = combine_latent_and_observation(pz_fit_vec, pd_fit_vec)
+    p_opt, p_const = split_combine_invmap(pz, pd, fit_vec, dt, map_str)
 
     ###########################################################################################
     ## Optimize
@@ -155,9 +159,9 @@ function optimize_model(pz::Vector{TT}, bias::TT, pz_fit_vec, bias_fit_vec,
         show_trace=show_trace)
     p_opt = Optim.minimizer(opt_output)
     
-    pz, bias = map_split_combine(p_opt, p_const, fit_vec, dt, map_str)
+    pz, pd = map_split_combine(p_opt, p_const, fit_vec, dt, map_str)
     
-    return pz, bias, opt_output, state
+    return pz, pd, opt_output, state
         
 end
 
@@ -165,14 +169,14 @@ function ll_wrapper(p_opt::Vector{TT}, p_const::Vector{Float64},
         fit_vec::Union{BitArray{1},Vector{Bool}}, 
         data::Dict; n::Int=53, dt::Float64=1e-2, map_str::String="exp") where {TT}
           
-    pz, bias = map_split_combine(p_opt, p_const, fit_vec, dt, map_str)
+    pz, pd = map_split_combine(p_opt, p_const, fit_vec, dt, map_str)
     
     #lapse is like adding a prior out here?
     #modified 11/8 lapse needs to be dealt with different not clear that old way was correct
     #P *= (1.-inatt)
     #P += inatt/n
     
-    LL = compute_LL(pz,bias,data;dt=dt,n=n)
+    LL = compute_LL(pz, pd, data; dt=dt, n=n)
     
     return -LL
               
@@ -184,8 +188,9 @@ end
     compute LL for choice observation model
 
 """
-compute_LL(pz::Vector{T},bias::T,data;dt::Float64=1e-2,n::Int=53) where {T <: Any} = 
-    sum(LL_all_trials(pz, bias, data, n=n, dt=dt))
+compute_LL(pz::Vector{T}, pd::Vector{T}, data; 
+    dt::Float64=1e-2, n::Int=53) where {T <: Any} = 
+    sum(LL_all_trials(pz, pd, data, n=n, dt=dt))
 
 #################################### Poisson neural observation model #########################
 

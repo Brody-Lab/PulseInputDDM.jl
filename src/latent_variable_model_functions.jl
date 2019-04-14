@@ -1,23 +1,32 @@
 
 const dimz = 7
 
-function initialize_latent_model(pz::Vector{TT}, n::Int, dt::Float64) where {TT}
+function initialize_latent_model(pz::Vector{TT}, n::Int, dt::Float64; 
+        L_lapse::TT=0., R_lapse::TT=0.) where {TT}
     
-    #break up latent variables
-    vari,B,lambda,vara = pz[1:4]
+    vari,B,lambda,vara = pz[1:4]                      #break up latent variables
    
-    # spatial bin centers, width and edges
-    xc,dx,xe = bins(B,n)
+    xc,dx,xe = bins(B,n)                              # spatial bin centers, width and edges
     
-    # make initial latent distribution
-    P = P0(vari,n,dx,xc,dt);
+    P = P0(vari,n,dx,xc,dt; 
+        L_lapse=L_lapse, R_lapse=R_lapse)             # make initial latent distribution
    
-    # build empty transition matrix
-    M = zeros(TT,n,n);
-    # build state transition matrix for no input time bins
-    M!(M,vara*dt,lambda,zero(TT),dx,xc,n,dt)
+    M = zeros(TT,n,n)                                 # build empty transition matrix
+    M!(M,vara*dt,lambda,zero(TT),dx,xc,n,dt)          # build state transition matrix for no input time bins
     
     return P, M, xc, dx, xe
+    
+end
+
+function P0(vari::TT, n::Int, dx::TT, xc::Vector{TT}, dt::Float64;
+        L_lapse::TT=0., R_lapse::TT=0.) where {TT}
+    
+    P = zeros(TT,n)
+    P[ceil(Int,n/2)] = one(TT) - (L_lapse + R_lapse)     # make initial delta function
+    P[1], P[n] = L_lapse, R_lapse
+    M = zeros(TT,n,n)                                    # build empty transition matrix
+    M!(M,vari,zero(TT),zero(TT),dx,xc,n,dt)
+    P = M * P
     
 end
 
@@ -51,18 +60,6 @@ function bins(B::TT,n::Int) where {TT}
     xe = cat(xc[1] - dx/2,xc .+ dx/2, dims=1) #edges
     
     return xc, dx, xe
-    
-end
-
-function P0(vari::TT,n::Int,dx::TT,xc::Vector{TT},dt::Float64) where {TT}
-    
-    # make initial delta function
-    P = zeros(TT,n); 
-    P[ceil(Int,n/2)] = one(TT); 
-    # build empty transition matrix
-    M = zeros(TT,n,n);
-    M!(M,vari,zero(TT),zero(TT),dx,xc,n,dt); 
-    P = M * P
     
 end
 
