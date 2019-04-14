@@ -345,14 +345,6 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "functions/#pulse_input_DDM.optimize_model-Union{Tuple{TT}, Tuple{Array{TT,1},TT,Any,Any,Any}} where TT",
-    "page": "Functions",
-    "title": "pulse_input_DDM.optimize_model",
-    "category": "method",
-    "text": "optimize_model(pz, bias, pz_fit_vec, bias_fit_vec,\n    data; dt, n, map_str, x_tol,f_tol,g_tol, iterations)\n\nOptimize parameters specified within fit vectors.\n\n\n\n\n\n"
-},
-
-{
     "location": "functions/#Functions-1",
     "page": "Functions",
     "title": "Functions",
