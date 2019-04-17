@@ -56,6 +56,21 @@ function check_pz(pz, pz_fit_vec)
             Change you initialization of λ.")
     end
     
+    lb = [eps(), 4., -5., eps(), eps(), eps(), eps()]
+    ub = [10., 100, 5., 800., 40., 2., 10.]
+    
+    if any(pz .== lb)
+        @warn "some parameter(s) at lower bound. bumped it (them) up 1/4 from the lower bound."
+        pz[pz .== lb] .= lb[pz .== lb] .+ 0.25 .* (ub[pz .== lb] .- lb[pz .== lb])
+    end
+    
+    if any(pz .== ub)
+        @warn "some parameter(s) at upper bound. bumped it (them) down 1/4 from the upper bound."
+        pz[pz .== ub] = ub[v .== ub] .- 0.25 .* (ub[pz .== ub] .- lb[pz .== ub])
+    end
+    
+    return pz
+    
 end
 
 function opt_ll(p_opt,ll;g_tol::Float64=1e-12,x_tol::Float64=1e-16,f_tol::Float64=1e-16,iterations::Int=Int(5e3),

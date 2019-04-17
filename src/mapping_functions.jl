@@ -244,18 +244,9 @@ end
 
 function inv_map_pz!(x,dt;map_str::String="exp")
     
+    #these should be set somewhere, because they are scattered around right now.
     lb = [eps(), 4., -5., eps(), eps(), eps(), eps()]
     ub = [10., 100, 5., 800., 40., 2., 10.]
-    
-    if any(x .== lb)
-        @warn "some parameter(s) at lower bound. bumped it (them) up 1/4 from the lower bound."
-        x[x .== lb] .= lb[x .== lb] .+ 0.25 .* (ub[x .== lb] .- lb[x .== lb])
-    end
-    
-    if any(x .== ub)
-        @warn "some parameter(s) at upper bound. bumped it (them) down 1/4 from the upper bound."
-        x[x .== ub] = ub[x .== ub] .- 0.25 .* (ub[x .== ub] .- lb[x .== ub])
-    end
     
     x[3] = normatanh.((x[3] - lb[3])./(ub[3] - lb[3]))
     
