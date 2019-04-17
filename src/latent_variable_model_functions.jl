@@ -2,7 +2,7 @@
 const dimz = 7
 
 function initialize_latent_model(pz::Vector{TT}, n::Int, dt::Float64; 
-        L_lapse::TT=0., R_lapse::TT=0.) where {TT}
+        L_lapse::UU=0., R_lapse::UU=0.) where {TT,UU}
     
     vari,B,lambda,vara = pz[1:4]                      #break up latent variables
    
@@ -19,7 +19,7 @@ function initialize_latent_model(pz::Vector{TT}, n::Int, dt::Float64;
 end
 
 function P0(vari::TT, n::Int, dx::TT, xc::Vector{TT}, dt::Float64;
-        L_lapse::TT=0., R_lapse::TT=0.) where {TT}
+        L_lapse::UU=0., R_lapse::UU=0.) where {TT,UU}
     
     P = zeros(TT,n)
     P[ceil(Int,n/2)] = one(TT) - (L_lapse + R_lapse)     # make initial delta function

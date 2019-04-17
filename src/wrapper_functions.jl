@@ -1,3 +1,6 @@
+
+#################################### Splitting data #################################
+
 function splitdata_train_test(data, trunc_μ_λ; frac::Float64=0.8, dt::Float64=1e-2)
     
     divided_data, divided_λ = train_test_divide(data, trunc_μ_λ, frac)
@@ -37,8 +40,23 @@ function splitdata_train_test_multi(data, trunc_μ_λ; frac::Float64=0.9)
     
 end
 
+#################################### Optimization #################################
 
-
+function check_pz(pz, pz_fit_vec)
+    
+    if (pz[6] == 1.) & pz_fit_vec[6]
+        error("ϕ has a value of 1. and you are optimizing w.r.t. to it 
+            but this code ignores ϕ when it is exactly 1. 
+            Change you initialization of ϕ.")
+    end
+    
+    if (pz[3] == 1.) & pz_fit_vec[3]
+        error("λ has a value of 0. and you are optimizing w.r.t. to it
+            but this code ignores λ when it is exactly 0. 
+            Change you initialization of λ.")
+    end
+    
+end
 
 function opt_ll(p_opt,ll;g_tol::Float64=1e-12,x_tol::Float64=1e-16,f_tol::Float64=1e-16,iterations::Int=Int(5e3),
         show_trace::Bool=true)
@@ -62,6 +80,72 @@ opt_ll_Newton(p_opt,ll;g_tol::Float64=1e-12,x_tol::Float64=1e-16,f_tol::Float64=
         linesearch = BackTracking()), Optim.Options(g_tol = g_tol, x_tol = x_tol, f_tol = f_tol, 
         iterations = Int(5e3), store_trace = true, show_trace = true, 
         extended_trace = false, allow_f_increases = true)))
+
+#################################### Computing CIs #################################
+
+function compute_H_CI(pz, py, data, trunc_μ_λ, dt)
+    
+    H = compute_Hessian(pz[:final],py[:final], pz[:fit], py[:fit], data; 
+        λ0=trunc_μ_λ["by_trial"], f_str="softplus", dimy=3);
+
+    #badindices = findall(abs.(vcat(pz[:final],vcat(py[:final]...))[vcat(pz[:fit],vcat(py[:fit]...))]) 
+    #    .< 1e-4)
+
+    #gooddims = setdiff(1:size(H,1),badindices)
+    
+    gooddims = 1:size(H,1)
+    
+    evs = findall(eigvals(H[gooddims,gooddims]) .<= 0)
+    otherbad = vcat(map(i-> findall(abs.(eigvecs(H[gooddims,gooddims])[:,evs[i]]) .> 0.5), 1:length(evs))...)
+    gooddims = setdiff(gooddims,otherbad)
+
+    fit_vec = pulse_input_DDM.combine_latent_and_observation(pz[:fit], py[:fit])
+    p_opt, p_const = pulse_input_DDM.split_combine_invmap(deepcopy(pz[:final]), deepcopy(py[:final]), 
+        fit_vec, dt, "softplus", "exp")
+
+    CI = fill!(Vector{Float64}(undef,size(H,1)),1e8);
+
+    CI[gooddims] = 2*sqrt.(diag(inv(H[gooddims,gooddims])));
+
+    pz[:CI_plus], py[:CI_plus] = pulse_input_DDM.map_split_combine(p_opt + CI, p_const, fit_vec, 
+        dt, "softplus", "exp", data["N0"], 3)
+    pz[:CI_minus], py[:CI_minus] = pulse_input_DDM.map_split_combine(p_opt - CI, p_const, fit_vec, 
+        dt,"softplus", "exp", data["N0"], 3)
+    
+    return pz, py
+    
+end
+
+function compute_H_CI(pz, pd, data, dt)
+    
+    H = compute_Hessian(pz[:final], pd[:final], 
+        pz[:fit], pd[:fit], data, map_str="exp")
+
+    #badindices = findall(abs.(vcat(pz[:final],pd[:final])[vcat(pz[:fit],pd[:fit])]) 
+    #    .< 1e-4)
+
+    #gooddims = setdiff(1:size(H,1),badindices)
+    
+    gooddims = 1:size(H,1)
+    
+    evs = findall(eigvals(H[gooddims,gooddims]) .<= 0)
+    otherbad = vcat(map(i-> findall(abs.(eigvecs(H[gooddims,gooddims])[:,evs[i]]) .> 0.5), 1:length(evs))...)
+    gooddims = setdiff(gooddims,otherbad)
+
+    fit_vec = pulse_input_DDM.combine_latent_and_observation(pz[:fit], pd[:fit])
+    p_opt, p_const = pulse_input_DDM.split_combine_invmap(deepcopy(pz[:final]), deepcopy(pd[:final]), 
+        fit_vec, dt, "exp")
+
+    CI = fill!(Vector{Float64}(undef,size(H,1)),1e8);
+
+    CI[gooddims] = 2*sqrt.(diag(inv(H[gooddims,gooddims])));
+
+    pz[:CI_plus], pd[:CI_plus] = pulse_input_DDM.map_split_combine(p_opt + CI, p_const, fit_vec, dt, "exp")
+    pz[:CI_minus], pd[:CI_minus] = pulse_input_DDM.map_split_combine(p_opt - CI, p_const, fit_vec, dt, "exp")
+    
+    return pz, pd
+    
+end
 
 #################################### Choice observation model #################################
 
@@ -149,6 +233,8 @@ function optimize_model(pz::Vector{TT}, pd::Vector{TT}, pz_fit_vec, pd_fit_vec,
         x_tol::Float64=1e-16,f_tol::Float64=1e-16,g_tol::Float64=1e-4,
         iterations::Int=Int(2e3),show_trace::Bool=true) where {TT <: Any}
     
+    check_pz(pz,pz_fit_vec)
+            
     fit_vec = combine_latent_and_observation(pz_fit_vec, pd_fit_vec)
     p_opt, p_const = split_combine_invmap(pz, pd, fit_vec, dt, map_str)
 
@@ -302,7 +388,7 @@ end
     Optimize parameters specified within fit vectors.
 
 """
-function optimize_model(pz::Vector{TT},py::Vector{Vector{TT}},pz_fit,py_fit,data;
+function optimize_model(pz::Vector{TT}, py::Vector{Vector{TT}}, pz_fit, py_fit,data;
         dt::Float64=1e-2, n::Int=53, f_str="sig",map_str::String="exp",
         beta::Vector{Vector{Float64}}=Vector{Vector{Float64}}(),
         mu0::Vector{Vector{Float64}}=Vector{Vector{Float64}}(),
@@ -310,6 +396,8 @@ function optimize_model(pz::Vector{TT},py::Vector{Vector{TT}},pz_fit,py_fit,data
         iterations::Int=Int(2e3),show_trace::Bool=true, 
         λ0::Vector{Vector{Vector{Float64}}}=Vector{Vector{Vector{Float64}}},
         dimy::Int=4) where {TT <: Any}
+    
+    check_pz(pz,pz_fit)
 
     N = length(py)
     fit_vec = combine_latent_and_observation(pz_fit,py_fit)

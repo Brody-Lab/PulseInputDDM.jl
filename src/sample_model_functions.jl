@@ -101,13 +101,13 @@ end
 
 #################################### Choice observation model #################################
 
-function sampled_dataset!(data::Dict, pz::Vector{Float64}, bias::Float64; 
+function sampled_dataset!(data::Dict, pz::Vector{Float64}, pd::Vector{Float64}; 
         dtMC::Float64=1e-4, num_reps::Int=1, rng::Int = 1)
         
     construct_inputs!(data,num_reps)
     
     Random.seed!(rng)
-    data["pokedR"] = pmap((T,leftbups,rightbups,rng) -> sample_model(T,leftbups,rightbups,pz,bias,rng=rng),
+    data["pokedR"] = pmap((T,leftbups,rightbups,rng) -> sample_model(T,leftbups,rightbups,pz,pd,rng=rng),
         data["T"],data["leftbups"],data["rightbups"], shuffle(1:length(data["T"])));
             
     return data
@@ -115,12 +115,15 @@ function sampled_dataset!(data::Dict, pz::Vector{Float64}, bias::Float64;
 end
 
 function sample_model(T::Float64,L::Vector{Float64},R::Vector{Float64},
-        pz::Vector{Float64},bias::Float64;dtMC::Float64=1e-4,rng::Int=1)
+        pz::Vector{Float64},pd::Vector{Float64};dtMC::Float64=1e-4,rng::Int=1)
     
     Random.seed!(rng)
+    
     A = sample_latent(T,L,R,pz;dt=dtMC)
+    
+    bias,lapse = pd[1],pd[2]
             
-    choice = A[end] >= bias;
+    rand() > lapse ? choice = A[end] >= bias : choice = Bool(round(rand()))
     
 end
 

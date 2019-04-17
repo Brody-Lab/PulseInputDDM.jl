@@ -32,6 +32,6 @@ export optimize_model, sample_model, fy, bins, sigmoid_4param, softplus_3param
 export padded_λ_array, compute_LL, compute_Hessian, compute_CI, load_and_optimize
 #export λ0_from_RBFs
 export filter_data_by_cell!, sessids_from_region, group_by_neuron!, aggregate_and_append_extended_spiking_data!
-export train_test_divide
+export train_test_divide, compute_H_CI
 
 end # module
