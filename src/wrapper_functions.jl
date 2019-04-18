@@ -42,7 +42,7 @@ end
 
 #################################### Optimization #################################
 
-function check_pz(pz, pz_fit_vec)
+function check_pz(pz, pz_fit_vec, lb, ub)
     
     if (pz[6] == 1.) & pz_fit_vec[6]
         error("ϕ has a value of 1. and you are optimizing w.r.t. to it 
@@ -55,9 +55,6 @@ function check_pz(pz, pz_fit_vec)
             but this code ignores λ when it is exactly 0. 
             Change you initialization of λ.")
     end
-    
-    lb = [eps(), 4., -5., eps(), eps(), eps(), eps()]
-    ub = [10., 100, 5., 800., 40., 2., 10.]
     
     if any(pz .== lb)
         @warn "some parameter(s) at lower bound. bumped it (them) up 1/4 from the lower bound."
@@ -108,24 +105,36 @@ function compute_H_CI(pz, py, data, trunc_μ_λ, dt)
 
     #gooddims = setdiff(1:size(H,1),badindices)
     
-    gooddims = 1:size(H,1)
+    try
     
-    evs = findall(eigvals(H[gooddims,gooddims]) .<= 0)
-    otherbad = vcat(map(i-> findall(abs.(eigvecs(H[gooddims,gooddims])[:,evs[i]]) .> 0.5), 1:length(evs))...)
-    gooddims = setdiff(gooddims,otherbad)
+        gooddims = 1:size(H,1)
 
-    fit_vec = pulse_input_DDM.combine_latent_and_observation(pz[:fit], py[:fit])
-    p_opt, p_const = pulse_input_DDM.split_combine_invmap(deepcopy(pz[:final]), deepcopy(py[:final]), 
-        fit_vec, dt, "softplus", "exp")
+        evs = findall(eigvals(H[gooddims,gooddims]) .<= 0)
+        otherbad = vcat(map(i-> findall(abs.(eigvecs(H[gooddims,gooddims])[:,evs[i]]) .> 0.5), 1:length(evs))...)
+        gooddims = setdiff(gooddims,otherbad)
 
-    CI = fill!(Vector{Float64}(undef,size(H,1)),1e8);
+        fit_vec = pulse_input_DDM.combine_latent_and_observation(pz[:fit], py[:fit])
+        p_opt, p_const = pulse_input_DDM.split_combine_invmap(deepcopy(pz[:final]), deepcopy(py[:final]), 
+            fit_vec, dt, "softplus", "exp")
 
-    CI[gooddims] = 2*sqrt.(diag(inv(H[gooddims,gooddims])));
+        CI = fill!(Vector{Float64}(undef,size(H,1)),1e8);
+    
+        CI[gooddims] = 2*sqrt.(diag(inv(H[gooddims,gooddims])));
 
-    pz[:CI_plus], py[:CI_plus] = pulse_input_DDM.map_split_combine(p_opt + CI, p_const, fit_vec, 
-        dt, "softplus", "exp", data["N0"], 3)
-    pz[:CI_minus], py[:CI_minus] = pulse_input_DDM.map_split_combine(p_opt - CI, p_const, fit_vec, 
-        dt,"softplus", "exp", data["N0"], 3)
+        pz[:CI_plus], py[:CI_plus] = pulse_input_DDM.map_split_combine(p_opt + CI, p_const, fit_vec, 
+            dt, "softplus", "exp", data["N0"], 3)
+        pz[:CI_minus], py[:CI_minus] = pulse_input_DDM.map_split_combine(p_opt - CI, p_const, fit_vec, 
+            dt,"softplus", "exp", data["N0"], 3)
+        
+    catch
+        
+        pz[:CI_plus] = typeof(pz[:final])
+        pz[:CI_minus] = typeof(pz[:final])
+        
+        py[:CI_plus] = typeof(py[:final])
+        py[:CI_minus] = typeof(py[:final])
+        
+    end
     
     return pz, py
     
@@ -246,9 +255,11 @@ end
 function optimize_model(pz::Vector{TT}, pd::Vector{TT}, pz_fit_vec, pd_fit_vec,
         data; dt::Float64=1e-2, n=53, map_str::String="exp",
         x_tol::Float64=1e-16,f_tol::Float64=1e-16,g_tol::Float64=1e-4,
-        iterations::Int=Int(2e3),show_trace::Bool=true) where {TT <: Any}
+        iterations::Int=Int(2e3),show_trace::Bool=true,
+        lb::Vector{Float64}=[eps(), 4., -5., eps(), eps(), eps(), eps()],
+        ub::Vector{Float64}=[10., 100, 5., 800., 40., 2., 10.]) where {TT <: Any}
     
-    check_pz(pz,pz_fit_vec)
+    check_pz(pz,pz_fit_vec,lb,ub)
             
     fit_vec = combine_latent_and_observation(pz_fit_vec, pd_fit_vec)
     p_opt, p_const = split_combine_invmap(pz, pd, fit_vec, dt, map_str)
@@ -410,9 +421,11 @@ function optimize_model(pz::Vector{TT}, py::Vector{Vector{TT}}, pz_fit, py_fit,d
         x_tol::Float64=1e-16,f_tol::Float64=1e-16,g_tol::Float64=1e-4,
         iterations::Int=Int(2e3),show_trace::Bool=true, 
         λ0::Vector{Vector{Vector{Float64}}}=Vector{Vector{Vector{Float64}}},
-        dimy::Int=4) where {TT <: Any}
+        dimy::Int=4,
+        lb::Vector{Float64}=[eps(), 4., -5., eps(), eps(), eps(), eps()],
+        ub::Vector{Float64}=[10., 100, 5., 800., 40., 2., 10.]) where {TT <: Any}
     
-    check_pz(pz,pz_fit)
+    check_pz(pz,pz_fit,lb,ub)
 
     N = length(py)
     fit_vec = combine_latent_and_observation(pz_fit,py_fit)
