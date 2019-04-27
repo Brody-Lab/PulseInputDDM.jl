@@ -268,10 +268,11 @@ end
 """
 function optimize_model(pz::Dict{}, pd::Dict{}, data; 
         dt::Float64=1e-2, n=53, map_str::String="exp",
-        x_tol::Float64=1e-16, f_tol::Float64=1e-16, g_tol::Float64=1e-4,
+        x_tol::Float64=1e-6, f_tol::Float64=1e-6, g_tol::Float64=1e-2,
         iterations::Int=Int(2e3), show_trace::Bool=true)
     
     haskey(pz,"state") ? nothing : pz["state"] = deepcopy(pz["initial"])
+    haskey(pd,"state") ? nothing : pd["state"] = deepcopy(pd["initial"])
     
     check_pz(pz["state"], pz["fit"], pz["lb"], pz["ub"])
             
