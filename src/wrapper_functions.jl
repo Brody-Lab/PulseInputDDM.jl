@@ -146,10 +146,25 @@ function compute_H_CI(pz, py, data, trunc_μ_λ, dt)
     
 end
 
+#################################### Choice observation model #################################
+
+function compute_Hessian(pz, pd, data;
+        dt::Float64=1e-2, n::Int=53, map_str::String="exp") where {TT <: Any}
+    
+    fit_vec = combine_latent_and_observation(pz["fit"], pd["fit"])
+    p_opt, p_const = split_combine_invmap(pz["final"], pd["final"], fit_vec, dt, map_str, 
+        pz["lb"], pz["ub"])
+    
+    ll(x) = ll_wrapper(x, p_const, fit_vec, data, n=n, dt=dt, map_str=map_str)
+
+    return H = ForwardDiff.hessian(ll, p_opt);
+        
+end
+
+
 function compute_H_CI(pz, pd, data, dt)
     
-    H = compute_Hessian(pz[:final], pd[:final], 
-        pz[:fit], pd[:fit], data, map_str="exp")
+    H = compute_Hessian(pz, pd, data, map_str="exp")
 
     #badindices = findall(abs.(vcat(pz[:final],pd[:final])[vcat(pz[:fit],pd[:fit])]) 
     #    .< 1e-4)
@@ -162,47 +177,18 @@ function compute_H_CI(pz, pd, data, dt)
     otherbad = vcat(map(i-> findall(abs.(eigvecs(H[gooddims,gooddims])[:,evs[i]]) .> 0.5), 1:length(evs))...)
     gooddims = setdiff(gooddims,otherbad)
 
-    fit_vec = pulse_input_DDM.combine_latent_and_observation(pz[:fit], pd[:fit])
-    p_opt, p_const = pulse_input_DDM.split_combine_invmap(deepcopy(pz[:final]), deepcopy(pd[:final]), 
-        fit_vec, dt, "exp")
+    fit_vec = combine_latent_and_observation(pz["fit"], pd["fit"])
+    p_opt, p_const = split_combine_invmap(copy(pz["final"]), copy(pd["final"]), 
+        fit_vec, dt, "exp", pz["lb"], pz["ub"])
 
     CI = fill!(Vector{Float64}(undef,size(H,1)),1e8);
 
     CI[gooddims] = 2*sqrt.(diag(inv(H[gooddims,gooddims])));
 
-    pz[:CI_plus], pd[:CI_plus] = pulse_input_DDM.map_split_combine(p_opt + CI, p_const, fit_vec, dt, "exp")
-    pz[:CI_minus], pd[:CI_minus] = pulse_input_DDM.map_split_combine(p_opt - CI, p_const, fit_vec, dt, "exp")
+    pz["CI_plus"], pd["CI_plus"] = map_split_combine(p_opt + CI, p_const, fit_vec, dt, "exp")
+    pz["CI_minus"], pd["CI_minus"] = map_split_combine(p_opt - CI, p_const, fit_vec, dt, "exp")
     
     return pz, pd
-    
-end
-
-#################################### Choice observation model #################################
-
-function compute_Hessian(pz::Vector{TT}, pd::Vector{TT}, pz_fit_vec, pd_fit_vec,data;
-        dt::Float64=1e-2,n::Int=53,map_str::String="exp") where {TT <: Any}
-    
-    fit_vec = combine_latent_and_observation(pz_fit_vec, pd_fit_vec)
-    p_opt, p_const = split_combine_invmap(pz, pd, fit_vec, dt, map_str)
-    
-    ll(x) = ll_wrapper(x, p_const, fit_vec, data, n=n, dt=dt, map_str=map_str)
-
-    return H = ForwardDiff.hessian(ll, p_opt);
-        
-end
-
-function compute_CI(H, pz::Vector{Float64}, pd::Vector{Float64}, pz_fit_vec, pd_fit_vec, data;
-        dt::Float64=1e-2,n::Int=53,map_str::String="exp")
-    
-    fit_vec = combine_latent_and_observation(pz_fit_vec, pd_fit_vec)
-    p_opt, p_const = split_combine_invmap(pz, pd, fit_vec, dt, map_str)
-    
-    CI = 2*sqrt.(diag(inv(H)))
-    
-    CIz_plus, CId_plus = map_split_combine(p_opt + CI, p_const, fit_vec, dt, map_str)
-    CIz_minus, CId_minus = map_split_combine(p_opt - CI, p_const, fit_vec, dt, map_str)
-    
-    return CIz_plus, CId_plus, CIz_minus, CId_minus
     
 end
 
