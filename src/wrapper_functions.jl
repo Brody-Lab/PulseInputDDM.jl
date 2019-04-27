@@ -1,3 +1,9 @@
+    #these should be set somewhere, because they are scattered around right now.
+    #lb = [eps(), 4., -5., eps(), eps(), eps(), eps()]
+    #ub = [10., 100, 5., 800., 40., 2., 10.]
+
+#finish this!
+
 
 #################################### Splitting data #################################
 
@@ -201,45 +207,53 @@ function compute_CI(H, pz::Vector{Float64}, pd::Vector{Float64}, pz_fit_vec, pd_
 end
 
 function load_and_optimize(path::String, sessids, ratnames; dt::Float64=1e-2, n::Int=53,
-        fit_latent::BitArray{1}=trues(dimz), show_trace::Bool=true,
-        map_str::String="exp", fit_initial::Vector{Float64}=vcat(1e-6,20.,-0.1,100.,5.,0.2,0.005))
+        show_trace::Bool=true,
+        map_str::String="exp", 
+        fit_initial::Vector{Float64}=vcat(1e-6,20.,-0.1,100.,5.,0.2,0.005),
+        fit_latent::BitArray{1}=trues(dimz),
+        lb::Vector{Float64}=[eps(), 4., -5., eps(), eps(), eps(), eps()],
+        ub::Vector{Float64}=[10., 100, 5., 800., 40., 2., 10.])
     
-    #data = make_data(path,sessids,ratnames,dt)
     data = aggregate_choice_data(path,sessids,ratnames,dt)
     
     #parameters of the latent model
-    pz = DataFrames.DataFrame(name = vcat("σ_i","B", "λ", "σ_a","σ_s","ϕ","τ_ϕ"),
-        fit = fit_latent,
-        initial = fit_initial)
-    
+    pz = Dict("name" => vcat("σ_i","B", "λ", "σ_a","σ_s","ϕ","τ_ϕ"),
+        "fit" => fit_latent,
+        "initial" => fit_initial,
+        "lb" => lb,
+        "ub" => ub)
+
     #parameters for the choice observation
-    pd = DataFrames.DataFrame(name = vcat("bias", "lapse"), 
-            fit = trues(2), 
-            initial = vcat(0., 0.5))
+    pd = Dict("name" => vcat("bias","lapse"), "fit" => trues(2), 
+        "initial" => vcat(0.,0.5))
     
-    pz[:final], pd[:final], = optimize_model(pz[:initial], pd[:initial], 
-        pz[:fit], pd[:fit], data; dt=dt, n=n, show_trace=show_trace, map_str=map_str)
+    pz, pd = optimize_model(pz, pd, data; 
+        dt=dt, n=n, show_trace=show_trace, map_str=map_str)
     
     return pz, pd
     
 end
 
 function load_and_optimize(data; dt::Float64=1e-2, n::Int=53,
-        fit_latent::BitArray{1}=trues(dimz), show_trace::Bool=true,
-        map_str::String="exp", fit_initial::Vector{Float64}=vcat(1e-6,20.,-0.1,100.,5.,0.2,0.005))
-        
+        show_trace::Bool=true, map_str::String="exp",
+        fit_latent::BitArray{1}=trues(dimz),
+        fit_initial::Vector{Float64}=vcat(1e-6,20.,-0.1,100.,5.,0.2,0.005),
+        lb::Vector{Float64}=[eps(), 4., -5., eps(), eps(), eps(), eps()],
+        ub::Vector{Float64}=[10., 100, 5., 800., 40., 2., 10.])
+    
     #parameters of the latent model
-    pz = DataFrames.DataFrame(name = vcat("σ_i","B", "λ", "σ_a","σ_s","ϕ","τ_ϕ"),
-        fit = fit_latent,
-        initial = fit_initial);
-    
+    pz = Dict("name" => vcat("σ_i","B", "λ", "σ_a","σ_s","ϕ","τ_ϕ"),
+        "fit" => fit_latent,
+        "initial" => fit_initial,
+        "lb" => lb,
+        "ub" => ub)
+
     #parameters for the choice observation
-    pd = DataFrames.DataFrame(name = vcat("bias", "lapse"), 
-            fit = trues(2), 
-            initial = vcat(0., 0.5));
+    pd = Dict("name" => vcat("bias","lapse"), "fit" => trues(2), 
+        "initial" => vcat(0.,0.5))
     
-    pz[:final], pd[:final] = optimize_model(pz[:initial], pd[:initial], 
-        pz[:fit], pd[:fit], data; dt=dt, n=n, show_trace=show_trace, map_str=map_str)
+    pz, pd = optimize_model(pz, pd, data; 
+        dt=dt, n=n, show_trace=show_trace, map_str=map_str)
     
     return pz, pd
     
@@ -252,26 +266,27 @@ end
     Optimize parameters specified within fit vectors.
 
 """
-function optimize_model(pz::Vector{TT}, pd::Vector{TT}, pz_fit_vec, pd_fit_vec,
-        data; dt::Float64=1e-2, n=53, map_str::String="exp",
-        x_tol::Float64=1e-16,f_tol::Float64=1e-16,g_tol::Float64=1e-4,
-        iterations::Int=Int(2e3),show_trace::Bool=true,
-        lb::Vector{Float64}=[eps(), 4., -5., eps(), eps(), eps(), eps()],
-        ub::Vector{Float64}=[10., 100, 5., 800., 40., 2., 10.]) where {TT <: Any}
+function optimize_model(pz::Dict{}, pd::Dict{}, data; 
+        dt::Float64=1e-2, n=53, map_str::String="exp",
+        x_tol::Float64=1e-16, f_tol::Float64=1e-16, g_tol::Float64=1e-4,
+        iterations::Int=Int(2e3), show_trace::Bool=true)
     
-    check_pz(pz,pz_fit_vec,lb,ub)
+    haskey(pz,"state") ? nothing : pz["state"] = deepcopy(pz["initial"])
+    
+    check_pz(pz["state"], pz["fit"], pz["lb"], pz["ub"])
             
-    fit_vec = combine_latent_and_observation(pz_fit_vec, pd_fit_vec)
-    p_opt, p_const = split_combine_invmap(pz, pd, fit_vec, dt, map_str)
+    fit_vec = combine_latent_and_observation(pz["fit"], pd["fit"])
+    p_opt, p_const = split_combine_invmap(pz["state"], pd["state"], fit_vec, dt, map_str, pz["lb"], pz["ub"])
 
     ###########################################################################################
     ## Optimize
     ll(x) = ll_wrapper(x, p_const, fit_vec, data, n=n, dt=dt, map_str=map_str)
-    opt_output, state = opt_ll(p_opt,ll;g_tol=g_tol,x_tol=x_tol,f_tol=f_tol,iterations=iterations,
+    opt_output, state = opt_ll(p_opt, ll; g_tol=g_tol, x_tol=x_tol, f_tol=f_tol, iterations=iterations,
         show_trace=show_trace)
     p_opt = Optim.minimizer(opt_output)
     
-    pz, pd = map_split_combine(p_opt, p_const, fit_vec, dt, map_str)
+    pz["state"], pd["state"] = map_split_combine(p_opt, p_const, fit_vec, dt, map_str)
+    pz["final"], pd["final"] = pz["state"], pd["state"]
     
     return pz, pd, opt_output, state
         
@@ -282,11 +297,6 @@ function ll_wrapper(p_opt::Vector{TT}, p_const::Vector{Float64},
         data::Dict; n::Int=53, dt::Float64=1e-2, map_str::String="exp") where {TT}
           
     pz, pd = map_split_combine(p_opt, p_const, fit_vec, dt, map_str)
-    
-    #lapse is like adding a prior out here?
-    #modified 11/8 lapse needs to be dealt with different not clear that old way was correct
-    #P *= (1.-inatt)
-    #P += inatt/n
     
     LL = compute_LL(pz, pd, data; dt=dt, n=n)
     

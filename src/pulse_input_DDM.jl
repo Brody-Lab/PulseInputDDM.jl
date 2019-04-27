@@ -1,3 +1,5 @@
+__precompile__(false) 
+
 module pulse_input_DDM
 
 #using Revise

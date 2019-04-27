@@ -21,9 +21,10 @@ end
 
     Inverse map parameters to unbounded domain for optimization, combine functional groups and split into optimization variables and constants
 """
-function split_combine_invmap(pz::Vector{TT}, pd::Vector{TT}, fit_vec, dt, map_str::String) where {TT <: Any}
+function split_combine_invmap(pz::Vector{TT}, pd::Vector{TT}, fit_vec, dt, map_str::String,
+        lb::Vector{Float64}, ub::Vector{Float64}) where {TT <: Any}
 
-    pz = inv_map_pz!(copy(pz),dt,map_str=map_str)
+    pz = inv_map_pz!(copy(pz),dt,lb,ub,map_str=map_str)
     pd = inv_map_pd!(copy(pd))
     
     p_opt, p_const = split_variable_and_const(combine_latent_and_observation(pz,pd),fit_vec)
@@ -83,9 +84,9 @@ end
     Inverse map parameters to unbounded domain for optimization, combine functional groups and split into optimization variables and constants
 """
 function split_combine_invmap(pz::Vector{TT}, py::Vector{Vector{TT}}, fit_vec, dt, f_str::String, 
-        map_str::String) where {TT <: Any}
+        map_str::String, lb::Vector{Float64}, ub::Vector{Float64}) where {TT <: Any}
 
-    pz = inv_map_pz!(copy(pz), dt, map_str=map_str)     
+    pz = inv_map_pz!(copy(pz), dt, lb, ub, map_str=map_str)     
     py = inv_map_py!.(deepcopy(py), f_str=f_str)
     p_opt, p_const = split_variable_and_const(combine_latent_and_observation(pz,py),fit_vec)
     
@@ -198,9 +199,9 @@ combine_latent_and_observation(pz,py,pRBF) = vcat(pz,vcat(py...),vcat(pRBF...))
 """
 function split_combine_invmap(pz::Vector{TT}, py::Vector{Vector{TT}}, pRBF::Vector{Vector{TT}},
         fit_vec, dt, f_str::String, 
-        map_str::String) where {TT <: Any}
+        map_str::String, lb::Vector{Float64}, ub::Vector{Float64}) where {TT <: Any}
 
-    pz = inv_map_pz!(copy(pz), dt, map_str=map_str)     
+    pz = inv_map_pz!(copy(pz), dt, lb, ub, map_str=map_str)     
     py = inv_map_py!.(deepcopy(py), f_str=f_str)
     p_opt, p_const = split_variable_and_const(combine_latent_and_observation(pz,py,pRBF),fit_vec)
     
@@ -242,12 +243,8 @@ function map_pz!(x,dt;map_str::String="exp")
     
 end
 
-function inv_map_pz!(x,dt;map_str::String="exp")
-    
-    #these should be set somewhere, because they are scattered around right now.
-    lb = [eps(), 4., -5., eps(), eps(), eps(), eps()]
-    ub = [10., 100, 5., 800., 40., 2., 10.]
-    
+function inv_map_pz!(x,dt,lb,ub;map_str::String="exp")
+
     x[3] = normatanh.((x[3] - lb[3])./(ub[3] - lb[3]))
     
     if map_str == "exp"
