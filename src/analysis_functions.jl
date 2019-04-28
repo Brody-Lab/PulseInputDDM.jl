@@ -64,19 +64,19 @@ function dprime(FR,choice)
         sqrt(0.5 * (var(FR[choice .== false])^2 + var(FR[choice .== true])^2))
 end
 
-function padded_λ_array(nspikes,dt,filtSD)
+#function padded_λ_array(nspikes,dt,filtSD)
     
-    nT = length.(nspikes)
-    λ = fill!(Array{Float64,2}(undef, length(nspikes), maximum(nT)),NaN)
+#    nT = length.(nspikes)
+#    λ = fill!(Array{Float64,2}(undef, length(nspikes), maximum(nT)),NaN)
     
-    kern = reflect(KernelFactors.gaussian(filtSD,8*filtSD+1));
-    for i = 1:length(nspikes)
-        λ[i,1:nT[i]] = (1/dt) * imfilter(nspikes[i], kern)
-    end
+#    kern = reflect(KernelFactors.gaussian(filtSD,8*filtSD+1));
+#    for i = 1:length(nspikes)
+#        λ[i,1:nT[i]] = (1/dt) * imfilter(nspikes[i], kern)
+#    end
     
-    return λ
+#    return λ
     
-end
+#end
 
 function rate_mat_func_filt(nspikes,dt,filtSD)
     

@@ -1,12 +1,11 @@
 module pulse_input_DDM
 
 #using Revise
-using StatsBase, Distributions, DSP, Optim, LineSearches, JLD
+using StatsBase, Distributions, DSP, Optim, LineSearches, JLD2
 using ForwardDiff, Distributed, LinearAlgebra
-using Pandas, Rmath
-using SpecialFunctions
-using MAT, ROCAnalysis, Random
-using ImageFiltering
+using Pandas, Rmath, SpecialFunctions, MAT, Random 
+#using ROCAnalysis
+#using ImageFiltering
 #using DataFrames
 #using BasisFunctionExpansions
 
@@ -14,7 +13,7 @@ using ImageFiltering
 
 include("latent_variable_model_functions.jl")
 include("helper_functions.jl")
-include("initialize_spike_obs_model.jl")
+#include("initialize_spike_obs_model.jl")
 include("manipulate_data_functions.jl")
 include("choice_observation_model.jl")
 include("poisson_neural_observation.jl")
