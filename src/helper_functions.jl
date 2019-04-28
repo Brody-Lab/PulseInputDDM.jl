@@ -57,11 +57,11 @@ function qfind(x,ts)
 
 end
 
-function my_qcut(y,nconds)
+#function my_qcut(y,nconds)
 
-    qvec = nquantile(y,nconds)
-    qidx = map(x->findfirst(x .<= qvec),y)
-    qidx[qidx .== 1] .= 2
-    qidx .= qidx .- 2
+#    qvec = nquantile(y,nconds)
+#    qidx = map(x->findfirst(x .<= qvec),y)
+#    qidx[qidx .== 1] .= 2
+#    qidx .= qidx .- 2
 
-end
+#end
