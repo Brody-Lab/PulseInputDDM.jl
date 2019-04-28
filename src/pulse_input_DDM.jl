@@ -3,7 +3,7 @@ module pulse_input_DDM
 #using Revise
 using StatsBase, Distributions, DSP, Optim, LineSearches, JLD
 using ForwardDiff, Distributed, LinearAlgebra
-using Pandas
+using Pandas, Rmath
 using SpecialFunctions
 using MAT, ROCAnalysis, Random
 using ImageFiltering
