@@ -191,8 +191,8 @@ function compute_H_CI(pz, pd, data, dt)
 
     CI[gooddims] = 2*sqrt.(diag(inv(H[gooddims,gooddims])));
 
-    pz["CI_plus"], pd["CI_plus"] = map_split_combine(p_opt + CI, p_const, fit_vec, dt, "exp")
-    pz["CI_minus"], pd["CI_minus"] = map_split_combine(p_opt - CI, p_const, fit_vec, dt, "exp")
+    pz["CI_plus"], pd["CI_plus"] = map_split_combine(p_opt + CI, p_const, fit_vec, dt, "exp", pz["lb"], pz["ub"])
+    pz["CI_minus"], pd["CI_minus"] = map_split_combine(p_opt - CI, p_const, fit_vec, dt, "exp", pz["lb"], pz["ub"])
     
     return pz, pd
     
