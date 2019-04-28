@@ -48,28 +48,33 @@ end
 
 #################################### Optimization #################################
 
-function check_pz(pz, pz_fit_vec, lb, ub)
+#fix here too, make only pz pinput
+function check_pz(pz)
     
-    if (pz[6] == 1.) & pz_fit_vec[6]
+    if (pz["state"][6] == 1.) & pz["fit"][6]
         error("ϕ has a value of 1. and you are optimizing w.r.t. to it 
             but this code ignores ϕ when it is exactly 1. 
             Change you initialization of ϕ.")
     end
     
-    if (pz[3] == 1.) & pz_fit_vec[3]
+    if (pz["state"][3] == 1.) & pz["fit"][3]
         error("λ has a value of 0. and you are optimizing w.r.t. to it
             but this code ignores λ when it is exactly 0. 
             Change you initialization of λ.")
     end
     
-    if any(pz .== lb)
+    if any(pz["state"] .== pz["lb"])
         @warn "some parameter(s) at lower bound. bumped it (them) up 1/4 from the lower bound."
-        pz[pz .== lb] .= lb[pz .== lb] .+ 0.25 .* (ub[pz .== lb] .- lb[pz .== lb])
+        pz["state"][pz["state"] .== pz["lb"]] .= 
+            pz["lb"][pz["state"] .== pz["lb"]] .+ 
+            0.25 .* (pz["ub"][pz["state"] .== pz["lb"]] .- pz["lb"][pz["state"] .== pz["lb"]])
     end
     
-    if any(pz .== ub)
+    if any(pz["state"] .== pz["ub"])
         @warn "some parameter(s) at upper bound. bumped it (them) down 1/4 from the upper bound."
-        pz[pz .== ub] = ub[v .== ub] .- 0.25 .* (ub[pz .== ub] .- lb[pz .== ub])
+        pz["state"][pz["state"] .== pz["ub"]] .= 
+            pz["ub"][pz["state"] .== pz["ub"]] .- 
+            0.25 .* (pz["ub"][pz["state"] .== pz["ub"]] .- pz["lb"][pz["state"] .== pz["ub"]])
     end
     
     return pz
@@ -260,30 +265,33 @@ function optimize_model(pz::Dict{}, pd::Dict{}, data;
     haskey(pz,"state") ? nothing : pz["state"] = deepcopy(pz["initial"])
     haskey(pd,"state") ? nothing : pd["state"] = deepcopy(pd["initial"])
     
-    check_pz(pz["state"], pz["fit"], pz["lb"], pz["ub"])
+    pz = check_pz(pz)
             
     fit_vec = combine_latent_and_observation(pz["fit"], pd["fit"])
     p_opt, p_const = split_combine_invmap(pz["state"], pd["state"], fit_vec, dt, map_str, pz["lb"], pz["ub"])
 
     ###########################################################################################
     ## Optimize
-    ll(x) = ll_wrapper(x, p_const, fit_vec, data, n=n, dt=dt, map_str=map_str)
+    ll(x) = ll_wrapper(x, p_const, fit_vec, data, pz["lb"], pz["ub"], 
+        n=n, dt=dt, map_str=map_str)
     opt_output, state = opt_ll(p_opt, ll; g_tol=g_tol, x_tol=x_tol, f_tol=f_tol, iterations=iterations,
         show_trace=show_trace)
     p_opt = Optim.minimizer(opt_output)
     
-    pz["state"], pd["state"] = map_split_combine(p_opt, p_const, fit_vec, dt, map_str)
+    pz["state"], pd["state"] = map_split_combine(p_opt, p_const, fit_vec, dt, map_str, pz["lb"], pz["ub"])
     pz["final"], pd["final"] = pz["state"], pd["state"]
     
     return pz, pd, opt_output, state
         
 end
 
-function ll_wrapper(p_opt::Vector{TT}, p_const::Vector{Float64}, 
+function ll_wrapper(p_opt::Vector{TT}, p_const::Vector{Float64},
         fit_vec::Union{BitArray{1},Vector{Bool}}, 
-        data::Dict; n::Int=53, dt::Float64=1e-2, map_str::String="exp") where {TT}
+        data::Dict, lb::Vector{Float64}, 
+        ub::Vector{Float64}; 
+        n::Int=53, dt::Float64=1e-2, map_str::String="exp") where {TT}
           
-    pz, pd = map_split_combine(p_opt, p_const, fit_vec, dt, map_str)
+    pz, pd = map_split_combine(p_opt, p_const, fit_vec, dt, map_str, lb, ub)
     
     LL = compute_LL(pz, pd, data; dt=dt, n=n)
     
@@ -422,6 +430,7 @@ function optimize_model(pz::Vector{TT}, py::Vector{Vector{TT}}, pz_fit, py_fit,d
         lb::Vector{Float64}=[eps(), 4., -5., eps(), eps(), eps(), eps()],
         ub::Vector{Float64}=[10., 100, 5., 800., 40., 2., 10.]) where {TT <: Any}
     
+    #fix here
     check_pz(pz,pz_fit,lb,ub)
 
     N = length(py)

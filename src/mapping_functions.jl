@@ -5,11 +5,11 @@
 
     Combine constant and variable optimization components, split into functional groups andmap to bounded domain
 """
-function map_split_combine(p_opt, p_const, fit_vec, dt, map_str::String)
+function map_split_combine(p_opt, p_const, fit_vec, dt, map_str::String,
+    lb::Vector{Float64}, ub::Vector{Float64})
     
     pz, pd = split_latent_and_observation(combine_variable_and_const(p_opt, p_const, fit_vec))
-    #p = inv_breakup(map_pz!(pz,dt,map_str=map_str),bias) 
-    pz = map_pz!(pz,dt,map_str=map_str)
+    pz = map_pz!(pz,dt,lb,ub,map_str=map_str)
     pd = map_pd!(pd)
     
     return pz, pd
@@ -226,10 +226,7 @@ end
       
 #################### Common functions used in wrappers for all models ###########################
      
-function map_pz!(x,dt;map_str::String="exp")
-    
-    lb = [eps(), 4., -5., eps(), eps(), eps(), eps()]
-    ub = [10., 100, 5., 800., 40., 2., 10.]
+function map_pz!(x,dt,lb,ub;map_str::String="exp")
     
     x[3] = lb[3] + (ub[3] - lb[3]) .* normtanh.(x[3])
     
