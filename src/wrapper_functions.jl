@@ -160,7 +160,8 @@ function compute_Hessian(pz, pd, data;
     p_opt, p_const = split_combine_invmap(pz["final"], pd["final"], fit_vec, dt, map_str, 
         pz["lb"], pz["ub"])
     
-    ll(x) = ll_wrapper(x, p_const, fit_vec, data, n=n, dt=dt, map_str=map_str)
+    ll(x) = ll_wrapper(x, p_const, fit_vec, data, pz["lb"], pz["ub"], 
+        n=n, dt=dt, map_str=map_str)
 
     return H = ForwardDiff.hessian(ll, p_opt);
         
@@ -289,7 +290,7 @@ function ll_wrapper(p_opt::Vector{TT}, p_const::Vector{Float64},
         fit_vec::Union{BitArray{1},Vector{Bool}}, 
         data::Dict, lb::Vector{Float64}, 
         ub::Vector{Float64}; 
-        n::Int=53, dt::Float64=1e-2, map_str::String="exp") where {TT}
+        n::Int=53, dt::Float64=1e-2, map_str::String="exp") where {TT <: Any}
           
     pz, pd = map_split_combine(p_opt, p_const, fit_vec, dt, map_str, lb, ub)
     
