@@ -149,8 +149,7 @@ end
 function compute_Hessian(pz, pd, data; n::Int=53) where {TT <: Any}
     
     fit_vec = combine_latent_and_observation(pz["fit"], pd["fit"])
-    p_opt, p_const = split_combine_invmap(pz["final"], pd["final"], fit_vec, data["dt"], map_str, 
-        pz["lb"], pz["ub"])
+    p_opt, p_const = split_combine_invmap(pz["final"], pd["final"], fit_vec, data["dt"], pz["lb"], pz["ub"])
     
     ll(x) = ll_wrapper(x, p_const, fit_vec, data, pz["lb"], pz["ub"], n=n)
 
@@ -159,9 +158,9 @@ function compute_Hessian(pz, pd, data; n::Int=53) where {TT <: Any}
 end
 
 
-function compute_H_CI!(pz, pd, data)
+function compute_H_CI!(pz, pd, data; n::Int=53)
     
-    H = compute_Hessian(pz, pd, data)
+    H = compute_Hessian(pz, pd, data; n=n)
 
     #badindices = findall(abs.(vcat(pz[:final],pd[:final])[vcat(pz[:fit],pd[:fit])]) 
     #    .< 1e-4)
