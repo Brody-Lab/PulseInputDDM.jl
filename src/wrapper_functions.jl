@@ -168,7 +168,7 @@ function compute_Hessian(pz, pd, data;
 end
 
 
-function compute_H_CI(pz, pd, data, dt)
+function compute_H_CI!(pz, pd, data, dt)
     
     H = compute_Hessian(pz, pd, data, map_str="exp")
 
