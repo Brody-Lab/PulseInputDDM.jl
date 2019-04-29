@@ -1,8 +1,8 @@
 
-function LL_all_trials(pz::Vector{TT}, pd::Vector{TT}, data::Dict; 
-        n::Int=53, dt::Float64=1e-2, comp_posterior::Bool=false) where {TT}
+function LL_all_trials(pz::Vector{TT}, pd::Vector{TT}, data::Dict; n::Int=53) where {TT}
         
     bias,lapse = pd[1],pd[2]
+    dt = data["dt"]
     P,M,xc,dx,xe = initialize_latent_model(pz, n,dt, L_lapse=lapse/2, R_lapse=lapse/2)
 
     nbinsL, Sfrac = bias_bin(bias,xe,dx,n)

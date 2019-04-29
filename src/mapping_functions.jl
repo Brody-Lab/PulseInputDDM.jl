@@ -1,15 +1,15 @@
 #################################### Choice observation model #################################
 
 """
-    map_split_combine(p_opt, p_const, fit_vec, dt; map_str::String)  
+    map_split_combine(p_opt, p_const, fit_vec, dt)  
 
     Combine constant and variable optimization components, split into functional groups andmap to bounded domain
 """
-function map_split_combine(p_opt, p_const, fit_vec, dt, map_str::String,
+function map_split_combine(p_opt, p_const, fit_vec, dt,
     lb::Vector{Float64}, ub::Vector{Float64})
     
     pz, pd = split_latent_and_observation(combine_variable_and_const(p_opt, p_const, fit_vec))
-    pz = map_pz!(pz,dt,lb,ub,map_str=map_str)
+    pz = map_pz!(pz,dt,lb,ub)
     pd = map_pd!(pd)
     
     return pz, pd
@@ -17,14 +17,14 @@ function map_split_combine(p_opt, p_const, fit_vec, dt, map_str::String,
 end
 
 """
-    split_combine_invmap(pz, bias, fit_vec, dt, map_str::String)  
+    split_combine_invmap(pz, bias, fit_vec, dt)  
 
     Inverse map parameters to unbounded domain for optimization, combine functional groups and split into optimization variables and constants
 """
-function split_combine_invmap(pz::Vector{TT}, pd::Vector{TT}, fit_vec, dt, map_str::String,
+function split_combine_invmap(pz::Vector{TT}, pd::Vector{TT}, fit_vec, dt,
         lb::Vector{Float64}, ub::Vector{Float64}) where {TT <: Any}
 
-    pz = inv_map_pz!(copy(pz),dt,lb,ub,map_str=map_str)
+    pz = inv_map_pz!(copy(pz),dt,lb,ub)
     pd = inv_map_pd!(copy(pd))
     
     p_opt, p_const = split_variable_and_const(combine_latent_and_observation(pz,pd),fit_vec)
@@ -64,14 +64,15 @@ end
 #################################### Poisson neural observation model #########################
 
 """
-    map_split_combine(p_opt, p_const, fit_vec, dt, f_str::String, map_str::String)  
+    map_split_combine(p_opt, p_const, fit_vec, dt, f_str::String)  
 
     Combine constant and variable optimization components, split into functional groups and map to bounded domain
 """
-function map_split_combine(p_opt, p_const, fit_vec, dt, f_str::String, map_str::String, N::Int, dimy::Int)
+function map_split_combine(p_opt, p_const, fit_vec, dt, f_str::String, N::Int, dimy::Int,
+    lb::Vector{Float64}, ub::Vector{Float64})
 
     pz,py = split_latent_and_observation(combine_variable_and_const(p_opt, p_const, fit_vec), N, dimy)
-    pz = map_pz!(pz,dt,map_str=map_str)       
+    pz = map_pz!(pz,dt,lb,ub)       
     py = map_py!.(py,f_str=f_str)
     
     return pz,py
@@ -79,14 +80,14 @@ function map_split_combine(p_opt, p_const, fit_vec, dt, f_str::String, map_str::
 end
 
 """
-    split_combine_invmap(pz::Vector{TT}, py::Vector{Vector{TT}}, fit_vec, dt, f_str::String, map_str::String)
+    split_combine_invmap(pz::Vector{TT}, py::Vector{Vector{TT}}, fit_vec, dt, f_str::String)
 
     Inverse map parameters to unbounded domain for optimization, combine functional groups and split into optimization variables and constants
 """
 function split_combine_invmap(pz::Vector{TT}, py::Vector{Vector{TT}}, fit_vec, dt, f_str::String, 
-        map_str::String, lb::Vector{Float64}, ub::Vector{Float64}) where {TT <: Any}
+        lb::Vector{Float64}, ub::Vector{Float64}) where {TT <: Any}
 
-    pz = inv_map_pz!(copy(pz), dt, lb, ub, map_str=map_str)     
+    pz = inv_map_pz!(copy(pz), dt, lb, ub)     
     py = inv_map_py!.(deepcopy(py), f_str=f_str)
     p_opt, p_const = split_variable_and_const(combine_latent_and_observation(pz,py),fit_vec)
     
@@ -106,7 +107,7 @@ end
 
 combine_latent_and_observation(pz,py) = vcat(pz,vcat(py...))
     
-function map_py!(p::Vector{TT};f_str::String="softplus",map_str::String="exp") where {TT}
+function map_py!(p::Vector{TT};f_str::String="softplus") where {TT}
         
     if f_str == "exp"
         
@@ -115,14 +116,8 @@ function map_py!(p::Vector{TT};f_str::String="softplus",map_str::String="exp") w
         
     elseif f_str == "sig"
         
-        if map_str == "exp"
-            p[1:2] = exp.(p[1:2])
-            p[3:4] = p[3:4]
-        elseif map_str == "tanh"
-            #fix this
-            p[1:2] = 1e-5 + 99.99 * 0.5*(1+tanh.(p[1:2]))
-            p[3:4] = -9.99 + 9.99*2 * 0.5*(1+tanh.(p[3:4]))
-        end
+        p[1:2] = exp.(p[1:2])
+        p[3:4] = p[3:4]
         
     elseif f_str == "sig2"
 
@@ -141,7 +136,7 @@ function map_py!(p::Vector{TT};f_str::String="softplus",map_str::String="exp") w
     
 end
 
-function inv_map_py!(p::Vector{TT};f_str::String="softplus",map_str::String="exp") where {TT}
+function inv_map_py!(p::Vector{TT};f_str::String="softplus") where {TT}
      
     if f_str == "exp"
 
@@ -150,14 +145,8 @@ function inv_map_py!(p::Vector{TT};f_str::String="softplus",map_str::String="exp
         
     elseif f_str == "sig"
         
-        if map_str == "exp"
-            p[1:2] = log.(p[1:2])
-            p[3:4] = p[3:4]
-        elseif map_str == "tanh"
-            #fix this
-            p[1:2] = atanh.(((p[1:2] - 1e-5)/(99.99*0.5)) - 1)
-            p[3:4] = atanh.(((p[3:4] + 9.99)/(9.99*2*0.5)) - 1)
-        end
+        p[1:2] = log.(p[1:2])
+        p[3:4] = p[3:4]
         
     elseif f_str == "sig2"
 
@@ -175,81 +164,24 @@ function inv_map_py!(p::Vector{TT};f_str::String="softplus",map_str::String="exp
     return p
     
 end
-
-#################################### Poisson neural observation model w/ RBF #########################
-
-function split_latent_and_observation(p::Vector{T}, N::Int, dimy::Int, numRBF::Int) where {T <: Any}
-                
-    pz = p[1:dimz]
-    py = reshape(p[dimz+1:dimz+dimy*N],dimy,N)
-    py = map(i->py[:,i],1:N)
-    pRBF = reshape(p[dimz+dimy*N+1:dimz+dimy*N+numRBF*N],numRBF,N)
-    pRBF = map(i->pRBF[:,i],1:N)
-
-    return pz, py, pRBF
-    
-end
-
-combine_latent_and_observation(pz,py,pRBF) = vcat(pz,vcat(py...),vcat(pRBF...))
-
-"""
-    split_combine_invmap(pz::Vector{TT}, py::Vector{Vector{TT}}, pRBF::Vector{Vector{TT}}, fit_vec, dt, f_str::String, map_str::String)
-
-    Inverse map parameters to unbounded domain for optimization, combine functional groups and split into optimization variables and constants
-"""
-function split_combine_invmap(pz::Vector{TT}, py::Vector{Vector{TT}}, pRBF::Vector{Vector{TT}},
-        fit_vec, dt, f_str::String, 
-        map_str::String, lb::Vector{Float64}, ub::Vector{Float64}) where {TT <: Any}
-
-    pz = inv_map_pz!(copy(pz), dt, lb, ub, map_str=map_str)     
-    py = inv_map_py!.(deepcopy(py), f_str=f_str)
-    p_opt, p_const = split_variable_and_const(combine_latent_and_observation(pz,py,pRBF),fit_vec)
-    
-    return p_opt, p_const
-    
-end
-
-"""
-    map_split_combine(p_opt, p_const, fit_vec, dt, f_str::String, map_str::String)  
-
-    Combine constant and variable optimization components, split into functional groups and map to bounded domain
-"""
-function map_split_combine(p_opt, p_const, fit_vec, dt, f_str::String, map_str::String, N::Int, dimy::Int, numRBF::Int)
-
-    pz,py,pRBF = split_latent_and_observation(combine_variable_and_const(p_opt, p_const, fit_vec), N, dimy, numRBF)
-    pz = map_pz!(pz,dt,map_str=map_str)       
-    py = map_py!.(py,f_str=f_str)
-    
-    return pz,py,pRBF
-    
-end
       
 #################### Common functions used in wrappers for all models ###########################
      
-function map_pz!(x,dt,lb,ub;map_str::String="exp")
+function map_pz!(x,dt,lb,ub)
     
     x[3] = lb[3] + (ub[3] - lb[3]) .* normtanh.(x[3])
     
-    if map_str == "exp"
-        x[[1,2,4,5,6,7]] = lb[[1,2,4,5,6,7]] + exp.(x[[1,2,4,5,6,7]])
-    elseif map_str == "tanh"        
-        x[[1,2,4,5,6,7]] = lb[[1,2,4,5,6,7]] + (ub[[1,2,4,5,6,7]] - lb[[1,2,4,5,6,7]]) .* normtanh.(x[[1,2,4,5,6,7]])        
-    end
+    x[[1,2,4,5,6,7]] = lb[[1,2,4,5,6,7]] + exp.(x[[1,2,4,5,6,7]])
         
     return x
     
 end
 
-function inv_map_pz!(x,dt,lb,ub;map_str::String="exp")
+function inv_map_pz!(x,dt,lb,ub)
 
     x[3] = normatanh.((x[3] - lb[3])./(ub[3] - lb[3]))
     
-    if map_str == "exp"
-        x[[1,2,4,5,6,7]] = log.(x[[1,2,4,5,6,7]] - lb[[1,2,4,5,6,7]])
-    elseif map_str == "tanh"
-        x[[1,2,4,5,6,7]] = normatanh.((x[[1,2,4,5,6,7]] - lb[[1,2,4,5,6,7]])./(ub[[1,2,4,5,6,7]] - lb[[1,2,4,5,6,7]]))
-    
-    end
+    x[[1,2,4,5,6,7]] = log.(x[[1,2,4,5,6,7]] - lb[[1,2,4,5,6,7]])
         
     return x
     

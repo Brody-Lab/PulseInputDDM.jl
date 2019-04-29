@@ -1,9 +1,3 @@
-    #these should be set somewhere, because they are scattered around right now.
-    #lb = [eps(), 4., -5., eps(), eps(), eps(), eps()]
-    #ub = [10., 100, 5., 800., 40., 2., 10.]
-
-#finish this!
-
 
 #################################### Splitting data #################################
 
@@ -48,8 +42,7 @@ end
 
 #################################### Optimization #################################
 
-#fix here too, make only pz pinput
-function check_pz(pz)
+function check_pz!(pz)
     
     if (pz["state"][6] == 1.) & pz["fit"][6]
         error("ϕ has a value of 1. and you are optimizing w.r.t. to it 
@@ -153,24 +146,22 @@ end
 
 #################################### Choice observation model #################################
 
-function compute_Hessian(pz, pd, data;
-        dt::Float64=1e-2, n::Int=53, map_str::String="exp") where {TT <: Any}
+function compute_Hessian(pz, pd, data; n::Int=53) where {TT <: Any}
     
     fit_vec = combine_latent_and_observation(pz["fit"], pd["fit"])
-    p_opt, p_const = split_combine_invmap(pz["final"], pd["final"], fit_vec, dt, map_str, 
+    p_opt, p_const = split_combine_invmap(pz["final"], pd["final"], fit_vec, data["dt"], map_str, 
         pz["lb"], pz["ub"])
     
-    ll(x) = ll_wrapper(x, p_const, fit_vec, data, pz["lb"], pz["ub"], 
-        n=n, dt=dt, map_str=map_str)
+    ll(x) = ll_wrapper(x, p_const, fit_vec, data, pz["lb"], pz["ub"], n=n)
 
     return H = ForwardDiff.hessian(ll, p_opt);
         
 end
 
 
-function compute_H_CI!(pz, pd, data, dt)
+function compute_H_CI!(pz, pd, data)
     
-    H = compute_Hessian(pz, pd, data, map_str="exp")
+    H = compute_Hessian(pz, pd, data)
 
     #badindices = findall(abs.(vcat(pz[:final],pd[:final])[vcat(pz[:fit],pd[:fit])]) 
     #    .< 1e-4)
@@ -185,14 +176,14 @@ function compute_H_CI!(pz, pd, data, dt)
 
     fit_vec = combine_latent_and_observation(pz["fit"], pd["fit"])
     p_opt, p_const = split_combine_invmap(copy(pz["final"]), copy(pd["final"]), 
-        fit_vec, dt, "exp", pz["lb"], pz["ub"])
+        fit_vec, data["dt"], pz["lb"], pz["ub"])
 
     CI = fill!(Vector{Float64}(undef,size(H,1)),1e8);
 
     CI[gooddims] = 2*sqrt.(diag(inv(H[gooddims,gooddims])));
 
-    pz["CI_plus"], pd["CI_plus"] = map_split_combine(p_opt + CI, p_const, fit_vec, dt, "exp", pz["lb"], pz["ub"])
-    pz["CI_minus"], pd["CI_minus"] = map_split_combine(p_opt - CI, p_const, fit_vec, dt, "exp", pz["lb"], pz["ub"])
+    pz["CI_plus"], pd["CI_plus"] = map_split_combine(p_opt + CI, p_const, fit_vec, data["dt"], pz["lb"], pz["ub"])
+    pz["CI_minus"], pd["CI_minus"] = map_split_combine(p_opt - CI, p_const, fit_vec, data["dt"], pz["lb"], pz["ub"])
     
     return pz, pd
     
@@ -200,7 +191,6 @@ end
 
 function load_and_optimize(path::String, sessids, ratnames; dt::Float64=1e-2, n::Int=53,
         show_trace::Bool=true,
-        map_str::String="exp", 
         fit_initial::Vector{Float64}=vcat(1e-6,20.,-0.1,100.,5.,0.2,0.005),
         fit_latent::BitArray{1}=trues(dimz),
         lb::Vector{Float64}=[eps(), 4., -5., eps(), eps(), eps(), eps()],
@@ -219,15 +209,14 @@ function load_and_optimize(path::String, sessids, ratnames; dt::Float64=1e-2, n:
     pd = Dict("name" => vcat("bias","lapse"), "fit" => trues(2), 
         "initial" => vcat(0.,0.5))
     
-    pz, pd = optimize_model(pz, pd, data; 
-        dt=dt, n=n, show_trace=show_trace, map_str=map_str)
+    pz, pd = optimize_model(pz, pd, data; n=n, show_trace=show_trace)
     
     return pz, pd
     
 end
 
-function load_and_optimize(data; dt::Float64=1e-2, n::Int=53,
-        show_trace::Bool=true, map_str::String="exp",
+function load_and_optimize(data; n::Int=53,
+        show_trace::Bool=true,
         fit_latent::BitArray{1}=trues(dimz),
         fit_initial::Vector{Float64}=vcat(1e-6,20.,-0.1,100.,5.,0.2,0.005),
         lb::Vector{Float64}=[eps(), 4., -5., eps(), eps(), eps(), eps()],
@@ -244,42 +233,38 @@ function load_and_optimize(data; dt::Float64=1e-2, n::Int=53,
     pd = Dict("name" => vcat("bias","lapse"), "fit" => trues(2), 
         "initial" => vcat(0.,0.5))
     
-    pz, pd = optimize_model(pz, pd, data; 
-        dt=dt, n=n, show_trace=show_trace, map_str=map_str)
+    pz, pd = optimize_model(pz, pd, data; n=n, show_trace=show_trace)
     
     return pz, pd
     
 end
 
 """
-    optimize_model(pz, bias, pz_fit_vec, bias_fit_vec,
-        data; dt, n, map_str, x_tol,f_tol,g_tol, iterations)
+    optimize_model(pz, pd, data; n, x_tol,f_tol,g_tol, iterations)
 
     Optimize parameters specified within fit vectors.
 
 """
-function optimize_model(pz::Dict{}, pd::Dict{}, data; 
-        dt::Float64=1e-2, n=53, map_str::String="exp",
-        x_tol::Float64=1e-6, f_tol::Float64=1e-6, g_tol::Float64=1e-2,
+function optimize_model(pz::Dict{}, pd::Dict{}, data; n=53,
+        x_tol::Float64=1e-4, f_tol::Float64=1e-6, g_tol::Float64=1e-2,
         iterations::Int=Int(2e3), show_trace::Bool=true)
-    
+        
     haskey(pz,"state") ? nothing : pz["state"] = deepcopy(pz["initial"])
     haskey(pd,"state") ? nothing : pd["state"] = deepcopy(pd["initial"])
     
-    pz = check_pz(pz)
+    pz = check_pz!(pz)
             
     fit_vec = combine_latent_and_observation(pz["fit"], pd["fit"])
-    p_opt, p_const = split_combine_invmap(pz["state"], pd["state"], fit_vec, dt, map_str, pz["lb"], pz["ub"])
+    p_opt, p_const = split_combine_invmap(pz["state"], pd["state"], fit_vec, data["dt"], pz["lb"], pz["ub"])
 
     ###########################################################################################
     ## Optimize
-    ll(x) = ll_wrapper(x, p_const, fit_vec, data, pz["lb"], pz["ub"], 
-        n=n, dt=dt, map_str=map_str)
+    ll(x) = ll_wrapper(x, p_const, fit_vec, data, pz["lb"], pz["ub"], n=n)
     opt_output, state = opt_ll(p_opt, ll; g_tol=g_tol, x_tol=x_tol, f_tol=f_tol, iterations=iterations,
         show_trace=show_trace)
     p_opt = Optim.minimizer(opt_output)
     
-    pz["state"], pd["state"] = map_split_combine(p_opt, p_const, fit_vec, dt, map_str, pz["lb"], pz["ub"])
+    pz["state"], pd["state"] = map_split_combine(p_opt, p_const, fit_vec, data["dt"], pz["lb"], pz["ub"])
     pz["final"], pd["final"] = pz["state"], pd["state"]
     
     return pz, pd, opt_output, state
@@ -289,26 +274,23 @@ end
 function ll_wrapper(p_opt::Vector{TT}, p_const::Vector{Float64},
         fit_vec::Union{BitArray{1},Vector{Bool}}, 
         data::Dict, lb::Vector{Float64}, 
-        ub::Vector{Float64}; 
-        n::Int=53, dt::Float64=1e-2, map_str::String="exp") where {TT <: Any}
+        ub::Vector{Float64}; n::Int=53) where {TT <: Any}
           
-    pz, pd = map_split_combine(p_opt, p_const, fit_vec, dt, map_str, lb, ub)
+    pz, pd = map_split_combine(p_opt, p_const, fit_vec, data["dt"], lb, ub)
     
-    LL = compute_LL(pz, pd, data; dt=dt, n=n)
+    LL = compute_LL(pz, pd, data; n=n)
     
     return -LL
               
 end
 
 """
-    compute_LL(pz,bias,data;dt::Float64=1e-2,n::Int=53)
+    compute_LL(pz,bias,data;n::Int=53)
 
     compute LL for choice observation model
 
 """
-compute_LL(pz::Vector{T}, pd::Vector{T}, data; 
-    dt::Float64=1e-2, n::Int=53) where {T <: Any} = 
-    sum(LL_all_trials(pz, pd, data, n=n, dt=dt))
+compute_LL(pz::Vector{T}, pd::Vector{T}, data; n::Int=53) where {T <: Any} = sum(LL_all_trials(pz, pd, data, n=n))
 
 #################################### Poisson neural observation model #########################
 
@@ -420,22 +402,20 @@ end
     Optimize parameters specified within fit vectors.
 
 """
-function optimize_model(pz::Vector{TT}, py::Vector{Vector{TT}}, pz_fit, py_fit,data;
+function optimize_model(pz::Vector{TT}, py::Vector{Vector{TT}},data;
         dt::Float64=1e-2, n::Int=53, f_str="sig",map_str::String="exp",
         beta::Vector{Vector{Float64}}=Vector{Vector{Float64}}(),
         mu0::Vector{Vector{Float64}}=Vector{Vector{Float64}}(),
         x_tol::Float64=1e-16,f_tol::Float64=1e-16,g_tol::Float64=1e-4,
         iterations::Int=Int(2e3),show_trace::Bool=true, 
         λ0::Vector{Vector{Vector{Float64}}}=Vector{Vector{Vector{Float64}}},
-        dimy::Int=4,
-        lb::Vector{Float64}=[eps(), 4., -5., eps(), eps(), eps(), eps()],
-        ub::Vector{Float64}=[10., 100, 5., 800., 40., 2., 10.]) where {TT <: Any}
+        dimy::Int=4) where {TT <: Any}
     
     #fix here
-    check_pz(pz,pz_fit,lb,ub)
+    check_pz!(pz)
 
     N = length(py)
-    fit_vec = combine_latent_and_observation(pz_fit,py_fit)
+    fit_vec = combine_latent_and_observation(pz["fit"],py["fit"])
     p_opt, p_const = split_combine_invmap(pz, py, fit_vec, dt, f_str, map_str)
 
     ###########################################################################################

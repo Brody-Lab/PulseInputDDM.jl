@@ -194,6 +194,21 @@ function append_choice_data!(data::Dict, rawdata::Dict, ratname::String, sessID:
 
 end
 
+function rebin_choice_data!(data::Dict, dt::Float64)
+    
+    data["dt"] = dt
+    
+    binnedT = ceil.(Int,data["T"]/dt);
+
+    data["nT"] = binnedT
+    data["binned_leftbups"] =  map((x,y)-> vec(qfind(0.:dt:x*dt,y)), binnedT, data["leftbups"])
+    data["binned_rightbups"] = map((x,y)-> vec(qfind(0.:dt:x*dt,y)), binnedT, data["rightbups"])
+    
+    return data
+    
+
+end
+
 #################################### Poisson neural observation model #########################
 
 function aggregate_spiking_data(path::String, sessids::Vector{Vector{Int}}, ratnames::Vector{String}, dt::Float64;
