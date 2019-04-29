@@ -106,7 +106,7 @@ opt_ll_Newton(p_opt,ll;g_tol::Float64=1e-12,x_tol::Float64=1e-16,f_tol::Float64=
 
 #################################### Computing CIs #################################
 
-function compute_H_CI(pz, py, data, trunc_μ_λ, dt)
+function compute_H_CI!(pz, py, data, trunc_μ_λ, dt)
     
     H = compute_Hessian(pz[:final],py[:final], pz[:fit], py[:fit], data; 
         λ0=trunc_μ_λ["by_trial"], f_str="softplus", dimy=3);
