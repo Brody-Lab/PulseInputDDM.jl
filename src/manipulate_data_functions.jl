@@ -194,7 +194,7 @@ function append_choice_data!(data::Dict, rawdata::Dict, ratname::String, sessID:
 
 end
 
-function bin_input_time!(data::Dict, dt::Float64)
+function bin_clicks!(data::Dict, dt::Float64)
     
     data["dt"] = dt
     

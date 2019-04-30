@@ -35,7 +35,7 @@ include("neural_model/sample_model_functions.jl")
 export compute_H_CI!
 export optimize_model, compute_LL
 
-export bin_input_time!
+export bin_clicks!
 
 export sample_choices!, sample_inputs_and_choices
 
