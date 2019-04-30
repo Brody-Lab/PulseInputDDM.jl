@@ -24,7 +24,7 @@ function construct_inputs!(data::Dict,num_reps::Int)
     
 end
 
-function sample_clicks(ntrials::Int,dt::Float64)
+function sample_clicks(ntrials::Int)
     
     data = Dict();
 
@@ -33,13 +33,7 @@ function sample_clicks(ntrials::Int,dt::Float64)
     data["leftbups"] = map(i->output[i][3],1:ntrials);
     data["rightbups"] = map(i->output[i][2],1:ntrials);
     data["T"] = map(i->output[i][1],1:ntrials);
-    data["dt"] = dt;
     data["trial0"] = ntrials;
-
-    #bin the clicks
-    data["nT"] = ceil.(Int,data["T"]/dt);
-    data["binned_leftbups"] = map((x,y)->vec(qfind(0.:dt:x*dt,y)),data["nT"],data["leftbups"])
-    data["binned_rightbups"] = map((x,y)->vec(qfind(0.:dt:x*dt,y)),data["nT"],data["rightbups"])
     
     return data
     
@@ -98,61 +92,3 @@ function sample_latent(T::Float64,L::Vector{Float64},R::Vector{Float64},
     return A
     
 end
-
-#################################### Choice observation model #################################
-
-function sampled_dataset!(data::Dict, pz::Vector{Float64}, pd::Vector{Float64}; 
-        dtMC::Float64=1e-4, num_reps::Int=1, rng::Int = 1)
-        
-    construct_inputs!(data,num_reps)
-    
-    Random.seed!(rng)
-    data["pokedR"] = pmap((T,leftbups,rightbups,rng) -> sample_model(T,leftbups,rightbups,pz,pd,rng=rng),
-        data["T"],data["leftbups"],data["rightbups"], shuffle(1:length(data["T"])));
-            
-    return data
-    
-end
-
-function sample_model(T::Float64,L::Vector{Float64},R::Vector{Float64},
-        pz::Vector{Float64},pd::Vector{Float64};dtMC::Float64=1e-4,rng::Int=1)
-    
-    Random.seed!(rng)
-    
-    A = sample_latent(T,L,R,pz;dt=dtMC)
-    
-    bias,lapse = pd[1],pd[2]
-            
-    rand() > lapse ? choice = A[end] >= bias : choice = Bool(round(rand()))
-    
-end
-
-#################################### Poisson neural observation model #########################
-
-function sampled_dataset!(data::Dict, pz::Vector{Float64}, py::Vector{Vector{Float64}},
-        dt::Float64; f_str::String="softplus", dtMC::Float64=1e-4, num_reps::Int=1, rng::Int=1)
-
-    construct_inputs!(data,num_reps)
-    
-    Random.seed!(rng)
-    data["spike_counts"] = pmap((T,L,R,N,rng) -> sample_model(pz,py,T,L,R,N,dt;
-            f_str=f_str, rng=rng), data["T"], data["leftbups"], data["rightbups"],
-            data["N"], shuffle(1:length(data["T"])));        
-    
-    return data
-    
-end
-
-function sample_model(pz, py, T::Float64, L::Vector{Float64}, R::Vector{Float64},
-         N::Vector{Int}, dt::Float64; f_str::String="softplus", dtMC::Float64=1e-4, rng::Int=1,
-         λ0::Vector{Float64}=Vector{Float64}())
-    
-    Random.seed!(rng)
-    
-    A = decimate(sample_latent(T,L,R,pz;dt=dtMC), Int(dt/dtMC))  
-    
-    Y = map(py-> poisson_noise.(fy22(py, A, λ0, f_str=f_str), dt), py[N])       
-    
-end
-
-poisson_noise(lambda,dt) = Int(rand(Poisson(lambda*dt)))
