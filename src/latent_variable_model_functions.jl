@@ -175,6 +175,8 @@ end
 
 ##############################################################################################################
 
+#Testing for faster M matrix, but never finished
+
 #=
 
 muf(x,lambda,h,dt) = abs(lambda) < 1e-150 ? mu = x + h * dt : mu = exp(lambda*dt)*(x + h/lambda) - h/lambda

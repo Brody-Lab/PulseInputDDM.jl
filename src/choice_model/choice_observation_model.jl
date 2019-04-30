@@ -40,7 +40,25 @@ function LL_single_trial(pz::Vector{TT}, P::Vector{TT}, M::Array{TT,2}, dx::TT,
 
 end
 
-#this doesn't work
+function bias_bin(bias::TT,xe::Vector{TT},dx::TT,n::Int) where {TT}
+    
+    #nbinsL = ceil(Int,(B+bias)/dx)
+    #Sfrac = one(dx)/dx * (bias - (-(B+dx)+nbinsL*dx))
+    nbinsL = sum(bias .> xe[2:n])
+    Sfrac = (bias - xe[nbinsL+1])/dx
+    Sfrac < zero(Sfrac) ? Sfrac = zero(Sfrac) : nothing
+    Sfrac > one(Sfrac) ? Sfrac = one(Sfrac) : nothing
+    
+    return nbinsL, Sfrac
+    
+end
+
+choice_null(choices) = sum(choices .== true)*log(sum(choices .== true)/length(choices)) + 
+    sum(choices .== false)*log(sum(choices .== false)/length(choices))
+
+
+#=
+#this is outdated and won't work, but want to keep around until I fix it
 function LL_single_trial_w_posterior(pz::Vector{TT}, P::Vector{TT}, M::Array{TT,2}, dx::TT, 
         xc::Vector{TT},L::Vector{Float64}, R::Vector{Float64}, T::Int,
         hereL::Vector{Int}, hereR::Vector{Int},
@@ -89,18 +107,4 @@ function LL_single_trial_w_posterior(pz::Vector{TT}, P::Vector{TT}, M::Array{TT,
 
 end
 
-function bias_bin(bias::TT,xe::Vector{TT},dx::TT,n::Int) where {TT}
-    
-    #nbinsL = ceil(Int,(B+bias)/dx)
-    #Sfrac = one(dx)/dx * (bias - (-(B+dx)+nbinsL*dx))
-    nbinsL = sum(bias .> xe[2:n])
-    Sfrac = (bias - xe[nbinsL+1])/dx
-    Sfrac < zero(Sfrac) ? Sfrac = zero(Sfrac) : nothing
-    Sfrac > one(Sfrac) ? Sfrac = one(Sfrac) : nothing
-    
-    return nbinsL, Sfrac
-    
-end
-
-choice_null(choices) = sum(choices .== true)*log(sum(choices .== true)/length(choices)) + 
-    sum(choices .== false)*log(sum(choices .== false)/length(choices))
+=#

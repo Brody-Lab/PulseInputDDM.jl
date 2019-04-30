@@ -95,7 +95,7 @@ function load_and_optimize(data; n::Int=53,
 end
 
 """
-    optimize_model(pz, pd, data; n, x_tol,f_tol,g_tol, iterations)
+    optimize_model(pz, pd, data; n, x_tol, f_tol, g_tol, iterations)
 
     Optimize parameters specified within fit vectors.
 
