@@ -2,7 +2,7 @@
 
 function aggregate_choice_data(path::String, sessids::Vector{Vector{Int}}, ratnames::Vector{String})
     
-    data = Dict("leftbups" => Vector{Vector{Float64}}(), "rightbups" => Vector{Vector{Float64}}(), 
+    data = Dict{String,Any}("leftbups" => Vector{Vector{Float64}}(), "rightbups" => Vector{Vector{Float64}}(), 
             "T" => Vector{Float64}(), 
             "pokedR" => Vector{Bool}(), "correct_dir" => Vector{Bool}(), 
             "sessID" => Vector{Int}(), "ratID" => Vector{String}(),

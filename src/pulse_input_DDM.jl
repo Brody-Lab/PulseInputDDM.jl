@@ -2,8 +2,9 @@ module pulse_input_DDM
 
 using StatsBase, Distributions, Optim, LineSearches, JLD2
 using ForwardDiff, Distributed, LinearAlgebra
-using Pandas, SpecialFunctions, MAT, Random 
+using SpecialFunctions, MAT, Random 
 using DSP
+import Pandas: qcut
 
 #using ROCAnalysis
 #using ImageFiltering

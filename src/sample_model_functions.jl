@@ -26,14 +26,14 @@ end
 
 function sample_clicks(ntrials::Int)
     
-    data = Dict();
+    data = Dict()
 
-    output = map(generate_stimulus,1:ntrials);
+    output = map(generate_stimulus,1:ntrials)
 
-    data["leftbups"] = map(i->output[i][3],1:ntrials);
-    data["rightbups"] = map(i->output[i][2],1:ntrials);
-    data["T"] = map(i->output[i][1],1:ntrials);
-    data["trial0"] = ntrials;
+    data["leftbups"] = map(i->output[i][3],1:ntrials)
+    data["rightbups"] = map(i->output[i][2],1:ntrials)
+    data["T"] = map(i->output[i][1],1:ntrials)
+    data["trial0"] = ntrials
     
     return data
     
