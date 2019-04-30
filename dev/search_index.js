@@ -225,14 +225,6 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "man/neural_observation_model/#pulse_input_DDM.optimize_model-Union{Tuple{TT}, Tuple{Array{TT,1},Array{Array{TT,1},1},Any,Any,Any}} where TT",
-    "page": "Fitting a model to neural activity",
-    "title": "pulse_input_DDM.optimize_model",
-    "category": "method",
-    "text": "optimize_model(pz,py,pz_fit,py_fit,data;\n    dt::Float64=1e-2, n::Int=53, f_str=\"softplus\",map_str::String=\"exp\",\n    beta::Vector{Vector{Float64}}=Vector{Vector{Float64}}(),\n    mu0::Vector{Vector{Float64}}=Vector{Vector{Float64}}(),\n    x_tol::Float64=1e-16,f_tol::Float64=1e-16,g_tol::Float64=1e-12,\n    iterations::Int=Int(5e3),show_trace::Bool=true, \n    λ0::Vector{Vector{Float64}}=Vector{Vector{Float64}}())\n\nOptimize parameters specified within fit vectors.\n\n\n\n\n\n"
-},
-
-{
     "location": "man/neural_observation_model/#Important-functions-1",
     "page": "Fitting a model to neural activity",
     "title": "Important functions",
