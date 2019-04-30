@@ -124,24 +124,6 @@ function compute_Hessian(pz,py,pz_fit,py_fit,data;
         
 end
 
-function compute_CI(H, pz::Vector{Float64}, py::Vector{Vector{Float64}}, 
-        pz_fit_vec, py_fit, data;
-        dt::Float64=1e-2, n::Int=53, f_str="sig", map_str::String="exp",
-        dimy::Int=4)
-    
-    N = length(py)
-    fit_vec = combine_latent_and_observation(pz_fit,py_fit)
-    p_opt, p_const = split_combine_invmap(pz, py, fit_vec, dt, f_str, map_str)
-    
-    CI = 2*sqrt.(diag(inv(H)))
-    
-    CIz_plus, CIbias_plus = map_split_combine(p_opt + CI, p_const, fit_vec, dt, map_str, N, dimy)
-    CIz_minus, CIbias_minus = map_split_combine(p_opt - CI, p_const, fit_vec, dt, map_str, N, dimy)
-    
-    return CIz_plus, CIbias_plus, CIz_minus, CIbias_minus
-    
-end
-
 """
     optimize_model(pz,py,pz_fit,py_fit,data;
         dt::Float64=1e-2, n::Int=53, f_str="softplus",map_str::String="exp",
