@@ -29,7 +29,8 @@ include("choice_model/sample_model_functions.jl")
 include("choice_model/manipulate_data_functions.jl")
 
 export aggregate_choice_data, bin_clicks!
-export sample_choices!, sample_inputs_and_choices
+export sample_choices_all_trials!, sample_inputs_and_choices
+export dimz
 
 include("neural_model/poisson_neural_observation.jl")
 include("neural_model/wrapper_functions.jl")
@@ -39,10 +40,14 @@ include("neural_model/manipulate_data_functions.jl")
 
 export compute_H_CI!, optimize_model, compute_LL, load_and_optimize, compute_Hessian
 
-export poiss_LL, aggregate_spiking_data
-export nanmean, nanstderr
-export diffLR, dimz
-export fy, bins, sigmoid_4param, softplus_3param
+export sample_input_and_spikes_multiple_sessions, sample_inputs_and_spikes_single_session
+export sample_spikes_single_session!, sample_spikes_single_trial
+
+export aggregate_spiking_data
+
+export diffLR, rate_mat_func_filt, nanmean, nanstderr
+
+export fy, sigmoid_4param, softplus_3param
 export filter_data_by_cell!, sessids_from_region, group_by_neuron!, aggregate_and_append_extended_spiking_data!
 export train_test_divide
 

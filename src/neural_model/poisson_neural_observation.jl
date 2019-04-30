@@ -1,8 +1,9 @@
 
-function LL_all_trials(pz::Vector{TT},py::Vector{Vector{TT}}, 
-        data::Dict; dt::Float64=1e-2, n::Int=53, f_str::String="softplus", comp_posterior::Bool=false,
+function LL_all_trials(pz::Vector{TT}, py::Vector{Vector{TT}}, 
+        data::Dict; n::Int=53, f_str::String="softplus",
         λ0::Vector{Vector{Vector{Float64}}}=Vector{Vector{Vector{Float64}}}()) where {TT <: Any}
-        
+     
+    dt = data["dt"]
     P,M,xc,dx, = initialize_latent_model(pz,n,dt)
     
     #λ = hcat(fy.(py,[xc],f_str=f_str)...)

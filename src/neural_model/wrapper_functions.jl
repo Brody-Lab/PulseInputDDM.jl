@@ -166,28 +166,30 @@ function optimize_model(pz::Vector{TT}, py::Vector{Vector{TT}},data;
     
 end
 
+#nothing above here fixed
+
 function ll_wrapper(p_opt::Vector{TT}, p_const::Vector{Float64}, fit_vec::Union{BitArray{1},Vector{Bool}}, 
         data::Dict, λ0::Vector{Vector{Vector{Float64}}}, f_str::String, N::Int;
-        dt::Float64=1e-2, n::Int=53, map_str::String="exp",
+        n::Int=53,
         beta::Vector{Vector{Float64}}=Vector{Vector{Float64}}(0), 
         mu0::Vector{Vector{Float64}}=Vector{Vector{Float64}}(0),
         dimy::Int=4) where {TT}
 
-    pz, py = map_split_combine(p_opt, p_const, fit_vec, dt, f_str, map_str, N, dimy)
+    pz, py = map_split_combine(p_opt, p_const, fit_vec, dt, f_str, N, dimy)
 
-    LL = compute_LL(pz, py, data, dt=dt, n=n, f_str=f_str, λ0=λ0, beta=beta, mu0 = mu0)
+    LL = compute_LL(pz, py, data, n=n, f_str=f_str, λ0=λ0, beta=beta, mu0 = mu0)
     
     return -LL
               
 end
 
-function compute_LL(pz::Vector{T},py::Vector{Vector{T}},data;
-        dt::Float64=1e-2, n::Int=53,f_str="softplus",
+function compute_LL(pz::Vector{T}, py::Vector{Vector{T}}, data;
+        n::Int=53, f_str="softplus",
         beta::Vector{Vector{Float64}}=Vector{Vector{Float64}}(),
         mu0::Vector{Vector{Float64}}=Vector{Vector{Float64}}(),
         λ0::Vector{Vector{Vector{Float64}}}=Vector{Vector{Vector{Float64}}}()) where {T <: Any}
     
-    LL = sum(LL_all_trials(pz, py, data, dt=dt, n=n, f_str=f_str, λ0=λ0))
+    LL = sum(LL_all_trials(pz, py, data, n=n, f_str=f_str, λ0=λ0))
     
     length(beta) > 0 ? LL += sum(gauss_prior.(py,mu0,beta)) : nothing
     
