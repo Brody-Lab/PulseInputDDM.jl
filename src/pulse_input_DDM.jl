@@ -40,15 +40,15 @@ include("neural_model/manipulate_data_functions.jl")
 
 export compute_H_CI!, optimize_model, compute_LL, load_and_optimize, compute_Hessian
 
+export compute_LL_and_prior
 export sample_input_and_spikes_multiple_sessions, sample_inputs_and_spikes_single_session
 export sample_spikes_single_session!, sample_spikes_single_trial
 
-export aggregate_spiking_data
+export aggregate_spiking_data, bin_clicks_spikes_and_λ0!
 
 export diffLR, rate_mat_func_filt, nanmean, nanstderr
 
-export fy, sigmoid_4param, softplus_3param
-export filter_data_by_cell!, sessids_from_region, group_by_neuron!, aggregate_and_append_extended_spiking_data!
+export filter_data_by_cell!, sessids_from_region, aggregate_and_append_extended_spiking_data!
 export train_test_divide
 
 end

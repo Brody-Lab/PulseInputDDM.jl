@@ -33,7 +33,7 @@ function sample_clicks(ntrials::Int)
     data["leftbups"] = map(i->output[i][3],1:ntrials)
     data["rightbups"] = map(i->output[i][2],1:ntrials)
     data["T"] = map(i->output[i][1],1:ntrials)
-    data["trial0"] = ntrials
+    data["ntrials"] = ntrials
     
     return data
     
@@ -61,12 +61,12 @@ end
 function sample_latent(T::Float64,L::Vector{Float64},R::Vector{Float64},
         pz::Vector{Float64};dt::Float64=1e-4)
     
-    vari, B, lambda, vara, vars, phi, tau_phi = pz;
+    vari, B, lambda, vara, vars, phi, tau_phi = pz
     
-    nT = Int(ceil.(T/dt)); # number of timesteps
+    nT = Int(ceil(T/dt)) # number of timesteps
 
     La, Ra = make_adapted_clicks(pz,L,R)
-    t = 0.:dt:nT*dt-dt; 
+    t = 0.:dt:nT*dt-dt
     hereL = vec(qfind(t,L))
     hereR = vec(qfind(t,R))
 

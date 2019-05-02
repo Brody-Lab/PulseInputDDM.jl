@@ -42,8 +42,6 @@ end
 
 function bias_bin(bias::TT,xe::Vector{TT},dx::TT,n::Int) where {TT}
     
-    #nbinsL = ceil(Int,(B+bias)/dx)
-    #Sfrac = one(dx)/dx * (bias - (-(B+dx)+nbinsL*dx))
     nbinsL = sum(bias .> xe[2:n])
     Sfrac = (bias - xe[nbinsL+1])/dx
     Sfrac < zero(Sfrac) ? Sfrac = zero(Sfrac) : nothing

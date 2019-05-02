@@ -34,7 +34,8 @@ function split_combine_invmap(pz::Vector{TT}, pd::Vector{TT}, fit_vec, dt,
 end
 
 split_latent_and_observation(p::Vector{TT}) where {TT} = p[1:dimz], p[dimz+1:dimz+2]
-combine_latent_and_observation(pz::Vector{TT}, pd::Vector{TT}) where {TT} = vcat(pz,pd)
+combine_latent_and_observation(pz::Union{Vector{TT},BitArray{1}}, 
+    pd::Union{Vector{TT},BitArray{1}}) where {TT} = vcat(pz,pd)
 
 function map_pd!(x)
     
