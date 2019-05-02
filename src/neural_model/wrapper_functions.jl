@@ -3,12 +3,7 @@
 
 function compute_H_CI!(pz::Dict{}, py::Dict{}, data::Vector{Dict{Any,Any}}, f_str::String)
     
-    H = compute_Hessian(pz, py, data, f_str);
-
-    #badindices = findall(abs.(vcat(pz[:final],vcat(py[:final]...))[vcat(pz[:fit],vcat(py[:fit]...))]) 
-    #    .< 1e-4)
-
-    #gooddims = setdiff(1:size(H,1),badindices)
+    H = compute_Hessian(pz, py, data, f_str)
         
     gooddims = 1:size(H,1)
 
@@ -29,11 +24,11 @@ function compute_H_CI!(pz::Dict{}, py::Dict{}, data::Vector{Dict{Any,Any}}, f_st
     
     #if generative parameters exist, identify which ones have generative parameters within the CI 
     if haskey(pz, "generative")
-        pz["within_bounds"] = (pz["CI_minus"] .< pz["generative"]) .& (pz["CI_plus"] .> pz["generative"])
+        pz["within_CI"] = (pz["CI_minus"] .< pz["generative"]) .& (pz["CI_plus"] .> pz["generative"])
     end
     
     if haskey(py, "generative")
-        py["within_bounds"] = map((x,y,z)-> [((x .< z) .& (y .> z)) for (x,y,z) in zip(x,y,z)], 
+        py["within_CI"] = map((x,y,z)-> [((x .< z) .& (y .> z)) for (x,y,z) in zip(x,y,z)], 
             py["CI_minus"], py["CI_plus"], py["generative"])
     end
     

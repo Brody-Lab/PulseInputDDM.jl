@@ -40,11 +40,11 @@ function compute_H_CI!(pz, pd, data; n::Int=53)
     
     #identify which ML parameters have generative parameters within the CI 
     if haskey(pz, "generative")
-        pz["within_bounds"] = (pz["CI_minus"] .< pz["generative"]) .& (pz["CI_plus"] .> pz["generative"])
+        pz["within_CI"] = (pz["CI_minus"] .< pz["generative"]) .& (pz["CI_plus"] .> pz["generative"])
     end
     
     if haskey(pd, "generative")
-        pd["within_bounds"] = (pd["CI_minus"] .< pd["generative"]) .& (pd["CI_plus"] .> pd["generative"])
+        pd["within_CI"] = (pd["CI_minus"] .< pd["generative"]) .& (pd["CI_plus"] .> pd["generative"])
     end
     
     return pz, pd
