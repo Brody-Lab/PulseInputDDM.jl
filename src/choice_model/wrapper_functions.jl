@@ -57,7 +57,8 @@ function load_and_optimize(path::String, sessids, ratnames; n::Int=53, dt::Float
         "initial" => [1e-6,20.,-0.1,100.,5.,0.2,0.005],
         "lb" => [eps(), 4., -5., eps(), eps(), eps(), eps()],
         "ub" => [10., 100, 5., 800., 40., 2., 10.]),
-        show_trace::Bool=true, iterations::Int=Int(2e3))
+        show_trace::Bool=true, iterations::Int=Int(2e3),
+        x_tol::Float64=1e-4, f_tol::Float64=1e-6, g_tol::Float64=1e-2)
     
     data = aggregate_choice_data(path,sessids,ratnames)
     data = bin_clicks!(data;dt=dt)
@@ -75,7 +76,8 @@ function load_and_optimize(data; n::Int=53,
         "initial" => [1e-6,20.,-0.1,100.,5.,0.2,0.005],
         "lb" => [eps(), 4., -5., eps(), eps(), eps(), eps()],
         "ub" => [10., 100, 5., 800., 40., 2., 10.]),
-        show_trace::Bool=true, iterations::Int=Int(2e3))
+        show_trace::Bool=true, iterations::Int=Int(2e3),
+        x_tol::Float64=1e-4, f_tol::Float64=1e-6, g_tol::Float64=1e-2)
 
     #parameters for the choice observation
     pd = Dict("name" => vcat("bias","lapse"), "fit" => trues(2), 
