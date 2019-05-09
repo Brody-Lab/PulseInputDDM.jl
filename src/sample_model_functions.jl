@@ -59,31 +59,28 @@ function generate_stimulus(i::Int; tmin::Float64=0.2,tmax::Float64=1.0,clicktot:
 end
 
 function sample_latent(T::Float64,L::Vector{Float64},R::Vector{Float64},
-        pz::Vector{Float64};dt::Float64=1e-4)
+        pz::Vector{TT};dt::Float64=1e-4) where {TT <: Any}
     
     vari, B, lambda, vara, vars, phi, tau_phi = pz
     
-    nT = Int(ceil(T/dt)) # number of timesteps
-
     La, Ra = make_adapted_clicks(pz,L,R)
+    
+    nT = Int(ceil(T/dt)) # number of timesteps
     t = 0.:dt:nT*dt-dt
-    hereL = vec(qfind(t,L))
-    hereR = vec(qfind(t,R))
+    hereL, hereR = vec(qfind(t,L)), vec(qfind(t,R))
 
-    A = Vector{Float64}(undef,nT)
+    A = Vector{TT}(undef,nT)
     a = sqrt(vari)*randn()
 
     for t = 1:nT
 
         #inputs
-        any(t .== hereL) ? sL = sum(La[t .== hereL]) : sL = zero(phi)
-        any(t .== hereR) ? sR = sum(Ra[t .== hereR]) : sR = zero(phi)
-        var = vars * (sL + sR)  
-        mu = -sL + sR
-        (sL + sR) > 0. ? a += mu + sqrt(var) * randn() : nothing
-
-        #drift and diffuse
-        a += (dt*lambda) * a + sqrt(vara * dt) * randn();
+        any(t .== hereL) ? sL = sum(La[t .== hereL]) : sL = zero(TT)
+        any(t .== hereR) ? sR = sum(Ra[t .== hereR]) : sR = zero(TT)
+        var, mu = vars * (sL + sR), -sL + sR  
+        
+        (sL + sR) > zero(TT) ? a += mu + sqrt(var) * randn() : nothing
+        a += (dt*lambda) * a + sqrt(vara * dt) * randn()
 
         abs(a) > B ? (a = B * sign(a); A[t:nT] .= a; break) : A[t] = a
 

@@ -2,11 +2,11 @@
 #################################### Poisson neural observation model #########################
 
 function sample_input_and_spikes_multiple_sessions(pz::Vector{Float64}, py::Vector{Vector{Vector{Float64}}}, 
-        ntrials_per_sess::Vector{Int})
+        ntrials_per_sess::Vector{Int}; f_str::String="softplus")
     
     nsessions = length(ntrials_per_sess)
       
-    data = map((py,ntrials,rng)-> sample_inputs_and_spikes_single_session(pz, py, ntrials; rng=rng), 
+    data = map((py,ntrials,rng)-> sample_inputs_and_spikes_single_session(pz, py, ntrials; rng=rng, f_str=f_str), 
         py, ntrials_per_sess, 1:nsessions)   
     
     return data
@@ -55,29 +55,6 @@ function sample_spikes_single_trial(pz::Vector{Float64}, py::Vector{Vector{Float
 end
 
 poisson_noise!(lambda,dt) = lambda = Int(rand(Poisson(lambda*dt)))
-
-function f_py!(p::Vector{T}, x::Vector{U}, c::Vector{Float64};
-        f_str::String="softplus") where {T,U <: Any}
-
-    if f_str == "sig"
-    
-        x = exp.((p[3] .* x .+ p[4]) + c)
-        x[x .< 1e-150] .= p[1] + p[2]
-        x[x .>= 1e150] .= p[1]
-        x[(x .>= 1e-150) .& (x .< 1e150)] = p[1] .+ p[2] ./ (1. .+ x[(x .>= 1e-150) .& (x .< 1e150)])
-        
-    elseif f_str == "softplus"
-        
-        x = exp.((p[2] .* x .+ p[3]) + c)
-        x[x .< 1e-150] .= eps() + p[1]
-        x[x .>= 1e150] .= 1e150
-        x[(x .>= 1e-150) .& (x .< 1e150)] = (eps() + p[1]) .+ log.(1. .+ x[(x .>= 1e-150) .& (x .< 1e150)])
-        
-    end
-
-    return x
-    
-end
 
 function sample_expected_rates_single_session(data::Dict, pz::Vector{Float64}, py::Vector{Vector{Float64}}; 
         f_str::String="softplus", dtMC::Float64=1e-4, rng::Int=1)

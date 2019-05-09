@@ -1,6 +1,6 @@
 
-function LL_all_trials(pz::Vector{TT}, py::Vector{Vector{TT}}, data::Dict; 
-        n::Int=53, f_str::String="softplus") where {TT <: Any}
+function LL_all_trials(pz::Vector{TT}, py::Vector{Vector{TT}}, data::Dict, 
+        n::Int; f_str::String="softplus") where {TT <: Any}
      
     dt = data["dt"]
     P,M,xc,dx, = initialize_latent_model(pz,n,dt)
@@ -152,7 +152,28 @@ function P_single_trial(pz::Vector{TT}, P::Vector{TT}, M::Array{TT,2}, dx::TT,
 
 end
 
-softplus_3param2(p::Vector{T}, x::Array{U}, c::Float64) where {T,U <: Any} = p[1] .+ log.(1. .+ exp.(p[2] .* x .+ p[3] .+ c))
+function f_py!(p::Vector{T}, x::Vector{U}, c::Vector{Float64};
+        f_str::String="softplus") where {T,U <: Any}
+
+    if f_str == "sig"
+    
+        x = exp.((p[3] .* x .+ p[4]) + c)
+        x[x .< 1e-150] .= p[1] + p[2]
+        x[x .>= 1e150] .= p[1]
+        x[(x .>= 1e-150) .& (x .< 1e150)] = p[1] .+ p[2] ./ (1. .+ x[(x .>= 1e-150) .& (x .< 1e150)])
+        
+    elseif f_str == "softplus"
+        
+        x = exp.((p[2] .* x .+ p[3]) + c)
+        x[x .< 1e-150] .= eps() + p[1]
+        x[x .>= 1e150] .= 1e150
+        x[(x .>= 1e-150) .& (x .< 1e150)] = (eps() + p[1]) .+ log.(1. .+ x[(x .>= 1e-150) .& (x .< 1e150)])
+        
+    end
+
+    return x
+    
+end
 
 function fy2(p::Vector{T},x::Vector{U},c::Float64;f_str::String="softplus") where {T,U <: Any}
     
@@ -169,29 +190,6 @@ function fy2(p::Vector{T},x::Vector{U},c::Float64;f_str::String="softplus") wher
         y[y .< 1e-150] .= eps() + p[1]
         y[y .>= 1e150] .= 1e150
         y[(y .>= 1e-150) .& (y .< 1e150)] = (eps() + p[1]) .+ log.(1. .+ y[(y .>= 1e-150) .& (y .< 1e150)])
-        
-    end
-
-    return y
-    
-end
-
-function fy22(p::Vector{T},x::Vector{U},c::Vector{Float64};f_str::String="softplus") where {T,U <: Any}
-
-    if f_str == "sig"
-    
-        y = exp.((p[3] .* x .+ p[4]) + c)
-        y[y .< 1e-150] .= p[1] + p[2]
-        y[y .>= 1e150] .= p[1]
-        y[(y .>= 1e-150) .& (y .< 1e150)] = p[1] .+ p[2] ./ (1. .+ y[(y .>= 1e-150) .& (y .< 1e150)])
-        
-    elseif f_str == "softplus"
-        
-        y = exp.((p[2] .* x .+ p[3]) + c)
-        y[y .< 1e-150] .= eps() + p[1]
-        y[y .>= 1e150] .= 1e150
-        y[(y .>= 1e-150) .& (y .< 1e150)] = (eps() + p[1]) .+ log.(1. .+ y[(y .>= 1e-150) .& (y .< 1e150)])
-        #y = p[1] .+ log.(1. .+ y)
         
     end
 
@@ -217,53 +215,6 @@ function poiss_LL(k,λ,dt)
     #end
     
 end
-
-function fy(p::Vector{T},a::Vector{U}; f_str::String="softplus") where {T,U <: Any}
-
-    if (f_str == "sig") || (f_str == "sig2")
-
-        y = sigmoid_4param(p,a)
-
-    elseif f_str == "exp"
-
-        y = p[1] + exp(p[2]*a)
-
-    elseif f_str == "softplus"
-
-        y = softplus_3param(p,a)
-
-    end
-
-end
-
-function sigmoid_4param(p::Vector{T},x::Vector{U}) where {T,U <: Any}
-
-    y = exp.(p[3] .* x .+ p[4])
-    y[y .< 1e-150] .= p[1] + p[2]
-    y[y .>= 1e150] .= p[1]
-    y[(y .>= 1e-150) .& (y .< 1e150)] = p[1] .+ p[2] ./ (1. .+ y[(y .>= 1e-150) .& (y .< 1e150)])
-
-    return y
-
-end
-
-softplus_3param(p::Vector{T}, x::Array{U}) where {T,U <: Any} = p[1] .+ log.(1. .+ exp.(p[2] .* x .+ p[3]))
-
-function softplus_0param(x::Array{U}) where {U <: Any}
-    
-    #y = exp.(x)
-    #y[y .< 1e-150] .= 0.
-    #y[y .>= 1e150] .= 1e150
-    #y[(y .>= 1e-150) .& (y .< 1e150)] = log.(1. .+ y[(y .>= 1e-150) .& (y .< 1e150)])
-    # y = max.(1e-150, log.(1. .+ exp.(x)))
-    
-    y = eps() .+ log.(1. .+ exp.(x))
-    
-    #return y
-    
-end
-
-########################## Determinisitc latent model ###################################################
 
 neural_null(k,λ,dt) = sum(poiss_LL.(k,λ,dt))
 
