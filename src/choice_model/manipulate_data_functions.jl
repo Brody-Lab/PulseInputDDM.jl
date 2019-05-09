@@ -32,8 +32,9 @@ function append_choice_data!(data::Dict, rawdata::Dict, ratname::String, sessID:
     append!(data["sessID"], repeat([sessID], inner=ntrials))
     append!(data["ratID"], repeat([ratname], inner=ntrials))
     
-    append!(data["stim_start"], rawdata["stim_start"])
-    append!(data["cpoke_end"], rawdata["cpoke_end"])
+    #removed because I didn't tell Chuck to put it in, and not currently necessary in the model fitting
+    #append!(data["stim_start"], rawdata["stim_start"])
+    #append!(data["cpoke_end"], rawdata["cpoke_end"])
 
     return data
 

@@ -24,7 +24,9 @@ function construct_inputs!(data::Dict,num_reps::Int)
     
 end
 
-function sample_clicks(ntrials::Int)
+function sample_clicks(ntrials::Int; rng::Int=1)
+    
+    Random.seed!(rng)
     
     data = Dict()
 
@@ -39,10 +41,8 @@ function sample_clicks(ntrials::Int)
     
 end
 
-function generate_stimulus(rng;tmin::Float64=0.2,tmax::Float64=1.0,clicktot::Int=40)
+function generate_stimulus(i::Int; tmin::Float64=0.2,tmax::Float64=1.0,clicktot::Int=40)
     
-    Random.seed!(rng)
-
     T = tmin + (tmax-tmin)*rand()
 
     ratetot = clicktot/T

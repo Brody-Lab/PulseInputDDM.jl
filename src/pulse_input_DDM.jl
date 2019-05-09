@@ -42,7 +42,7 @@ export compute_H_CI!, optimize_model, compute_LL, load_and_optimize, compute_Hes
 
 export compute_LL_and_prior
 export sample_input_and_spikes_multiple_sessions, sample_inputs_and_spikes_single_session
-export sample_spikes_single_session!, sample_spikes_single_trial
+export sample_spikes_single_session, sample_spikes_single_trial, sample_expected_rates_single_session
 
 export aggregate_spiking_data, bin_clicks_spikes_and_λ0!
 

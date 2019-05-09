@@ -27,20 +27,25 @@ trunc_μ_λ = pulse_input_DDM.λ0_by_trial(data, μ_λ_ex, cpoke_aligned = false
 
 function aggregate_spiking_data(path::String, sessids::Vector{Vector{Int}}, ratnames::Vector{String})
     
-    rawdata = vcat(map((rat,sess)-> map(s-> read(matopen(path*"/"*ratnames[j]*"_"*string(sessids[j][i])*".mat"), "rawdata"), 
-            sess), ratnames, sessids)...)
-    data = map(neural_data_single_session, rawdata)
+    rawdata = map((rat,sess)-> map(s-> read(matopen(path*"/"*rat*"_"*string(s)*".mat"), "rawdata"), 
+            sess), ratnames, sessids)
+    data = vcat(map((rat,data,sess)-> map((d,s)-> 
+            neural_data_single_session(d, rat, s), data, sess), ratnames, rawdata, sessids)...)
             
 end
 
-function neural_data_single_session(rawdata)
+function neural_data_single_session(rawdata, ratname, sessID)
     
     ntrials = length(rawdata["T"])
     N =  size(rawdata["spike_times"][1],2)
+    
+    #need to specify shape and type and then append
+    data = Dict()
+    
     data["ntrials"] = ntrials
     data["N"] = N
 
-    data["T"] = rawdata["T"]
+    data["T"] = vec(rawdata["T"])
     data["pokedR"] = vec(convert(BitArray,rawdata["pokedR"]))
     data["correct_dir"] = vec(convert(BitArray,rawdata["correct_dir"]))
     
@@ -52,6 +57,7 @@ function neural_data_single_session(rawdata)
     data["stim_start"] = rawdata["stim_start"]
     data["cpoke_end"] = rawdata["cpoke_end"]
     data["cellID"] = map(x-> vec(collect(x)), rawdata["cellID"]) 
+    data["spike_times"] = map(x-> map(y-> vec(collect(y)), x), rawdata["spike_times"])
 
     return data
 
@@ -69,6 +75,10 @@ function bin_clicks_spikes_and_λ0!(data::Dict; dt::Float64=1e-2, delay::Float64
     
     if haskey(data,"dtMC")
         data["λ0"] = map(x-> map(z-> decimate(x[z], Int(data["dt"]/data["dtMC"])), 1:length(x)), data["λ0"])
+    else
+        data["λ0"] = map(x -> repeat([zeros(x)], outer=data["N"]), binnedT)
+        #data["spike_counts_extended"] =  map((x,y) -> map(z -> fit(Histogram, vec(collect(y[z] .- delay)), 
+        #    -10*dt:dt:((x+10)*dt), closed=:left).weights, 1:length(y)), binnedT, data["spike_times"])
     end
     
     return data    
