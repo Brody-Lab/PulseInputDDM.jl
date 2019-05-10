@@ -200,26 +200,22 @@ end
 
 
 
-
-
-
-
 ############ Deterministic latent variable model (only observation noise) ############
 
 function generate_syn_data_fit_CI(nsessions, N_per_sess, ntrials_per_sess; 
         dt=1e-2, dimy::Int=3, f_str::String="softplus",
-        pz::Dict = Dict("generative" => [0., 20., -3., 0., 0., 1., 0.02], 
+        pz::Dict = Dict("generative" => [0., 15., -1, 0., 0., 1., 0.02], 
         "name" => ["σ_i","B", "λ", "σ_a","σ_s","ϕ","τ_ϕ"],
         "fit" => vcat(falses(1),trues(2),falses(4)),
-        "initial" => [2.,10.,-2,100.,2.,0.2,0.005],
+        "initial" => [2.,10.,-3,100.,2.,0.2,0.005],
         "lb" => [-eps(), 4., -5., -eps(), -eps(), eps(), eps()],
         "ub" => [10., 200, 5., 800., 40., 2., 10.]))
     
-    #pz["initial"][pz["fit"] .== false] = pz["generative"][pz["fit"] .== false]
-    pz["initial"] = pz["generative"]
+    pz["initial"][pz["fit"] .== false] = pz["generative"][pz["fit"] .== false]
+    #pz["initial"] = pz["generative"]
 
-    py = Dict("generative" => [[[10., 10., 1e-6] for n in 1:N] for N in N_per_sess], 
-        "fit" => map(N-> repeat([falses(3)],outer=N), N_per_sess),
+    py = Dict("generative" => [[[10., 10., 0.] for n in 1:N] for N in N_per_sess], 
+        "fit" => map(N-> repeat([trues(3)],outer=N), N_per_sess),
         "initial" => [[[Vector{Float64}(undef,dimy)] for n in 1:N] for N in N_per_sess],
         "dimy"=> dimy,
         "N"=> N_per_sess,
@@ -230,10 +226,11 @@ function generate_syn_data_fit_CI(nsessions, N_per_sess, ntrials_per_sess;
     
     data = map(x->bin_clicks_spikes_and_λ0!(x;dt=dt), data)
     
+    #py["initial"] = map(data-> regress_init(data, f_str), data)
     #py["initial"] = map(data -> optimize_model(data, f_str, show_trace=false), data)
     py["initial"] = py["generative"]
     
-    pz, py, = optimize_model(pz, py, data, f_str, show_trace=false)  
+    pz, py, = optimize_model(pz, py, data, f_str, show_trace=false, x_tol=1e-16, f_tol=1e-16)  
     pz, py = compute_H_CI!(pz, py, data, f_str)
     
 end
@@ -345,25 +342,53 @@ function LL_all_trials(pz::Vector{TT}, py::Vector{Vector{TT}}, data::Dict;
         f_str::String="softplus") where {TT <: Any}
      
     dt = data["dt"]                             
-    #a = pmap((T,L,R) -> sample_latent(T,L,R,pz;dt=dt), data["T"], data["leftbups"], data["rightbups"]) 
     
-    #sum(pmap((k,λ0,a)-> 
-    #    map((py,k,λ0)-> sum(poiss_LL.(k, fy22(py, a, λ0, f_str=f_str), dt)), py, k, λ0), 
-    #    data["spike_counts"], data["λ0"], a))
-    
-    sum(pmap((T,L,R,k,λ0)-> LL_single_trial(pz,py,T,L,R,k,λ0,dt;f_str=f_str), 
-            data["T"], data["leftbups"], data["rightbups"], data["spike_counts"], data["λ0"]))
-    
+    sum(pmap((L,R,nT,nL,nR,k,λ0)-> LL_single_trial(pz,py,L,R,nT,nL,nR,k,λ0,dt;f_str=f_str), 
+        data["leftbups"], data["rightbups"], data["nT"], data["binned_leftbups"], 
+        data["binned_rightbups"], data["spike_counts"], data["λ0"]))
+        
 end
 
 function LL_single_trial(pz::Vector{TT}, py::Vector{Vector{TT}},
-        T::Float64, L::Vector{Float64}, R::Vector{Float64}, 
+        L::Vector{Float64}, R::Vector{Float64}, nT::Int, 
+        nL::Vector{Int}, nR::Vector{Int},
         k::Vector{Vector{Int}}, λ0::Vector{Vector{UU}}, dt::Float64; 
         f_str::String="softplus") where {UU,TT <: Any}
     
-    a = sample_latent(T,L,R,pz;dt=dt)
-    sum(map((py,k,λ0)-> sum(poiss_LL.(k, f_py!(py, a, λ0, f_str=f_str), dt)), py, k, λ0))
+    a = sample_latent(nT,L,R,nL,nR,pz;dt=dt)
+    sum(map((py,k,λ0)-> sum(poiss_LL.(k, map((a, λ0)-> f_py!(a, λ0, py, f_str=f_str), a, λ0), dt)), py, k, λ0))
     
+end
+
+######### regression initialization ##############################################################
+
+function regress_init(data::Dict, f_str::String)
+    
+    ΔLR = map((T,L,R)-> diffLR(T,L,R, data["dt"]), data["nT"], data["leftbups"], data["rightbups"])   
+    SC_byneuron = group_by_neuron(data["spike_counts"], data["ntrials"], data["N"])
+    λ0_byneuron = group_by_neuron(data["λ0"], data["ntrials"], data["N"])
+
+    py = map(k-> compute_p0(ΔLR, k, data["dt"], f_str), SC_byneuron) 
+        
+end
+
+function compute_p0(ΔLR,k,dt,f_str;nconds::Int=7)
+    
+    conds_bins, = qcut(vcat(ΔLR...),nconds,labels=false,duplicates="drop",retbins=true)
+    fr = map(i -> (1/dt)*mean(vcat(k...)[conds_bins .== i]),0:nconds-1)
+
+    A = vcat(ΔLR...)
+    b = vcat(k...)
+    c = hcat(ones(size(A, 1)), A) \ b
+
+    if f_str == "exp"
+        p = vcat(minimum(fr),c[2])
+    elseif (f_str == "sig") | (f_str == "sig2")
+        p = vcat(minimum(fr),maximum(fr)-minimum(fr),c[2],0.)
+    elseif f_str == "softplus"
+        p = vcat(minimum(fr),c[2],0.)
+    end
+        
 end
 
 
@@ -383,7 +408,7 @@ function optimize_model(data::Dict, f_str::String;
     
         inv_map_py!.(py, f_str=f_str)
     
-        py = pmap((py,k,λ0)-> optimize_model(py, ΔLR, k, data["dt"], f_str, λ0; show_trace=show_trace), 
+        py = map((py,k,λ0)-> optimize_model(py, ΔLR, k, data["dt"], f_str, λ0; show_trace=show_trace), 
             py, SC_byneuron, λ0_byneuron)
     
         map_py!.(py, f_str=f_str)
@@ -417,27 +442,8 @@ end
 function compute_LL(py::Vector{TT}, ΔLR::Vector{Vector{Int}}, k::Vector{Vector{Int}},
         dt::Float64, f_str::String, λ0::Vector{Vector{Float64}}) where {TT <: Any}
     
-    sum(poiss_LL.(vcat(k...), fy22(py, vcat(ΔLR...), vcat(λ0...), f_str=f_str), dt))
+    sum(pmap((ΔLR,k,λ0)-> sum(poiss_LL.(k, map((ΔLR, λ0)-> f_py(ΔLR, λ0, py, f_str=f_str), ΔLR, λ0), dt)), ΔLR,k,λ0))   
            
-end
-
-function compute_p0(ΔLR,k,dt,f_str;nconds::Int=7)
-    
-    conds_bins, = qcut(vcat(ΔLR...),nconds,labels=false,duplicates="drop",retbins=true)
-    fr = map(i -> (1/dt)*mean(vcat(k...)[conds_bins .== i]),0:nconds-1)
-
-    A = vcat(ΔLR...)
-    b = vcat(k...)
-    c = hcat(ones(size(A, 1)), A) \ b
-
-    if f_str == "exp"
-        p = vcat(minimum(fr),c[2])
-    elseif (f_str == "sig") | (f_str == "sig2")
-        p = vcat(minimum(fr),maximum(fr)-minimum(fr),c[2],0.)
-    elseif f_str == "softplus"
-        p = vcat(minimum(fr),c[2],0.)
-    end
-        
 end
 
 #=
@@ -458,64 +464,7 @@ function compute_LL(pz::Vector{T}, py::Vector{Vector{T}}, bias::T, data::Dict;
     
 end
 
-########################## RBF model ###########################################
-
-function optimize_model(pz::Vector{TT}, py::Vector{Vector{TT}}, pRBF::Vector{Vector{TT}},
-        pz_fit, py_fit, pRBF_fit, data;
-        dt::Float64=1e-2, n::Int=53, f_str="sig2",map_str::String="exp",
-        beta::Vector{Vector{Float64}}=Vector{Vector{Float64}}(),
-        mu0::Vector{Vector{Float64}}=Vector{Vector{Float64}}(),
-        x_tol::Float64=1e-16,f_tol::Float64=1e-16,g_tol::Float64=1e-12,
-        iterations::Int=Int(5e3),show_trace::Bool=false,
-        dimy::Int=4, numRBF::Int=20) where {TT <: Any}
-
-    N = length(py)
-    fit_vec = combine_latent_and_observation(pz_fit, py_fit, pRBF_fit)    
-    p_opt, p_const = split_combine_invmap(pz, py, pRBF, fit_vec, dt, f_str, map_str)
-
-    ###########################################################################################
-    ## Optimize
-    ll(x) = ll_wrapper(x, p_const, fit_vec, data, f_str, N; dt=dt, n=n, beta=beta, 
-        mu0=mu0, map_str=map_str, dimy=dimy, numRBF=numRBF)
-    opt_output, state = opt_ll(p_opt,ll;g_tol=g_tol,x_tol=x_tol,f_tol=f_tol,
-        iterations=iterations, show_trace=show_trace);
-    p_opt = Optim.minimizer(opt_output)
-    
-    pz, py, pRBF = map_split_combine(p_opt, p_const, fit_vec, dt, f_str, map_str, N, dimy, numRBF)
-        
-    return pz, py, pRBF, opt_output, state
-    
-end
-
-function ll_wrapper(p_opt::Vector{TT}, p_const::Vector{Float64}, fit_vec::Union{BitArray{1},Vector{Bool}}, 
-        data::Dict, f_str::String, N::Int;
-        dt::Float64=1e-2, n::Int=53, map_str::String="exp",
-        beta::Vector{Vector{Float64}}=Vector{Vector{Float64}}(0), 
-        mu0::Vector{Vector{Float64}}=Vector{Vector{Float64}}(0),
-        dimy::Int=4, numRBF::Int=20) where {TT}
-
-    pz, py, pRBF = map_split_combine(p_opt, p_const, fit_vec, dt, f_str, map_str, N, dimy, numRBF)
-
-    LL = compute_LL(pz, py, pRBF, data, dt=dt, n=n, f_str=f_str, beta=beta, mu0=mu0, numRBF=numRBF)
-    
-    return -LL
-              
-end
-
-function compute_LL(pz::Vector{T},py::Vector{Vector{T}},pRBF::Vector{Vector{T}}, data;
-        dt::Float64=1e-2, n::Int=53, f_str="sig2",
-        beta::Vector{Vector{Float64}}=Vector{Vector{Float64}}(),
-        mu0::Vector{Vector{Float64}}=Vector{Vector{Float64}}(),
-        numRBF::Int=20) where {T <: Any}
-    
-    LL = sum(LL_all_trials(pz, py, pRBF, data, dt=dt, n=n, f_str=f_str, numRBF=numRBF))
-    
-    length(beta) > 0 ? LL += sum(gauss_prior.(py,mu0,beta)) : nothing
-    
-    return LL
-    
-end
-
+########################## Model w prior ###########################################
     
 function compute_LL_and_prior(pz::Vector{T}, py::Vector{Vector{T}}, λ0::Vector{Vector{Vector{Float64}}}, data;
         n::Int=53, f_str="softplus",

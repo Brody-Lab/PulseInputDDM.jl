@@ -4,13 +4,6 @@ function LL_all_trials(pz::Vector{TT}, py::Vector{Vector{TT}}, data::Dict,
      
     dt = data["dt"]
     P,M,xc,dx, = initialize_latent_model(pz,n,dt)
-    
-    #λ = hcat(fy.(py,[xc],f_str=f_str)...)
-                    
-    #output = pmap((L,R,T,nL,nR,N,SC,λ0) -> LL_single_trial(pz, P, M, dx, xc,
-    #    L, R, T, nL, nR, λ[:,N], SC, dt, n, λ0=λ0),
-    #    data["leftbups"], data["rightbups"], data["nT"], data["binned_leftbups"], 
-    #    data["binned_rightbups"], data["N"],data["spike_counts"],λ0)   
                             
     output = pmap((L,R,T,nL,nR,SC,λ0) -> LL_single_trial(pz, P, M, dx, xc,
         L, R, T, nL, nR, py, SC, dt, n, λ0, f_str=f_str),
@@ -19,16 +12,10 @@ function LL_all_trials(pz::Vector{TT}, py::Vector{Vector{TT}}, data::Dict,
     
 end
 
-#function LL_single_trial(pz::Vector{TT}, P::Vector{TT}, M::Array{TT,2}, dx::TT,
-#        xc::Vector{TT},L::Vector{Float64}, R::Vector{Float64}, T::Int,
-#        hereL::Vector{Int}, hereR::Vector{Int},
-#        λ::Array{TT,2},spike_counts::Vector{Vector{Int}},dt::Float64,n::Int;
-#        λ0::Vector{Vector{UU}}=Vector{Vector{UU}}()) where {UU,TT <: Any}
-
 function LL_single_trial(pz::Vector{TT}, P::Vector{TT}, M::Array{TT,2}, dx::TT,
         xc::Vector{TT},L::Vector{Float64}, R::Vector{Float64}, T::Int,
-        hereL::Vector{Int}, hereR::Vector{Int},
-        py::Vector{Vector{TT}},spike_counts::Vector{Vector{Int}},dt::Float64,n::Int,
+        nL::Vector{Int}, nR::Vector{Int},
+        py::Vector{Vector{TT}}, k::Vector{Vector{Int}},dt::Float64,n::Int,
         λ0::Vector{Vector{UU}};
         f_str::String="softplus") where {UU,TT <: Any}
 
@@ -36,29 +23,30 @@ function LL_single_trial(pz::Vector{TT}, P::Vector{TT}, M::Array{TT,2}, dx::TT,
     La, Ra = make_adapted_clicks(pz,L,R)
 
     #construct T x N spike count array
-    spike_counts = hcat(spike_counts...)
+    #spike_counts = hcat(spike_counts...)
 
     c = Vector{TT}(undef,T)
     F = zeros(TT,n,n) #empty transition matrix for time bins with clicks
     
-    #λ = hcat(fy.(py,[xc],f_str=f_str)...)
-
     #construct T x N mean firing rate array
-    λ0 = hcat(λ0...)
+    #λ0 = hcat(λ0...)
 
     @inbounds for t = 1:T
 
-        P,F = latent_one_step!(P,F,pz,t,hereL,hereR,La,Ra,M,dx,xc,n,dt)
+        P, = latent_one_step!(P,F,pz,t,nL,nR,La,Ra,M,dx,xc,n,dt)
+        
+        
         #P .*= vec(exp.(sum(poiss_LL.(spike_counts[t,:],lambday',dt),dims=1)));
         #P .*= vec(exp.(sum(poiss_LL.(spike_counts[t,:],(log.(1. .+ exp.(lambday .+ lambda0')))',dt),dims=1)));
         #P .*= vec(exp.(sum(poiss_LL.(spike_counts[t,:],
         #                transpose(softplus_0param(λ .+ transpose(λ0[t,:]))), dt), dims=1)))
         
-        #y = hcat(map((py,c)-> fy2(py,xc,c), py, λ0[t,:])...)
-        #y = hcat(map((py,c)-> softplus_3param2(py,xc,c), py, λ0[t,:])...)
-         y = hcat(map((py,c)-> fy2(py,xc,c, f_str=f_str), py, λ0[t,:])...)
+        #y = hcat(map((py,c)-> fy2(py,xc,c, f_str=f_str), py, λ0[t,:])...)        
+        #P .*= vec(exp.(sum(poiss_LL.(spike_counts[t,:], transpose(y), dt), dims=1)))
         
-        P .*= vec(exp.(sum(poiss_LL.(spike_counts[t,:], transpose(y), dt), dims=1)))
+        #this should work but might not
+        P .*= vcat(map(xc-> exp_sum_poissLL(map(k[t], k), 
+                    map((λ0,py)-> f_py(xc,λ0[t],py), λ0, py), dt), xc)...)
         
         c[t] = sum(P)
         P /= c[t]
@@ -68,6 +56,92 @@ function LL_single_trial(pz::Vector{TT}, P::Vector{TT}, M::Array{TT,2}, dx::TT,
     return sum(log.(c))
 
 end
+
+exp_sum_poissLL(k::Vector{Int}, λ::Vector{TT}, dt::Float64) where {TT <: Any} = exp(sum(poiss_LL.(k,λ,dt)))
+
+function f_py(x::U, c::Float64, p::Vector{T}; f_str::String="softplus") where {T,U <: Any}
+
+    if f_str == "sig"
+    
+        if x .< 1e-150
+            y = p[1] + p[2]
+        elseif x .>= 1e150
+            y = p[1]
+        else
+            y = exp((p[3] * x + p[4]) + c)
+            y = p[1] + p[2] / (1. + y)
+        end
+        
+    elseif f_str == "softplus"
+        
+        if x .< 1e-150
+            y = p[1]
+        elseif x .>= 1e150
+            y = 1e150
+        else
+            y = exp((p[2] * x + p[3]) + c)
+            y = p[1] + log(1. + y)
+        end
+        
+        
+    end
+
+    return y
+    
+end
+
+function f_py!(x::U, c::Float64, p::Vector{T}; f_str::String="softplus") where {T,U <: Any}
+
+    if f_str == "sig"
+    
+        if x .< 1e-150
+            x = p[1] + p[2]
+        elseif x .>= 1e150
+            x = p[1]
+        else
+            x = exp((p[3] * x + p[4]) + c)
+            x = p[1] + p[2] / (1. + x)
+        end
+        
+    elseif f_str == "softplus"
+        
+        if x .< 1e-150
+            x = p[1]
+        elseif x .>= 1e150
+            x = 1e150
+        else
+            x = exp((p[2] * x + p[3]) + c)
+            x = p[1] + log(1. + x)
+        end
+        
+    end
+
+    return x
+    
+end
+
+"""
+    poiss_LL(k,λ,dt)
+
+    returns poiss LL
+"""
+function poiss_LL(k,λ,dt)
+    
+    #changed 2/17 to keep NaNs from gradient
+    #if (λ*dt <= 1e-150) & (k == 0)  
+    #if (λ*dt <= 1e-150)  
+    #    k*log(1e-150) - λ*dt - lgamma(k+1)
+        
+    #else        
+        k*log(λ*dt) - λ*dt - lgamma(k+1)
+        
+    #end
+    
+end
+
+neural_null(k,λ,dt) = sum(poiss_LL.(k,λ,dt))
+
+#=
 
 function PY_all_trials(pz::Vector{TT},py::Vector{Vector{TT}}, 
         data::Dict; dt::Float64=1e-2, n::Int=53, f_str::String="softplus", comp_posterior::Bool=false,
@@ -151,74 +225,6 @@ function P_single_trial(pz::Vector{TT}, P::Vector{TT}, M::Array{TT,2}, dx::TT,
     return PS
 
 end
-
-function f_py!(p::Vector{T}, x::Vector{U}, c::Vector{Float64};
-        f_str::String="softplus") where {T,U <: Any}
-
-    if f_str == "sig"
-    
-        x = exp.((p[3] .* x .+ p[4]) + c)
-        x[x .< 1e-150] .= p[1] + p[2]
-        x[x .>= 1e150] .= p[1]
-        x[(x .>= 1e-150) .& (x .< 1e150)] = p[1] .+ p[2] ./ (1. .+ x[(x .>= 1e-150) .& (x .< 1e150)])
-        
-    elseif f_str == "softplus"
-        
-        x = exp.((p[2] .* x .+ p[3]) + c)
-        x[x .< 1e-150] .= eps() + p[1]
-        x[x .>= 1e150] .= 1e150
-        x[(x .>= 1e-150) .& (x .< 1e150)] = (eps() + p[1]) .+ log.(1. .+ x[(x .>= 1e-150) .& (x .< 1e150)])
-        
-    end
-
-    return x
-    
-end
-
-function fy2(p::Vector{T},x::Vector{U},c::Float64;f_str::String="softplus") where {T,U <: Any}
-    
-    if f_str == "sig"
-
-        y = exp.(p[3] .* x .+ p[4] .+ c)
-        y[y .< 1e-150] .= p[1] + p[2]
-        y[y .>= 1e150] .= p[1]
-        y[(y .>= 1e-150) .& (y .< 1e150)] = p[1] .+ p[2] ./ (1. .+ y[(y .>= 1e-150) .& (y .< 1e150)])
-        
-    elseif f_str == "softplus"
-        
-        y = exp.(p[2] .* x .+ p[3] .+ c)
-        y[y .< 1e-150] .= eps() + p[1]
-        y[y .>= 1e150] .= 1e150
-        y[(y .>= 1e-150) .& (y .< 1e150)] = (eps() + p[1]) .+ log.(1. .+ y[(y .>= 1e-150) .& (y .< 1e150)])
-        
-    end
-
-    return y
-    
-end
-
-"""
-    poiss_LL(k,λ,dt)
-
-    returns poiss LL
-"""
-function poiss_LL(k,λ,dt)
-    
-    #changed 2/17 to keep NaNs from gradient
-    #if (λ*dt <= 1e-150) & (k == 0)  
-    #if (λ*dt <= 1e-150)  
-    #    k*log(1e-150) - λ*dt - lgamma(k+1)
-        
-    #else        
-        k*log(λ*dt) - λ*dt - lgamma(k+1)
-        
-    #end
-    
-end
-
-neural_null(k,λ,dt) = sum(poiss_LL.(k,λ,dt))
-
-#=
 
 function posterior_single_trial(pz::Vector{TT}, P::Vector{TT}, M::Array{TT,2}, dx::TT,
         xc::Vector{TT},L::Vector{Float64}, R::Vector{Float64}, T::Int,

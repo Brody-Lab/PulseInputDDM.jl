@@ -31,26 +31,25 @@ function sample_spikes_single_session(data::Dict, pz::Vector{Float64}, py::Vecto
         f_str::String="softplus", dtMC::Float64=1e-4, rng::Int=1)
     
     Random.seed!(rng)   
-    spike_times = pmap((λ0,T,L,R,rng) -> sample_spikes_single_trial(pz,py,λ0,T,L,R;
+    nT,nL,nR = bin_clicks(data["T"],data["leftbups"],data["rightbups"],dtMC)
+    spike_times = pmap((λ0,nT,L,R,nL,nR,rng) -> sample_spikes_single_trial(pz,py,λ0,nT,L,R,nL,nR;
         f_str=f_str, rng=rng, dtMC=dtMC), 
-        data["λ0"], data["T"], data["leftbups"], data["rightbups"], shuffle(1:length(data["T"])))    
+        data["λ0"], nT, data["leftbups"], data["rightbups"], nL, nR, shuffle(1:length(data["T"])))    
     
     return spike_times
     
 end
 
 function sample_spikes_single_trial(pz::Vector{Float64}, py::Vector{Vector{Float64}}, λ0::Vector{Vector{Float64}}, 
-        T::Float64, L::Vector{Float64}, R::Vector{Float64};
+        nT::Int, L::Vector{Float64}, R::Vector{Float64}, nL::Vector{Int}, nR::Vector{Int};
         f_str::String="softplus", dtMC::Float64=1e-4, rng::Int=1)
     
     Random.seed!(rng)    
-    #might need this here becasue of pmap
-    #removed 4/30, and moved towards unbinned spike times instead, then a binning procedure after this
-    #A = decimate(sample_latent(T,L,R,pz;dt=dtMC), Int(dt/dtMC))   
-    a = sample_latent(T,L,R,pz;dt=dtMC)
+    a = sample_latent(nT,L,R,nL,nR,pz;dt=dtMC)
     #this assumes only one spike per bin, which should most often be true at 1e-4, but not guaranteed!
     #findall(x-> x > 1, pulse_input_DDM.poisson_noise!.(10 * ones(100 * 10 * Int(1. /1e-4)),1e-4))
-    Y = map((py,λ0)-> findall(x -> x != 0, poisson_noise!.(f_py!(py, a, λ0, f_str=f_str), dtMC)) .* dtMC, py, λ0)    
+    Y = map((py,λ0)-> findall(x -> x != 0, 
+            poisson_noise!.(map((a, λ0)-> f_py!(a, λ0, py, f_str=f_str), a, λ0), dtMC)) .* dtMC, py, λ0)    
     
 end
 
@@ -61,38 +60,21 @@ function sample_expected_rates_single_session(data::Dict, pz::Vector{Float64}, p
     
     Random.seed!(rng)   
     dt = data["dt"]
-    λ = map((λ0,T,L,R,rng) -> sample_expected_rates_single_trial(pz,py,λ0,T,L,R,dt;
+    λ = map((λ0,nT,L,R,nL,nR,rng) -> sample_expected_rates_single_trial(pz,py,λ0,nT,L,R,nL,nR,dt;
         f_str=f_str, rng=rng, dtMC=dtMC), 
-        data["λ0"], data["T"], data["leftbups"], data["rightbups"], shuffle(1:length(data["T"])))    
+        data["λ0"], data["nT"], data["leftbups"], data["rightbups"], data["binned_leftbups"], 
+        data["binned_rightbups"], shuffle(1:length(data["T"])))    
     
     return λ
     
 end
 
 function sample_expected_rates_single_trial(pz::Vector{Float64}, py::Vector{Vector{Float64}}, λ0::Vector{Vector{Float64}}, 
-        T::Float64, L::Vector{Float64}, R::Vector{Float64}, dt::Float64;
+        nT::Int, L::Vector{Float64}, R::Vector{Float64}, nL::Vector{Int}, nR::Vector{Int}, dt::Float64;
         f_str::String="softplus", dtMC::Float64=1e-4, rng::Int=1)
     
-    Random.seed!(rng)     
-    a = decimate(sample_latent(T,L,R,pz;dt=dtMC), Int(dt/dtMC))
-    λ = map((py,λ0)-> f_py!(py, a, λ0, f_str=f_str), py, λ0)    
+    Random.seed!(rng)    
+    a = decimate(sample_latent(nT,L,R,nL,nR,pz;dt=dtMC), Int(dt/dtMC))
+    λ = map((py,λ0)-> map((a, λ0)-> f_py!(a, λ0, py, f_str=f_str), a, λ0), py, λ0)    
     
 end
-
-#=
-
-function sampled_dataset!(data::Dict, pz::Vector{Float64}, py::Vector{Vector{Float64}},
-        dt::Float64; f_str::String="softplus", dtMC::Float64=1e-4, num_reps::Int=1, rng::Int=1)
-
-    construct_inputs!(data,num_reps)
-    
-    Random.seed!(rng)
-    data["spike_counts"] = pmap((T,L,R,N,rng) -> sample_model(pz,py,T,L,R,N,dt;
-            f_str=f_str, rng=rng), data["T"], data["leftbups"], data["rightbups"],
-            data["N"], shuffle(1:length(data["T"])));        
-    
-    return data
-    
-end
-
-=#

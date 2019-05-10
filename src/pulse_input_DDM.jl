@@ -6,10 +6,7 @@ using SpecialFunctions, MAT, Random
 using DSP
 import Pandas: qcut
 
-#using ROCAnalysis
-#using ImageFiltering
-#using DataFrames
-#using BasisFunctionExpansions
+#using ROCAnalysis, ImageFiltering
 
 #include("initialize_spike_obs_model.jl")
 include("latent_variable_model_functions.jl")
@@ -48,7 +45,6 @@ export aggregate_spiking_data, bin_clicks_spikes_and_λ0!
 
 export diffLR, rate_mat_func_filt, nanmean, nanstderr
 
-export filter_data_by_cell!, sessids_from_region, aggregate_and_append_extended_spiking_data!
-export train_test_divide
+export filter_data_by_cell!, sessids_from_region
 
 end

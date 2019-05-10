@@ -32,10 +32,6 @@ function append_choice_data!(data::Dict, rawdata::Dict, ratname::String, sessID:
     append!(data["sessID"], repeat([sessID], inner=ntrials))
     append!(data["ratID"], repeat([ratname], inner=ntrials))
     
-    #removed because I didn't tell Chuck to put it in, and not currently necessary in the model fitting
-    #append!(data["stim_start"], rawdata["stim_start"])
-    #append!(data["cpoke_end"], rawdata["cpoke_end"])
-
     return data
 
 end
@@ -44,12 +40,21 @@ function bin_clicks!(data::Dict; dt::Float64=1e-2)
     
     data["dt"] = dt
     
-    binnedT = ceil.(Int,data["T"]/dt);
-
-    data["nT"] = binnedT
-    data["binned_leftbups"] =  map((x,y)-> vec(qfind(0.:dt:x*dt,y)), binnedT, data["leftbups"])
-    data["binned_rightbups"] = map((x,y)-> vec(qfind(0.:dt:x*dt,y)), binnedT, data["rightbups"])
+    data["nT"], data["binned_leftbups"], data["binned_rightbups"] = 
+        bin_clicks(data["T"], data["leftbups"], data["rightbups"], dt)
     
     return data    
 
+end
+
+function bin_clicks(T,L,R,dt)
+    
+    binnedT = ceil.(Int,T/dt)
+
+    nT = binnedT
+    nL =  map((x,y)-> vec(qfind(0.:dt:x*dt,y)), binnedT, L)
+    nR = map((x,y)-> vec(qfind(0.:dt:x*dt,y)), binnedT, R)
+    
+    return nT, nL, nR
+    
 end

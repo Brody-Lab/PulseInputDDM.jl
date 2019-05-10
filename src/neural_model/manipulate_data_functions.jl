@@ -85,6 +85,98 @@ function bin_clicks_spikes_and_λ0!(data::Dict; dt::Float64=1e-2, delay::Float64
 
 end
 
+group_by_neuron(data,ntrials,N) = [[data[t][n] for t in 1:ntrials] for n in 1:N]
+
+#################################### Data filtering #########################
+
+#This doesn't work, but might be a good idea to fix up.
+
+function filter_data_by_cell!(data,cell_index)
+
+    data["N0"] = length(cell_index)
+    
+    #organized by neurons, so filter by neurons
+    data["spike_counts_by_neuron"] = data["spike_counts_by_neuron"][cell_index]
+    data["trial"] = data["trial"][cell_index]
+    data["cellID_by_neuron"] = data["cellID_by_neuron"][cell_index] 
+    data["sessID_by_neuron"] = data["sessID_by_neuron"][cell_index] 
+    data["ratID_by_neuron"] = data["ratID_by_neuron"][cell_index]  
+    
+    if (haskey(data,"spike_counts_stimulus_aligned_extended_by_neuron") | 
+        haskey(data, "spike_counts_cpoke_aligned_extended_by_neuron"))
+        
+        data["spike_counts_stimulus_aligned_extended_by_neuron"] = 
+            data["spike_counts_stimulus_aligned_extended_by_neuron"][cell_index]
+        data["spike_counts_cpoke_aligned_extended_by_neuron"] = 
+            data["spike_counts_cpoke_aligned_extended_by_neuron"][cell_index]
+        
+    end
+    
+    trial_index = unique(collect(vcat(data["trial"]...)))
+    data["trial0"] = length(trial_index)
+
+    #organized by trials, so filter by trials
+    data["binned_leftbups"] = data["binned_leftbups"][trial_index]
+    data["binned_rightbups"] = data["binned_rightbups"][trial_index]
+    data["rightbups"] = data["rightbups"][trial_index]
+    data["leftbups"] = data["leftbups"][trial_index]
+    data["T"] = data["T"][trial_index]
+    data["nT"] = data["nT"][trial_index]
+    data["pokedR"] = data["pokedR"][trial_index]
+    data["correct_dir"] = data["correct_dir"][trial_index]
+    data["sessID"] = data["sessID"][trial_index]
+    data["ratID"] = data["ratID"][trial_index]
+    data["stim_start"] = data["stim_start"][trial_index]
+    data["cpoke_end"] = data["cpoke_end"][trial_index]   
+
+    #this subtracts the minimum current trial index from all of the trial indices
+    #for i = 1:data["N0"]
+    #    #data["trial"] = map(x->x[1] - minimum(trial_index) + 1 : x[end] - minimum(trial_index) + 1, data["trial"])
+    #    data["trial"][i] = data["trial"][i][1] - minimum(trial_index) + 1 : data["trial"][i][end] - minimum(trial_index) + 1
+    #end
+    
+    #tvec2 = deepcopy(unique(vcat(data["trial"]...)))
+    #map!(x->findall(x[1] .== tvec2)[1]:findall(x[end] .== tvec2)[1], data["trial"], data["trial"])
+    
+    #trial_index = unique(collect(vcat(data["trial"]...)))
+    
+    #shifts all trial times so the run consequtively from 1:data["trial0"]
+    #for i = 1:data["N0"]
+    #    data["trial"][i] = findfirst(data["trial"][i][1] .== trial_index) : findfirst(data["trial"][i][end] .== trial_index)
+    #end
+
+    data["N"] = Vector{Vector{Int}}(undef,0)
+    map(x->push!(data["N"], Vector{Int}(undef,0)), 1:data["trial0"])  
+    data["cellID"] = Vector{Vector{Int}}(undef,0)
+    map(x->push!(data["cellID"], Vector{Int}(undef,0)), 1:data["trial0"])  
+    data["spike_counts"] = Vector{Vector{Vector{Int64}}}(undef,0)
+    map(x->push!(data["spike_counts"], Vector{Vector{Int}}(undef,0)), 1:data["trial0"])  
+    
+    #map(y->map(x->push!(data["N"][x],y), data["trial"][y]), 1:data["N0"])
+    #map(y->map(x->push!(data["cellID"][x], cell_index[y]), data["trial"][y]), 1:data["N0"])
+    #map(y->map(x->push!(data["spike_counts"][data["trial"][y][x]], data["spike_counts_by_neuron"][y][x]),
+    #        1:length(data["trial"][y])), 1:data["N0"])
+    
+    for i = 1:data["N0"]
+        
+        #shifts all trial times so the run consequtively from 1:data["trial0"]
+        data["trial"][i] = findfirst(data["trial"][i][1] .== trial_index) : findfirst(data["trial"][i][end] .== trial_index)
+        
+        for j = 1:length(data["trial"][i])
+            
+            push!(data["N"][data["trial"][i][j]], i)
+            push!(data["cellID"][data["trial"][i][j]], data["cellID_by_neuron"][i])
+            push!(data["spike_counts"][data["trial"][i][j]], data["spike_counts_by_neuron"][i][j])
+            
+        end        
+    end
+        
+    return data
+
+end
+
+#=
+
 ######INCOMPLETE##########
 
 function aggregate_and_append_extended_spiking_data!(data::Dict, path::String, sessids::Vector{Vector{Int}}, 
@@ -185,96 +277,6 @@ function λ0_by_trial(data::Dict, μ_λ; cpoke_aligned::Bool=false,
     return λ0
     
 end
-
-group_by_neuron(data,ntrials,N) = [[data[t][n] for t in 1:ntrials] for n in 1:N]
-
-#################################### Data filtering #########################
-
-function filter_data_by_cell!(data,cell_index)
-
-    data["N0"] = length(cell_index)
-    
-    #organized by neurons, so filter by neurons
-    data["spike_counts_by_neuron"] = data["spike_counts_by_neuron"][cell_index]
-    data["trial"] = data["trial"][cell_index]
-    data["cellID_by_neuron"] = data["cellID_by_neuron"][cell_index] 
-    data["sessID_by_neuron"] = data["sessID_by_neuron"][cell_index] 
-    data["ratID_by_neuron"] = data["ratID_by_neuron"][cell_index]  
-    
-    if (haskey(data,"spike_counts_stimulus_aligned_extended_by_neuron") | 
-        haskey(data, "spike_counts_cpoke_aligned_extended_by_neuron"))
-        
-        data["spike_counts_stimulus_aligned_extended_by_neuron"] = 
-            data["spike_counts_stimulus_aligned_extended_by_neuron"][cell_index]
-        data["spike_counts_cpoke_aligned_extended_by_neuron"] = 
-            data["spike_counts_cpoke_aligned_extended_by_neuron"][cell_index]
-        
-    end
-    
-    trial_index = unique(collect(vcat(data["trial"]...)))
-    data["trial0"] = length(trial_index)
-
-    #organized by trials, so filter by trials
-    data["binned_leftbups"] = data["binned_leftbups"][trial_index]
-    data["binned_rightbups"] = data["binned_rightbups"][trial_index]
-    data["rightbups"] = data["rightbups"][trial_index]
-    data["leftbups"] = data["leftbups"][trial_index]
-    data["T"] = data["T"][trial_index]
-    data["nT"] = data["nT"][trial_index]
-    data["pokedR"] = data["pokedR"][trial_index]
-    data["correct_dir"] = data["correct_dir"][trial_index]
-    data["sessID"] = data["sessID"][trial_index]
-    data["ratID"] = data["ratID"][trial_index]
-    data["stim_start"] = data["stim_start"][trial_index]
-    data["cpoke_end"] = data["cpoke_end"][trial_index]   
-
-    #this subtracts the minimum current trial index from all of the trial indices
-    #for i = 1:data["N0"]
-    #    #data["trial"] = map(x->x[1] - minimum(trial_index) + 1 : x[end] - minimum(trial_index) + 1, data["trial"])
-    #    data["trial"][i] = data["trial"][i][1] - minimum(trial_index) + 1 : data["trial"][i][end] - minimum(trial_index) + 1
-    #end
-    
-    #tvec2 = deepcopy(unique(vcat(data["trial"]...)))
-    #map!(x->findall(x[1] .== tvec2)[1]:findall(x[end] .== tvec2)[1], data["trial"], data["trial"])
-    
-    #trial_index = unique(collect(vcat(data["trial"]...)))
-    
-    #shifts all trial times so the run consequtively from 1:data["trial0"]
-    #for i = 1:data["N0"]
-    #    data["trial"][i] = findfirst(data["trial"][i][1] .== trial_index) : findfirst(data["trial"][i][end] .== trial_index)
-    #end
-
-    data["N"] = Vector{Vector{Int}}(undef,0)
-    map(x->push!(data["N"], Vector{Int}(undef,0)), 1:data["trial0"])  
-    data["cellID"] = Vector{Vector{Int}}(undef,0)
-    map(x->push!(data["cellID"], Vector{Int}(undef,0)), 1:data["trial0"])  
-    data["spike_counts"] = Vector{Vector{Vector{Int64}}}(undef,0)
-    map(x->push!(data["spike_counts"], Vector{Vector{Int}}(undef,0)), 1:data["trial0"])  
-    
-    #map(y->map(x->push!(data["N"][x],y), data["trial"][y]), 1:data["N0"])
-    #map(y->map(x->push!(data["cellID"][x], cell_index[y]), data["trial"][y]), 1:data["N0"])
-    #map(y->map(x->push!(data["spike_counts"][data["trial"][y][x]], data["spike_counts_by_neuron"][y][x]),
-    #        1:length(data["trial"][y])), 1:data["N0"])
-    
-    for i = 1:data["N0"]
-        
-        #shifts all trial times so the run consequtively from 1:data["trial0"]
-        data["trial"][i] = findfirst(data["trial"][i][1] .== trial_index) : findfirst(data["trial"][i][end] .== trial_index)
-        
-        for j = 1:length(data["trial"][i])
-            
-            push!(data["N"][data["trial"][i][j]], i)
-            push!(data["cellID"][data["trial"][i][j]], data["cellID_by_neuron"][i])
-            push!(data["spike_counts"][data["trial"][i][j]], data["spike_counts_by_neuron"][i][j])
-            
-        end        
-    end
-        
-    return data
-
-end
-
-#=
 
 function append_neural_data!(data::Dict, rawdata::Dict, ratname::String, sessID::Int, dt::Float64;
         delay::Float64=0.)
