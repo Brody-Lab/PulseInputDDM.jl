@@ -5,6 +5,8 @@ using ForwardDiff, Distributed, LinearAlgebra
 using SpecialFunctions, MAT, Random 
 using DSP
 import Pandas: qcut
+import StatsFuns: logistic, logit
+using Base.Threads
 
 #using ROCAnalysis, ImageFiltering
 

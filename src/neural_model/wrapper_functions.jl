@@ -1,38 +1,189 @@
+#################################### dx Poisson neural observation model #############
+
+function compute_H_CI_dx!(pz::Dict{}, py::Dict{}, data::Vector{Dict{Any,Any}}, f_str::String, dx::Float64)
+    
+    H = compute_Hessian_dx(pz, py, data, f_str, dx)
+        
+    gooddims = 1:size(H,1)
+
+    evs = findall(eigvals(H[gooddims,gooddims]) .<= 0)
+    otherbad = vcat(map(i-> findall(abs.(eigvecs(H[gooddims,gooddims])[:,evs[i]]) .> 0.5), 1:length(evs))...)
+    gooddims = setdiff(gooddims,otherbad)
+
+    fit_vec = combine_latent_and_observation(pz["fit"], py["fit"])
+    p_opt, p_const = split_combine_invmap(pz["final"], py["final"], fit_vec, data[1]["dt"], f_str, pz["lb"], pz["ub"])
+    parameter_map_f(x) = map_split_combine(x, p_const, fit_vec, data[1]["dt"], 
+        f_str, py["N"], py["dimy"], pz["lb"], pz["ub"])
+
+    CI = fill!(Vector{Float64}(undef,size(H,1)),1e8);
+    
+    try
+        CI[gooddims] = 2*sqrt.(diag(inv(H[gooddims,gooddims])));
+    catch
+        @warn "CI computation failed."
+    end
+
+    pz["CI_plus"], py["CI_plus"] = parameter_map_f(p_opt + CI)
+    pz["CI_minus"], py["CI_minus"] = parameter_map_f(p_opt - CI)
+    
+    #if generative parameters exist, identify which ones have generative parameters within the CI 
+    if haskey(pz, "generative")
+        pz["within_CI"] = (pz["CI_minus"] .< pz["generative"]) .& (pz["CI_plus"] .> pz["generative"])
+    end
+    
+    if haskey(py, "generative")
+        py["within_CI"] = map((x,y,z)-> [((x .< z) .& (y .> z)) for (x,y,z) in zip(x,y,z)], 
+            py["CI_minus"], py["CI_plus"], py["generative"])
+    end
+    
+    return pz, py
+    
+end
+
+function compute_Hessian_dx(pz::Dict{}, py::Dict{}, data::Vector{Dict{Any,Any}}, f_str::String, 
+        dx::Float64)
+    
+    fit_vec = combine_latent_and_observation(pz["fit"], py["fit"])
+    p_opt, p_const = split_combine_invmap(pz["final"], py["final"], fit_vec, data[1]["dt"], f_str, pz["lb"], pz["ub"])
+    parameter_map_f(x) = map_split_combine(x, p_const, fit_vec, data[1]["dt"], 
+        f_str, py["N"], py["dimy"], pz["lb"], pz["ub"])
+    ll(x) = ll_wrapper_dx(x, data, parameter_map_f, f_str, dx)
+    
+    return H = ForwardDiff.hessian(ll, p_opt)
+        
+end
+
+function optimize_model_dx(pz::Dict{}, py::Dict{}, data::Vector{Dict{Any,Any}}, f_str::String,
+        dx::Float64; x_tol::Float64=1e-4, f_tol::Float64=1e-9, g_tol::Float64=1e-2,
+        iterations::Int=Int(2e3), show_trace::Bool=true) where {TT <: Any}
+    
+    haskey(pz,"state") ? nothing : pz["state"] = deepcopy(pz["initial"])
+    haskey(py,"state") ? nothing : py["state"] = deepcopy(py["initial"])
+    
+    pz = check_pz!(pz)
+
+    fit_vec = combine_latent_and_observation(pz["fit"], py["fit"])
+    p_opt, p_const = split_combine_invmap(pz["state"], py["state"], fit_vec, data[1]["dt"], f_str, pz["lb"], pz["ub"])
+
+    ###########################################################################################
+    ## Optimize
+    parameter_map_f(x) = map_split_combine(x, p_const, fit_vec, data[1]["dt"], 
+        f_str, py["N"], py["dimy"], pz["lb"], pz["ub"])
+    ll(x) = ll_wrapper_dx(x, data, parameter_map_f, f_str, dx)
+    
+    opt_output, state = opt_ll(p_opt, ll; g_tol=g_tol, x_tol=x_tol, f_tol=f_tol,
+        iterations=iterations, show_trace=show_trace);
+    p_opt = Optim.minimizer(opt_output)
+
+    pz["state"], py["state"] = parameter_map_f(p_opt)
+    pz["final"], py["final"] = pz["state"], py["state"]
+        
+    return pz, py, opt_output, state
+    
+end
+
+function ll_wrapper_dx(p_opt::Vector{TT}, data::Vector{Dict{Any,Any}}, parameter_map_f::Function, f_str::String, 
+        dx::Float64) where {TT <: Any}
+
+    pz, py = parameter_map_f(p_opt)   
+    LL = compute_LL_dx(pz, py, data, dx, f_str)
+        
+    return -LL
+              
+end
+
+function compute_LL_dx(pz::Vector{T}, py::Vector{Vector{Vector{T}}}, data::Vector{Dict{Any,Any}},
+        dx::Float64, f_str::String) where {T <: Any}
+    
+    LL = sum(map((py,data)-> sum(LL_all_trials_dx(pz, py, data, dx, f_str=f_str)), py, data))
+            
+end
 
 #################################### Full Poisson neural observation model #############
 
-function generate_syn_data_fit_CI(nsessions, N_per_sess, ntrials_per_sess, n::Int; 
-        dt=1e-2, dimy::Int=3, f_str::String="softplus",
-        pz::Dict = Dict("generative" => [1e-2, 15., -0.5, 200., 1e-6, 1., 0.02], 
-        "name" => ["σ_i","B", "λ", "σ_a","σ_s","ϕ","τ_ϕ"],
-        "fit" => vcat(falses(1),trues(3),falses(3)),
-        "initial" => [2.,10.,-2,100.,2.,0.2,0.005],
-        "lb" => [eps(), 4., -5., eps(), eps(), eps(), eps()],
-        "ub" => [10., 100, 5., 800., 40., 2., 10.]))
-    
-    pz["initial"][pz["fit"] .== false] = pz["generative"][pz["fit"] .== false]
-    #pz["initial"] = pz["generative"]
-
-    py = Dict("generative" => [[[1e-6, 10., 1e-6] for n in 1:N] for N in N_per_sess], 
-        "fit" => map(N-> repeat([trues(1),trues(1),trues(1)],outer=N), N_per_sess),
-        "initial" => [[[Vector{Float64}(undef,dimy)] for n in 1:N] for N in N_per_sess],
-        "dimy"=> dimy,
-        "N"=> N_per_sess,
-        "nsessions"=> nsessions)
-    
-    data = sample_input_and_spikes_multiple_sessions(pz["generative"], py["generative"], ntrials_per_sess)
+function generate_syn_data_fit_CI(n::Int, pz::Dict{}, py::Dict{}, ntrials_per_sess; 
+        dt=1e-3, f_str::String="softplus")
+   
+    data = sample_input_and_spikes_multiple_sessions(n, pz["generative"], py["generative"], ntrials_per_sess; f_str=f_str,
+        dtMC=dt)
     
     data = map(x->bin_clicks_spikes_and_λ0!(x;dt=dt), data)
     
-    py["initial"] = map(data -> optimize_model(data, f_str, show_trace=false), data)
-    #py["initial"] = py["generative"]
+    pz["initial"][pz["fit"] .== false] = pz["generative"][pz["fit"] .== false]
+    #py["initial"][py["fit"] .== false] = py["generative"][py["fit"] .== false]
     
-    pz, py, = optimize_model(pz, py, data, f_str, n, show_trace=true)
-    
+    pz, py, = optimize_model(pz, py, data, f_str, n, show_trace=true)   
     pz, py = compute_H_CI!(pz, py, data, f_str, n)
     
 end
 
+
+function generate_syn_data_fit_CI(pz::Dict{}, py::Dict{}, ntrials_per_sess; 
+        n::Int=203, dt=1e-3, f_str::String="softplus")
+   
+    data = sample_input_and_spikes_multiple_sessions(pz["generative"], py["generative"], ntrials_per_sess; f_str=f_str)
+    
+    data = map(x->bin_clicks_spikes_and_λ0!(x;dt=dt), data)
+    
+    pz["initial"][pz["fit"] .== false] = pz["generative"][pz["fit"] .== false]
+    #py["initial"][py["fit"] .== false] = py["generative"][py["fit"] .== false]
+    
+    if n == 0
+        pz, py, = optimize_model(pz, py, data, f_str, show_trace=false)  
+        pz, py = compute_H_CI!(pz, py, data, f_str)
+    else
+        pz, py, = optimize_model(pz, py, data, f_str, n, show_trace=true)   
+        pz, py = compute_H_CI!(pz, py, data, f_str, n)
+    end
+    
+end
+
+function generate_syn_data_fit_CI(nsessions, N_per_sess, ntrials_per_sess; 
+        n::Int=53, dt=1e-2, dimy::Int=3, f_str::String="softplus",
+        pz::Dict = Dict("generative" => [0., 15., -1., 100., 0., 1., 0.02], 
+        "name" => ["σ_i","B", "λ", "σ_a","σ_s","ϕ","τ_ϕ"],
+        "fit" => vcat(falses(1),trues(3),falses(3)),
+        "initial" => [2.,20.,-3,100.,2.,0.2,0.005],
+        "lb" => [-eps(), 4., -5., -eps(), -eps(), eps(), eps()],
+        "ub" => [10., 100, 5., 800., 40., 2., 10.]))    
+    
+    pz["initial"][pz["fit"] .== false] = pz["generative"][pz["fit"] .== false]
+    #pz["initial"] = pz["generative"]
+
+    #py = Dict("generative" => [[[1e-6, 10., 1e-6] for n in 1:N] for N in N_per_sess], 
+    #    "fit" => map(N-> repeat([falses(3)],outer=N), N_per_sess),
+    #    "initial" => [[[Vector{Float64}(undef,dimy)] for n in 1:N] for N in N_per_sess],
+    #    "dimy"=> dimy,
+    #    "N"=> N_per_sess,
+    #    "nsessions"=> nsessions)
+        
+    py = Dict("generative" => [[[10., 10., -10.] for n in 1:N] for N in N_per_sess], 
+        "fit" => map(N-> repeat([falses(1),trues(1),falses(1)],outer=N), N_per_sess),
+        "initial" => [[[Vector{Float64}(undef,dimy)] for n in 1:N] for N in N_per_sess],
+        "dimy"=> dimy,
+        "N"=> N_per_sess,
+        "nsessions"=> nsessions)
+   
+    data = sample_input_and_spikes_multiple_sessions(pz["generative"], py["generative"], ntrials_per_sess)
+    
+    data = map(x->bin_clicks_spikes_and_λ0!(x;dt=dt), data)
+    
+    #py["initial"] = map(data-> regress_init(data, f_str), data)
+    #py["initial"] = map(data -> optimize_model(data, f_str, show_trace=false), data)
+    py["initial"] = py["generative"]
+    
+    if n == 0
+        pz, py, = optimize_model(pz, py, data, f_str, show_trace=false)  
+        pz, py = compute_H_CI!(pz, py, data, f_str)
+    else
+        pz, py, = optimize_model(pz, py, data, f_str, n, show_trace=true)   
+        pz, py = compute_H_CI!(pz, py, data, f_str, n)
+    end
+    
+end
+
+#################################### Full Poisson neural observation model #############
+     
 function compute_H_CI!(pz::Dict{}, py::Dict{}, data::Vector{Dict{Any,Any}}, f_str::String, n::Int)
     
     H = compute_Hessian(pz, py, data, f_str, n)
@@ -180,60 +331,55 @@ function optimize_model(pz::Dict{}, py::Dict{}, data::Vector{Dict{Any,Any}}, f_s
     
 end
 
+function optimize_model_con(pz::Dict{}, py::Dict{}, data::Vector{Dict{Any,Any}}, f_str::String,
+        n::Int; x_tol::Float64=1e-4, f_tol::Float64=1e-9, g_tol::Float64=1e-2,
+        iterations::Int=Int(2e3), show_trace::Bool=true,
+        outer_iterations::Int=Int(2e3)) where {TT <: Any}
+    
+    haskey(pz,"state") ? nothing : pz["state"] = deepcopy(pz["initial"])
+    haskey(py,"state") ? nothing : py["state"] = deepcopy(py["initial"])
+    
+    pz = check_pz!(pz)
+
+    fit_vec = combine_latent_and_observation(pz["fit"], py["fit"])
+    lb = combine_latent_and_observation(pz["lb"], py["lb"])[fit_vec]
+    ub = combine_latent_and_observation(pz["ub"], py["ub"])[fit_vec]
+    p_opt, p_const = split_variable_and_const(combine_latent_and_observation(pz["state"], py["state"]),fit_vec)
+    
+    parameter_map_f(x) = split_latent_and_observation(combine_variable_and_const(x, p_const, fit_vec), py["N"], py["dimy"])
+
+    ll(x) = ll_wrapper(x, data, parameter_map_f, f_str, n)
+    
+    opt_output = opt_ll_con(p_opt, ll, lb, ub; g_tol=g_tol, x_tol=x_tol, f_tol=f_tol,
+        iterations=iterations, show_trace=show_trace,outer_iterations=outer_iterations);
+    p_opt = Optim.minimizer(opt_output)
+
+    pz["state"], py["state"] = parameter_map_f(p_opt)
+    pz["final"], py["final"] = pz["state"], py["state"]
+        
+    return pz, py, opt_output
+    
+end
+
 function ll_wrapper(p_opt::Vector{TT}, data::Vector{Dict{Any,Any}}, parameter_map_f::Function, f_str::String, 
         n::Int) where {TT <: Any}
 
     pz, py = parameter_map_f(p_opt)   
-    LL = compute_LL(pz, py, data, n; f_str=f_str)
+    LL = compute_LL(pz, py, data, n, f_str)
         
     return -LL
               
 end
 
 function compute_LL(pz::Vector{T}, py::Vector{Vector{Vector{T}}}, data::Vector{Dict{Any,Any}},
-        n::Int, f_str="softplus") where {T <: Any}
+        n::Int, f_str::String) where {T <: Any}
     
     LL = sum(map((py,data)-> sum(LL_all_trials(pz, py, data, n, f_str=f_str)), py, data))
             
 end
 
 
-
-
 ############ Deterministic latent variable model (only observation noise) ############
-
-function generate_syn_data_fit_CI(nsessions, N_per_sess, ntrials_per_sess; 
-        dt=1e-2, dimy::Int=3, f_str::String="softplus",
-        pz::Dict = Dict("generative" => [0., 15., -1, 0., 0., 1., 0.02], 
-        "name" => ["σ_i","B", "λ", "σ_a","σ_s","ϕ","τ_ϕ"],
-        "fit" => vcat(falses(1),trues(2),falses(4)),
-        "initial" => [2.,10.,-3,100.,2.,0.2,0.005],
-        "lb" => [-eps(), 4., -5., -eps(), -eps(), eps(), eps()],
-        "ub" => [10., 200, 5., 800., 40., 2., 10.]))
-    
-    pz["initial"][pz["fit"] .== false] = pz["generative"][pz["fit"] .== false]
-    #pz["initial"] = pz["generative"]
-
-    py = Dict("generative" => [[[10., 10., 0.] for n in 1:N] for N in N_per_sess], 
-        "fit" => map(N-> repeat([trues(3)],outer=N), N_per_sess),
-        "initial" => [[[Vector{Float64}(undef,dimy)] for n in 1:N] for N in N_per_sess],
-        "dimy"=> dimy,
-        "N"=> N_per_sess,
-        "nsessions"=> nsessions)
-    
-    data = sample_input_and_spikes_multiple_sessions(pz["generative"], py["generative"], ntrials_per_sess; 
-        f_str=f_str)
-    
-    data = map(x->bin_clicks_spikes_and_λ0!(x;dt=dt), data)
-    
-    #py["initial"] = map(data-> regress_init(data, f_str), data)
-    #py["initial"] = map(data -> optimize_model(data, f_str, show_trace=false), data)
-    py["initial"] = py["generative"]
-    
-    pz, py, = optimize_model(pz, py, data, f_str, show_trace=false, x_tol=1e-16, f_tol=1e-16)  
-    pz, py = compute_H_CI!(pz, py, data, f_str)
-    
-end
 
 function compute_H_CI!(pz::Dict{}, py::Dict{}, data::Vector{Dict{Any,Any}}, f_str::String)
     
@@ -295,7 +441,8 @@ end
 
 function optimize_model(pz::Dict{}, py::Dict{}, data::Vector{Dict{Any,Any}}, f_str::String; 
         x_tol::Float64=1e-4, f_tol::Float64=1e-9, g_tol::Float64=1e-2,
-        iterations::Int=Int(2e3), show_trace::Bool=true) where {TT <: Any}
+        iterations::Int=Int(2e3), show_trace::Bool=true,
+        extended_trace::Bool=false) where {TT <: Any}
     
     haskey(pz,"state") ? nothing : pz["state"] = deepcopy(pz["initial"])
     haskey(py,"state") ? nothing : py["state"] = deepcopy(py["initial"])
@@ -312,7 +459,7 @@ function optimize_model(pz::Dict{}, py::Dict{}, data::Vector{Dict{Any,Any}}, f_s
     ll(x) = ll_wrapper(x, data, parameter_map_f, f_str)
     
     opt_output, state = opt_ll(p_opt, ll; g_tol=g_tol, x_tol=x_tol, f_tol=f_tol,
-        iterations=iterations, show_trace=show_trace);
+        iterations=iterations, show_trace=show_trace, extended_trace= extended_trace);
     p_opt = Optim.minimizer(opt_output)
 
     pz["state"], py["state"] = parameter_map_f(p_opt)
@@ -383,14 +530,15 @@ function compute_p0(ΔLR,k,dt,f_str;nconds::Int=7)
 
     if f_str == "exp"
         p = vcat(minimum(fr),c[2])
-    elseif (f_str == "sig") | (f_str == "sig2")
+    elseif (f_str == "sig")
         p = vcat(minimum(fr),maximum(fr)-minimum(fr),c[2],0.)
     elseif f_str == "softplus"
-        p = vcat(minimum(fr),c[2],0.)
+        p = vcat(minimum(fr),(1/dt)*c[2],0.)
     end
         
 end
 
+#=
 
 ######### Deterministic latent variable model with lambda=0 (only observation noise) ############
     
@@ -445,8 +593,6 @@ function compute_LL(py::Vector{TT}, ΔLR::Vector{Vector{Int}}, k::Vector{Vector{
     sum(pmap((ΔLR,k,λ0)-> sum(poiss_LL.(k, map((ΔLR, λ0)-> f_py(ΔLR, λ0, py, f_str=f_str), ΔLR, λ0), dt)), ΔLR,k,λ0))   
            
 end
-
-#=
 
 ########################## Choice and neural model ###########################################
 

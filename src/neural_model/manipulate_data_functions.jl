@@ -69,17 +69,36 @@ function bin_clicks_spikes_and_λ0!(data::Dict; dt::Float64=1e-2, delay::Float64
     
     data = bin_clicks!(data; dt=dt)
     
-    binnedT = ceil.(Int, data["T"] ./dt)
-    data["spike_counts"] =  map((x,y) -> map(z -> fit(Histogram, vec(collect(y[z] .- delay)), 
-            0.:dt:x*dt, closed=:left).weights, 1:length(y)), binnedT, data["spike_times"])
+    #eventually fix this for all use cases
     
-    if haskey(data,"dtMC")
-        data["λ0"] = map(x-> map(z-> decimate(x[z], Int(data["dt"]/data["dtMC"])), 1:length(x)), data["λ0"])
-    else
-        data["λ0"] = map(x -> repeat([zeros(x)], outer=data["N"]), binnedT)
+    #if only has spike times, bin the spikes
+    #if (!haskey(data,"spike_counts") || !haskey(data,"spike_counts_MC"))
+    #    binnedT = ceil.(Int, data["T"] ./dt)
+    #    data["spike_counts"] =  map((x,y) -> map(z -> fit(Histogram, vec(collect(y[z] .- delay)), 
+    #            0.:dt:x*dt, closed=:left).weights, 1:length(y)), binnedT, data["spike_times"])
+    #end
+    
+    #if has binned spike times, but the dt is larger than the MC dt
+    #if haskey(data,"spike_counts_MC") & (data["dt"] != data["dtMC"])
+        
+        data["spike_counts"] =  map(SC-> map(SCn-> 
+                map(sum,collect(Iterators.partition(SCn, Int(data["dt"]/data["dtMC"])))), SC), 
+                data["spike_counts_MC"])
+        
+    #end
+    
+    #if haskey(data,"dtMC")
+        if data["dt"] != data["dtMC"]
+            data["λ0"] = map(x-> map(z-> decimate(x[z], Int(data["dt"]/data["dtMC"])), 1:length(x)), data["λ0_MC"])
+        else 
+            data["λ0"] = data["λ0_MC"]
+        end
+    #else
+    #    binnedT = ceil.(Int, data["T"] ./dt)
+    #    data["λ0"] = map(x -> repeat([zeros(x)], outer=data["N"]), binnedT)
         #data["spike_counts_extended"] =  map((x,y) -> map(z -> fit(Histogram, vec(collect(y[z] .- delay)), 
         #    -10*dt:dt:((x+10)*dt), closed=:left).weights, 1:length(y)), binnedT, data["spike_times"])
-    end
+    #end
     
     return data    
 

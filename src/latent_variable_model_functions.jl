@@ -18,8 +18,8 @@ function initialize_latent_model(pz::Vector{TT}, n::Int, dt::Float64;
     
 end
 
-function P0(vari::TT, n::Int, dx::TT, xc::Vector{TT}, dt::Float64;
-        L_lapse::UU=0., R_lapse::UU=0.) where {TT,UU}
+function P0(vari::TT, n::Int, dx::VV, xc::Vector{WW}, dt::Float64;
+        L_lapse::UU=0., R_lapse::UU=0.) where {TT,UU,VV,WW <: Any}
     
     P = zeros(TT,n)
     P[ceil(Int,n/2)] = one(TT) - (L_lapse + R_lapse)     # make initial delta function
@@ -32,7 +32,7 @@ end
 
 function latent_one_step!(P::Vector{TT},F::Array{TT,2},pz::Vector{TT},t::Int,hereL::Vector{Int}, hereR::Vector{Int},
         La::Vector{TT},Ra::Vector{TT},M::Array{TT,2},
-        dx::TT,xc::Vector{TT},n::Int,dt::Float64;backwards::Bool=false) where {TT}
+        dx::UU,xc::Vector{VV},n::Int,dt::Float64;backwards::Bool=false) where {TT,UU,VV <: Any}
     
     lambda,vara,vars = pz[3:5]
     
@@ -63,16 +63,20 @@ function bins(B::TT,n::Int) where {TT}
     
 end
 
-function M!(F::Array{TT,2},vara::TT,lambda::TT,h::Union{TT,Float64},dx::TT,xc::Vector{TT}, n::Int, dt::Float64) where {TT}
+myconvert(::Type{T}, x::ForwardDiff.Dual) where {T} = T(x.value)
+
+function M!(F::Array{TT,2},vara::TT,lambda::TT,h::Union{TT,Float64},dx::UU,xc::Vector{VV}, n::Int, dt::Float64) where {TT,UU,VV <: Any}
     
     F[1,1] = one(TT); F[n,n] = one(TT); F[:,2:n-1] = zeros(TT,n,n-2)
+       
+    #########################################
 
     #changed 2/17 to keep to less than 1000 bins, haven't checked how that effects returned results
     ndeltas = max(70,ceil(Int, 10. *sqrt(vara)/dx))   
     #ndeltas = 70 + (1000 - 70) * ceil(Int, 0.5*(1+tanh(10. *sqrt(vara)/dx)))
-    ndeltas > 1000 ? ndeltas = 1000 : nothing
+    #ndeltas > 1000 ? (ndeltas = 1000; @warn "using lots of bins!";) : nothing
 
-    (ndeltas > 1e3 && h == zero(TT)) ? (println(vara); println(dx); println(ndeltas)) : nothing
+    #(ndeltas > 1e3 && h == zero(TT)) ? (println(vara); println(dx); println(ndeltas)) : nothing
 
     #deltas = collect(-ndeltas:ndeltas) * (5.*sqrt(vara))/ndeltas;
     #ps = broadcast(exp, broadcast(/, -broadcast(^, deltas,2), 2.*vara)); ps = ps/sum(ps);
@@ -80,6 +84,21 @@ function M!(F::Array{TT,2},vara::TT,lambda::TT,h::Union{TT,Float64},dx::TT,xc::V
     deltaidx = collect(-ndeltas:ndeltas);
     deltas = deltaidx * (5. *sqrt(vara))/ndeltas;
     ps = exp.(-0.5 * (5*deltaidx./ndeltas).^2); ps = ps/sum(ps);
+    
+    ##########################################
+    
+    #if !(typeof(vara) == Float64)
+    #    sigma2_sbin = myconvert(Float64, vara)
+    #    #@warn "this is new!"
+    #else
+    #    sigma2_sbin = vara
+    #end
+
+    #ndeltas = max(70,ceil(Int, 10. *sqrt(sigma2_sbin)/dx))   
+    #deltas = collect(-ndeltas:ndeltas) * (5. *sqrt(sigma2_sbin))/ndeltas;
+    #ps = exp.(-deltas.^2 / (2. * vara)); ps = ps/sum(ps);
+    
+    ##########################################    
     
     @inbounds for j = 2:n-1
 
