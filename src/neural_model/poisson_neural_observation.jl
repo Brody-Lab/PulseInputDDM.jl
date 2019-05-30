@@ -47,24 +47,24 @@ function LL_single_trial_dx(pz::Vector{TT}, P::Vector{TT}, M::Array{TT,2}, dx::V
 
 end
 
-function LL_all_trials(pz::Vector{TT}, py::Vector{Vector{TT}}, data::Dict, 
+function LL_all_trials_threads(pz::Vector{TT}, py::Vector{Vector{TT}}, data::Dict, 
         n::Int; f_str::String="softplus") where {TT <: Any}
      
     dt = data["dt"]
     P,M,xc,dx, = initialize_latent_model(pz,n,dt)
-    LL = zero(TT)
+    trials = length(data["nT"])
+    LL = Vector{TT}(undef,trials)
         
     @threads for i = 1:length(data["nT"])
-        LL += LL_single_trial(pz, copy(P), M, dx, xc,
+        LL[i] = LL_single_trial(pz, copy(P), M, dx, xc,
                 data["leftbups"][i], data["rightbups"][i], data["nT"][i], 
                 data["binned_leftbups"][i], data["binned_rightbups"][i], py, 
                 data["spike_counts"][i], dt, n, data["λ0"][i], f_str=f_str)  
     end
     
+    return LL
+    
 end
-
-#=
-
 
 function LL_all_trials(pz::Vector{TT}, py::Vector{Vector{TT}}, data::Dict, 
         n::Int; f_str::String="softplus") where {TT <: Any}
@@ -78,8 +78,6 @@ function LL_all_trials(pz::Vector{TT}, py::Vector{Vector{TT}}, data::Dict,
         data["binned_rightbups"], data["spike_counts"], data["λ0"])   
     
 end
-
-=#
 
 function LL_single_trial(pz::Vector{TT}, P::Vector{TT}, M::Array{TT,2}, dx::VV,
         xc::Vector{WW},L::Vector{Float64}, R::Vector{Float64}, T::Int,

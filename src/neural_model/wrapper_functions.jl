@@ -371,6 +371,13 @@ function ll_wrapper(p_opt::Vector{TT}, data::Vector{Dict{Any,Any}}, parameter_ma
               
 end
 
+function compute_LL_threads(pz::Vector{T}, py::Vector{Vector{Vector{T}}}, data::Vector{Dict{Any,Any}},
+        n::Int, f_str::String) where {T <: Any}
+    
+    LL = sum(map((py,data)-> sum(LL_all_trials_threads(pz, py, data, n, f_str=f_str)), py, data))
+            
+end
+
 function compute_LL(pz::Vector{T}, py::Vector{Vector{Vector{T}}}, data::Vector{Dict{Any,Any}},
         n::Int, f_str::String) where {T <: Any}
     
