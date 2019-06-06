@@ -54,8 +54,13 @@ function sample_latent(nT::Int, L::Vector{Float64},R::Vector{Float64},
         #(sL + sR) > zero(TT) ? a += mu + sqrt(var) * randn() : nothing
         #a += (dt*lambda) * a + sqrt(vara * dt) * randn()
         
-        (sL + sR) > zero(TT) ? I = mu + sqrt(var) * randn() : I = 0.
-        a += (dt*lambda) * a + sqrt(vara * dt) * randn() + I
+        if (vars == 0.) && (vara == 0.)                
+            h = mu/(dt*lambda)
+            a = exp(lambda*dt)*(a + h) - h
+        else
+            (sL + sR) > zero(TT) ? I = mu + sqrt(var) * randn() : I = 0.
+            a += (dt*lambda) * a + sqrt(vara * dt) * randn() + I
+        end
 
         abs(a) > B ? (a = B * sign(a); A[t:nT] .= a; break) : A[t] = a
 
