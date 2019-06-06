@@ -129,7 +129,7 @@ function generate_syn_data_fit_CI(pz::Dict{}, py::Dict{}, ntrials_per_sess;
     #py["initial"][py["fit"] .== false] = py["generative"][py["fit"] .== false]
     
     if n == 0
-        pz, py, = optimize_model(pz, py, data, f_str, show_trace=false)  
+        pz, py, = optimize_model(pz, py, data, f_str, show_trace=true)  
         pz, py = compute_H_CI!(pz, py, data, f_str)
     else
         pz, py, = optimize_model(pz, py, data, f_str, n, show_trace=true)   
