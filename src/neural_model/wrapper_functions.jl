@@ -378,8 +378,8 @@ function compute_LL_threads(pz::Vector{T}, py::Vector{Vector{Vector{T}}}, data::
             
 end
 
-function compute_LL(pz::Vector{T}, py::Vector{Vector{Vector{T}}}, data::Vector{Dict{Any,Any}},
-        n::Int, f_str::String) where {T <: Any}
+function compute_LL(pz::Vector{T}, py::Vector{Vector{Vector{U}}}, data::Vector{Dict{Any,Any}},
+        n::Int, f_str::String) where {T,U <: Any}
     
     LL = sum(map((py,data)-> sum(LL_all_trials(pz, py, data, n, f_str=f_str)), py, data))
             

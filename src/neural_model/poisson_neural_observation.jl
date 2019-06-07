@@ -66,8 +66,8 @@ function LL_all_trials_threads(pz::Vector{TT}, py::Vector{Vector{TT}}, data::Dic
     
 end
 
-function LL_all_trials(pz::Vector{TT}, py::Vector{Vector{TT}}, data::Dict, 
-        n::Int; f_str::String="softplus") where {TT <: Any}
+function LL_all_trials(pz::Vector{TT}, py::Vector{Vector{UU}}, data::Dict, 
+        n::Int; f_str::String="softplus") where {TT,UU <: Any}
      
     dt = data["dt"]
     P,M,xc,dx, = initialize_latent_model(pz,n,dt)
@@ -79,12 +79,12 @@ function LL_all_trials(pz::Vector{TT}, py::Vector{Vector{TT}}, data::Dict,
     
 end
 
-function LL_single_trial(pz::Vector{TT}, P::Vector{TT}, M::Array{TT,2}, dx::VV,
+function LL_single_trial(pz::Vector{ZZ}, P::Vector{TT}, M::Array{TT,2}, dx::VV,
         xc::Vector{WW},L::Vector{Float64}, R::Vector{Float64}, T::Int,
         nL::Vector{Int}, nR::Vector{Int},
-        py::Vector{Vector{TT}}, k::Vector{Vector{Int}},dt::Float64,n::Int,
+        py::Vector{Vector{YY}}, k::Vector{Vector{Int}},dt::Float64,n::Int,
         λ0::Vector{Vector{UU}};
-        f_str::String="softplus") where {UU,TT,VV,WW <: Any}
+        f_str::String="softplus") where {UU,TT,VV,WW,YY,ZZ <: Any}
 
     #adapt magnitude of the click inputs
     La, Ra = make_adapted_clicks(pz,L,R)

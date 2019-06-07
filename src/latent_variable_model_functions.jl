@@ -1,6 +1,65 @@
 
 const dimz = 7
 
+function compute_deriv(B, pz::Dict{}, py::Dict{}, data::Vector{Dict{Any,Any}}, f_str::String, 
+        n::Int)
+    
+    ll(x) = pulse_input_DDM.compute_LL_test(x, pz["generative"], py["generative"], data, n, f_str)
+    
+    ForwardDiff.derivative(ll, B)
+            
+end
+
+function compute_gradient_2(pz::Dict{}, py::Dict{}, data::Vector{Dict{Any,Any}}, f_str::String, 
+        n::Int)
+    
+    ll(x) = pulse_input_DDM.compute_LL(x, py["generative"], data, n, f_str)
+    
+    ForwardDiff.gradient(ll, pz["generative"])
+        
+end
+
+function compute_gradient(pz::Dict{}, py::Dict{}, data::Vector{Dict{Any,Any}}, f_str::String, 
+        n::Int)
+    
+    fit_vec = pulse_input_DDM.combine_latent_and_observation(pz["fit"], py["fit"])
+    p_opt, p_const = pulse_input_DDM.split_combine_invmap(pz["final"], py["final"], fit_vec, data[1]["dt"], f_str, pz["lb"], pz["ub"])
+    parameter_map_f(x) = pulse_input_DDM.map_split_combine(x, p_const, fit_vec, data[1]["dt"], 
+        f_str, py["N"], py["dimy"], pz["lb"], pz["ub"])
+    ll(x) = pulse_input_DDM.ll_wrapper(x, data, parameter_map_f, f_str, n)
+    
+    ForwardDiff.gradient(ll, p_opt)
+        
+end
+
+function compute_LL_test(B::T, pz::Vector{U}, py::Vector{Vector{Vector{U}}}, data::Vector{Dict{Any,Any}},
+        n::Int, f_str::String) where {T,U <: Any}
+    
+    LL = sum(map((py,data)-> sum(LL_all_trials_test(B, pz, py, data, n, f_str=f_str)), py, data))
+            
+end
+
+function LL_all_trials_test(B::TT, pz::Vector{UU}, py::Vector{Vector{UU}}, data::Dict, 
+        n::Int; f_str::String="softplus") where {TT,UU <: Any}
+     
+    dt = data["dt"]
+    vari = pz[1]
+    lambda,vara = pz[3:4]
+   
+    xc,dx, = bins(B,n)
+    
+    P = P0(vari,n,dx,xc,dt)
+   
+    M = zeros(TT,n,n)
+    M!(M,vara*dt,lambda,zero(TT),dx,xc,n,dt)  
+                            
+    output = pmap((L,R,T,nL,nR,SC,λ0) -> LL_single_trial(pz, P, M, dx, xc,
+        L, R, T, nL, nR, py, SC, dt, n, λ0, f_str=f_str),
+        data["leftbups"], data["rightbups"], data["nT"], data["binned_leftbups"], 
+        data["binned_rightbups"], data["spike_counts"], data["λ0"])   
+    
+end
+
 function initialize_latent_model(pz::Vector{TT}, n::Int, dt::Float64; 
         L_lapse::UU=0., R_lapse::UU=0.) where {TT,UU}
     
@@ -24,15 +83,15 @@ function P0(vari::TT, n::Int, dx::VV, xc::Vector{WW}, dt::Float64;
     P = zeros(TT,n)
     P[ceil(Int,n/2)] = one(TT) - (L_lapse + R_lapse)     # make initial delta function
     P[1], P[n] = L_lapse, R_lapse
-    M = zeros(TT,n,n)                                    # build empty transition matrix
-    M!(M,vari,zero(TT),zero(TT),dx,xc,n,dt)
+    M = zeros(WW,n,n)                                    # build empty transition matrix
+    M!(M,vari,zero(WW),zero(WW),dx,xc,n,dt)
     P = M * P
     
 end
 
-function latent_one_step!(P::Vector{TT},F::Array{TT,2},pz::Vector{TT},t::Int,hereL::Vector{Int}, hereR::Vector{Int},
-        La::Vector{TT},Ra::Vector{TT},M::Array{TT,2},
-        dx::UU,xc::Vector{VV},n::Int,dt::Float64;backwards::Bool=false) where {TT,UU,VV <: Any}
+function latent_one_step!(P::Vector{TT},F::Array{TT,2},pz::Vector{WW},t::Int,hereL::Vector{Int}, hereR::Vector{Int},
+        La::Vector{YY},Ra::Vector{YY},M::Array{TT,2},
+        dx::UU,xc::Vector{VV},n::Int,dt::Float64;backwards::Bool=false) where {TT,UU,VV,WW,YY <: Any}
     
     lambda,vara,vars = pz[3:5]
     
@@ -65,7 +124,7 @@ end
 
 myconvert(::Type{T}, x::ForwardDiff.Dual) where {T} = T(x.value)
 
-function M!(F::Array{TT,2},vara::TT,lambda::TT,h::Union{TT,Float64},dx::UU,xc::Vector{VV}, n::Int, dt::Float64) where {TT,UU,VV <: Any}
+function M!(F::Array{WW,2},vara::YY,lambda::ZZ,h::Union{TT},dx::UU,xc::Vector{VV}, n::Int, dt::Float64) where {TT,UU,VV,WW,YY,ZZ <: Any}
     
     F[1,1] = one(TT); F[n,n] = one(TT); F[:,2:n-1] = zeros(TT,n,n-2)
        
