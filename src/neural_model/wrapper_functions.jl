@@ -105,7 +105,9 @@ function generate_syn_data_fit_CI(n::Int, pz::Dict{}, py::Dict{}, ntrials_per_se
         dt=1e-3, f_str::String="softplus")
    
     data = sample_input_and_spikes_multiple_sessions(n, pz["generative"], py["generative"], ntrials_per_sess; f_str=f_str,
-        dtMC=dt)
+        dtMC=1e-3)
+    
+    @warn "using dtMC=1e-3"
     
     data = map(x->bin_clicks_spikes_and_λ0!(x;dt=dt), data)
     

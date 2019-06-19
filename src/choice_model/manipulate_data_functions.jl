@@ -49,7 +49,9 @@ end
 
 function bin_clicks(T,L,R,dt)
     
-    binnedT = ceil.(Int,T/dt)
+    #binnedT = ceil.(Int,T/dt)
+    binnedT = ceil.(Int,round.((T/dt) ./1e-10) .*1e-10) 
+    #added on 6/11/19, to avoid problem, such as 0.28/1e-2 = 28.0000000004, etc.
 
     nT = binnedT
     nL =  map((x,y)-> vec(qfind(0.:dt:x*dt,y)), binnedT, L)

@@ -177,3 +177,99 @@ function sample_latent_FP(pz::Vector{TT}, P::Vector{TT}, M::Array{TT,2}, dx::VV,
     return a
 
 end
+
+function Pa_FP(pz::Vector{TT}, P::Vector{TT}, M::Array{TT,2}, dx::VV,
+        xc::Vector{WW},L::Vector{Float64}, R::Vector{Float64}, T::Int,
+        nL::Vector{Int}, nR::Vector{Int},
+        dt::Float64,n::Int) where {UU,TT,VV,WW <: Any}
+
+    #adapt magnitude of the click inputs
+    La, Ra = make_adapted_clicks(pz,L,R)
+
+    Pa = Array{TT,2}(undef,n,T)
+    F = zeros(TT,n,n) #empty transition matrix for time bins with clicks
+
+    @inbounds for t = 1:T
+
+        P, = latent_one_step!(P,F,pz,t,nL,nR,La,Ra,M,dx,xc,n,dt)
+        
+        Pa[:,t] = P
+        P /= sum(P)
+
+    end
+
+    return Pa
+
+end
+
+function sample_expected_rates_single_session(n::Int, data::Dict, pz::Vector{Float64}, py::Vector{Vector{Float64}}; 
+        f_str::String="softplus", rng::Int=1)
+    
+    Random.seed!(rng)   
+    dt = data["dt"]
+    P,M,xc,dx, = initialize_latent_model(pz,n,dt)
+    
+    output = pmap((λ0,nT,L,R,nL,nR,rng) -> sample_expected_rates_single_trial(n,pz,py,λ0,nT,L,R,nL,nR,P,M,dx,xc,dt;
+        f_str=f_str, rng=rng), 
+        data["λ0"], data["nT"], data["leftbups"], data["rightbups"], data["binned_leftbups"], 
+        data["binned_rightbups"], shuffle(1:length(data["T"])))  
+    
+    λ = map(x-> x[1], output)
+    a = map(x-> x[2], output)  
+
+    return λ,a
+
+    
+end
+
+function sample_expected_rates_single_trial(n::Int, pz::Vector{Float64}, py::Vector{Vector{Float64}},
+        λ0::Vector{Vector{Float64}}, 
+        nT::Int, L::Vector{Float64}, R::Vector{Float64}, nL::Vector{Int}, nR::Vector{Int}, 
+        P, M, dx, xc,
+        dt::Float64; f_str::String="softplus", rng::Int=1)
+    
+    Random.seed!(rng)   
+    a = sample_latent_FP(pz, P, M, dx, xc, L, R, nT, nL, nR, dt, n) 
+                
+    λ = map((py,λ0)-> map((a, λ0)-> f_py!(a, λ0, py, f_str=f_str), a, λ0), py, λ0) 
+    
+    return λ, a
+    
+end
+
+function Pa_single_session(n::Int, data::Dict, pz::Vector{Float64}, py::Vector{Vector{Float64}}; 
+        f_str::String="softplus")
+    
+    dt = data["dt"]
+    P,M,xc,dx, = initialize_latent_model(pz,n,dt)
+    
+    Pa = pmap((λ0,nT,L,R,nL,nR,rng) -> Pa_single_trial(n,pz,py,λ0,nT,L,R,nL,nR,P,M,dx,xc,dt;
+        f_str=f_str), 
+        data["λ0"], data["nT"], data["leftbups"], data["rightbups"], data["binned_leftbups"], 
+        data["binned_rightbups"], shuffle(1:length(data["T"])))  
+    
+    #λ = map(x-> x[1], output)
+    #a = map(x-> x[2], output)  
+
+    #return λ,a
+    
+    return Pa
+
+    
+end
+
+function Pa_single_trial(n::Int, pz::Vector{Float64}, py::Vector{Vector{Float64}},
+        λ0::Vector{Vector{Float64}}, 
+        nT::Int, L::Vector{Float64}, R::Vector{Float64}, nL::Vector{Int}, nR::Vector{Int}, 
+        P, M, dx, xc,
+        dt::Float64; f_str::String="softplus")
+    
+    Pa = Pa_FP(pz, P, M, dx, xc, L, R, nT, nL, nR, dt, n) 
+                
+    #λ = map((py,λ0)-> map((a, λ0)-> f_py!(a, λ0, py, f_str=f_str), a, λ0), py, λ0) 
+    
+    #return λ, a
+    
+    return Pa
+    
+end

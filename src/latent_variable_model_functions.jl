@@ -1,10 +1,10 @@
 
 const dimz = 7
 
-function compute_deriv(B, pz::Dict{}, py::Dict{}, data::Vector{Dict{Any,Any}}, f_str::String, 
+function compute_deriv(B, pz, py, data::Vector{Dict{Any,Any}}, f_str::String, 
         n::Int)
     
-    ll(x) = pulse_input_DDM.compute_LL_test(x, pz["generative"], py["generative"], data, n, f_str)
+    ll(x) = pulse_input_DDM.compute_LL_test(x, pz, py, data, n, f_str)
     
     ForwardDiff.derivative(ll, B)
             
@@ -161,7 +161,8 @@ function M!(F::Array{WW,2},vara::YY,lambda::ZZ,h::Union{TT},dx::UU,xc::Vector{VV
     
     @inbounds for j = 2:n-1
 
-        abs(lambda) < 1e-150 ? mu = xc[j] + h * dt : mu = exp(lambda*dt)*(xc[j] + h/lambda) - h/lambda
+        #abs(lambda) < 1e-150 ? mu = xc[j] + h * dt : mu = exp(lambda*dt)*(xc[j] + h/lambda) - h/lambda
+        lambda == 0. ? mu = xc[j] + h * dt : mu = exp(lambda*dt)*(xc[j] + h/lambda) - h/lambda
         
         #now we're going to look over all the slices of the gaussian
         for k = 1:2*ndeltas+1
