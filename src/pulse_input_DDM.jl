@@ -4,9 +4,9 @@ using StatsBase, Distributions, Optim, LineSearches, JLD2
 using ForwardDiff, Distributed, LinearAlgebra
 using SpecialFunctions, MAT, Random 
 using DSP
-import Pandas: qcut
+import Pandas: qcut, cut
 import StatsFuns: logistic, logit
-using Base.Threads
+using Base.Threads, ImageFiltering
 
 #using ROCAnalysis, ImageFiltering
 
@@ -38,6 +38,7 @@ include("neural_model/sample_model_functions.jl")
 include("neural_model/manipulate_data_functions.jl")
 
 export compute_H_CI!, optimize_model, compute_LL, load_and_optimize, compute_Hessian
+export neural_null
 
 export compute_LL_and_prior
 export sample_input_and_spikes_multiple_sessions, sample_inputs_and_spikes_single_session

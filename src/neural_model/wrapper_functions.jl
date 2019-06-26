@@ -105,9 +105,9 @@ function generate_syn_data_fit_CI(n::Int, pz::Dict{}, py::Dict{}, ntrials_per_se
         dt=1e-3, f_str::String="softplus")
    
     data = sample_input_and_spikes_multiple_sessions(n, pz["generative"], py["generative"], ntrials_per_sess; f_str=f_str,
-        dtMC=1e-3)
+        dtMC=1e-4)
     
-    @warn "using dtMC=1e-3"
+    @warn "data generated using FP @ dtMC=1e-4, which will introduce lots of settling!"
     
     data = map(x->bin_clicks_spikes_and_λ0!(x;dt=dt), data)
     
@@ -246,30 +246,30 @@ function compute_Hessian(pz::Dict{}, py::Dict{}, data::Vector{Dict{Any,Any}}, f_
 end
 
 function load_and_optimize(path::String, sessids, ratnames, f_str, n::Int; 
-        dt::Float64=1e-2, delay::Float64=0.,
+        dt::Float64=1e-3, delay::Float64=0.,
         pz::Dict = Dict("name" => ["σ_i","B", "λ", "σ_a","σ_s","ϕ","τ_ϕ"],
-        "fit" => trues(dimz),
-        "initial" => [1e-6,20.,-0.1,100.,5.,0.2,0.005],
-        "lb" => [eps(), 4., -5., eps(), eps(), eps(), eps()],
-        "ub" => [10., 100, 5., 800., 40., 2., 10.]),
+            "fit" => vcat(falses(1),trues(2),falses(4)),
+            "initial" => [2*eps(), 10., -0.1, 2*eps(), 2*eps(), 1.0, 0.005],
+            "lb" => [eps(), 8., -5., eps(), eps(), eps(), eps()],
+            "ub" => [10., 40, 5., 100., 2.5, 2., 10.]),
         show_trace::Bool=true, iterations::Int=Int(2e3))
     
     data = aggregate_spiking_data(path,sessids,ratnames)
-    data = bin_clicks_spikes_and_λ0!(data; dt=dt, delay=delay)
+    data = map(x->bin_clicks_spikes_and_λ0!(x; dt=dt,delay=delay), data)
     
-    pz, py = load_and_optimize(data, f_str, n;
-        pz=pz, show_trace=show_trace, iterations=iterations)
+    pz, py = load_and_optimize(data, f_str, n; pz=pz, 
+        show_trace=show_trace, iterations=iterations)
     
-    return pz, py
+    return pz, py, data
     
 end
 
 function load_and_optimize(data::Vector{Dict{Any,Any}}, f_str, n::Int;
         pz::Dict = Dict("name" => ["σ_i","B", "λ", "σ_a","σ_s","ϕ","τ_ϕ"],
-        "fit" => trues(dimz),
-        "initial" => [1e-6,20.,-0.1,100.,5.,0.2,0.005],
-        "lb" => [eps(), 4., -5., eps(), eps(), eps(), eps()],
-        "ub" => [10., 100, 5., 800., 40., 2., 10.]),
+            "fit" => vcat(falses(1),trues(2),falses(4)),
+            "initial" => [2*eps(), 10., -0.1, 2*eps(), 2*eps(), 1.0, 0.005],
+            "lb" => [eps(), 8., -5., eps(), eps(), eps(), eps()],
+            "ub" => [10., 40, 5., 100., 2.5, 2., 10.]),
         show_trace::Bool=true, iterations::Int=Int(2e3))
     
     nsessions = length(data)
@@ -277,19 +277,26 @@ function load_and_optimize(data::Vector{Dict{Any,Any}}, f_str, n::Int;
     
     if f_str == "softplus"
         dimy = 3
+    elseif f_str == "sig"
+        dimy = 4
     end
-    
+
     #parameters for the neural observation model
     py = Dict("fit" => map(N-> repeat([trues(dimy)],outer=N), N_per_sess),
         "initial" => [[[Vector{Float64}(undef,dimy)] for n in 1:N] for N in N_per_sess],
         "dimy"=> dimy,
         "N"=> N_per_sess,
         "nsessions"=> nsessions)
+
+    py["initial"] = map(data-> regress_init(data, f_str), data)
+    pz, py = optimize_model(pz, py, data, f_str, show_trace=show_trace)
     
-    py["initial"] = map(data -> optimize_model(data,f_str,show_trace=false), data)
+    pz["initial"] = vcat(1e-6,10.,-0.1,20.,0.5,1.0,0.005)
+    pz["state"][pz["fit"] .== false] = pz["initial"][pz["fit"] .== false]
+    pz["fit"] = vcat(falses(1),trues(4),falses(2))
     
-    pz, py, = optimize_model(pz, py, data, f_str, n; 
-        show_trace=show_trace, n=n, iterations=iterations)
+    pz, py, = optimize_model(pz, py, data, f_str, n, show_trace=show_trace, iterations=iterations) 
+    pz, py = compute_H_CI!(pz, py, data, f_str, n)
     
     return pz, py
     

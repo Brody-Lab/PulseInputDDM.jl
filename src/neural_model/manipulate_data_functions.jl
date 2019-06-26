@@ -44,6 +44,7 @@ function neural_data_single_session(rawdata, ratname, sessID)
     
     data["ntrials"] = ntrials
     data["N"] = N
+    data["synthetic"] = false
 
     data["T"] = vec(rawdata["T"])
     data["pokedR"] = vec(convert(BitArray,rawdata["pokedR"]))
@@ -69,37 +70,89 @@ function bin_clicks_spikes_and_λ0!(data::Dict; dt::Float64=1e-2, delay::Float64
     
     data = bin_clicks!(data; dt=dt)
     
-    #eventually fix this for all use cases
-    
-    #if only has spike times, bin the spikes
-    #if (!haskey(data,"spike_counts") || !haskey(data,"spike_counts_MC"))
-    #    binnedT = ceil.(Int, data["T"] ./dt)
-    #    data["spike_counts"] =  map((x,y) -> map(z -> fit(Histogram, vec(collect(y[z] .- delay)), 
-    #            0.:dt:x*dt, closed=:left).weights, 1:length(y)), binnedT, data["spike_times"])
-    #end
-    
-    #if has binned spike times, but the dt is larger than the MC dt
-    #if haskey(data,"spike_counts_MC") & (data["dt"] != data["dtMC"])
+    if data["synthetic"]
         
-        data["spike_counts"] =  map(SC-> map(SCn-> 
+        if data["dt"] != data["dtMC"]
+            data["spike_counts"] =  map(SC-> map(SCn-> 
                 map(sum,collect(Iterators.partition(SCn, Int(data["dt"]/data["dtMC"])))), SC), 
                 data["spike_counts_MC"])
-        
-    #end
-    
-    #if haskey(data,"dtMC")
-        if data["dt"] != data["dtMC"]
             data["λ0"] = map(x-> map(z-> decimate(x[z], Int(data["dt"]/data["dtMC"])), 1:length(x)), data["λ0_MC"])
         else 
             data["λ0"] = data["λ0_MC"]
+            data["spike_counts"] = data["spike_counts_MC"]
         end
-    #else
-    #    binnedT = ceil.(Int, data["T"] ./dt)
-    #    data["λ0"] = map(x -> repeat([zeros(x)], outer=data["N"]), binnedT)
-        #data["spike_counts_extended"] =  map((x,y) -> map(z -> fit(Histogram, vec(collect(y[z] .- delay)), 
-        #    -10*dt:dt:((x+10)*dt), closed=:left).weights, 1:length(y)), binnedT, data["spike_times"])
-    #end
-    
+        
+    else
+        
+        binnedT = ceil.(Int, data["T"] ./dt)
+        #data["spike_counts"] =  map((x,y) -> map(z -> fit(Histogram, vec(collect(y[z] .- delay)), 
+        #        0.:dt:x*dt, closed=:left).weights, 1:length(y)), binnedT, data["spike_times"])
+        
+        ΔLRT = map((nT,L,R)-> diffLR(nT,L,R,data["dt"])[end],data["nT"],data["leftbups"],data["rightbups"])
+        data["nconds"] = 2
+        data["conds"] = cut(ΔLRT,data["nconds"],labels=false) .+ 1;
+        #data["conds"] = qcut(ΔLRT,data["nconds"],labels=false) .+ 1;
+        
+        data["spike_counts"] =  map((x,y) -> map(z -> fit(Histogram, vec(collect(y[z] .- delay)), 
+                collect(range(0,stop=x*dt,length=x+1)), 
+                closed=:left).weights, 1:length(y)), binnedT, data["spike_times"])
+        
+        pad = 100 #25 ms before and after trial
+        filtSD = 50; #20 ms
+        kern = reflect(KernelFactors.gaussian(filtSD,8*filtSD+1));
+        
+        #data["spike_counts_padded"] =  map((x,y) -> map(z -> fit(Histogram, vec(collect(y[z] .- delay)), 
+        #        -pad*dt:dt:(x+pad)*dt, closed=:left).weights, 1:length(y)), binnedT, data["spike_times"])  
+        
+        data["spike_counts_padded"] =  map((x,y) -> map(z -> fit(Histogram, vec(collect(y[z] .- delay)), 
+                    collect(range(-pad*dt,stop=(x+pad)*dt,length=(x+2*pad)+1)), 
+                    closed=:left).weights, 1:length(y)), binnedT, data["spike_times"]) 
+        
+        data["μ_rnt"] = map(r-> map(n-> imfilter(1/dt * data["spike_counts_padded"][r][n], kern, 
+                    Fill(zero(eltype(data["spike_counts_padded"][r][n]))))[pad+1:end-pad], 
+                    1:data["N"]), 1:data["ntrials"]);
+                
+        data["μ_ct"] = map(c-> map(n-> [mean([data["μ_rnt"][data["conds"] .== c][i][n][t] 
+            for i in findall(data["nT"][data["conds"] .== c] .>= t)]) 
+            for t in 1:(maximum(data["nT"][data["conds"] .== c]))], 1:data["N"]), 1:data["nconds"])
+        
+        data["σ_ct"] = map(c-> map(n-> [std([data["μ_rnt"][data["conds"] .== c][i][n][t] 
+            for i in findall(data["nT"][data["conds"] .== c] .>= t)]) / 
+                sqrt(length([data["μ_rnt"][data["conds"] .== c][i][n][t] 
+                    for i in findall(data["nT"][data["conds"] .== c] .>= t)]))
+            for t in 1:(maximum(data["nT"][data["conds"] .== c]))], 1:data["N"]), 1:data["nconds"])
+        
+        data["μ_t"] = map(n-> [mean([data["μ_rnt"][i][n][t] 
+            for i in findall(data["nT"] .>= t)]) 
+            for t in 1:(maximum(data["nT"]))], 1:data["N"])
+        
+        #keep extra and clip here?
+        #more filtering here?
+        #data["μ_t"] = map(n-> data["μ_t"][n], 1:data["N"])
+        #data["μ_ct"] = map(c-> map(n-> data["μ_ct"][c][n], 1:data["N"]), 1:data["nconds"])
+        #data["σ_ct"] = map(c-> map(n-> data["σ_ct"][c][n], 1:data["N"]), 1:data["nconds"])
+        
+        #data["μ_ct"] = map(c-> map(n-> imfilter(1/dt * [mean([data["spike_counts_padded"][data["conds"] .== c][i][n][t] 
+        #    for i in findall(data["nT"][data["conds"] .== c] .+ 2*pad .>= t)]) 
+        #    for t in 1:(maximum(data["nT"][data["conds"] .== c])+2*pad)], kern)[pad+1:end-pad], 
+        #        1:data["N"]), 1:data["nconds"])
+        
+        #data["σ_ct"] = map(c-> map(n-> imfilter(1/dt * [std([data["spike_counts_padded"][data["conds"] .== c][i][n][t] 
+        #    for i in findall(data["nT"][data["conds"] .== c] .+ 2*pad .>= t)]; corrected=false) / 
+        #        sqrt(length([data["spike_counts_padded"][data["conds"] .== c][i][n][t] 
+        #            for i in findall(data["nT"][data["conds"] .== c] .+ 2*pad .>= t)]))
+        #    for t in 1:(maximum(data["nT"][data["conds"] .== c])+2*pad)], kern)[pad+1:end-pad], 
+        #        1:data["N"]), 1:data["nconds"])
+        
+        #data["μ_t"] = map(n-> imfilter(1/dt * [mean([data["spike_counts_padded"][i][n][t] 
+        #    for i in findall(data["nT"] .+ 2*pad .>= t)]) 
+        #    for t in 1:(maximum(data["nT"])+2*pad)], kern)[pad+1:end-pad], 1:data["N"])
+        
+        #data["λ0"] = map(x -> repeat([zeros(x)], outer=data["N"]), binnedT)
+        data["λ0"] = map(i-> map(n-> data["μ_t"][n][1:data["nT"][i]], 1:data["N"]), 1:data["ntrials"])
+ 
+    end
+        
     return data    
 
 end

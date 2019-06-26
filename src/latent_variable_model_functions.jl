@@ -161,8 +161,11 @@ function M!(F::Array{WW,2},vara::YY,lambda::ZZ,h::Union{TT},dx::UU,xc::Vector{VV
     
     @inbounds for j = 2:n-1
 
-        #abs(lambda) < 1e-150 ? mu = xc[j] + h * dt : mu = exp(lambda*dt)*(xc[j] + h/lambda) - h/lambda
-        lambda == 0. ? mu = xc[j] + h * dt : mu = exp(lambda*dt)*(xc[j] + h/lambda) - h/lambda
+        abs(lambda) < 1e-150 ? mu = xc[j] + h * dt : mu = exp(lambda*dt)*(xc[j] + h/lambda) - h/lambda
+        #testing below, just to use same method for deterministic part as monte carlo data generation
+        #tested for noise = 100, high B, lamdbda= -1 and everything came back like other method
+        #abs(lambda) < 1e-150 ? mu = xc[j] + h * dt : mu = xc[j]*(1 + dt*lambda) + h * dt
+        #lambda == 0. ? mu = xc[j] + h * dt : mu = exp(lambda*dt)*(xc[j] + h/lambda) - h/lambda
         
         #now we're going to look over all the slices of the gaussian
         for k = 1:2*ndeltas+1
