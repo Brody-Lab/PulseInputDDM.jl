@@ -1,6 +1,6 @@
 
-normtanh(x) = 0.5 * (1. + tanh(x))
-normatanh(x) = atanh(2. * x - 1.)
+#normtanh(x) = 0.5 * (1. + tanh(x))
+#normatanh(x) = atanh(2. * x - 1.)
 
 function qfind(x,ts)
 

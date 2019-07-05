@@ -189,12 +189,6 @@ end
 function compute_H_CI!(pz::Dict{}, py::Dict{}, data::Vector{Dict{Any,Any}}, f_str::String, n::Int)
     
     H = compute_Hessian(pz, py, data, f_str, n)
-        
-    gooddims = 1:size(H,1)
-
-    evs = findall(eigvals(H[gooddims,gooddims]) .<= 0)
-    otherbad = vcat(map(i-> findall(abs.(eigvecs(H[gooddims,gooddims])[:,evs[i]]) .> 0.5), 1:length(evs))...)
-    gooddims = setdiff(gooddims,otherbad)
 
     fit_vec = combine_latent_and_observation(pz["fit"], py["fit"])
     p_opt, p_const = split_combine_invmap(pz["final"], py["final"], fit_vec, data[1]["dt"], f_str, pz["lb"], pz["ub"])
@@ -203,7 +197,11 @@ function compute_H_CI!(pz::Dict{}, py::Dict{}, data::Vector{Dict{Any,Any}}, f_st
 
     CI = fill!(Vector{Float64}(undef,size(H,1)),1e8);
     
-    try
+    try               
+        gooddims = 1:size(H,1)
+        evs = findall(eigvals(H[gooddims,gooddims]) .<= 0)
+        otherbad = vcat(map(i-> findall(abs.(eigvecs(H[gooddims,gooddims])[:,evs[i]]) .> 0.5), 1:length(evs))...)
+        gooddims = setdiff(gooddims,otherbad)
         CI[gooddims] = 2*sqrt.(diag(inv(H[gooddims,gooddims])));
     catch
         @warn "CI computation failed."
@@ -281,6 +279,7 @@ function load_and_optimize(data::Vector{Dict{Any,Any}}, f_str, n::Int;
         dimy = 4
     end
 
+    #I should map over this, no map within this....
     #parameters for the neural observation model
     py = Dict("fit" => map(N-> repeat([trues(dimy)],outer=N), N_per_sess),
         "initial" => [[[Vector{Float64}(undef,dimy)] for n in 1:N] for N in N_per_sess],
@@ -289,16 +288,24 @@ function load_and_optimize(data::Vector{Dict{Any,Any}}, f_str, n::Int;
         "nsessions"=> nsessions)
 
     py["initial"] = map(data-> regress_init(data, f_str), data)
-    pz, py = optimize_model(pz, py, data, f_str, show_trace=show_trace)
+    pz, py = optimize_model(pz, py, data, f_str, show_trace=show_trace, iterations=iterations)
     
-    pz["initial"] = vcat(1e-6,10.,-0.1,20.,0.5,1.0,0.005)
+    pz["initial"] = vcat(1.,10.,-0.1,20.,0.5,1.0,0.005)
     pz["state"][pz["fit"] .== false] = pz["initial"][pz["fit"] .== false]
-    pz["fit"] = vcat(falses(1),trues(4),falses(2))
+    pz["fit"] = vcat(trues(5),falses(2))
     
     pz, py, = optimize_model(pz, py, data, f_str, n, show_trace=show_trace, iterations=iterations) 
     pz, py = compute_H_CI!(pz, py, data, f_str, n)
     
-    return pz, py
+    LL_ML = compute_LL(pz["final"], py["final"], data, n, f_str)
+
+    LL_null = mapreduce(d-> mapreduce(r-> mapreduce(n-> 
+                neural_null(d["spike_counts"][r][n], d["λ0"][r][n], d["dt"]), 
+                    +, 1:d["N"]), +, 1:d["ntrials"]), +, data)
+
+    ΔLL = LL_ML - LL_null
+   
+    return pz, py, ΔLL
     
 end
 
@@ -390,7 +397,7 @@ end
 function compute_LL(pz::Vector{T}, py::Vector{Vector{Vector{U}}}, data::Vector{Dict{Any,Any}},
         n::Int, f_str::String) where {T,U <: Any}
     
-    LL = sum(map((py,data)-> sum(LL_all_trials(pz, py, data, n, f_str=f_str)), py, data))
+    LL = sum(map((py,data)-> sum(LL_all_trials(pz, py, data, n, f_str)), py, data))
             
 end
 
@@ -488,25 +495,24 @@ end
 function ll_wrapper(p_opt::Vector{TT}, data::Vector{Dict{Any,Any}}, parameter_map_f::Function, f_str::String) where {TT <: Any}
 
     pz, py = parameter_map_f(p_opt)   
-    LL = compute_LL(pz, py, data; f_str=f_str)
+    LL = compute_LL(pz, py, data, f_str)
         
     return -LL
               
 end
 
-function compute_LL(pz::Vector{T}, py::Vector{Vector{Vector{T}}}, data::Vector{Dict{Any,Any}};
-        f_str="softplus") where {T <: Any}
+function compute_LL(pz::Vector{T}, py::Vector{Vector{Vector{T}}}, data::Vector{Dict{Any,Any}},f_str::String) where {T <: Any}
     
-    LL = sum(map((py,data)-> sum(LL_all_trials(pz, py, data, f_str=f_str)), py, data))
+    LL = sum(map((py,data)-> sum(LL_all_trials(pz, py, data, f_str)), py, data))
             
 end
 
-function LL_all_trials(pz::Vector{TT}, py::Vector{Vector{TT}}, data::Dict; 
-        f_str::String="softplus") where {TT <: Any}
+function LL_all_trials(pz::Vector{TT}, py::Vector{Vector{TT}}, data::Dict, 
+        f_str::String) where {TT <: Any}
      
     dt = data["dt"]                             
     
-    sum(pmap((L,R,nT,nL,nR,k,λ0)-> LL_single_trial(pz,py,L,R,nT,nL,nR,k,λ0,dt;f_str=f_str), 
+    sum(pmap((L,R,nT,nL,nR,k,λ0)-> LL_single_trial(pz,py,L,R,nT,nL,nR,k,λ0,dt,f_str), 
         data["leftbups"], data["rightbups"], data["nT"], data["binned_leftbups"], 
         data["binned_rightbups"], data["spike_counts"], data["λ0"]))
         
@@ -515,11 +521,13 @@ end
 function LL_single_trial(pz::Vector{TT}, py::Vector{Vector{TT}},
         L::Vector{Float64}, R::Vector{Float64}, nT::Int, 
         nL::Vector{Int}, nR::Vector{Int},
-        k::Vector{Vector{Int}}, λ0::Vector{Vector{UU}}, dt::Float64; 
-        f_str::String="softplus") where {UU,TT <: Any}
+        k::Vector{Vector{Int}}, λ0::Vector{Vector{UU}}, dt::Float64, 
+        f_str::String) where {UU,TT <: Any}
     
     a = sample_latent(nT,L,R,nL,nR,pz;dt=dt)
-    sum(map((py,k,λ0)-> sum(poiss_LL.(k, map((a, λ0)-> f_py!(a, λ0, py, f_str=f_str), a, λ0), dt)), py, k, λ0))
+    #sum(map((py,k,λ0)-> sum(poiss_LL.(k, map((a, λ0)-> f_py!(a, λ0, py, f_str), a, λ0), dt)), py, k, λ0))
+    sum(map((py,k,λ0)-> sum(logpdf.(Poisson.(map((a, λ0)-> f_py!(a, λ0, py, f_str), a, λ0) * dt), k)), 
+            py, k, λ0))
     
 end
 

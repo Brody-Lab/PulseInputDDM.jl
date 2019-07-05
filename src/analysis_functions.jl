@@ -13,6 +13,18 @@ function diffLR(nT,L,R,dt)
     
 end
 
+function load_and_dprime(path::String, sessids, ratnames; 
+        dt::Float64=1e-3, delay::Float64=0.)
+    
+    data = aggregate_spiking_data(path,sessids,ratnames)
+    data = map(x->bin_clicks_spikes_and_λ0!(x; dt=dt,delay=delay), data)
+    
+    map(d-> map(n-> dprime(map(r-> data[d]["μ_rn"][r][n], 1:data[d]["ntrials"]), data[d]["pokedR"]), 
+            1:data[d]["N"]),
+                1:length(data))
+        
+end
+
 function binLR(nT,L,R,dt)
     
     #compute the cumulative diff of clicks
@@ -60,7 +72,7 @@ function predict_choice(pz, bias, data; n::Int=53)
 end
 
 function dprime(FR,choice)
-    (mean(FR[choice .== false]) - mean(FR[choice .== true])) / 
+    abs(mean(FR[choice .== false]) - mean(FR[choice .== true])) / 
         sqrt(0.5 * (var(FR[choice .== false])^2 + var(FR[choice .== true])^2))
 end
 

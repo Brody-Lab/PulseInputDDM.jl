@@ -11,7 +11,7 @@ function map_split_combine(p_opt, p_const, fit_vec, dt, f_str::String, N::Vector
 
     pz,py = split_latent_and_observation(combine_variable_and_const(p_opt, p_const, fit_vec), N, dimy)
     pz = map_pz!(pz,dt,lb,ub)       
-    py = map(py-> map_py!.(py,f_str=f_str), py)
+    py = map(py-> map_py!.(py,f_str), py)
     
     return pz,py
     
@@ -40,7 +40,7 @@ function split_combine_invmap(pz::Vector{TT}, py::Vector{Vector{Vector{TT}}}, fi
         lb::Vector{Float64}, ub::Vector{Float64}) where {TT <: Any}
 
     pz = inv_map_pz!(copy(pz), dt, lb, ub)     
-    py = map(py-> inv_map_py!.(py, f_str=f_str), deepcopy(py))
+    py = map(py-> inv_map_py!.(py, f_str), deepcopy(py))
     p_opt, p_const = split_variable_and_const(combine_latent_and_observation(pz,py),fit_vec)
     
     return p_opt, p_const
@@ -50,7 +50,11 @@ end
 combine_latent_and_observation(pz::Union{Vector{TT},BitArray{1}}, 
     py::Union{Vector{Vector{Vector{TT}}},Vector{Vector{BitArray{1}}}}) where {TT <: Any} = vcat(pz,vcat(vcat(py...)...))
     
-function map_py!(p::Vector{TT}; f_str::String="softplus") where {TT}
+function map_py!(p::Vector{TT}, f_str::String) where {TT}
+    
+    #eventually make this an input
+    lb = [eps(),eps(),-Inf,-Inf]
+    ub = [100., 100., Inf, Inf]
         
     if f_str == "exp"
         
@@ -59,7 +63,9 @@ function map_py!(p::Vector{TT}; f_str::String="softplus") where {TT}
         
     elseif f_str == "sig"
         
-        p[1:2] = exp.(p[1:2])
+        #p[1:2] = exp.(p[1:2])
+        #p[1:2] = lb[1:2] .+ (ub[1:2] .- lb[1:2]) .* logistic.(p[1:2])
+        p[1:2] = lb[1:2] .+ (ub[1:2] .- lb[1:2]) .* logistic!.(p[1:2])
         p[3:4] = p[3:4]
         
     elseif f_str == "softplus"
@@ -73,7 +79,10 @@ function map_py!(p::Vector{TT}; f_str::String="softplus") where {TT}
     
 end
 
-function inv_map_py!(p::Vector{TT}; f_str::String="softplus") where {TT}
+function inv_map_py!(p::Vector{TT}, f_str::String) where {TT}
+    
+    lb = [eps(),eps(),-Inf,-Inf]
+    ub = [100., 100., Inf, Inf]
      
     if f_str == "exp"
 
@@ -82,7 +91,8 @@ function inv_map_py!(p::Vector{TT}; f_str::String="softplus") where {TT}
         
     elseif f_str == "sig"
         
-        p[1:2] = log.(p[1:2])
+        #p[1:2] = log.(p[1:2])
+        p[1:2] = logit.((p[1:2] .- lb[1:2])./(ub[1:2] .- lb[1:2]))
         p[3:4] = p[3:4]     
         
     elseif f_str == "softplus"

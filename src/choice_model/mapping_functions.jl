@@ -43,7 +43,8 @@ function map_pd!(x)
     ub = [Inf, 1.]
     
     x[1] = x[1]       
-    x[2] = lb[2] + (ub[2] - lb[2]) * normtanh(x[2])  
+    #x[2] = lb[2] + (ub[2] - lb[2]) * normtanh(x[2])
+    x[2] = lb[2] + (ub[2] - lb[2]) * logistic!(x[2])
     
     return x
     
@@ -55,7 +56,8 @@ function inv_map_pd!(x)
     ub = [Inf, 1.]
     
     x[1] = x[1]
-    x[2] = normatanh((x[2] - lb[2])/(ub[2] - lb[2]))
+    #x[2] = normatanh((x[2] - lb[2])/(ub[2] - lb[2]))
+    x[2] = logit((x[2] - lb[2])/(ub[2] - lb[2]))
         
     return x
     
