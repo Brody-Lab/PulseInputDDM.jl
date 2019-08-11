@@ -64,6 +64,7 @@ function opt_ll(p_opt,ll;g_tol::Float64=1e-12,x_tol::Float64=1e-16,f_tol::Float6
     obj = OnceDifferentiable(ll, p_opt; autodiff=:forward)
     #obj = TwiceDifferentiable(ll, p_opt; autodiff=:forward)
     m = BFGS(alphaguess = InitialStatic(alpha=1.0,scaled=true), linesearch = BackTracking())
+    #m = GradientDescent(alphaguess = InitialStatic(alpha=1e-2,scaled=true), linesearch = Static())
     #m = BFGS(alphaguess = InitialHagerZhang(α0=1.0), linesearch = HagerZhang())
     #m = Newton(alphaguess = LineSearches.InitialStatic(alpha=1.0,scaled=true), 
     #    linesearch = BackTracking())

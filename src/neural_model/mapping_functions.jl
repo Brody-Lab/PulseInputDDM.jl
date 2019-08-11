@@ -53,8 +53,11 @@ combine_latent_and_observation(pz::Union{Vector{TT},BitArray{1}},
 function map_py!(p::Vector{TT}, f_str::String) where {TT}
     
     #eventually make this an input
-    lb = [eps(),eps(),-Inf,-Inf]
-    ub = [100., 100., Inf, Inf]
+    #lb = [eps(),eps(),-Inf,-Inf]
+    #ub = [100., 100., Inf, Inf]
+    
+    lb = [-Inf,-Inf,-Inf,-Inf]
+    ub = [Inf, Inf, Inf, Inf]
         
     if f_str == "exp"
         
@@ -88,8 +91,11 @@ function inv_map_py!(p::Vector{TT}, f_str::String) where {TT}
         
     elseif f_str == "sig"    
             
-        lb = [eps(),eps(),-Inf,-Inf]
-        ub = [100., 100., Inf, Inf]
+        #lb = [eps(),eps(),-Inf,-Inf]
+        #ub = [100., 100., Inf, Inf]
+        
+        lb = [-Inf,-Inf,-Inf,-Inf]
+        ub = [Inf, Inf, Inf, Inf]
      
         vec = p[1:2] .== lb[1:2]
         if any(vec)

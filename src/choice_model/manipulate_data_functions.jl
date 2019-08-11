@@ -36,26 +36,44 @@ function append_choice_data!(data::Dict, rawdata::Dict, ratname::String, sessID:
 
 end
 
-function bin_clicks!(data::Dict; dt::Float64=1e-2)
+function bin_clicks!(data::Dict, use_bin_center::Bool; dt::Float64=1e-2)
     
     data["dt"] = dt
+    data["use_bin_center"] = use_bin_center
     
     data["nT"], data["binned_leftbups"], data["binned_rightbups"] = 
-        bin_clicks(data["T"], data["leftbups"], data["rightbups"], dt)
+        bin_clicks(data["T"], data["leftbups"], data["rightbups"], dt, use_bin_center)
     
     return data    
 
 end
 
-function bin_clicks(T,L,R,dt)
+function bin_clicks(T,L,R,dt,use_bin_center)
     
     #binnedT = ceil.(Int,T/dt)
     binnedT = ceil.(Int,round.((T/dt) ./1e-10) .*1e-10) 
     #added on 6/11/19, to avoid problem, such as 0.28/1e-2 = 28.0000000004, etc.
 
     nT = binnedT
-    nL =  map((x,y)-> vec(qfind(0.:dt:x*dt,y)), binnedT, L)
-    nR = map((x,y)-> vec(qfind(0.:dt:x*dt,y)), binnedT, R)
+    #nL =  map((x,y)-> vec(qfind(0.:dt:x*dt,y)), binnedT, L)
+    #nR = map((x,y)-> vec(qfind(0.:dt:x*dt,y)), binnedT, R)
+    
+    if use_bin_center
+        
+        #changed on 6/9, based on approaches developed with JP, 
+        #so that a(t) is computed to middle of bin, and spikes are computed within bin edges
+        #nL =  map((x,y)-> map(z-> searchsortedlast(0.:dt:x*dt,z), y), binnedT, L)
+        #nR = map((x,y)-> map(z-> searchsortedlast(0.:dt:x*dt,z), y), binnedT, R)
+        nL =  map((x,y)-> map(z-> searchsortedlast((0. -dt/2):dt:(x -dt/2)*dt,z), y), binnedT, L)
+        nR = map((x,y)-> map(z-> searchsortedlast((0. -dt/2):dt:(x -dt/2)*dt,z), y), binnedT, R)
+        
+    else 
+                   
+        #this is for data generation
+        nL =  map((x,y)-> map(z-> searchsortedlast(0.:dt:x*dt,z), y), binnedT, L)
+        nR = map((x,y)-> map(z-> searchsortedlast(0.:dt:x*dt,z), y), binnedT, R)
+        
+    end
     
     return nT, nL, nR
     

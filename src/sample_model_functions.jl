@@ -6,13 +6,6 @@ function sample_clicks(ntrials::Int; rng::Int=1)
     data = Dict()
 
     output = map(generate_stimulus,1:ntrials)
-    #output = map(i-> generate_stimulus(i;tmin=0.5, tmax=0.7),1:ntrials)
-    #@warn "all trials 1.0 seconds"
-    #@warn "all trials divisible by 0.01, moved"
-    #@warn "all normal"
-    #@warn "0.6 or 0.8"
-    @warn "rounded, all times"
-    #@warn "not divied, all times"
 
     data["leftbups"] = map(i->output[i][3],1:ntrials)
     data["rightbups"] = map(i->output[i][2],1:ntrials)
@@ -26,10 +19,6 @@ end
 function generate_stimulus(i::Int; tmin::Float64=0.2,tmax::Float64=1.0,clicktot::Int=40)
     
     T = tmin + (tmax-tmin)*rand()
-    #T = [0.6712345982,0.819045238761][1+Int(round(rand()))]
-    #T = [0.67, 0.82][1+Int(round(rand()))]
-    #T = [0.6712, 0.8190][1+Int(round(rand()))]
-    #T = [0.6, 0.8][1+Int(round(rand()))]
     
     ratetot = clicktot/T
     Rbar = ratetot*rand()
@@ -40,7 +29,7 @@ function generate_stimulus(i::Int; tmin::Float64=0.2,tmax::Float64=1.0,clicktot:
     R = vcat(0,R[R .<= T])
     L = vcat(0,L[L .<= T])
     
-    T = Int(ceil(T/1e-2)) * 1e-2
+    T = Int(ceil(T/2e-2)) * 2e-2
     
     return T,R,L
     
@@ -48,7 +37,8 @@ end
 
 function sample_latent(nT::Int, L::Vector{Float64},R::Vector{Float64},
         nL::Vector{Int}, nR::Vector{Int}, 
-        pz::Vector{TT}; dt::Float64=1e-4) where {TT <: Any}
+        pz::Vector{TT}, use_bin_center::Bool; 
+        dt::Float64=1e-4) where {TT <: Any}
     
     vari, B, lambda, vara, vars, phi, tau_phi = pz
     
@@ -60,25 +50,47 @@ function sample_latent(nT::Int, L::Vector{Float64},R::Vector{Float64},
     for t = 1:nT
 
         #inputs
-        any(t .== nL) ? sL = sum(La[t .== nL]) : sL = zero(TT)
-        any(t .== nR) ? sR = sum(Ra[t .== nR]) : sR = zero(TT)
-        var, mu = vars * (sL + sR), -sL + sR  
+        #any(t .== nL) ? sL = sum(La[t .== nL]) : sL = zero(TT)
+        #any(t .== nR) ? sR = sum(Ra[t .== nR]) : sR = zero(TT)
+        #var, mu = vars * (sL + sR), -sL + sR  
         
         #(sL + sR) > zero(TT) ? a += mu + sqrt(var) * randn() : nothing
         #a += (dt*lambda) * a + sqrt(vara * dt) * randn()
         
-        if (vars == zero(TT)) && (vara == zero(TT))
+        #if (vars <= eps(TT)) && (vara <= eps(TT))
             
-            if abs(lambda) < 1e-150 
-                a += mu
+            #dt == 1e-4 ? (@warn "yo") : nothing
+            #this is to deal with determinstic models, when data is not being generated and dt is larger, to handle the first bin
+            if use_bin_center && t == 1
+            
+                a = sample_one_step!(a, t, vara, vars, lambda, nL, nR, La, Ra, dt/2)
+                #@warn "yo"
+                #eta = sqrt(vara * dt/2 + var) * randn()
+                #if abs(lambda) < 1e-150 
+                #    a += mu + eta
+                #else
+                #    h = mu/(dt/2*lambda)
+                #    a = exp(lambda*dt/2)*(a + h) - h + eta
+                #end
             else
-                h = mu/(dt*lambda)
-                a = exp(lambda*dt)*(a + h) - h
+            
+                a = sample_one_step!(a, t, vara, vars, lambda, nL, nR, La, Ra, dt)
+
+
+                #eta = sqrt(vara * dt + var) * randn()
+                #if abs(lambda) < 1e-150 
+                #    a += mu + eta
+                #else
+                #    h = mu/(dt*lambda)
+                #    a = exp(lambda*dt)*(a + h) - h + eta
+                #end
             end
-        else
-            (sL + sR) > zero(TT) ? I = mu + sqrt(var) * randn() : I = 0.
-            a += (dt*lambda) * a + sqrt(vara * dt) * randn() + I
-        end
+        #else
+            #this input should decay too, no, like above?
+            #can i just add noise to determinisitc solution
+            #(sL + sR) > zero(TT) ? I = mu + sqrt(var) * randn() : I = 0.
+            #a += (dt*lambda) * a + sqrt(vara * dt) * randn() + I
+        #end
 
         abs(a) > B ? (a = B * sign(a); A[t:nT] .= a; break) : A[t] = a
 
@@ -86,4 +98,25 @@ function sample_latent(nT::Int, L::Vector{Float64},R::Vector{Float64},
     
     return A
     
+end
+
+function sample_one_step!(a::TT, t::Int, vara::TT, vars::TT, lambda::TT, nL::Vector{Int}, nR::Vector{Int}, 
+        La, Ra, dt::Float64) where {TT <: Any}
+    
+    #inputs
+    any(t .== nL) ? sL = sum(La[t .== nL]) : sL = zero(TT)
+    any(t .== nR) ? sR = sum(Ra[t .== nR]) : sR = zero(TT)
+    var, mu = vars * (sL + sR), -sL + sR  
+    
+    eta = sqrt(vara * dt + var) * randn()
+    
+    if abs(lambda) < 1e-150 
+        a += mu + eta
+    else
+        h = mu/(dt*lambda)
+        a = exp(lambda*dt)*(a + h) - h + eta
+    end
+    
+    return a
+
 end
