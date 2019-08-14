@@ -56,8 +56,8 @@ function map_py!(p::Vector{TT}, f_str::String) where {TT}
     #lb = [eps(),eps(),-Inf,-Inf]
     #ub = [100., 100., Inf, Inf]
     
-    lb = [-Inf,-Inf,-Inf,-Inf]
-    ub = [Inf, Inf, Inf, Inf]
+    #lb = [-Inf,-Inf,-Inf,-Inf]
+    #ub = [Inf, Inf, Inf, Inf]
         
     if f_str == "exp"
         
@@ -68,8 +68,10 @@ function map_py!(p::Vector{TT}, f_str::String) where {TT}
         
         #p[1:2] = exp.(p[1:2])
         #p[1:2] = lb[1:2] .+ (ub[1:2] .- lb[1:2]) .* logistic.(p[1:2])
-        p[1:2] = lb[1:2] .+ (ub[1:2] .- lb[1:2]) .* logistic!.(p[1:2])
-        p[3:4] = p[3:4]
+        #p[1:2] = lb[1:2] .+ (ub[1:2] .- lb[1:2]) .* logistic!.(p[1:2])
+        #p[3:4] = p[3:4]
+        
+        p = p
         
     elseif f_str == "softplus"
           
@@ -94,24 +96,26 @@ function inv_map_py!(p::Vector{TT}, f_str::String) where {TT}
         #lb = [eps(),eps(),-Inf,-Inf]
         #ub = [100., 100., Inf, Inf]
         
-        lb = [-Inf,-Inf,-Inf,-Inf]
-        ub = [Inf, Inf, Inf, Inf]
+        #lb = [-Inf,-Inf,-Inf,-Inf]
+        #ub = [Inf, Inf, Inf, Inf]
      
-        vec = p[1:2] .== lb[1:2]
-        if any(vec)
-            @warn "some py parameter(s) at lower bound. bumped it (them) up by eps()."
-            p[1:2][vec] .= lb[1:2][vec] .+ 2*eps()
-        end
+        #vec = p[1:2] .== lb[1:2]
+        #if any(vec)
+        #    @warn "some py parameter(s) at lower bound. bumped it (them) up by eps()."
+        #    p[1:2][vec] .= lb[1:2][vec] .+ 2*eps()
+        #end
     
-        vec = p[1:2] .== ub[1:2]
-        if any(vec)
-            @warn "some py parameter(s) at upper bound. bumped it (them) down by eps()."
-            p[1:2][vec] .= ub[1:2][vec] .- 2*eps()
-        end
+        #vec = p[1:2] .== ub[1:2]
+        #if any(vec)
+        #    @warn "some py parameter(s) at upper bound. bumped it (them) down by eps()."
+        #    p[1:2][vec] .= ub[1:2][vec] .- 2*eps()
+        #end
         
         #p[1:2] = log.(p[1:2])
-        p[1:2] = logit.((p[1:2] .- lb[1:2])./(ub[1:2] .- lb[1:2]))
-        p[3:4] = p[3:4]     
+        #p[1:2] = logit.((p[1:2] .- lb[1:2])./(ub[1:2] .- lb[1:2]))
+        #p[3:4] = p[3:4]     
+        
+        p = p
         
     elseif f_str == "softplus"
         

@@ -29,7 +29,7 @@ function generate_stimulus(i::Int; tmin::Float64=0.2,tmax::Float64=1.0,clicktot:
     R = vcat(0,R[R .<= T])
     L = vcat(0,L[L .<= T])
     
-    T = Int(ceil(T/2e-2)) * 2e-2
+    T = Int(ceil(T/1e-2)) * 1e-2
     
     return T,R,L
     
@@ -48,49 +48,12 @@ function sample_latent(nT::Int, L::Vector{Float64},R::Vector{Float64},
     a = sqrt(vari)*randn()
 
     for t = 1:nT
-
-        #inputs
-        #any(t .== nL) ? sL = sum(La[t .== nL]) : sL = zero(TT)
-        #any(t .== nR) ? sR = sum(Ra[t .== nR]) : sR = zero(TT)
-        #var, mu = vars * (sL + sR), -sL + sR  
-        
-        #(sL + sR) > zero(TT) ? a += mu + sqrt(var) * randn() : nothing
-        #a += (dt*lambda) * a + sqrt(vara * dt) * randn()
-        
-        #if (vars <= eps(TT)) && (vara <= eps(TT))
             
-            #dt == 1e-4 ? (@warn "yo") : nothing
-            #this is to deal with determinstic models, when data is not being generated and dt is larger, to handle the first bin
-            if use_bin_center && t == 1
-            
-                a = sample_one_step!(a, t, vara, vars, lambda, nL, nR, La, Ra, dt/2)
-                #@warn "yo"
-                #eta = sqrt(vara * dt/2 + var) * randn()
-                #if abs(lambda) < 1e-150 
-                #    a += mu + eta
-                #else
-                #    h = mu/(dt/2*lambda)
-                #    a = exp(lambda*dt/2)*(a + h) - h + eta
-                #end
-            else
-            
-                a = sample_one_step!(a, t, vara, vars, lambda, nL, nR, La, Ra, dt)
-
-
-                #eta = sqrt(vara * dt + var) * randn()
-                #if abs(lambda) < 1e-150 
-                #    a += mu + eta
-                #else
-                #    h = mu/(dt*lambda)
-                #    a = exp(lambda*dt)*(a + h) - h + eta
-                #end
-            end
-        #else
-            #this input should decay too, no, like above?
-            #can i just add noise to determinisitc solution
-            #(sL + sR) > zero(TT) ? I = mu + sqrt(var) * randn() : I = 0.
-            #a += (dt*lambda) * a + sqrt(vara * dt) * randn() + I
-        #end
+        if use_bin_center && t == 1         
+            a = sample_one_step!(a, t, vara, vars, lambda, nL, nR, La, Ra, dt/2)
+        else
+            a = sample_one_step!(a, t, vara, vars, lambda, nL, nR, La, Ra, dt)
+        end
 
         abs(a) > B ? (a = B * sign(a); A[t:nT] .= a; break) : A[t] = a
 
@@ -116,6 +79,9 @@ function sample_one_step!(a::TT, t::Int, vara::TT, vars::TT, lambda::TT, nL::Vec
         h = mu/(dt*lambda)
         a = exp(lambda*dt)*(a + h) - h + eta
     end
+    
+    #(sL + sR) > zero(TT) ? a += mu + sqrt(var) * randn() : nothing
+    #a += (dt*lambda) * a + sqrt(vara * dt) * randn()
     
     return a
 

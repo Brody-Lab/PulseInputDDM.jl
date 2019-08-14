@@ -11,7 +11,8 @@ function aggregate_choice_data(path::String, sessids::Vector{Vector{Int}}, ratna
     for j = 1:length(ratnames)
         for i = 1:length(sessids[j])
             rawdata = read(matopen(path*"/"*ratnames[j]*"_"*string(sessids[j][i])*".mat"),"rawdata")
-            data = append_choice_data!(data,rawdata,ratnames[j],sessids[j][i])
+            #data = append_choice_data!(data,rawdata,ratnames[j],sessids[j][i])
+            data = append_choice_data!(data,rawdata)
         end
     end
     
@@ -19,7 +20,8 @@ function aggregate_choice_data(path::String, sessids::Vector{Vector{Int}}, ratna
     
 end
 
-function append_choice_data!(data::Dict, rawdata::Dict, ratname::String, sessID::Int)
+function append_choice_data!(data::Dict, rawdata::Dict)
+#function append_choice_data!(data::Dict, rawdata::Dict, ratname::String, sessID::Int)
 
     ntrials = length(rawdata["T"])
 
@@ -29,8 +31,27 @@ function append_choice_data!(data::Dict, rawdata::Dict, ratname::String, sessID:
     
     append!(data["leftbups"], map(x-> vec(collect(x)), rawdata["leftbups"]))
     append!(data["rightbups"], map(x-> vec(collect(x)), rawdata["rightbups"]))
-    append!(data["sessID"], repeat([sessID], inner=ntrials))
-    append!(data["ratID"], repeat([ratname], inner=ntrials))
+    #append!(data["sessID"], repeat([sessID], inner=ntrials))
+    #append!(data["ratID"], repeat([ratname], inner=ntrials))
+    
+    return data
+
+end
+
+function append_choice_data_marino!(data::Dict, rawdata::Dict)
+#function append_choice_data!(data::Dict, rawdata::Dict, ratname::String, sessID::Int)
+
+    ntrials = length(rawdata["T"])
+
+    append!(data["T"], rawdata["T"])
+    append!(data["pokedR"], vec(convert(BitArray,rawdata["pokedR"])))
+    append!(data["correct_dir"], vec(convert(BitArray,rawdata["correct_dir"])))
+    append!(data["context_loc"], vec(convert(BitArray,rawdata["context_loc"])))
+    
+    append!(data["leftbups_loc"], map(x-> vec(collect(x)), rawdata["leftbups_loc"]))
+    append!(data["rightbups_loc"], map(x-> vec(collect(x)), rawdata["rightbups_loc"]))
+    append!(data["leftbups_freq"], map(x-> vec(collect(x)), rawdata["leftbups_freq"]))
+    append!(data["rightbups_freq"], map(x-> vec(collect(x)), rawdata["rightbups_freq"]))
     
     return data
 

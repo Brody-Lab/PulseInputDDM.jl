@@ -1,5 +1,62 @@
 #################################### Full Poisson neural observation model #############
-     
+"""
+    optimize_model(pz,py,data;
+        n::Int=53, f_str="softplus"
+        x_tol::Float64=1e-16,f_tol::Float64=1e-16,g_tol::Float64=1e-12,
+        iterations::Int=Int(5e3),show_trace::Bool=true)
+
+    Optimize parameters specified within fit vectors.
+
+"""
+function optimize_model(pz::Dict{}, py::Dict{}, data::Vector{Dict{Any,Any}}, f_str::String,
+        n::Int; x_tol::Float64=1e-4, f_tol::Float64=1e-9, g_tol::Float64=1e-2,
+        iterations::Int=Int(2e3), show_trace::Bool=true) where {TT <: Any}
+    
+    haskey(pz,"state") ? nothing : pz["state"] = deepcopy(pz["initial"])
+    haskey(py,"state") ? nothing : py["state"] = deepcopy(py["initial"])
+    
+    pz = check_pz!(pz)
+
+    fit_vec = combine_latent_and_observation(pz["fit"], py["fit"])
+    p_opt, p_const = split_combine_invmap(pz["state"], py["state"], fit_vec, data[1]["dt"], f_str, pz["lb"], pz["ub"])
+
+    ###########################################################################################
+    ## Optimize
+    parameter_map_f(x) = map_split_combine(x, p_const, fit_vec, data[1]["dt"], 
+        f_str, py["N"], py["dimy"], pz["lb"], pz["ub"])
+    ll(x) = ll_wrapper(x, data, parameter_map_f, f_str, n)
+    
+    opt_output, state = opt_ll(p_opt, ll; g_tol=g_tol, x_tol=x_tol, f_tol=f_tol,
+        iterations=iterations, show_trace=show_trace);
+    p_opt = Optim.minimizer(opt_output)
+
+    pz["state"], py["state"] = parameter_map_f(p_opt)
+    pz["final"], py["final"] = pz["state"], py["state"]
+        
+    return pz, py, opt_output, state
+    
+end
+
+function ll_wrapper(p_opt::Vector{TT}, data::Vector{Dict{Any,Any}}, parameter_map_f::Function, f_str::String, 
+        n::Int) where {TT <: Any}
+
+    pz, py = parameter_map_f(p_opt)   
+    LL = compute_LL(pz, py, data, n, f_str)
+        
+    return -LL
+              
+end
+
+function compute_LL(pz::Vector{T}, py::Vector{Vector{Vector{U}}}, data::Vector{Dict{Any,Any}},
+        n::Int, f_str::String) where {T,U <: Any}
+    
+    LL = sum(map((py,data)-> sum(LL_all_trials(pz, py, data, n, f_str)), py, data))
+            
+end
+
+
+############ Compute Hessian ##############
+
 function compute_H_CI!(pz::Dict{}, py::Dict{}, data::Vector{Dict{Any,Any}}, f_str::String, n::Int)
     
     H = compute_Hessian(pz, py, data, f_str, n)
@@ -55,98 +112,6 @@ function compute_Hessian(pz::Dict{}, py::Dict{}, data::Vector{Dict{Any,Any}}, f_
     
     return H = ForwardDiff.hessian(ll, p_opt)
         
-end
-
-"""
-    optimize_model(pz,py,data;
-        n::Int=53, f_str="softplus"
-        x_tol::Float64=1e-16,f_tol::Float64=1e-16,g_tol::Float64=1e-12,
-        iterations::Int=Int(5e3),show_trace::Bool=true)
-
-    Optimize parameters specified within fit vectors.
-
-"""
-function optimize_model(pz::Dict{}, py::Dict{}, data::Vector{Dict{Any,Any}}, f_str::String,
-        n::Int; x_tol::Float64=1e-4, f_tol::Float64=1e-9, g_tol::Float64=1e-2,
-        iterations::Int=Int(2e3), show_trace::Bool=true) where {TT <: Any}
-    
-    haskey(pz,"state") ? nothing : pz["state"] = deepcopy(pz["initial"])
-    haskey(py,"state") ? nothing : py["state"] = deepcopy(py["initial"])
-    
-    pz = check_pz!(pz)
-
-    fit_vec = combine_latent_and_observation(pz["fit"], py["fit"])
-    p_opt, p_const = split_combine_invmap(pz["state"], py["state"], fit_vec, data[1]["dt"], f_str, pz["lb"], pz["ub"])
-
-    ###########################################################################################
-    ## Optimize
-    parameter_map_f(x) = map_split_combine(x, p_const, fit_vec, data[1]["dt"], 
-        f_str, py["N"], py["dimy"], pz["lb"], pz["ub"])
-    ll(x) = ll_wrapper(x, data, parameter_map_f, f_str, n)
-    
-    opt_output, state = opt_ll(p_opt, ll; g_tol=g_tol, x_tol=x_tol, f_tol=f_tol,
-        iterations=iterations, show_trace=show_trace);
-    p_opt = Optim.minimizer(opt_output)
-
-    pz["state"], py["state"] = parameter_map_f(p_opt)
-    pz["final"], py["final"] = pz["state"], py["state"]
-        
-    return pz, py, opt_output, state
-    
-end
-
-function optimize_model_con(pz::Dict{}, py::Dict{}, data::Vector{Dict{Any,Any}}, f_str::String,
-        n::Int; x_tol::Float64=1e-4, f_tol::Float64=1e-9, g_tol::Float64=1e-2,
-        iterations::Int=Int(2e3), show_trace::Bool=true,
-        outer_iterations::Int=Int(2e3)) where {TT <: Any}
-    
-    haskey(pz,"state") ? nothing : pz["state"] = deepcopy(pz["initial"])
-    haskey(py,"state") ? nothing : py["state"] = deepcopy(py["initial"])
-    
-    pz = check_pz!(pz)
-
-    fit_vec = combine_latent_and_observation(pz["fit"], py["fit"])
-    lb = combine_latent_and_observation(pz["lb"], py["lb"])[fit_vec]
-    ub = combine_latent_and_observation(pz["ub"], py["ub"])[fit_vec]
-    p_opt, p_const = split_variable_and_const(combine_latent_and_observation(pz["state"], py["state"]),fit_vec)
-    
-    parameter_map_f(x) = split_latent_and_observation(combine_variable_and_const(x, p_const, fit_vec), py["N"], py["dimy"])
-
-    ll(x) = ll_wrapper(x, data, parameter_map_f, f_str, n)
-    
-    opt_output = opt_ll_con(p_opt, ll, lb, ub; g_tol=g_tol, x_tol=x_tol, f_tol=f_tol,
-        iterations=iterations, show_trace=show_trace,outer_iterations=outer_iterations);
-    p_opt = Optim.minimizer(opt_output)
-
-    pz["state"], py["state"] = parameter_map_f(p_opt)
-    pz["final"], py["final"] = pz["state"], py["state"]
-        
-    return pz, py, opt_output
-    
-end
-
-function ll_wrapper(p_opt::Vector{TT}, data::Vector{Dict{Any,Any}}, parameter_map_f::Function, f_str::String, 
-        n::Int) where {TT <: Any}
-
-    pz, py = parameter_map_f(p_opt)   
-    LL = compute_LL(pz, py, data, n, f_str)
-        
-    return -LL
-              
-end
-
-function compute_LL_threads(pz::Vector{T}, py::Vector{Vector{Vector{T}}}, data::Vector{Dict{Any,Any}},
-        n::Int, f_str::String) where {T <: Any}
-    
-    LL = sum(map((py,data)-> sum(LL_all_trials_threads(pz, py, data, n, f_str=f_str)), py, data))
-            
-end
-
-function compute_LL(pz::Vector{T}, py::Vector{Vector{Vector{U}}}, data::Vector{Dict{Any,Any}},
-        n::Int, f_str::String) where {T,U <: Any}
-    
-    LL = sum(map((py,data)-> sum(LL_all_trials(pz, py, data, n, f_str)), py, data))
-            
 end
 
 #=
@@ -248,6 +213,45 @@ function ll_wrapper(p_opt::Vector{TT}, p_const::Vector{Float64}, fit_vec::Union{
         
     return -LL
               
+end
+
+########### testing functions
+
+function compute_LL_threads(pz::Vector{T}, py::Vector{Vector{Vector{T}}}, data::Vector{Dict{Any,Any}},
+        n::Int, f_str::String) where {T <: Any}
+    
+    LL = sum(map((py,data)-> sum(LL_all_trials_threads(pz, py, data, n, f_str=f_str)), py, data))
+            
+end
+
+function optimize_model_con(pz::Dict{}, py::Dict{}, data::Vector{Dict{Any,Any}}, f_str::String,
+        n::Int; x_tol::Float64=1e-4, f_tol::Float64=1e-9, g_tol::Float64=1e-2,
+        iterations::Int=Int(2e3), show_trace::Bool=true,
+        outer_iterations::Int=Int(2e3)) where {TT <: Any}
+    
+    haskey(pz,"state") ? nothing : pz["state"] = deepcopy(pz["initial"])
+    haskey(py,"state") ? nothing : py["state"] = deepcopy(py["initial"])
+    
+    pz = check_pz!(pz)
+
+    fit_vec = combine_latent_and_observation(pz["fit"], py["fit"])
+    lb = combine_latent_and_observation(pz["lb"], py["lb"])[fit_vec]
+    ub = combine_latent_and_observation(pz["ub"], py["ub"])[fit_vec]
+    p_opt, p_const = split_variable_and_const(combine_latent_and_observation(pz["state"], py["state"]),fit_vec)
+    
+    parameter_map_f(x) = split_latent_and_observation(combine_variable_and_const(x, p_const, fit_vec), py["N"], py["dimy"])
+
+    ll(x) = ll_wrapper(x, data, parameter_map_f, f_str, n)
+    
+    opt_output = opt_ll_con(p_opt, ll, lb, ub; g_tol=g_tol, x_tol=x_tol, f_tol=f_tol,
+        iterations=iterations, show_trace=show_trace,outer_iterations=outer_iterations);
+    p_opt = Optim.minimizer(opt_output)
+
+    pz["state"], py["state"] = parameter_map_f(p_opt)
+    pz["final"], py["final"] = pz["state"], py["state"]
+        
+    return pz, py, opt_output
+    
 end
 
 =#

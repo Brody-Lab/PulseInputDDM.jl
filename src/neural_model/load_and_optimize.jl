@@ -112,7 +112,7 @@ function load_and_optimize(data::Vector{Dict{Any,Any}}, f_str, n::Int;
             "initial" => [2*eps(), 10., -0.1, 2*eps(), 2*eps(), 1.0, 0.005],
             "lb" => [eps(), 8., -5., eps(), eps(), eps(), eps()],
             "ub" => [10., 40, 5., 100., 2.5, 2., 10.]),
-        show_trace::Bool=true, iterations::Int=Int(2e3))
+        show_trace::Bool=true, iterations::Int=Int(2e3),CI::Bool=false)
     
     nsessions = length(data)
     N_per_sess = map(data-> data["N"], data)
@@ -139,7 +139,10 @@ function load_and_optimize(data::Vector{Dict{Any,Any}}, f_str, n::Int;
     pz["fit"] = vcat(trues(5),falses(2))
     
     pz, py, = optimize_model(pz, py, data, f_str, n, show_trace=show_trace, iterations=iterations) 
-    pz, py = compute_H_CI!(pz, py, data, f_str, n)
+    
+    if CI 
+        pz, py = compute_H_CI!(pz, py, data, f_str, n)
+    end
     
     LL_ML = compute_LL(pz["final"], py["final"], data, n, f_str)
 

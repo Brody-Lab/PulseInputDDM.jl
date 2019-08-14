@@ -115,9 +115,10 @@ function sample_expected_rates_single_session(data::Dict, pz::Vector{Float64}, p
     
     #removed lambda0_MC to lambda0
     Random.seed!(rng)   
+    use_bin_center = data["use_bin_center"]
     dt = data["dt"]
     output = pmap((λ0,nT,L,R,nL,nR,rng) -> sample_expected_rates_single_trial(pz,py,λ0,nT,L,R,nL,nR,dt,
-        f_str; rng=rng), 
+        f_str,use_bin_center; rng=rng), 
         data["λ0"], data["nT"], data["leftbups"], data["rightbups"], data["binned_leftbups"], 
         data["binned_rightbups"], shuffle(1:length(data["T"])))    
     
@@ -130,10 +131,9 @@ end
 
 function sample_expected_rates_single_trial(pz::Vector{Float64}, py::Vector{Vector{Float64}}, λ0::Vector{Vector{Float64}}, 
         nT::Int, L::Vector{Float64}, R::Vector{Float64}, nL::Vector{Int}, nR::Vector{Int}, dt::Float64,
-        f_str::String; rng::Int=1)
+        f_str::String,use_bin_center::Bool; rng::Int=1)
     
     Random.seed!(rng)  
-    use_bin_center = data["use_bin_center"]
     #changed this from 
     #a = decimate(sample_latent(nT,L,R,nL,nR,pz;dt=dtMC), Int(dt/dtMC))
     a = sample_latent(nT,L,R,nL,nR,pz,use_bin_center;dt=dt)

@@ -5,7 +5,7 @@ using ForwardDiff, Distributed, LinearAlgebra
 using SpecialFunctions, MAT, Random 
 using DSP
 import Pandas: qcut, cut
-import StatsFuns: logistic, logit
+import StatsFuns: logistic, logit, softplus
 using Base.Threads, ImageFiltering
 
 #using ROCAnalysis, ImageFiltering
@@ -25,7 +25,11 @@ include("choice_model/wrapper_functions.jl")
 include("choice_model/mapping_functions.jl")
 include("choice_model/sample_model_functions.jl")
 include("choice_model/manipulate_data_functions.jl")
+
 include("choice_model/dx/wrapper_functions.jl")
+include("choice_model/marino/wrapper_functions.jl")
+include("choice_model/marino/choice_observation_model.jl")
+include("choice_model/marino/mapping_functions.jl")
 
 export aggregate_choice_data, bin_clicks!
 export sample_choices_all_trials!, sample_inputs_and_choices
@@ -38,9 +42,11 @@ include("neural_model/sample_model_functions.jl")
 include("neural_model/manipulate_data_functions.jl")
 include("neural_model/load_and_optimize.jl")
 include("neural_model/deterministic_model.jl")
+include("neural_model/sample_model_functions_FP.jl")
 
 export compute_H_CI!, optimize_model, compute_LL, load_and_optimize, compute_Hessian
 export neural_null
+export regress_init
 
 export compute_LL_and_prior
 export sample_input_and_spikes_multiple_sessions, sample_inputs_and_spikes_single_session
