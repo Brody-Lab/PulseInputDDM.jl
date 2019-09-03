@@ -42,24 +42,22 @@ compute_LL(pz::Vector{T}, pd::Vector{T}, pw::Vector{T}, data; n::Int=53) where {
 
 ##### Compute Hessian #####
 
-#=
-
-function compute_Hessian(pz, pd, data; n::Int=53) where {TT <: Any}
+function compute_Hessian(pz, pd, pw, data; n::Int=53) where {TT <: Any}
     
-    fit_vec = combine_latent_and_observation(pz["fit"], pd["fit"])
-    p_opt, p_const = split_combine_invmap(pz["final"], pd["final"], fit_vec, data["dt"], pz["lb"], pz["ub"])
+    fit_vec = combine_latent_and_observation(pz["fit"], pd["fit"], pw["fit"])
+    p_opt, p_const = split_combine_invmap_marino(pz["state"], pd["state"], pw["state"], fit_vec, data["dt"], pz["lb"], pz["ub"])
     
-    parameter_map_f(x) = map_split_combine(x, p_const, fit_vec, data["dt"], pz["lb"], pz["ub"])
-    ll(x) = ll_wrapper(x, data, parameter_map_f, n=n)
+    parameter_map_f(x) = map_split_combine_marino(x, p_const, fit_vec, data["dt"], pz["lb"], pz["ub"])
+    ll(x) = ll_wrapper_marino(x, data, parameter_map_f, n=n)
 
     return H = ForwardDiff.hessian(ll, p_opt);
         
 end
 
 
-function compute_H_CI!(pz, pd, data; n::Int=53)
+function compute_H_CI!(pz, pd, pw, data; n::Int=53)
     
-    H = compute_Hessian(pz, pd, data; n=n)
+    H = compute_Hessian(pz, pd, pw, data; n=n)
     
     gooddims = 1:size(H,1)
     
@@ -67,18 +65,18 @@ function compute_H_CI!(pz, pd, data; n::Int=53)
     otherbad = vcat(map(i-> findall(abs.(eigvecs(H[gooddims,gooddims])[:,evs[i]]) .> 0.5), 1:length(evs))...)
     gooddims = setdiff(gooddims,otherbad)
 
-    fit_vec = combine_latent_and_observation(pz["fit"], pd["fit"])
-    p_opt, p_const = split_combine_invmap(copy(pz["final"]), copy(pd["final"]), 
+    fit_vec = combine_latent_and_observation(pz["fit"], pd["fit"], pw["fit"])
+    p_opt, p_const = split_combine_invmap_marino(copy(pz["state"]), copy(pd["state"]), copy(pw["state"]), 
         fit_vec, data["dt"], pz["lb"], pz["ub"])
 
     CI = fill!(Vector{Float64}(undef,size(H,1)),1e8);
 
     CI[gooddims] = 2*sqrt.(diag(inv(H[gooddims,gooddims])))
     
-    parameter_map_f(x) = map_split_combine(x, p_const, fit_vec, data["dt"], pz["lb"], pz["ub"])
+    parameter_map_f(x) = map_split_combine_marino(x, p_const, fit_vec, data["dt"], pz["lb"], pz["ub"])
 
-    pz["CI_plus"], pd["CI_plus"] = parameter_map_f(p_opt + CI)
-    pz["CI_minus"], pd["CI_minus"] = parameter_map_f(p_opt - CI)
+    pz["CI_plus"], pd["CI_plus"], pw["CI_plus"] = parameter_map_f(p_opt + CI)
+    pz["CI_minus"], pd["CI_minus"], pw["CI_minus"] = parameter_map_f(p_opt - CI)
     
     #identify which ML parameters have generative parameters within the CI 
     if haskey(pz, "generative")
@@ -89,8 +87,10 @@ function compute_H_CI!(pz, pd, data; n::Int=53)
         pd["within_CI"] = (pd["CI_minus"] .< pd["generative"]) .& (pd["CI_plus"] .> pd["generative"])
     end
     
-    return pz, pd
+    if haskey(pw, "generative")
+        pw["within_CI"] = (pw["CI_minus"] .< pw["generative"]) .& (pw["CI_plus"] .> pw["generative"])
+    end
+    
+    return pz, pd, pw
     
 end
-
-=#

@@ -1,3 +1,20 @@
+function LL_all_trials(pz::Vector{TT}, py::Vector{Vector{UU}}, 
+        dt, use_bin_center, leftbups,
+        rightbups, nT, binned_leftbups, 
+        binned_rightbups, spike_counts, 
+        λ0,n::Int, f_str::String) where {TT,UU <: Any}
+     
+    P,M,xc,dx, = initialize_latent_model(pz,n,dt)
+                            
+    output = pmap((L,R,T,nL,nR,SC,λ0) -> LL_single_trial(pz, P, M, dx, xc,
+        L, R, T, nL, nR, py, SC, dt, n, λ0, f_str, use_bin_center),
+        leftbups, rightbups, nT, 
+        binned_leftbups, 
+        binned_rightbups, spike_counts, 
+        λ0)   
+    
+end
+
 
 function LL_all_trials(pz::Vector{TT}, py::Vector{Vector{UU}}, data::Dict, 
         n::Int, f_str::String) where {TT,UU <: Any}
@@ -55,20 +72,17 @@ function f_py(x::U, c::Float64, p::Vector{T}, f_str::String) where {T,U <: Any}
 
     if f_str == "sig"
         
-        #y = p[3] * x + p[4] + log(c)             
-        #y = p[1] + p[2] * logistic!(y)
-        
         y = p[3] * x + p[4]        
         y = p[1] + p[2] * logistic!(y)
-        #y = softplus(y + c)
-        y = max(eps(),y+c)
         
     elseif f_str == "softplus"
         
-        #y = p[1] + log(1. + exp((p[2] * x + p[3]) + c))
         y = p[1] + softplus(p[2]*x + p[3] + c)
         
     end
+
+    y = softplus(y + c)
+    #y = max(eps(),y+c)
 
     return y
     
@@ -78,20 +92,17 @@ function f_py!(x::U, c::Float64, p::Vector{T}, f_str::String) where {T,U <: Any}
 
     if f_str == "sig"
         
-        #x = p[3] * x + p[4] + log(c)       
-        #x = p[1] + p[2] * logistic!(x)
-        
         x = p[3] * x + p[4]      
         x = p[1] + p[2] * logistic!(x)
-        #x = softplus(x + c)
-        x = max(eps(),x+c)
         
     elseif f_str == "softplus"
         
-        #x = p[1] + log(1. + exp(p[2] * x + p[3] + c))
-        x = p[1] + softplus(p[2]*x + p[3] + c)
+        x = p[1] + softplus(p[2]*x + p[3])
         
     end
+    
+    x = softplus(x + c)
+    #x = max(eps(),x+c)
 
     return x
     

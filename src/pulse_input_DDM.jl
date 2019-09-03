@@ -30,6 +30,8 @@ include("choice_model/dx/wrapper_functions.jl")
 include("choice_model/marino/wrapper_functions.jl")
 include("choice_model/marino/choice_observation_model.jl")
 include("choice_model/marino/mapping_functions.jl")
+include("choice_model/marino/sample_model_functions.jl")
+include("choice_model/marino/manipulate_data_functions.jl")
 
 export aggregate_choice_data, bin_clicks!
 export sample_choices_all_trials!, sample_inputs_and_choices
@@ -48,9 +50,13 @@ export compute_H_CI!, optimize_model, compute_LL, load_and_optimize, compute_Hes
 export neural_null
 export regress_init
 
+export choice_null
+
 export compute_LL_and_prior
 export sample_input_and_spikes_multiple_sessions, sample_inputs_and_spikes_single_session
 export sample_spikes_single_session, sample_spikes_single_trial, sample_expected_rates_single_session
+
+export sample_choices_all_trials
 
 export aggregate_spiking_data, bin_clicks_spikes_and_λ0!
 

@@ -1,0 +1,392 @@
+Iter     Function value   Gradient norm 
+     0     3.667016e+05     1.960690e+03
+     1     3.628118e+05     8.491963e+02
+     2     3.604730e+05     7.547151e+02
+     3     3.594350e+05     7.507454e+02
+     4     3.587525e+05     8.664243e+02
+     5     3.580865e+05     1.046276e+03
+     6     3.574071e+05     9.586550e+02
+     7     3.567477e+05     9.286558e+02
+     8     3.560769e+05     1.314931e+03
+     9     3.554457e+05     1.661310e+03
+    10     3.547957e+05     1.821543e+03
+    11     3.541755e+05     2.154434e+03
+    12     3.535749e+05     2.223952e+03
+    13     3.529829e+05     2.719488e+03
+    14     3.524050e+05     2.914879e+03
+    15     3.518296e+05     2.784495e+03
+    16     3.512469e+05     2.817010e+03
+    17     3.506618e+05     2.841945e+03
+    18     3.501012e+05     2.946981e+03
+    19     3.495385e+05     2.802608e+03
+    20     3.489841e+05     2.955175e+03
+    21     3.484442e+05     2.552521e+03
+    22     3.479064e+05     2.653245e+03
+    23     3.473726e+05     2.414532e+03
+    24     3.468361e+05     2.382357e+03
+    25     3.463348e+05     2.326617e+03
+    26     3.458276e+05     2.777640e+03
+    27     3.453379e+05     1.273713e+03
+    28     3.448672e+05     1.290792e+03
+    29     3.444190e+05     1.655448e+03
+    30     3.439692e+05     1.830671e+03
+    31     3.435193e+05     1.434698e+03
+    32     3.430803e+05     1.312042e+03
+    33     3.426541e+05     2.009461e+03
+    34     3.422201e+05     1.812181e+03
+    35     3.418039e+05     1.809846e+03
+    36     3.414103e+05     1.469515e+03
+    37     3.410406e+05     1.498915e+03
+    38     3.406718e+05     1.314227e+03
+    39     3.403181e+05     1.318708e+03
+    40     3.399710e+05     1.146691e+03
+    41     3.396263e+05     9.623796e+02
+    42     3.392891e+05     9.719888e+02
+    43     3.389626e+05     1.037363e+03
+    44     3.386442e+05     1.067040e+03
+    45     3.383338e+05     1.010755e+03
+    46     3.380267e+05     9.373881e+02
+    47     3.377237e+05     8.863128e+02
+    48     3.374235e+05     8.250593e+02
+    49     3.371259e+05     7.600342e+02
+    50     3.368458e+05     8.532967e+02
+    51     3.365734e+05     7.858423e+02
+    52     3.363049e+05     7.504829e+02
+    53     3.360388e+05     7.657105e+02
+    54     3.357767e+05     9.041778e+02
+    55     3.355206e+05     9.829796e+02
+    56     3.352711e+05     1.002427e+03
+    57     3.350258e+05     9.992362e+02
+    58     3.347835e+05     9.940737e+02
+    59     3.345440e+05     9.834979e+02
+    60     3.343094e+05     9.649070e+02
+    61     3.340775e+05     9.497661e+02
+    62     3.338470e+05     9.329400e+02
+    63     3.336196e+05     9.080127e+02
+    64     3.333957e+05     8.798504e+02
+    65     3.331788e+05     8.766629e+02
+    66     3.329663e+05     8.773283e+02
+    67     3.327570e+05     8.403785e+02
+    68     3.325504e+05     8.100561e+02
+    69     3.323428e+05     7.840786e+02
+    70     3.321424e+05     7.529493e+02
+    71     3.319550e+05     7.359979e+02
+    72     3.317715e+05     7.100276e+02
+    73     3.315892e+05     6.848043e+02
+    74     3.314125e+05     6.776611e+02
+    75     3.312386e+05     6.678164e+02
+    76     3.310690e+05     6.558020e+02
+    77     3.309003e+05     6.455823e+02
+    78     3.307407e+05     6.257164e+02
+    79     3.305836e+05     6.176733e+02
+    80     3.304318e+05     6.139132e+02
+    81     3.302847e+05     6.018322e+02
+    82     3.301426e+05     5.965690e+02
+    83     3.300055e+05     5.956582e+02
+    84     3.298706e+05     5.987747e+02
+    85     3.297377e+05     5.924079e+02
+    86     3.296055e+05     5.767625e+02
+    87     3.294754e+05     5.672688e+02
+    88     3.293463e+05     5.544219e+02
+    89     3.292170e+05     5.671305e+02
+    90     3.290894e+05     5.594791e+02
+    91     3.290700e+05     9.313130e+02
+    92     3.290018e+05     1.052405e+03
+    93     3.289390e+05     1.442958e+03
+    94     3.288851e+05     3.471011e+03
+    95     3.286627e+05     1.347226e+03
+    96     3.283658e+05     1.952063e+03
+    97     3.280969e+05     1.136087e+03
+    98     3.278010e+05     1.081881e+03
+    99     3.276026e+05     1.210367e+03
+   100     3.273509e+05     1.019891e+03
+   101     3.272158e+05     1.049348e+03
+   102     3.269976e+05     1.072164e+03
+   103     3.267860e+05     1.105104e+03
+   104     3.265718e+05     1.142190e+03
+   105     3.263560e+05     1.193026e+03
+   106     3.261647e+05     1.224069e+03
+   107     3.259826e+05     1.185490e+03
+   108     3.258169e+05     1.163849e+03
+   109     3.256733e+05     1.155362e+03
+   110     3.255351e+05     1.178555e+03
+   111     3.254022e+05     1.191423e+03
+   112     3.252794e+05     1.234780e+03
+   113     3.251595e+05     1.298360e+03
+   114     3.250464e+05     1.432799e+03
+   115     3.249280e+05     1.542817e+03
+   116     3.248295e+05     1.675598e+03
+   117     3.247190e+05     1.845173e+03
+   118     3.246229e+05     1.800957e+03
+   119     3.245206e+05     1.632013e+03
+   120     3.244298e+05     1.513693e+03
+   121     3.243401e+05     1.419132e+03
+   122     3.242499e+05     1.290758e+03
+   123     3.241570e+05     1.199573e+03
+   124     3.240670e+05     1.064936e+03
+   125     3.239736e+05     1.140030e+03
+   126     3.238765e+05     1.209789e+03
+   127     3.237831e+05     1.218823e+03
+   128     3.236853e+05     1.162215e+03
+   129     3.235949e+05     1.118381e+03
+   130     3.235011e+05     1.087133e+03
+   131     3.234090e+05     1.029278e+03
+   132     3.233214e+05     1.007163e+03
+   133     3.232395e+05     1.042753e+03
+   134     3.231596e+05     9.943289e+02
+   135     3.230843e+05     9.350642e+02
+   136     3.230114e+05     8.309550e+02
+   137     3.229407e+05     7.732622e+02
+   138     3.228745e+05     7.756016e+02
+   139     3.227959e+05     6.885790e+02
+   140     3.227209e+05     7.266176e+02
+   141     3.226464e+05     7.931139e+02
+   142     3.225775e+05     8.545341e+02
+   143     3.225145e+05     7.958322e+02
+   144     3.224552e+05     7.052162e+02
+   145     3.223914e+05     6.345129e+02
+   146     3.223282e+05     6.345631e+02
+   147     3.222664e+05     6.417445e+02
+   148     3.222089e+05     6.465906e+02
+   149     3.221548e+05     5.969422e+02
+   150     3.221001e+05     6.686810e+02
+   151     3.220462e+05     7.578574e+02
+   152     3.219951e+05     7.233266e+02
+   153     3.219467e+05     5.778901e+02
+   154     3.219002e+05     4.767753e+02
+   155     3.218548e+05     4.932369e+02
+   156     3.218140e+05     5.630318e+02
+   157     3.217714e+05     5.312597e+02
+   158     3.217308e+05     4.983999e+02
+   159     3.216909e+05     5.314106e+02
+   160     3.216550e+05     6.841959e+02
+   161     3.216219e+05     5.748103e+02
+   162     3.215929e+05     2.157745e+02
+   163     3.215632e+05     3.201472e+02
+   164     3.215363e+05     2.611140e+02
+   165     3.215101e+05     3.898336e+02
+   166     3.214847e+05     4.627783e+02
+   167     3.214613e+05     4.018230e+02
+   168     3.214393e+05     3.358828e+02
+   169     3.214181e+05     3.356812e+02
+   170     3.213989e+05     3.815265e+02
+   171     3.213813e+05     4.080960e+02
+   172     3.213646e+05     3.424527e+02
+   173     3.213490e+05     3.231470e+02
+   174     3.213336e+05     1.791194e+02
+   175     3.213205e+05     3.418843e+02
+   176     3.213070e+05     3.135246e+02
+   177     3.212940e+05     2.550178e+02
+   178     3.212837e+05     3.673217e+02
+   179     3.212749e+05     3.893557e+02
+   180     3.212663e+05     3.770855e+02
+   181     3.212566e+05     2.677235e+02
+   182     3.212510e+05     2.579136e+02
+   183     3.212420e+05     2.083432e+02
+   184     3.212325e+05     2.113543e+02
+   185     3.212221e+05     2.187023e+02
+   186     3.212183e+05     2.352139e+02
+   187     3.212106e+05     2.386646e+02
+   188     3.212058e+05     1.955465e+02
+   189     3.212007e+05     1.132301e+02
+   190     3.211977e+05     9.556454e+01
+   191     3.211944e+05     9.972123e+01
+   192     3.211942e+05     1.238133e+02
+   193     3.211913e+05     1.021829e+02
+   194     3.211907e+05     1.235187e+02
+   195     3.211886e+05     1.082504e+02
+   196     3.211848e+05     1.607060e+02
+   197     3.211811e+05     1.121263e+02
+   198     3.211805e+05     1.331582e+02
+   199     3.211793e+05     2.325305e+02
+   200     3.211754e+05     1.694855e+02
+Iter     Function value   Gradient norm 
+     0     3.207882e+05     1.427617e+03
+     1     3.207033e+05     2.036367e+03
+     2     3.206708e+05     6.263050e+02
+     3     3.206579e+05     1.500976e+03
+     4     3.206463e+05     1.357385e+03
+     5     3.206391e+05     1.276658e+03
+     6     3.206144e+05     1.206671e+03
+     7     3.205561e+05     1.247170e+03
+     8     3.203517e+05     1.477575e+03
+     9     3.202452e+05     3.297209e+03
+    10     3.202392e+05     4.753981e+03
+    11     3.202213e+05     4.823134e+03
+    12     3.202151e+05     4.860334e+03
+    13     3.201722e+05     4.509354e+03
+    14     3.201396e+05     4.386064e+03
+    15     3.201239e+05     4.341429e+03
+    16     3.200934e+05     4.264552e+03
+    17     3.200901e+05     4.310414e+03
+    18     3.200794e+05     4.235652e+03
+    19     3.200694e+05     4.037011e+03
+    20     3.200560e+05     3.731363e+03
+    21     3.200547e+05     3.824624e+03
+    22     3.200320e+05     3.981555e+03
+    23     3.199989e+05     3.769156e+03
+    24     3.199925e+05     3.371164e+03
+    25     3.199837e+05     3.525027e+03
+    26     3.199736e+05     3.072962e+03
+    27     3.199590e+05     2.335877e+03
+    28     3.199500e+05     2.627973e+03
+    29     3.199188e+05     1.888649e+03
+    30     3.199054e+05     1.474388e+03
+    31     3.199038e+05     1.967461e+03
+    32     3.198961e+05     1.628100e+03
+    33     3.198911e+05     1.622880e+03
+    34     3.198851e+05     1.632781e+03
+    35     3.198613e+05     1.666344e+03
+    36     3.198438e+05     1.817262e+03
+    37     3.198366e+05     1.596913e+03
+    38     3.198184e+05     1.464693e+03
+    39     3.198031e+05     1.539907e+03
+    40     3.197750e+05     1.576878e+03
+    41     3.197562e+05     1.574746e+03
+    42     3.197397e+05     1.653863e+03
+    43     3.197320e+05     1.662972e+03
+    44     3.197302e+05     1.630288e+03
+    45     3.197076e+05     1.501325e+03
+    46     3.196907e+05     1.357022e+03
+    47     3.196854e+05     1.373210e+03
+    48     3.196705e+05     1.185698e+03
+    49     3.196533e+05     1.022113e+03
+    50     3.196313e+05     6.108055e+02
+    51     3.196168e+05     6.186554e+02
+    52     3.196080e+05     7.100442e+02
+    53     3.195958e+05     5.722336e+02
+    54     3.195841e+05     4.777145e+02
+    55     3.195802e+05     5.939287e+02
+    56     3.195754e+05     6.685720e+02
+    57     3.195696e+05     7.004906e+02
+    58     3.195634e+05     5.504430e+02
+    59     3.195605e+05     3.859481e+02
+    60     3.195551e+05     4.297707e+02
+    61     3.195495e+05     5.089629e+02
+    62     3.195438e+05     3.987831e+02
+    63     3.195360e+05     3.347626e+02
+    64     3.195283e+05     4.395118e+02
+    65     3.195221e+05     5.462625e+02
+    66     3.195150e+05     4.743864e+02
+    67     3.195102e+05     7.502791e+02
+    68     3.195089e+05     7.781895e+02
+    69     3.195021e+05     5.367006e+02
+    70     3.194961e+05     5.788157e+02
+    71     3.194911e+05     5.064509e+02
+    72     3.194884e+05     3.471987e+02
+    73     3.194846e+05     4.691289e+02
+    74     3.194814e+05     9.925714e+02
+    75     3.194776e+05     1.008374e+03
+    76     3.194735e+05     9.336777e+02
+    77     3.194718e+05     9.899983e+02
+    78     3.194697e+05     3.630566e+02
+    79     3.194671e+05     3.528985e+02
+    80     3.194649e+05     5.439780e+02
+    81     3.194627e+05     1.170955e+03
+    82     3.194592e+05     6.825348e+02
+    83     3.194562e+05     5.956321e+02
+    84     3.194550e+05     4.763195e+02
+    85     3.194514e+05     3.951572e+02
+    86     3.194495e+05     4.126543e+02
+    87     3.194464e+05     7.072573e+02
+    88     3.194449e+05     5.831100e+02
+    89     3.194422e+05     3.992015e+02
+    90     3.194404e+05     2.432077e+02
+    91     3.194397e+05     2.834747e+02
+    92     3.194376e+05     2.234746e+02
+    93     3.194367e+05     1.424997e+02
+    94     3.194357e+05     2.471265e+02
+    95     3.194346e+05     2.277399e+02
+    96     3.194342e+05     3.736141e+02
+    97     3.194338e+05     2.422505e+02
+    98     3.194329e+05     2.023997e+02
+    99     3.194319e+05     2.018250e+02
+   100     3.194308e+05     1.704394e+02
+   101     3.194294e+05     4.881002e+02
+   102     3.194286e+05     4.326575e+02
+   103     3.194275e+05     2.221930e+02
+   104     3.194264e+05     1.927955e+02
+   105     3.194258e+05     4.183939e+02
+   106     3.194248e+05     3.650279e+02
+   107     3.194239e+05     1.715490e+02
+   108     3.194231e+05     1.440679e+02
+   109     3.194223e+05     2.870472e+02
+   110     3.194214e+05     3.970262e+02
+   111     3.194207e+05     4.735429e+02
+   112     3.194193e+05     6.098696e+02
+   113     3.194193e+05     4.582938e+02
+   114     3.194179e+05     3.134515e+02
+   115     3.194176e+05     2.938236e+02
+   116     3.194171e+05     3.093735e+02
+   117     3.194166e+05     3.100257e+02
+   118     3.194161e+05     1.852302e+02
+   119     3.194156e+05     1.915266e+02
+   120     3.194152e+05     1.639553e+02
+   121     3.194147e+05     1.533203e+02
+   122     3.194143e+05     1.914800e+02
+   123     3.194139e+05     1.629987e+02
+   124     3.194136e+05     1.216275e+02
+   125     3.194132e+05     1.658162e+02
+   126     3.194129e+05     8.226076e+01
+   127     3.194126e+05     1.364756e+02
+   128     3.194122e+05     9.198871e+01
+   129     3.194120e+05     1.038834e+02
+   130     3.194116e+05     1.180775e+02
+   131     3.194113e+05     1.473134e+02
+   132     3.194113e+05     6.746859e+01
+   133     3.194113e+05     3.813439e+01
+┌ Warning: CI computation failed.
+└ @ pulse_input_DDM ~/Projects/pulse_input_DDM.jl/src/neural_model/wrapper_functions.jl:78
+ERROR: LoadError: On worker 38:
+DomainError with -25.242324778855775:
+sqrt will only return a complex result if called with a complex argument. Try sqrt(Complex(x)).
+throw_complex_domainerror at ./math.jl:31
+sqrt at ./math.jl:492 [inlined]
+sample_one_step! at /usr/people/briandd/Projects/pulse_input_DDM.jl/src/sample_model_functions.jl:74
+#sample_latent#47 at /usr/people/briandd/Projects/pulse_input_DDM.jl/src/sample_model_functions.jl:55
+#sample_expected_rates_single_trial#199 at ./none:0 [inlined]
+#sample_expected_rates_single_trial at ./none:0 [inlined]
+#193 at /usr/people/briandd/Projects/pulse_input_DDM.jl/src/neural_model/sample_model_functions.jl:75 [inlined]
+#227 at /home/conda/feedstock_root/build_artifacts/julia_1548684429855/work/usr/share/julia/stdlib/v1.0/Distributed/src/pmap.jl:157
+#112 at /home/conda/feedstock_root/build_artifacts/julia_1548684429855/work/usr/share/julia/stdlib/v1.0/Distributed/src/process_messages.jl:269
+run_work_thunk at /home/conda/feedstock_root/build_artifacts/julia_1548684429855/work/usr/share/julia/stdlib/v1.0/Distributed/src/process_messages.jl:56
+macro expansion at /home/conda/feedstock_root/build_artifacts/julia_1548684429855/work/usr/share/julia/stdlib/v1.0/Distributed/src/process_messages.jl:269 [inlined]
+#111 at ./task.jl:259
+Stacktrace:
+ [1] (::getfield(Base, Symbol("##682#684")))(::Task) at ./asyncmap.jl:178
+ [2] foreach(::getfield(Base, Symbol("##682#684")), ::Array{Any,1}) at ./abstractarray.jl:1835
+ [3] maptwice(::Function, ::Channel{Any}, ::Array{Any,1}, ::Base.Iterators.Zip{Array{Array{Array{Float64,1},1},1},Base.Iterators.Zip{Array{Int64,1},Base.Iterators.Zip{Array{Array{Float64,1},2},Base.Iterators.Zip{Array{Array{Float64,1},2},Base.Iterators.Zip{Array{Array{Int64,1},1},Base.Iterators.Zip2{Array{Array{Int64,1},1},Array{Int64,1}}}}}}}) at ./asyncmap.jl:178
+ [4] #async_usemap#667 at ./asyncmap.jl:154 [inlined]
+ [5] #async_usemap at ./none:0 [inlined]
+ [6] #asyncmap#666 at ./asyncmap.jl:81 [inlined]
+ [7] #asyncmap at ./none:0 [inlined]
+ [8] #pmap#215(::Bool, ::Int64, ::Nothing, ::Array{Any,1}, ::Nothing, ::Function, ::Function, ::WorkerPool, ::Base.Iterators.Zip{Array{Array{Array{Float64,1},1},1},Base.Iterators.Zip{Array{Int64,1},Base.Iterators.Zip{Array{Array{Float64,1},2},Base.Iterators.Zip{Array{Array{Float64,1},2},Base.Iterators.Zip{Array{Array{Int64,1},1},Base.Iterators.Zip2{Array{Array{Int64,1},1},Array{Int64,1}}}}}}}) at /home/conda/feedstock_root/build_artifacts/julia_1548684429855/work/usr/share/julia/stdlib/v1.0/Distributed/src/pmap.jl:126
+ [9] pmap(::Function, ::WorkerPool, ::Base.Iterators.Zip{Array{Array{Array{Float64,1},1},1},Base.Iterators.Zip{Array{Int64,1},Base.Iterators.Zip{Array{Array{Float64,1},2},Base.Iterators.Zip{Array{Array{Float64,1},2},Base.Iterators.Zip{Array{Array{Int64,1},1},Base.Iterators.Zip2{Array{Array{Int64,1},1},Array{Int64,1}}}}}}}) at /home/conda/feedstock_root/build_artifacts/julia_1548684429855/work/usr/share/julia/stdlib/v1.0/Distributed/src/pmap.jl:101
+ [10] #pmap#225(::Base.Iterators.Pairs{Union{},Union{},Tuple{},NamedTuple{(),Tuple{}}}, ::Function, ::Function, ::Base.Iterators.Zip{Array{Array{Array{Float64,1},1},1},Base.Iterators.Zip{Array{Int64,1},Base.Iterators.Zip{Array{Array{Float64,1},2},Base.Iterators.Zip{Array{Array{Float64,1},2},Base.Iterators.Zip{Array{Array{Int64,1},1},Base.Iterators.Zip2{Array{Array{Int64,1},1},Array{Int64,1}}}}}}}) at /home/conda/feedstock_root/build_artifacts/julia_1548684429855/work/usr/share/julia/stdlib/v1.0/Distributed/src/pmap.jl:156
+ [11] pmap(::Function, ::Base.Iterators.Zip{Array{Array{Array{Float64,1},1},1},Base.Iterators.Zip{Array{Int64,1},Base.Iterators.Zip{Array{Array{Float64,1},2},Base.Iterators.Zip{Array{Array{Float64,1},2},Base.Iterators.Zip{Array{Array{Int64,1},1},Base.Iterators.Zip2{Array{Array{Int64,1},1},Array{Int64,1}}}}}}}) at /home/conda/feedstock_root/build_artifacts/julia_1548684429855/work/usr/share/julia/stdlib/v1.0/Distributed/src/pmap.jl:156
+ [12] #pmap#226(::Base.Iterators.Pairs{Union{},Union{},Tuple{},NamedTuple{(),Tuple{}}}, ::Function, ::Function, ::Array{Array{Array{Float64,1},1},1}, ::Array{Int64,1}, ::Vararg{Any,N} where N) at /home/conda/feedstock_root/build_artifacts/julia_1548684429855/work/usr/share/julia/stdlib/v1.0/Distributed/src/pmap.jl:157
+ [13] pmap(::Function, ::Array{Array{Array{Float64,1},1},1}, ::Array{Int64,1}, ::Array{Array{Float64,1},2}, ::Vararg{Any,N} where N) at /home/conda/feedstock_root/build_artifacts/julia_1548684429855/work/usr/share/julia/stdlib/v1.0/Distributed/src/pmap.jl:157
+ [14] #sample_expected_rates_single_session#192(::Int64, ::Function, ::Dict{Any,Any}, ::Array{Float64,1}, ::Array{Array{Float64,1},1}, ::String) at /usr/people/briandd/Projects/pulse_input_DDM.jl/src/neural_model/sample_model_functions.jl:75
+ [15] #sample_expected_rates_single_session at ./none:0 [inlined]
+ [16] #186 at /usr/people/briandd/Projects/pulse_input_DDM.jl/src/neural_model/sample_model_functions.jl:59 [inlined]
+ [17] #3 at ./generator.jl:36 [inlined]
+ [18] iterate at ./generator.jl:47 [inlined]
+ [19] collect(::Base.Generator{Base.Iterators.Zip2{Array{Dict{Any,Any},1},Array{Array{Array{Float64,1},1},1}},getfield(Base, Symbol("##3#4")){getfield(pulse_input_DDM, Symbol("##186#189")){Int64,Array{Float64,1},String}}}) at ./array.jl:619
+ [20] map at ./abstractarray.jl:2060 [inlined]
+ [21] #sample_expected_rates_multiple_sessions#185(::Int64, ::Function, ::Array{Float64,1}, ::Array{Array{Array{Float64,1},1},1}, ::Array{Dict{Any,Any},1}, ::String) at /usr/people/briandd/Projects/pulse_input_DDM.jl/src/neural_model/sample_model_functions.jl:59
+ [22] #sample_expected_rates_multiple_sessions at ./none:0 [inlined]
+ [23] #204 at /usr/people/briandd/Projects/pulse_input_DDM.jl/src/neural_model/sample_model_functions.jl:105 [inlined]
+ [24] iterate at ./generator.jl:47 [inlined]
+ [25] _collect(::UnitRange{Int64}, ::Base.Generator{UnitRange{Int64},getfield(pulse_input_DDM, Symbol("##204#207")){Array{Float64,1},Array{Array{Array{Float64,1},1},1},Array{Dict{Any,Any},1},String}}, ::Base.EltypeUnknown, ::Base.HasShape{1}) at ./array.jl:632
+ [26] collect_similar at ./array.jl:561 [inlined]
+ [27] map at ./abstractarray.jl:1987 [inlined]
+ [28] sample_average_expected_rates_multiple_sessions(::Array{Float64,1}, ::Array{Array{Array{Float64,1},1},1}, ::Array{Dict{Any,Any},1}, ::String) at /usr/people/briandd/Projects/pulse_input_DDM.jl/src/neural_model/sample_model_functions.jl:105
+ [29] top-level scope at none:0
+ [30] include at ./boot.jl:317 [inlined]
+ [31] include_relative(::Module, ::String) at ./loading.jl:1044
+ [32] include(::Module, ::String) at ./sysimg.jl:29
+ [33] exec_options(::Base.JLOptions) at ./client.jl:266
+ [34] _start() at ./client.jl:425
+in expression starting at /usr/people/briandd/Projects/pulse_input_DDM.jl/notebooks/FOF-by_rat.jl:68
+15529.702144 seconds (2.61 G allocations: 402.073 GiB, 0.93% gc time)
+17908.126710 seconds (811.08 M allocations: 186.657 GiB, 1.25% gc time)

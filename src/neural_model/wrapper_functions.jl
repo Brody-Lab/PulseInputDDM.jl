@@ -91,7 +91,7 @@ function compute_H_CI!(pz::Dict{}, py::Dict{}, data::Vector{Dict{Any,Any}}, f_st
             py["CI_minus"], py["CI_plus"], py["generative"])
     end
     
-    return pz, py
+    return pz, py, H
     
 end
 

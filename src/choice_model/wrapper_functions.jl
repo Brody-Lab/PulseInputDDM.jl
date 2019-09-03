@@ -58,7 +58,7 @@ function compute_H_CI!(pz, pd, data; n::Int=53)
         pd["within_CI"] = (pd["CI_minus"] .< pd["generative"]) .& (pd["CI_plus"] .> pd["generative"])
     end
     
-    return pz, pd
+    return pz, pd, H
     
 end
 

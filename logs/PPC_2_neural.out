@@ -1,0 +1,7 @@
+Iter     Function value   Gradient norm 
+     0     3.312832e+04     3.173688e+00
+ * time: 1.9788742065429688e-5
+     1     3.312832e+04     1.189999e+00
+ * time: 45.765164852142334
+ 97.794893 seconds (62.19 M allocations: 5.269 GiB, 2.21% gc time)
+3271.483453 seconds (315.66 M allocations: 54.678 GiB, 1.99% gc time)

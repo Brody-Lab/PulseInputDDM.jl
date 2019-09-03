@@ -66,12 +66,16 @@ function map_py!(p::Vector{TT}, f_str::String) where {TT}
         
     elseif f_str == "sig"
         
-        #p[1:2] = exp.(p[1:2])
         #p[1:2] = lb[1:2] .+ (ub[1:2] .- lb[1:2]) .* logistic.(p[1:2])
         #p[1:2] = lb[1:2] .+ (ub[1:2] .- lb[1:2]) .* logistic!.(p[1:2])
+        #p[1:2] = exp.(p[1:2])
         #p[3:4] = p[3:4]
         
-        p = p
+        p[1] = p[1]
+        p[2] = exp.(p[2])
+        p[3:4] = p[3:4]
+        
+        #p = p
         
     elseif f_str == "softplus"
           
@@ -113,9 +117,13 @@ function inv_map_py!(p::Vector{TT}, f_str::String) where {TT}
         
         #p[1:2] = log.(p[1:2])
         #p[1:2] = logit.((p[1:2] .- lb[1:2])./(ub[1:2] .- lb[1:2]))
-        #p[3:4] = p[3:4]     
+        #p[3:4] = p[3:4]  
         
-        p = p
+        p[1] = p[1]
+        p[2] = log.(p[2])
+        p[3:4] = p[3:4]
+        
+        #p = p
         
     elseif f_str == "softplus"
         

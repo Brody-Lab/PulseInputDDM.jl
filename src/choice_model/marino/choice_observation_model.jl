@@ -67,15 +67,17 @@ function latent_one_step!(P::Vector{TT},F::Array{TT,2},pz::Vector{WW},
     
     lambda,vara,vars = pz[3:5]
     
-    any(t .== nL_l) ? sL_l = sum(La_l[t .== nL_l]) : sL_l = zero(TT)
-    any(t .== nR_l) ? sR_l = sum(Ra_l[t .== nR_l]) : sR_l = zero(TT)
+    #any(t .== nL_l) ? sL_l = sum(La_l[t .== nL_l]) : sL_l = zero(TT)
+    #any(t .== nR_l) ? sR_l = sum(Ra_l[t .== nR_l]) : sR_l = zero(TT)
     
-    any(t .== nL_f) ? sL_f = sum(La_f[t .== nL_f]) : sL_f = zero(TT)
-    any(t .== nR_f) ? sR_f = sum(Ra_f[t .== nR_f]) : sR_f = zero(TT)
+    #any(t .== nL_f) ? sL_f = sum(La_f[t .== nL_f]) : sL_f = zero(TT)
+    #any(t .== nR_f) ? sR_f = sum(Ra_f[t .== nR_f]) : sR_f = zero(TT)
+    
+    sum_clicks, mu = make_inputs(t, nL_l, nR_l, nL_f, nR_f, La_l, Ra_l, La_f, Ra_f, w_loc, w_freq)
 
-    sum_clicks = (w_loc * (sL_l + sR_l) + w_freq * (sL_f + sR_f))
+    #sum_clicks = (w_loc * (sL_l + sR_l) + w_freq * (sL_f + sR_f))
     var = vars * sum_clicks
-    mu = w_loc * (-sL_l + sR_l) + w_freq * (-sL_f + sR_f)
+    #mu = w_loc * (-sL_l + sR_l) + w_freq * (-sL_f + sR_f)
 
     sum_clicks > zero(TT) ? (M!(F,var+vara*dt,lambda,mu/dt,dx,xc,n,dt); P  = F * P;) : P = M * P
     

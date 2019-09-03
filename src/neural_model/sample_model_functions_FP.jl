@@ -14,7 +14,7 @@ function sample_input_and_spikes_multiple_sessions(n::Int, pz::Vector{Float64}, 
 end
 
 function sample_inputs_and_spikes_single_session(n::Int, pz::Vector{Float64}, py::Vector{Vector{Float64}}, ntrials::Int; 
-        dtMC::Float64=1e-4, rng::Int=1, f_str::String="softplus", use_bin_center::Bool=false)
+        dtMC::Float64=1e-2, rng::Int=1, f_str::String="softplus", use_bin_center::Bool=false)
     
     data = sample_clicks(ntrials; rng=rng)
     data["dtMC"] = dtMC
@@ -30,7 +30,7 @@ function sample_inputs_and_spikes_single_session(n::Int, pz::Vector{Float64}, py
 end
 
 function sample_spikes_single_session(n::Int, data::Dict, pz::Vector{Float64}, py::Vector{Vector{Float64}}; 
-        f_str::String="softplus", dtMC::Float64=1e-4, rng::Int=1, use_bin_center::Bool=false)
+        f_str::String="softplus", dtMC::Float64=1e-2, rng::Int=1, use_bin_center::Bool=false)
     
     Random.seed!(rng)   
     nT,nL,nR = bin_clicks(data["T"],data["leftbups"],data["rightbups"],dtMC,use_bin_center) 

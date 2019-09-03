@@ -1,0 +1,25 @@
+Iter     Function value   Gradient norm 
+     0     3.593371e+05     1.009744e+02
+ * time: 1.9788742065429688e-5
+     1     3.593371e+05     7.752965e+01
+ * time: 269.89835500717163
+     2     3.593371e+05     8.135162e+01
+ * time: 532.3794558048248
+     3     3.593371e+05     1.316476e+02
+ * time: 791.2555778026581
+     4     3.593370e+05     8.195490e+01
+ * time: 1051.7032148838043
+     5     3.593370e+05     8.922224e+01
+ * time: 1311.1177849769592
+     6     3.593370e+05     8.680351e+01
+ * time: 1571.623804807663
+     7     3.593370e+05     8.761596e+01
+ * time: 1837.0975098609924
+     8     3.593370e+05     8.705847e+01
+ * time: 2100.7041308879852
+     9     3.593370e+05     8.732190e+01
+ * time: 2364.851381778717
+┌ Warning: CI computation failed.
+└ @ pulse_input_DDM ~/Projects/pulse_input_DDM.jl/src/neural_model/wrapper_functions.jl:78
+2630.256015 seconds (1.01 G allocations: 127.039 GiB, 2.04% gc time)
+71006.897092 seconds (6.05 G allocations: 1012.656 GiB, 1.63% gc time)

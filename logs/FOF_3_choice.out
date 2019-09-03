@@ -1,0 +1,158 @@
+WARNING: Method definition _bcs1(Any, Any) in module Broadcast at broadcast.jl:439 overwritten in module ImageFiltering at /usr/people/briandd/.julia/packages/ImageFiltering/y5YkM/src/ImageFiltering.jl:28.
+      From worker 4:	WARNING: Method definition _bcs1(Any, Any) in module Broadcast at broadcast.jl:439 overwritten in module ImageFiltering at /usr/people/briandd/.julia/packages/ImageFiltering/y5YkM/src/ImageFiltering.jl:28.
+      From worker 8:	WARNING: Method definition _bcs1(Any, Any) in module Broadcast at broadcast.jl:439 overwritten in module ImageFiltering at /usr/people/briandd/.julia/packages/ImageFiltering/y5YkM/src/ImageFiltering.jl:28.
+      From worker 11:	WARNING: Method definition _bcs1(Any, Any) in module Broadcast at broadcast.jl:439 overwritten in module ImageFiltering at /usr/people/briandd/.julia/packages/ImageFiltering/y5YkM/src/ImageFiltering.jl:28.
+      From worker 9:	WARNING: Method definition _bcs1(Any, Any) in module Broadcast at broadcast.jl:439 overwritten in module ImageFiltering at /usr/people/briandd/.julia/packages/ImageFiltering/y5YkM/src/ImageFiltering.jl:28.
+      From worker 31:	WARNING: Method definition _bcs1(Any, Any) in module Broadcast at broadcast.jl:439 overwritten in module ImageFiltering at /usr/people/briandd/.julia/packages/ImageFiltering/y5YkM/src/ImageFiltering.jl:28.
+      From worker 10:	WARNING: Method definition _bcs1(Any, Any) in module Broadcast at broadcast.jl:439 overwritten in module ImageFiltering at /usr/people/briandd/.julia/packages/ImageFiltering/y5YkM/src/ImageFiltering.jl:28.
+      From worker 43:	WARNING: Method definition _bcs1(Any, Any) in module Broadcast at broadcast.jl:439 overwritten in module ImageFiltering at /usr/people/briandd/.julia/packages/ImageFiltering/y5YkM/src/ImageFiltering.jl:28.
+      From worker 14:	WARNING: Method definition _bcs1(Any, Any) in module Broadcast at broadcast.jl:439 overwritten in module ImageFiltering at /usr/people/briandd/.julia/packages/ImageFiltering/y5YkM/src/ImageFiltering.jl:28.
+      From worker 37:	WARNING: Method definition _bcs1(Any, Any) in module Broadcast at broadcast.jl:439 overwritten in module ImageFiltering at /usr/people/briandd/.julia/packages/ImageFiltering/y5YkM/src/ImageFiltering.jl:28.
+      From worker 18:	WARNING: Method definition _bcs1(Any, Any) in module Broadcast at broadcast.jl:439 overwritten in module ImageFiltering at /usr/people/briandd/.julia/packages/ImageFiltering/y5YkM/src/ImageFiltering.jl:28.
+      From worker 13:	WARNING: Method definition _bcs1(Any, Any) in module Broadcast at broadcast.jl:439 overwritten in module ImageFiltering at /usr/people/briandd/.julia/packages/ImageFiltering/y5YkM/src/ImageFiltering.jl:28.
+      From worker 19:	WARNING: Method definition _bcs1(Any, Any) in module Broadcast at broadcast.jl:439 overwritten in module ImageFiltering at /usr/people/briandd/.julia/packages/ImageFiltering/y5YkM/src/ImageFiltering.jl:28.
+      From worker 26:	WARNING: Method definition _bcs1(Any, Any) in module Broadcast at broadcast.jl:439 overwritten in module ImageFiltering at /usr/people/briandd/.julia/packages/ImageFiltering/y5YkM/src/ImageFiltering.jl:28.
+      From worker 23:	WARNING: Method definition _bcs1(Any, Any) in module Broadcast at broadcast.jl:439 overwritten in module ImageFiltering at /usr/people/briandd/.julia/packages/ImageFiltering/y5YkM/src/ImageFiltering.jl:28.
+      From worker 29:	WARNING: Method definition _bcs1(Any, Any) in module Broadcast at broadcast.jl:439 overwritten in module ImageFiltering at /usr/people/briandd/.julia/packages/ImageFiltering/y5YkM/src/ImageFiltering.jl:28.
+      From worker 42:	WARNING: Method definition _bcs1(Any, Any) in module Broadcast at broadcast.jl:439 overwritten in module ImageFiltering at /usr/people/briandd/.julia/packages/ImageFiltering/y5YkM/src/ImageFiltering.jl:28.
+      From worker 16:	WARNING: Method definition _bcs1(Any, Any) in module Broadcast at broadcast.jl:439 overwritten in module ImageFiltering at /usr/people/briandd/.julia/packages/ImageFiltering/y5YkM/src/ImageFiltering.jl:28.
+      From worker 25:	WARNING: Method definition _bcs1(Any, Any) in module Broadcast at broadcast.jl:439 overwritten in module ImageFiltering at /usr/people/briandd/.julia/packages/ImageFiltering/y5YkM/src/ImageFiltering.jl:28.
+      From worker 34:	WARNING: Method definition _bcs1(Any, Any) in module Broadcast at broadcast.jl:439 overwritten in module ImageFiltering at /usr/people/briandd/.julia/packages/ImageFiltering/y5YkM/src/ImageFiltering.jl:28.
+      From worker 44:	WARNING: Method definition _bcs1(Any, Any) in module Broadcast at broadcast.jl:439 overwritten in module ImageFiltering at /usr/people/briandd/.julia/packages/ImageFiltering/y5YkM/src/ImageFiltering.jl:28.
+      From worker 32:	WARNING: Method definition _bcs1(Any, Any) in module Broadcast at broadcast.jl:439 overwritten in module ImageFiltering at /usr/people/briandd/.julia/packages/ImageFiltering/y5YkM/src/ImageFiltering.jl:28.
+      From worker 35:	WARNING: Method definition _bcs1(Any, Any) in module Broadcast at broadcast.jl:439 overwritten in module ImageFiltering at /usr/people/briandd/.julia/packages/ImageFiltering/y5YkM/src/ImageFiltering.jl:28.
+      From worker 22:	WARNING: Method definition _bcs1(Any, Any) in module Broadcast at broadcast.jl:439 overwritten in module ImageFiltering at /usr/people/briandd/.julia/packages/ImageFiltering/y5YkM/src/ImageFiltering.jl:28.
+      From worker 3:	WARNING: Method definition _bcs1(Any, Any) in module Broadcast at broadcast.jl:439 overwritten in module ImageFiltering at /usr/people/briandd/.julia/packages/ImageFiltering/y5YkM/src/ImageFiltering.jl:28.
+      From worker 17:	WARNING: Method definition _bcs1(Any, Any) in module Broadcast at broadcast.jl:439 overwritten in module ImageFiltering at /usr/people/briandd/.julia/packages/ImageFiltering/y5YkM/src/ImageFiltering.jl:28.
+      From worker 12:	WARNING: Method definition _bcs1(Any, Any) in module Broadcast at broadcast.jl:439 overwritten in module ImageFiltering at /usr/people/briandd/.julia/packages/ImageFiltering/y5YkM/src/ImageFiltering.jl:28.
+      From worker 40:	WARNING: Method definition _bcs1(Any, Any) in module Broadcast at broadcast.jl:439 overwritten in module ImageFiltering at /usr/people/briandd/.julia/packages/ImageFiltering/y5YkM/src/ImageFiltering.jl:28.
+      From worker 28:	WARNING: Method definition _bcs1(Any, Any) in module Broadcast at broadcast.jl:439 overwritten in module ImageFiltering at /usr/people/briandd/.julia/packages/ImageFiltering/y5YkM/src/ImageFiltering.jl:28.
+      From worker 30:	WARNING: Method definition _bcs1(Any, Any) in module Broadcast at broadcast.jl:439 overwritten in module ImageFiltering at /usr/people/briandd/.julia/packages/ImageFiltering/y5YkM/src/ImageFiltering.jl:28.
+      From worker 41:	WARNING: Method definition _bcs1(Any, Any) in module Broadcast at broadcast.jl:439 overwritten in module ImageFiltering at /usr/people/briandd/.julia/packages/ImageFiltering/y5YkM/src/ImageFiltering.jl:28.
+      From worker 27:	WARNING: Method definition _bcs1(Any, Any) in module Broadcast at broadcast.jl:439 overwritten in module ImageFiltering at /usr/people/briandd/.julia/packages/ImageFiltering/y5YkM/src/ImageFiltering.jl:28.
+      From worker 7:	WARNING: Method definition _bcs1(Any, Any) in module Broadcast at broadcast.jl:439 overwritten in module ImageFiltering at /usr/people/briandd/.julia/packages/ImageFiltering/y5YkM/src/ImageFiltering.jl:28.
+      From worker 36:	WARNING: Method definition _bcs1(Any, Any) in module Broadcast at broadcast.jl:439 overwritten in module ImageFiltering at /usr/people/briandd/.julia/packages/ImageFiltering/y5YkM/src/ImageFiltering.jl:28.
+      From worker 20:	WARNING: Method definition _bcs1(Any, Any) in module Broadcast at broadcast.jl:439 overwritten in module ImageFiltering at /usr/people/briandd/.julia/packages/ImageFiltering/y5YkM/src/ImageFiltering.jl:28.
+      From worker 2:	WARNING: Method definition _bcs1(Any, Any) in module Broadcast at broadcast.jl:439 overwritten in module ImageFiltering at /usr/people/briandd/.julia/packages/ImageFiltering/y5YkM/src/ImageFiltering.jl:28.
+      From worker 39:	WARNING: Method definition _bcs1(Any, Any) in module Broadcast at broadcast.jl:439 overwritten in module ImageFiltering at /usr/people/briandd/.julia/packages/ImageFiltering/y5YkM/src/ImageFiltering.jl:28.
+      From worker 24:	WARNING: Method definition _bcs1(Any, Any) in module Broadcast at broadcast.jl:439 overwritten in module ImageFiltering at /usr/people/briandd/.julia/packages/ImageFiltering/y5YkM/src/ImageFiltering.jl:28.
+      From worker 38:	WARNING: Method definition _bcs1(Any, Any) in module Broadcast at broadcast.jl:439 overwritten in module ImageFiltering at /usr/people/briandd/.julia/packages/ImageFiltering/y5YkM/src/ImageFiltering.jl:28.
+      From worker 45:	WARNING: Method definition _bcs1(Any, Any) in module Broadcast at broadcast.jl:439 overwritten in module ImageFiltering at /usr/people/briandd/.julia/packages/ImageFiltering/y5YkM/src/ImageFiltering.jl:28.
+      From worker 21:	WARNING: Method definition _bcs1(Any, Any) in module Broadcast at broadcast.jl:439 overwritten in module ImageFiltering at /usr/people/briandd/.julia/packages/ImageFiltering/y5YkM/src/ImageFiltering.jl:28.
+      From worker 6:	WARNING: Method definition _bcs1(Any, Any) in module Broadcast at broadcast.jl:439 overwritten in module ImageFiltering at /usr/people/briandd/.julia/packages/ImageFiltering/y5YkM/src/ImageFiltering.jl:28.
+      From worker 15:	WARNING: Method definition _bcs1(Any, Any) in module Broadcast at broadcast.jl:439 overwritten in module ImageFiltering at /usr/people/briandd/.julia/packages/ImageFiltering/y5YkM/src/ImageFiltering.jl:28.
+      From worker 33:	WARNING: Method definition _bcs1(Any, Any) in module Broadcast at broadcast.jl:439 overwritten in module ImageFiltering at /usr/people/briandd/.julia/packages/ImageFiltering/y5YkM/src/ImageFiltering.jl:28.
+      From worker 5:	WARNING: Method definition _bcs1(Any, Any) in module Broadcast at broadcast.jl:439 overwritten in module ImageFiltering at /usr/people/briandd/.julia/packages/ImageFiltering/y5YkM/src/ImageFiltering.jl:28.
+Iter     Function value   Gradient norm 
+     0     2.257342e+03     1.750626e+02
+ * time: 1.3113021850585938e-5
+     1     2.203316e+03     7.478364e+01
+ * time: 6.768649101257324
+     2     2.169134e+03     5.052185e+01
+ * time: 9.858988046646118
+     3     2.136660e+03     2.198194e+01
+ * time: 12.956539154052734
+     4     2.115087e+03     2.137568e+01
+ * time: 16.0901141166687
+     5     2.112649e+03     2.325162e+01
+ * time: 19.222880125045776
+     6     2.108395e+03     3.169207e+01
+ * time: 22.329082012176514
+     7     2.103518e+03     3.231894e+01
+ * time: 25.499017000198364
+     8     2.098617e+03     2.112239e+01
+ * time: 28.6649169921875
+     9     2.094583e+03     1.793145e+01
+ * time: 31.873253107070923
+    10     2.091852e+03     1.192467e+01
+ * time: 35.06972002983093
+    11     2.089701e+03     1.031341e+01
+ * time: 38.30122113227844
+    12     2.087912e+03     7.857466e+00
+ * time: 41.52540707588196
+    13     2.086546e+03     6.701948e+00
+ * time: 44.763758182525635
+    14     2.085436e+03     4.795814e+00
+ * time: 48.00401711463928
+    15     2.084638e+03     4.038128e+00
+ * time: 51.24041509628296
+    16     2.083987e+03     2.795480e+00
+ * time: 54.5041069984436
+    17     2.083532e+03     2.600455e+00
+ * time: 57.79371905326843
+    18     2.083169e+03     1.522985e+00
+ * time: 61.06927514076233
+    19     2.082920e+03     2.212516e+00
+ * time: 64.35514211654663
+    20     2.082721e+03     1.452443e+00
+ * time: 67.61406016349792
+    21     2.082582e+03     1.606208e+00
+ * time: 70.88857507705688
+    22     2.082473e+03     1.189301e+00
+ * time: 74.1344211101532
+    23     2.082395e+03     1.165931e+00
+ * time: 77.58844900131226
+    24     2.082335e+03     7.950304e-01
+ * time: 80.83967399597168
+    25     2.082292e+03     9.420022e-01
+ * time: 84.0660650730133
+    26     2.082257e+03     6.327451e-01
+ * time: 87.30363702774048
+    27     2.082232e+03     6.312554e-01
+ * time: 90.54479217529297
+    28     2.082211e+03     5.488801e-01
+ * time: 93.81905198097229
+    29     2.082196e+03     4.123686e-01
+ * time: 97.10024809837341
+    30     2.082184e+03     5.301135e-01
+ * time: 100.33782720565796
+    31     2.082174e+03     1.239765e-01
+ * time: 103.58416199684143
+    32     2.082168e+03     4.291784e-01
+ * time: 106.81194019317627
+    33     2.082162e+03     2.272854e-01
+ * time: 110.07730412483215
+    34     2.082157e+03     2.299331e-01
+ * time: 113.34548616409302
+    35     2.082154e+03     1.929181e-01
+ * time: 116.58354210853577
+    36     2.082151e+03     2.288850e-01
+ * time: 119.81167411804199
+    37     2.082148e+03     2.204591e-01
+ * time: 123.03053307533264
+    38     2.082146e+03     2.136697e-01
+ * time: 126.26632809638977
+    39     2.082144e+03     1.846857e-01
+ * time: 129.511137008667
+    40     2.082143e+03     1.334865e-01
+ * time: 132.72812008857727
+    41     2.082142e+03     1.429038e-01
+ * time: 135.96325707435608
+    42     2.082141e+03     1.237384e-01
+ * time: 139.2340681552887
+    43     2.082140e+03     9.434193e-02
+ * time: 142.48659801483154
+    44     2.082140e+03     8.347693e-02
+ * time: 145.72953009605408
+    45     2.082139e+03     9.197182e-02
+ * time: 149.00220918655396
+    46     2.082139e+03     5.758251e-02
+ * time: 152.2666871547699
+    47     2.082139e+03     4.851786e-02
+ * time: 155.53330302238464
+    48     2.082138e+03     4.325047e-02
+ * time: 158.75453209877014
+    49     2.082138e+03     4.115431e-02
+ * time: 162.02705001831055
+    50     2.082138e+03     2.531347e-02
+ * time: 165.25867104530334
+    51     2.082138e+03     2.733516e-02
+ * time: 168.75202417373657
+    52     2.082138e+03     1.901171e-02
+ * time: 172.02143120765686
+    53     2.082138e+03     1.119497e-02
+ * time: 175.3065710067749
+    54     2.082138e+03     1.975495e-03
+ * time: 178.56735706329346
+195.738883 seconds (134.53 M allocations: 9.923 GiB, 2.31% gc time)
+ 55.461800 seconds (29.17 M allocations: 1.321 GiB, 1.99% gc time)

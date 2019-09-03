@@ -132,7 +132,7 @@ function load_and_optimize(data::Vector{Dict{Any,Any}}, f_str, n::Int;
         "nsessions"=> nsessions)
 
     py["initial"] = map(data-> regress_init(data, f_str), data)
-    pz, py = optimize_model(pz, py, data, f_str, show_trace=show_trace, iterations=iterations)
+    pz, py = optimize_model(pz, py, data, f_str, show_trace=show_trace, iterations=200)
     
     pz["initial"] = vcat(1.,10.,-0.1,20.,0.5,1.0,0.005)
     pz["state"][pz["fit"] .== false] = pz["initial"][pz["fit"] .== false]
