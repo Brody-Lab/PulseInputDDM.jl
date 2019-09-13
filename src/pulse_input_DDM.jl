@@ -48,7 +48,7 @@ include("neural_model/sample_model_functions_FP.jl")
 
 export compute_H_CI!, optimize_model, compute_LL, load_and_optimize, compute_Hessian
 export neural_null
-export regress_init
+export regress_init, init_pz_py, optimize_and_errorbars, compute_ΔLL
 
 export choice_null
 

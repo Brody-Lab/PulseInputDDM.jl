@@ -106,6 +106,81 @@ function load_and_optimize(path::String, sessids, ratnames, f_str, n::Int;
     
 end
 
+function do_all_CV(data::Vector{Dict{Any,Any}}, f_str, n; frac = 0.9)
+    
+    train_data, test_data = train_test_divide(data[1],frac)
+    pz,py = init_pz_py([train_data], f_str)   
+    pz, py, H = optimize_and_errorbars(pz, py, [train_data], f_str, n)
+    ΔLL = compute_ΔLL(pz, py, [test_data], n, f_str)
+    
+    return pz, py, H, ΔLL
+    
+end
+
+function compute_ΔLL(pz, py, data, n, f_str)
+    
+    LL_ML = compute_LL(pz["final"], py["final"], data, n, f_str)
+
+    LL_null = mapreduce(d-> mapreduce(r-> mapreduce(n-> 
+                neural_null(d["spike_counts"][r][n], d["λ0"][r][n], d["dt"]), 
+                    +, 1:d["N"]), +, 1:d["ntrials"]), +, data)
+
+    ΔLL = LL_ML - LL_null
+    
+end
+
+function optimize_and_errorbars(pz, py, data, f_str, n)
+    
+    @time pz, py, opt_output, = optimize_model(pz, py, data, f_str, n, show_trace=true, iterations=500) 
+    print("optimization complete \n")
+    print("converged: $(Optim.converged(opt_output)) \n")
+    
+    if Optim.converged(opt_output)
+        print("computing Hessian \n")
+        @time pz, py, H = compute_H_CI!(pz, py, data, f_str, n)
+    else
+        print("not computing Hessian \n")
+        H = []
+    end
+    
+    return pz, py, H
+    
+end
+
+function init_pz_py(data::Vector{Dict{Any,Any}}, f_str)
+
+    nsessions = length(data)
+    N_per_sess = map(data-> data["N"], data)
+    
+    if f_str == "softplus"
+        dimy = 3
+    elseif f_str == "sig"
+        dimy = 4
+    end        
+        
+    pz::Dict = Dict("name" => ["σ_i","B", "λ", "σ_a","σ_s","ϕ","τ_ϕ"],
+        "fit" => vcat(falses(1),trues(2),falses(4)),
+        "initial" => [2*eps(), 10., -0.1, 2*eps(), 2*eps(), 1.0-eps(), 0.01],
+        "lb" => [eps(), 8., -5., eps(), eps(), 0.01, 0.005],
+        "ub" => [40., 30, 5., 100., 2.5, 1.2, 1.5])
+
+    py = Dict("fit" => map(N-> repeat([trues(dimy)],outer=N), N_per_sess),
+        "initial" => [[[Vector{Float64}(undef,dimy)] for n in 1:N] for N in N_per_sess],
+        "dimy"=> dimy,
+        "N"=> N_per_sess,
+        "nsessions"=> nsessions)
+
+    py["initial"] = map(data-> regress_init(data, f_str), data)
+    pz, py = optimize_model(pz, py, data, f_str, show_trace=false, iterations=200)
+    
+    pz["initial"] = vcat(1.,10.,-0.1,20.,0.5,0.8,0.01)
+    pz["state"][pz["fit"] .== false] = pz["initial"][pz["fit"] .== false]
+    pz["fit"] = vcat(trues(7))
+   
+    return pz, py
+    
+end
+
 function load_and_optimize(data::Vector{Dict{Any,Any}}, f_str, n::Int;
         pz::Dict = Dict("name" => ["σ_i","B", "λ", "σ_a","σ_s","ϕ","τ_ϕ"],
             "fit" => vcat(falses(1),trues(2),falses(4)),
@@ -136,7 +211,7 @@ function load_and_optimize(data::Vector{Dict{Any,Any}}, f_str, n::Int;
     
     pz["initial"] = vcat(1.,10.,-0.1,20.,0.5,1.0,0.005)
     pz["state"][pz["fit"] .== false] = pz["initial"][pz["fit"] .== false]
-    pz["fit"] = vcat(trues(5),falses(2))
+    pz["fit"] = vcat(trues(7))
     
     pz, py, = optimize_model(pz, py, data, f_str, n, show_trace=show_trace, iterations=iterations) 
     

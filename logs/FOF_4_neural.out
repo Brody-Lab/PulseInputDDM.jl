@@ -4,3 +4,12 @@ Iter     Function value   Gradient norm
  * time: 2.3126602172851562e-5
      1     3.196011e+05     8.070881e+01
  * time: 130.87504315376282
+┌ Warning: CI computation failed.
+└ @ pulse_input_DDM ~/Projects/pulse_input_DDM.jl/src/neural_model/wrapper_functions.jl:78
+264.691121 seconds (74.23 M allocations: 7.749 GiB, 1.44% gc time)
+optimization complete 
+converged: true 
+computing Hessian 
+17631.330393 seconds (809.76 M allocations: 186.478 GiB, 1.26% gc time)
+computing samples from ML parameters 
+done, saving. 

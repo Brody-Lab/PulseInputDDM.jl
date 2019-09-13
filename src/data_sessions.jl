@@ -34,6 +34,7 @@ function sessids_from_region(region::String)
 
         ratnames = ["T080","T103","E021"]
 
+        #=
         any(ratnames .== "T080") ? push!(sessids, [297609,302840,300465,298403,301749,300634,301314]) : nothing
         any(ratnames .== "T103") ? push!(sessids, [305643,298428,300658,294987,309283,306371,302671,308388,304258,
                     310429,301336,299423,305431,309785,
@@ -43,6 +44,15 @@ function sessids_from_region(region::String)
         any(ratnames .== "E021") ? push!(sessids, [318132,320452,320240,322668,321215,321411,322326,321705,
                     323936,328460,320077,322887,
                     323781,323420,323619]) : nothing
+        =#
+        
+        #changed 9/5 based on yartesev .m files, waiting on hanks files
+        any(ratnames .== "T080") ? push!(sessids, [302840,300465,301749,300634,301314]) : nothing
+        any(ratnames .== "T103") ? push!(sessids, [297684,297945,298331,298428,298622,
+                299015,299423,300487,300658,301336,302671,302877,303075,304258,304450,
+                305189,305431,305643,305822,306371,306584,306747,306964,
+                307162,307847]) : nothing
+        any(ratnames .== "E021") ? push!(sessids, [320077,320240,320452,322326,322668,322887,323420,323619]) : nothing
 
     end
     

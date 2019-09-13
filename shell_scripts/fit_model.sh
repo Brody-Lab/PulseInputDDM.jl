@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
-#SBATCH -J 'FOF_3_neural_break'
-#SBATCH -o ../logs/FOF_3_neural_break.out
+#SBATCH -J 'FOF_2_by_cell'
+#SBATCH -o ../logs/FOF_2_by_cell.out
 #SBATCH -p Brody
 #SBATCH --time=48:00:00
 #SBATCH --mem=64000
@@ -11,4 +11,4 @@ module load anacondapy/5.1.0
 source activate julia
 path=$HOME/Projects/pulse_input_DDM.jl/
 
-julia $path/scripts/by_rat.jl "FOF" 3 "neural_break"
+julia $path/scripts/by_rat.jl $1 $2 "by_cell"

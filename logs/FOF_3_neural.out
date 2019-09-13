@@ -4,3 +4,10 @@ Iter     Function value   Gradient norm
  * time: 2.002716064453125e-5
      1     1.433448e+05     3.049653e+00
  * time: 61.74929904937744
+131.786180 seconds (70.76 M allocations: 6.467 GiB, 2.30% gc time)
+optimization complete 
+converged: true 
+computing Hessian 
+7140.660978 seconds (609.70 M allocations: 105.016 GiB, 1.59% gc time)
+computing samples from ML parameters 
+done, saving. 
