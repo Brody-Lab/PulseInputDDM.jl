@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
-#SBATCH -J 'FOF_2_by_cell'
-#SBATCH -o ../logs/FOF_2_by_cell.out
+#SBATCH -J 'STR_1_by_cell'
+#SBATCH -o ../logs/STR_1_by_cell.out
 #SBATCH -p Brody
 #SBATCH --time=48:00:00
 #SBATCH --mem=64000

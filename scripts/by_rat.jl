@@ -212,9 +212,65 @@ elseif (model == "filtered")
     end   
     
     print("done, saving. \n")
-    JLD2.@save save_str*region*"_"*rat*".jld" pz py ΔLL μ_hat_ct H data        
+    JLD2.@save save_str*region*"_"*rat*".jld" pz py ΔLL μ_hat_ct H data  
     
 elseif (model == "by_cell")
+    
+    data = aggregate_spiking_data(path*"/data/hanks_data_sessions", [sesss], [rat];
+        break_session=true);
+    save_str = path*"/data/results/working/by_rat/softplus_sig/by_cell/"
+
+    if (region == "STR") || (region == "FOF")
+        delay = 0.05
+    elseif region == "PPC"
+        delay = 0.1
+    end
+    
+    #delay = 0.
+    
+    use_bin_center = true;
+    
+    data = map(x-> map(y-> bin_clicks_spikes_and_λ0!(y,use_bin_center; dt=dt,delay=delay), x), data);
+    data = vcat(data...)
+
+    f_str = "sig"
+    
+    if isfile(save_str*region*"_"*rat*".jld")
+        print("reloading parameters \n")
+        JLD2.@load save_str*region*"_"*rat*".jld" pz py
+        
+    else
+        
+        output = map(data-> init_pz_py([data], f_str), data)
+        pz = map(i-> output[i][1], 1:length(output))
+        py = map(i-> output[i][2], 1:length(output))
+        
+    end
+
+    output = map((pz,py,data)-> optimize_and_errorbars(pz, py, [data], f_str, n), pz, py, data)
+    pz = map(i-> output[i][1], 1:length(output))
+    py = map(i-> output[i][2], 1:length(output))
+    H = map(i-> output[i][3], 1:length(output))
+
+    ΔLL = map((pz,py,data)-> compute_ΔLL(pz, py, [data], n, f_str), pz, py, data)
+    
+    global μ_hat_ct = []
+
+    try
+
+        print("computing samples from ML parameters \n")
+        global μ_hat_ct = map((pz,py,data)-> pulse_input_DDM.sample_average_expected_rates_multiple_sessions(pz["final"], 
+            py["final"], [data], f_str), pz, py, data)
+        
+    catch
+        print("NOT computing samples from ML parameters \n")
+        nothing
+    end 
+    
+    print("done, saving. \n")
+    JLD2.@save save_str*region*"_"*rat*".jld" pz py ΔLL H data μ_hat_ct
+    
+elseif (model == "by_cell_CV")
     
     data = aggregate_spiking_data(path*"/data/hanks_data_sessions/all_times", [sesss], [rat];
         break_session=true);
