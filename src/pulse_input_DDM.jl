@@ -57,8 +57,7 @@ export compute_LL_and_prior
 export sample_input_and_spikes_multiple_sessions, sample_inputs_and_spikes_single_session
 export sample_spikes_single_session, sample_spikes_single_trial, sample_expected_rates_single_session
 
-export sample_choices_all_trials
-
+export sample_choices_all_trials, load_choice_data
 export aggregate_spiking_data, bin_clicks_spikes_and_λ0!
 
 export diffLR, rate_mat_func_filt, nanmean, nanstderr
