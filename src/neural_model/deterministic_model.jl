@@ -88,6 +88,37 @@ function optimize_model(pz::Dict{}, py::Dict{}, data::Vector{Dict{Any,Any}}, f_s
     
 end
 
+function optimize_model_con(pz::Dict{}, py::Dict{}, data::Vector{Dict{Any,Any}}, f_str::String; 
+        x_tol::Float64=1e-16, f_tol::Float64=1e-16, g_tol::Float64=1e-3,
+        iterations::Int=Int(2e3), show_trace::Bool=true,
+        outer_iterations::Int=Int(2e3)) where {TT <: Any}
+    
+    haskey(pz,"state") ? nothing : pz["state"] = deepcopy(pz["initial"])
+    haskey(py,"state") ? nothing : py["state"] = deepcopy(py["initial"])
+    
+    pz = check_pz!(pz)
+
+
+    fit_vec = combine_latent_and_observation(pz["fit"], py["fit"])
+    lb = combine_latent_and_observation(pz["lb"], py["lb"])[fit_vec]
+    ub = combine_latent_and_observation(pz["ub"], py["ub"])[fit_vec]
+    p_opt, p_const = split_variable_and_const(combine_latent_and_observation(pz["state"], py["state"]),fit_vec)
+    
+    parameter_map_f(x) = split_latent_and_observation(combine_variable_and_const(x, p_const, fit_vec), py["N"], py["dimy"])
+
+    ll(x) = ll_wrapper(x, data, parameter_map_f, f_str)
+    
+    opt_output = opt_ll_con(p_opt, ll, lb, ub; g_tol=g_tol, x_tol=x_tol, f_tol=f_tol,
+        iterations=iterations, show_trace=show_trace,outer_iterations=outer_iterations);
+    p_opt = Optim.minimizer(opt_output)
+
+    pz["state"], py["state"] = parameter_map_f(p_opt)
+    pz["final"], py["final"] = pz["state"], py["state"]
+    
+    return pz, py, opt_output
+    
+end
+
 function ll_wrapper(p_opt::Vector{TT}, data::Vector{Dict{Any,Any}}, parameter_map_f::Function, f_str::String) where {TT <: Any}
 
     pz, py = parameter_map_f(p_opt)   
@@ -122,8 +153,8 @@ end
 function LL_single_trial(pz::Vector{TT}, py::Vector{Vector{TT}},
         L::Vector{Float64}, R::Vector{Float64}, nT::Int, 
         nL::Vector{Int}, nR::Vector{Int},
-        k::Vector{Vector{Int}}, λ0::Vector{Vector{UU}}, dt::Float64, 
-        f_str::String,use_bin_center::Bool) where {UU,TT <: Any}
+        k::Vector{Vector{Int}}, λ0::Vector{Vector{Float64}}, dt::Float64, 
+        f_str::String,use_bin_center::Bool) where {TT <: Any}
     
     a = sample_latent(nT,L,R,nL,nR,pz,use_bin_center;dt=dt)
     #sum(map((py,k,λ0)-> sum(poiss_LL.(k, map((a, λ0)-> f_py!(a, λ0, py, f_str), a, λ0), dt)), py, k, λ0))

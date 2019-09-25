@@ -1,5 +1,19 @@
 ##### Choice observation model #################################
 
+function load_choice_data(path::String, file::String)
+
+    data = read(matopen(path*file), "rawdata")
+
+    data["T"] = data["T"]
+    data["pokedR"] = vec(convert(BitArray, data["pokedR"]))
+    data["correct_dir"] = vec(convert(BitArray, data["correct_dir"]))
+    data["leftbups"] = map(x-> vec(collect(x)), data["leftbups"])
+    data["rightbups"] = map(x-> vec(collect(x)), data["rightbups"])
+    
+    return data
+
+end
+
 function aggregate_choice_data(path::String, sessids::Vector{Vector{Int}}, ratnames::Vector{String})
     
     data = Dict{String,Any}("leftbups" => Vector{Vector{Float64}}(), "rightbups" => Vector{Vector{Float64}}(), 
@@ -11,7 +25,6 @@ function aggregate_choice_data(path::String, sessids::Vector{Vector{Int}}, ratna
     for j = 1:length(ratnames)
         for i = 1:length(sessids[j])
             rawdata = read(matopen(path*"/"*ratnames[j]*"_"*string(sessids[j][i])*".mat"),"rawdata")
-            #data = append_choice_data!(data,rawdata,ratnames[j],sessids[j][i])
             data = append_choice_data!(data,rawdata)
         end
     end
@@ -20,8 +33,24 @@ function aggregate_choice_data(path::String, sessids::Vector{Vector{Int}}, ratna
     
 end
 
+#=function aggregate_choice_data(path::String, files)
+    
+    data = Dict{String,Any}("leftbups" => Vector{Vector{Float64}}(), 
+            "rightbups" => Vector{Vector{Float64}}(), 
+            "T" => Vector{Float64}(), 
+            "pokedR" => Vector{Bool}(), 
+            "correct_dir" => Vector{Bool}())
+    
+    for i = 1:length(files)
+        rawdata = read(matopen(path*files[i]),"rawdata")
+        data = append_choice_data!(data,rawdata)
+    end
+    
+    return data
+    
+end=#
+
 function append_choice_data!(data::Dict, rawdata::Dict)
-#function append_choice_data!(data::Dict, rawdata::Dict, ratname::String, sessID::Int)
 
     ntrials = length(rawdata["T"])
 
@@ -31,8 +60,6 @@ function append_choice_data!(data::Dict, rawdata::Dict)
     
     append!(data["leftbups"], map(x-> vec(collect(x)), rawdata["leftbups"]))
     append!(data["rightbups"], map(x-> vec(collect(x)), rawdata["rightbups"]))
-    #append!(data["sessID"], repeat([sessID], inner=ntrials))
-    #append!(data["ratID"], repeat([ratname], inner=ntrials))
     
     return data
 

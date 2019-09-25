@@ -131,13 +131,16 @@ end
 
 function optimize_and_errorbars(pz, py, data, f_str, n)
     
-    @time pz, py, opt_output, = optimize_model(pz, py, data, f_str, n, show_trace=true, iterations=500) 
+    #@time pz, py, opt_output, = optimize_model(pz, py, data, f_str, n, show_trace=true, iterations=500) 
+    print("trying constrained opt \n")
+    @time pz, py, opt_output, = optimize_model_con(pz, py, data, f_str, n, show_trace=true) 
     print("optimization complete \n")
     print("converged: $(Optim.converged(opt_output)) \n")
     
     if Optim.converged(opt_output)
         print("computing Hessian \n")
-        @time pz, py, H = compute_H_CI!(pz, py, data, f_str, n)
+        #@time pz, py, H = compute_H_CI!(pz, py, data, f_str, n)
+        @time pz, py, H = compute_H_CI_con!(pz, py, data, f_str, n)
     else
         print("not computing Hessian \n")
         H = []
@@ -153,29 +156,42 @@ function init_pz_py(data::Vector{Dict{Any,Any}}, f_str)
     N_per_sess = map(data-> data["N"], data)
     
     if f_str == "softplus"
+        
         dimy = 3
+        
+        py = Dict("fit" => map(N-> repeat([trues(dimy)],outer=N), N_per_sess),
+            "initial" => [[[Vector{Float64}(undef,dimy)] for n in 1:N] for N in N_per_sess],
+            "dimy"=> dimy,
+            "N"=> N_per_sess,
+            "nsessions"=> nsessions,
+            "lb" => [[[2*eps(),-Inf,-Inf] for n in 1:N] for N in N_per_sess],
+            "ub" => [[[Inf,Inf,Inf] for n in 1:N] for N in N_per_sess])
+        
     elseif f_str == "sig"
+        
         dimy = 4
+        
+        py = Dict("fit" => map(N-> repeat([trues(dimy)],outer=N), N_per_sess),
+            "initial" => [[[Vector{Float64}(undef,dimy)] for n in 1:N] for N in N_per_sess],
+            "dimy"=> dimy,
+            "N"=> N_per_sess,
+            "nsessions"=> nsessions,
+            "lb" => [[[-100.,0.,-10.,-10.] for n in 1:N] for N in N_per_sess],
+            "ub" => [[[100.,100.,10.,10.] for n in 1:N] for N in N_per_sess])
     end        
         
     pz::Dict = Dict("name" => ["σ_i","B", "λ", "σ_a","σ_s","ϕ","τ_ϕ"],
         "fit" => vcat(falses(1),trues(2),falses(4)),
-        "initial" => [2*eps(), 10., -0.1, 2*eps(), 2*eps(), 1.0-eps(), 0.01],
+        "initial" => [2*eps(), 10., -0.1, 2*eps(), 2*eps(), 1., 0.01],
         "lb" => [eps(), 8., -5., eps(), eps(), 0.01, 0.005],
-        "ub" => [40., 30, 5., 100., 2.5, 1.2, 1.5])
-
-    py = Dict("fit" => map(N-> repeat([trues(dimy)],outer=N), N_per_sess),
-        "initial" => [[[Vector{Float64}(undef,dimy)] for n in 1:N] for N in N_per_sess],
-        "dimy"=> dimy,
-        "N"=> N_per_sess,
-        "nsessions"=> nsessions)
+        "ub" => [100., 100., 5., 100., 2.5, 1.2, 1.5])
 
     py["initial"] = map(data-> regress_init(data, f_str), data)
-    pz, py = optimize_model(pz, py, data, f_str, show_trace=false, iterations=200)
+    pz, py = optimize_model_con(pz, py, data, f_str, show_trace=false)
     
-    pz["initial"] = vcat(1.,10.,-0.1,20.,0.5,0.8,0.01)
+    pz["initial"] = vcat(1.,10.,-0.1,20.,2*eps(),1.,0.01)
     pz["state"][pz["fit"] .== false] = pz["initial"][pz["fit"] .== false]
-    pz["fit"] = vcat(trues(7))
+    pz["fit"] = vcat(trues(4),falses(3))
    
     return pz, py
     
