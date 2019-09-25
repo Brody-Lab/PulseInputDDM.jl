@@ -4,7 +4,8 @@ using StatsBase, Distributions, Optim, LineSearches, JLD2
 using ForwardDiff, Distributed, LinearAlgebra
 using SpecialFunctions, MAT, Random 
 using DSP
-import Pandas: qcut, cut
+#import Pandas: qcut, cut
+using Discretizers
 import StatsFuns: logistic, logit, softplus
 using Base.Threads, ImageFiltering
 
