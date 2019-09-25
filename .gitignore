@@ -1,11 +1,4 @@
-old/*
-figures/*
-data/*
-code/*
 src/depreciated/*
 src/julia/*
 docs/build/
-notebooks/deprecated
-notebooks/.ipynb_checkpoints
-notebooks/COSYNE
 demos/.ipynb_checkpoints
