@@ -1,23 +1,10 @@
-#################################### dx Choice observation model #################################
-
-function generate_syn_data_fit_CI_dx(pz::Dict{}, pd::Dict{}, ntrials::Int;
-        dx::Float64=0.25, dt=1e-2)
-
-    data = sample_inputs_and_choices(pz["generative"], pd["generative"], ntrials)
-
-    data = bin_clicks!(data,use_bin_center;dt=dt)
-
-    pz, pd, = optimize_model_dx(pz, pd, data; dx=dx, show_trace=true)
-    pz, pd = compute_H_CI_dx!(pz, pd, data; dx=dx)
-
-end
 
 function compute_Hessian_dx(pz, pd, data; dx::Float64=0.25) where {TT <: Any}
 
     fit_vec = combine_latent_and_observation(pz["fit"], pd["fit"])
-    p_opt, p_const = split_combine_invmap(pz["final"], pd["final"], fit_vec, data["dt"], pz["lb"], pz["ub"])
+    p_opt, p_const = split_variable_and_const(combine_latent_and_observation(pz["final"], pd["final"]), fit_vec)
 
-    parameter_map_f(x) = map_split_combine(x, p_const, fit_vec, data["dt"], pz["lb"], pz["ub"])
+    parameter_map_f(x) = split_latent_and_observation(combine_variable_and_const(x, p_const, fit_vec))
     ll(x) = ll_wrapper_dx(x, data, parameter_map_f, dx=dx)
 
     return H = ForwardDiff.hessian(ll, p_opt);
@@ -36,26 +23,15 @@ function compute_H_CI_dx!(pz, pd, data; dx::Float64=0.25)
     gooddims = setdiff(gooddims,otherbad)
 
     fit_vec = combine_latent_and_observation(pz["fit"], pd["fit"])
-    p_opt, p_const = split_combine_invmap(copy(pz["final"]), copy(pd["final"]),
-        fit_vec, data["dt"], pz["lb"], pz["ub"])
+    p_opt, p_const = split_variable_and_const(combine_latent_and_observation(pz["final"], pd["final"]), fit_vec)
+    parameter_map_f(x) = split_latent_and_observation(combine_variable_and_const(x, p_const, fit_vec))
 
     CI = fill!(Vector{Float64}(undef,size(H,1)),1e8);
 
     CI[gooddims] = 2*sqrt.(diag(inv(H[gooddims,gooddims])))
 
-    parameter_map_f(x) = map_split_combine(x, p_const, fit_vec, data["dt"], pz["lb"], pz["ub"])
-
     pz["CI_plus"], pd["CI_plus"] = parameter_map_f(p_opt + CI)
     pz["CI_minus"], pd["CI_minus"] = parameter_map_f(p_opt - CI)
-
-    #identify which ML parameters have generative parameters within the CI
-    if haskey(pz, "generative")
-        pz["within_CI"] = (pz["CI_minus"] .< pz["generative"]) .& (pz["CI_plus"] .> pz["generative"])
-    end
-
-    if haskey(pd, "generative")
-        pd["within_CI"] = (pd["CI_minus"] .< pd["generative"]) .& (pd["CI_plus"] .> pd["generative"])
-    end
 
     return pz, pd
 
