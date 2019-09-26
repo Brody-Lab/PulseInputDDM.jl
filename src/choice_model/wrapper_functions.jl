@@ -124,7 +124,7 @@ function optimize_model(pz::Dict{}, pd::Dict{}, data::Dict{}; n::Int=53,
     pz["state"], pd["state"] = parameter_map_f(p_opt)
     pz["final"], pd["final"] = pz["state"], pd["state"]
 
-    return pz, pd, opt_output, state
+    return pz, pd, opt_output
 
 end
 
