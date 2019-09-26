@@ -41,7 +41,7 @@ function LL_single_trial(pz::Vector{TT}, P::Vector{TT}, M::Array{TT,2}, dx::UU,
 
 end
 
-function bias_bin(bias::TT,xe::Vector{TT},dx::UU,n::Int) where {TT,UU <: Any}
+function bias_bin(bias::TT,xe::Vector{VV},dx::UU,n::Int) where {TT,UU,VV <: Any}
 
     nbinsL = sum(bias .> xe[2:n])
     Sfrac = (bias - xe[nbinsL+1])/dx
