@@ -2,3 +2,4 @@ src/depreciated/*
 src/julia/*
 docs/build/
 demos/.ipynb_checkpoints
+notes/*

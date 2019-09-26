@@ -149,11 +149,8 @@ function ll_wrapper(p_opt::Vector{TT}, data::Dict, parameter_map_f::Function;
 end
 
 
-
-
-
 """
-    compute_LL(pz::Vector{T}, pd::Vector{T}, data; n::Int=53)
+    compute_LL(pz::Vector{T}, pd::Vector{T}, data; n::Int=53) where {T <: Any}
 
     compute LL for your model. returns a scalar
 

@@ -15,10 +15,10 @@ To solve for the ML model parameters, we need to compute gradients. Packages exi
 
 I suggest you run this on scotty or spock, which already has Julia on it.
 
-Then you need to add this package by typing `Pkg.clone(https://github.com/PrincetonUniversity/pulse_input_DDM/`.
+Then you need to add this package by typing `Pkg.add(https://github.com/PrincetonUniversity/pulse_input_DDM/`.
 
 # Useful functions
 
-Most users will want to work with these functions: 
+Most users will want to work with these functions:
 
-* `poiss_LL`: compute the Poisson log likelihood
+* `optimize_model(pz, pd, data)`: compute the Poisson log likelihood
