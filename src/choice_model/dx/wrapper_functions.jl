@@ -113,7 +113,7 @@ function initialize_latent_model_dx(pz::Vector{TT}, dx::Float64, dt::Float64;
 
 end
 
-#convert(::Type{T}, x::ForwardDiff.Dual) where {T<:Number} = T(x.value)
+convert(::Type{T}, x::ForwardDiff.Dual) where {T<:Number} = T(x.value)
 
 function bins_dx(B::TT,dx::Float64) where {TT}
 
