@@ -114,6 +114,9 @@ function optimize_model(pz::Dict{}, pd::Dict{}, data::Dict{}; n::Int=53,
     ub = combine_latent_and_observation(pz["ub"], pd["ub"])[fit_vec]
     p_opt, p_const = split_variable_and_const(combine_latent_and_observation(pz["state"], pd["state"]), fit_vec)
 
+    p_opt[p_opt .< lb] .= lb[p_opt .< lb]
+    p_opt[p_opt .> ub] .= ub[p_opt .> ub]
+
     parameter_map_f(x) = split_latent_and_observation(combine_variable_and_const(x, p_const, fit_vec))
     ll(x) = ll_wrapper(x, data, parameter_map_f, n=n)
     opt_output = opt_func_fminbox(p_opt, ll, lb, ub; g_tol=g_tol, x_tol=x_tol,
