@@ -6,6 +6,7 @@ using SpecialFunctions, MAT, Random
 using DSP, Discretizers
 import StatsFuns: logistic, logit, softplus
 using Base.Threads, ImageFiltering
+import Base.convert
 
 #include("initialize_spike_obs_model.jl")
 include("latent_variable_model_functions.jl")
