@@ -85,15 +85,6 @@ function compute_H_CI!(pz, pd, data; n::Int=53)
     pz["CI_plus"], pd["CI_plus"] = parameter_map_f(p_opt + CI)
     pz["CI_minus"], pd["CI_minus"] = parameter_map_f(p_opt - CI)
 
-    #identify which ML parameters have generative parameters within the CI
-    if haskey(pz, "generative")
-        pz["within_CI"] = (pz["CI_minus"] .< pz["generative"]) .& (pz["CI_plus"] .> pz["generative"])
-    end
-
-    if haskey(pd, "generative")
-        pd["within_CI"] = (pd["CI_minus"] .< pd["generative"]) .& (pd["CI_plus"] .> pd["generative"])
-    end
-
     return pz, pd, H
 
 end
@@ -121,7 +112,7 @@ function optimize_model(pz::Dict{}, pd::Dict{}, data::Dict{}; n::Int=53,
     fit_vec = combine_latent_and_observation(pz["fit"], pd["fit"])
     lb = combine_latent_and_observation(pz["lb"], pd["lb"])[fit_vec]
     ub = combine_latent_and_observation(pz["ub"], pd["ub"])[fit_vec]
-    p_opt, p_const = split_variable_and_const(combine_latent_and_observation(pz["state"], pd["state"]),fit_vec)
+    p_opt, p_const = split_variable_and_const(combine_latent_and_observation(pz["state"], pd["state"]), fit_vec)
 
     parameter_map_f(x) = split_latent_and_observation(combine_variable_and_const(x, p_const, fit_vec))
     ll(x) = ll_wrapper(x, data, parameter_map_f, n=n)
