@@ -15,10 +15,10 @@ function LL_all_trials(pz::Vector{TT}, pd::Vector{TT}, data::Dict; n::Int=53) wh
 end
 
 function LL_single_trial(pz::Vector{TT}, P::Vector{TT}, M::Array{TT,2}, dx::UU,
-        xc::Vector{TT},L::Vector{Float64}, R::Vector{Float64}, nT::Int,
+        xc::Vector{VV}, L::Vector{Float64}, R::Vector{Float64}, nT::Int,
         nL::Vector{Int}, nR::Vector{Int},
         nbinsL::Union{TT,Int}, Sfrac::TT, pokedR::Bool,
-        n::Int, dt::Float64) where {TT,UU <: Any}
+        n::Int, dt::Float64) where {TT,UU,VV <: Any}
 
     #adapt magnitude of the click inputs
     La, Ra = make_adapted_clicks(pz,L,R)
