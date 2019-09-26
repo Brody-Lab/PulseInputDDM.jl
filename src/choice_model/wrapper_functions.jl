@@ -113,6 +113,8 @@ function optimize_model(pz::Dict{}, pd::Dict{}, data::Dict{}; n::Int=53,
 
     pz = check_pz!(pz)
 
+    println("new optimize box")
+
     fit_vec = combine_latent_and_observation(pz["fit"], pd["fit"])
     lb = combine_latent_and_observation(pz["lb"], pd["lb"])[fit_vec]
     ub = combine_latent_and_observation(pz["ub"], pd["ub"])[fit_vec]
