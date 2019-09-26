@@ -13,6 +13,44 @@ function generate_syn_data_fit_CI(pz::Dict{}, pd::Dict{}, ntrials::Int;
 
 end
 
+function load_and_optimize(path::String, sessids, ratnames; n::Int=53, dt::Float64=1e-2,
+        pz::Dict = Dict("name" => ["σ_i","B", "λ", "σ_a","σ_s","ϕ","τ_ϕ"],
+        "fit" => trues(dimz),
+        "initial" => [1e-6,20.,-0.1,100.,5.,0.2,0.005],
+        "lb" => [eps(), 4., -5., eps(), eps(), eps(), eps()],
+        "ub" => [10., 100, 5., 800., 40., 2., 10.]),
+        show_trace::Bool=true, iterations::Int=Int(2e3),
+        x_tol::Float64=1e-4, f_tol::Float64=1e-9, g_tol::Float64=1e-2)
+
+    data = aggregate_choice_data(path,sessids,ratnames)
+    data = bin_clicks!(data,use_bin_center;dt=dt)
+
+    pz, pd = load_and_optimize(data; n=n,
+        pz=pz, show_trace=show_trace, iterations=iterations)
+
+    return pz, pd
+
+end
+
+function load_and_optimize(data; n::Int=53,
+        pz::Dict = Dict("name" => ["σ_i","B", "λ", "σ_a","σ_s","ϕ","τ_ϕ"],
+        "fit" => trues(dimz),
+        "initial" => [1e-6,20.,-0.1,100.,5.,0.2,0.005],
+        "lb" => [eps(), 4., -5., eps(), eps(), eps(), eps()],
+        "ub" => [10., 100, 5., 800., 40., 2., 10.]),
+        show_trace::Bool=true, iterations::Int=Int(2e3),
+        x_tol::Float64=1e-4, f_tol::Float64=1e-9, g_tol::Float64=1e-2)
+
+    #parameters for the choice observation
+    pd = Dict("name" => vcat("bias","lapse"), "fit" => trues(2),
+        "initial" => vcat(0.,0.5))
+
+    pz, pd = optimize_model(pz, pd, data; n=n, show_trace=show_trace, iterations=iterations)
+
+    return pz, pd
+
+end
+
 function compute_Hessian(pz, pd, data; n::Int=53) where {TT <: Any}
 
     fit_vec = combine_latent_and_observation(pz["fit"], pd["fit"])
@@ -60,46 +98,13 @@ function compute_H_CI!(pz, pd, data; n::Int=53)
 
 end
 
-function load_and_optimize(path::String, sessids, ratnames; n::Int=53, dt::Float64=1e-2,
-        pz::Dict = Dict("name" => ["σ_i","B", "λ", "σ_a","σ_s","ϕ","τ_ϕ"],
-        "fit" => trues(dimz),
-        "initial" => [1e-6,20.,-0.1,100.,5.,0.2,0.005],
-        "lb" => [eps(), 4., -5., eps(), eps(), eps(), eps()],
-        "ub" => [10., 100, 5., 800., 40., 2., 10.]),
-        show_trace::Bool=true, iterations::Int=Int(2e3),
-        x_tol::Float64=1e-4, f_tol::Float64=1e-9, g_tol::Float64=1e-2)
 
-    data = aggregate_choice_data(path,sessids,ratnames)
-    data = bin_clicks!(data,use_bin_center;dt=dt)
 
-    pz, pd = load_and_optimize(data; n=n,
-        pz=pz, show_trace=show_trace, iterations=iterations)
-
-    return pz, pd
-
-end
-
-function load_and_optimize(data; n::Int=53,
-        pz::Dict = Dict("name" => ["σ_i","B", "λ", "σ_a","σ_s","ϕ","τ_ϕ"],
-        "fit" => trues(dimz),
-        "initial" => [1e-6,20.,-0.1,100.,5.,0.2,0.005],
-        "lb" => [eps(), 4., -5., eps(), eps(), eps(), eps()],
-        "ub" => [10., 100, 5., 800., 40., 2., 10.]),
-        show_trace::Bool=true, iterations::Int=Int(2e3),
-        x_tol::Float64=1e-4, f_tol::Float64=1e-9, g_tol::Float64=1e-2)
-
-    #parameters for the choice observation
-    pd = Dict("name" => vcat("bias","lapse"), "fit" => trues(2),
-        "initial" => vcat(0.,0.5))
-
-    pz, pd = optimize_model(pz, pd, data; n=n, show_trace=show_trace, iterations=iterations)
-
-    return pz, pd
-
-end
 
 """
-    optimize_model(pz, pd, data; n, x_tol, f_tol, g_tol, iterations)
+    optimize_model(pz::Dict{}, pd::Dict{}, data::Dict{}; n::Int=53,
+        x_tol::Float64=1e-12, f_tol::Float64=1e-12, g_tol::Float64=1e-3,
+        iterations::Int=Int(2e3), show_trace::Bool=true)
 
     Optimize parameters specified within fit vectors.
 
@@ -112,8 +117,6 @@ function optimize_model(pz::Dict{}, pd::Dict{}, data::Dict{}; n::Int=53,
     haskey(pd,"state") ? nothing : pd["state"] = deepcopy(pd["initial"])
 
     pz = check_pz!(pz)
-
-    println("new optimize box")
 
     fit_vec = combine_latent_and_observation(pz["fit"], pd["fit"])
     lb = combine_latent_and_observation(pz["lb"], pd["lb"])[fit_vec]
@@ -134,6 +137,12 @@ function optimize_model(pz::Dict{}, pd::Dict{}, data::Dict{}; n::Int=53,
 
 end
 
+
+
+
+
+
+
 function ll_wrapper(p_opt::Vector{TT}, data::Dict, parameter_map_f::Function;
         n::Int=53) where {TT <: Any}
 
@@ -145,10 +154,14 @@ function ll_wrapper(p_opt::Vector{TT}, data::Dict, parameter_map_f::Function;
 
 end
 
+
+
+
+
 """
     compute_LL(pz::Vector{T}, pd::Vector{T}, data; n::Int=53)
 
-    compute LL for choice observation model. returns a scalar
+    compute LL for your model. returns a scalar
 
 """
 compute_LL(pz::Vector{T}, pd::Vector{T}, data; n::Int=53) where {T <: Any} = sum(LL_all_trials(pz, pd, data, n=n))
