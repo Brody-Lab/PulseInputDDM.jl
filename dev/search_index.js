@@ -341,7 +341,7 @@ var documenterSearchIndex = {"docs": [
     "page": "Functions",
     "title": "pulse_input_DDM.compute_LL",
     "category": "method",
-    "text": "compute_LL(pz::Vector{T}, pd::Vector{T}, data; n::Int=53)\n\ncompute LL for your model. returns a scalar\n\n\n\n\n\n"
+    "text": "compute_LL(pz::Vector{T}, pd::Vector{T}, data; n::Int=53) where {T <: Any}\n\ncompute LL for your model. returns a scalar\n\n\n\n\n\n"
 },
 
 {
