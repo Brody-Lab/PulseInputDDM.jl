@@ -16,15 +16,14 @@ end
 function compute_Hessian(pz, pd, data; n::Int=53) where {TT <: Any}
 
     fit_vec = combine_latent_and_observation(pz["fit"], pd["fit"])
-    p_opt, p_const = split_combine_invmap(pz["final"], pd["final"], fit_vec, data["dt"], pz["lb"], pz["ub"])
+    p_opt, p_const = split_variable_and_const(combine_latent_and_observation(pz["final"], pd["final"]),fit_vec)
 
-    parameter_map_f(x) = map_split_combine(x, p_const, fit_vec, data["dt"], pz["lb"], pz["ub"])
+    parameter_map_f(x) = split_latent_and_observation(combine_variable_and_const(x, p_const, fit_vec))
     ll(x) = ll_wrapper(x, data, parameter_map_f, n=n)
 
     return H = ForwardDiff.hessian(ll, p_opt);
 
 end
-
 
 function compute_H_CI!(pz, pd, data; n::Int=53)
 
@@ -37,14 +36,13 @@ function compute_H_CI!(pz, pd, data; n::Int=53)
     gooddims = setdiff(gooddims,otherbad)
 
     fit_vec = combine_latent_and_observation(pz["fit"], pd["fit"])
-    p_opt, p_const = split_combine_invmap(copy(pz["final"]), copy(pd["final"]),
-        fit_vec, data["dt"], pz["lb"], pz["ub"])
+    p_opt, p_const = split_variable_and_const(combine_latent_and_observation(pz["final"], pd["final"]), fit_vec)
+
+    parameter_map_f(x) = split_latent_and_observation(combine_variable_and_const(x, p_const, fit_vec))
 
     CI = fill!(Vector{Float64}(undef,size(H,1)),1e8);
 
     CI[gooddims] = 2*sqrt.(diag(inv(H[gooddims,gooddims])))
-
-    parameter_map_f(x) = map_split_combine(x, p_const, fit_vec, data["dt"], pz["lb"], pz["ub"])
 
     pz["CI_plus"], pd["CI_plus"] = parameter_map_f(p_opt + CI)
     pz["CI_minus"], pd["CI_minus"] = parameter_map_f(p_opt - CI)
@@ -106,8 +104,8 @@ end
     Optimize parameters specified within fit vectors.
 
 """
-function optimize_model(pz::Dict{}, pd::Dict{}, data; n=53,
-        x_tol::Float64=1e-4, f_tol::Float64=1e-9, g_tol::Float64=1e-2,
+function optimize_model(pz::Dict{}, pd::Dict{}, data::Dict{}; n::Int=53,
+        x_tol::Float64=1e-12, f_tol::Float64=1e-12, g_tol::Float64=1e-3,
         iterations::Int=Int(2e3), show_trace::Bool=true)
 
     haskey(pz,"state") ? nothing : pz["state"] = deepcopy(pz["initial"])
@@ -116,13 +114,14 @@ function optimize_model(pz::Dict{}, pd::Dict{}, data; n=53,
     pz = check_pz!(pz)
 
     fit_vec = combine_latent_and_observation(pz["fit"], pd["fit"])
-    p_opt, p_const = split_combine_invmap(pz["state"], pd["state"], fit_vec, data["dt"], pz["lb"], pz["ub"])
+    lb = combine_latent_and_observation(pz["lb"], pd["lb"])[fit_vec]
+    ub = combine_latent_and_observation(pz["ub"], pd["ub"])[fit_vec]
+    p_opt, p_const = split_variable_and_const(combine_latent_and_observation(pz["state"], pd["state"]),fit_vec)
 
-    ###########################################################################################
-    ## Optimize
-    parameter_map_f(x) = map_split_combine(x, p_const, fit_vec, data["dt"], pz["lb"], pz["ub"])
+    parameter_map_f(x) = split_latent_and_observation(combine_variable_and_const(x, p_const, fit_vec))
     ll(x) = ll_wrapper(x, data, parameter_map_f, n=n)
-    opt_output, state = opt_ll(p_opt, ll; g_tol=g_tol, x_tol=x_tol, f_tol=f_tol, iterations=iterations,
+    opt_output, state = opt_func_fminbox(p_opt, ll, lb, ub; g_tol=g_tol, x_tol=x_tol,
+        f_tol=f_tol, iterations=iterations,
         show_trace=show_trace)
     p_opt = Optim.minimizer(opt_output)
 

@@ -2,14 +2,10 @@ module pulse_input_DDM
 
 using StatsBase, Distributions, Optim, LineSearches, JLD2
 using ForwardDiff, Distributed, LinearAlgebra
-using SpecialFunctions, MAT, Random 
-using DSP
-#import Pandas: qcut, cut
-using Discretizers
+using SpecialFunctions, MAT, Random
+using DSP, Discretizers
 import StatsFuns: logistic, logit, softplus
 using Base.Threads, ImageFiltering
-
-#using ROCAnalysis, ImageFiltering
 
 #include("initialize_spike_obs_model.jl")
 include("latent_variable_model_functions.jl")
@@ -17,7 +13,7 @@ include("analysis_functions.jl")
 include("choice_and_poisson_neural_observation.jl")
 include("data_sessions.jl")
 
-include("wrapper_functions.jl")
+include("optim_funcs.jl")
 include("mapping_functions.jl")
 include("sample_model_functions.jl")
 
