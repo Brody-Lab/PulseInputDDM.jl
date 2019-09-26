@@ -337,11 +337,19 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
+    "location": "functions/#pulse_input_DDM.compute_LL-Union{Tuple{T}, Tuple{Array{T,1},Array{T,1},Any}} where T",
+    "page": "Functions",
+    "title": "pulse_input_DDM.compute_LL",
+    "category": "method",
+    "text": "compute_LL(pz::Vector{T}, pd::Vector{T}, data; n::Int=53)\n\ncompute LL for your model. returns a scalar\n\n\n\n\n\n"
+},
+
+{
     "location": "functions/#Functions-1",
     "page": "Functions",
     "title": "Functions",
     "category": "section",
-    "text": "    optimize_model(pz::Vector{TT}, bias::TT, pz_fit_vec, bias_fit_vec,\n        data; dt::Float64=1e-2, n=53, map_str::String=\"exp\",\n        x_tol::Float64=1e-16,f_tol::Float64=1e-16,g_tol::Float64=1e-12,\n        iterations::Int=Int(5e3)) where {TT <: Any}"
+    "text": "compute_LL(pz::Vector{T}, pd::Vector{T}, data; n::Int=53) where {T <: Any}"
 },
 
 ]}
