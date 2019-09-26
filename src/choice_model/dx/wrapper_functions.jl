@@ -128,9 +128,9 @@ function bins_dx(B::TT,dx::Float64) where {TT}
     #    collect(range(dx,stop=(B+dx/2.),length=Int((n-1)/2)))); #centers
 
     xc = collect(-n2:n2)*dx
-    #n2*dx == B ? (xc[end] = B + dx; xc[1] = -(B + dx)) : (xc[end] = 2*B - (n2-1)*dx; xc[1] = -(2*B - (n2-1)*dx))
-    n2*dx == B ? xc[[end,1]] = [convert(eltype(xc),B) + dx, -(convert(eltype(xc),B) + dx)] :
-        xc[[end,1]] = [2*convert(eltype(xc),B) - (n2-1)*dx, -(2*convert(eltype(xc),B) - (n2-1)*dx)]
+    n2*dx == B ? (xc[end] = B + dx; xc[1] = -(B + dx)) : (xc[end] = 2*B - (n2-1)*dx; xc[1] = -(2*B - (n2-1)*dx))
+#    n2*dx == B ? xc[[end,1]] = [convert(eltype(xc),B) + dx, -(convert(eltype(xc),B) + dx)] :
+#        xc[[end,1]] = [2*convert(eltype(xc),B) - (n2-1)*dx, -(2*convert(eltype(xc),B) - (n2-1)*dx)]
 
     #this will need to be fixed, I think, but only for the choice model
     xe = cat(xc[1] - dx/2,xc .+ dx/2, dims=1) #edges
