@@ -138,3 +138,15 @@ function bins_dx(B::TT,dx::Float64) where {TT}
     return xc, n, xe
 
 end
+
+function compute_gradient_dx(pz, pd, data; dx::Float64=0.25, state::String="state") where {TT <: Any}
+
+    fit_vec = combine_latent_and_observation(pz["fit"], pd["fit"])
+    p_opt, p_const = split_variable_and_const(combine_latent_and_observation(pz[state], pd[state]), fit_vec)
+
+    parameter_map_f(x) = split_latent_and_observation(combine_variable_and_const(x, p_const, fit_vec))
+    ll(x) = ll_wrapper_dx(x, data, parameter_map_f, dx=dx)
+
+    return g = ForwardDiff.gradient(ll, p_opt)
+
+end
