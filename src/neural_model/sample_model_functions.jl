@@ -1,6 +1,21 @@
 
 #################################### Poisson neural observation model #########################
 
+function boot_LL(pz,py,data,f_str,i,n)
+    dcopy = deepcopy(data)
+    dcopy["spike_counts"] = sample_spikes_multiple_sessions(pz, py, [dcopy], f_str; rng=i)[1]  
+    
+    
+    LL_ML = compute_LL(pz, py, [dcopy], n, f_str)
+
+    LL_null = mapreduce(d-> mapreduce(r-> mapreduce(n-> 
+                neural_null(d["spike_counts"][r][n], d["λ0"][r][n], d["dt"]), 
+                    +, 1:d["N"]), +, 1:d["ntrials"]), +, [data])
+
+    (LL_ML - LL_null) / dcopy["ntrials"]
+    
+end
+
 function sample_input_and_spikes_multiple_sessions(pz::Vector{Float64}, py::Vector{Vector{Vector{Float64}}}, 
         ntrials_per_sess::Vector{Int}; f_str::String="softplus", rng::Int=0, use_bin_center::Bool=false)
     
