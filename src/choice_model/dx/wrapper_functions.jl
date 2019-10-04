@@ -117,6 +117,21 @@ convert(::Type{T}, x::ForwardDiff.Dual) where {T<:Number} = T(x.value)
 
 function bins_dx(B::TT,dx::Float64) where {TT}
 
+    xc = collect(0.:dx:convert(eltype(dx),B))
+    #xc = collect(LinRange(0., floor(B/dx) * dx, Int(convert(eltype(dx),B)/dx)+1))
+
+    if xc[end] == B
+        #xc[end] = xc[end] + dx
+        xc = vcat(xc[1:end-1], B + dx)
+    else
+        xc = vcat(xc, 2*B - xc[end])
+    end
+
+    xc = vcat(-xc[end:-1:2], xc)
+    n = length(xc)
+
+    #=
+
     #dx = 2. *B/(n-2);  #bin width
     n2 = ceil(B/dx)
 
@@ -132,8 +147,10 @@ function bins_dx(B::TT,dx::Float64) where {TT}
     n2*dx == B ? xc[[end,1]] = [convert(eltype(xc),B) + dx, -(convert(eltype(xc),B) + dx)] :
         xc[[end,1]] = [2*convert(eltype(xc),B) - (n2-1)*dx, -(2*convert(eltype(xc),B) - (n2-1)*dx)]
 
+    =#
+
     #this will need to be fixed, I think, but only for the choice model
-    xe = cat(xc[1] - dx/2,xc .+ dx/2, dims=1) #edges
+    xe = cat(xc[1] - dx/2, xc .+ dx/2, dims=1) #edges
 
     return xc, n, xe
 
