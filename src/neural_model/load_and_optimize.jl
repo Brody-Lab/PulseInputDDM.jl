@@ -120,13 +120,23 @@ end
 function compute_ΔLL(pz, py, data, n, f_str)
     
     LL_ML = compute_LL(pz["final"], py["final"], data, n, f_str)
-
-    LL_null = mapreduce(d-> mapreduce(r-> mapreduce(n-> 
-                neural_null(d["spike_counts"][r][n], d["λ0"][r][n], d["dt"]), 
-                    +, 1:d["N"]), +, 1:d["ntrials"]), +, data)
-
-    ΔLL = LL_ML - LL_null
     
+    #f_py(0.,d["λ0"][r][n],py["final"],f_str) + art
+    
+    #LL_null = mapreduce(d-> mapreduce(r-> mapreduce(n-> 
+    #            neural_null(d["spike_counts"][r][n], d["λ0"][r][n], d["dt"]), 
+    #                +, 1:d["N"]), +, 1:d["ntrials"]), +, data)
+    
+    LL_null = mapreduce(d-> mapreduce(r-> mapreduce(n-> 
+            neural_null(d["spike_counts"][r][n], map(λ-> f_py(0.,λ,py["final"][1][n],f_str), d["λ0"][r][n]), d["dt"]), 
+                +, 1:d["N"]), +, 1:d["ntrials"]), +, data)
+
+    #ΔLL = (LL_ML - LL_null)/data[1]["ntrials"]
+     #ΔLL = 1. - (LL_ML/LL_null)
+    
+    #return ΔLL, LL_ML, LL_null
+    LL_ML - LL_null
+
 end
 
 function optimize_and_errorbars(pz, py, data, f_str, n)

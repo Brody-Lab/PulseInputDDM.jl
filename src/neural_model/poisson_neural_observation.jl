@@ -74,15 +74,16 @@ function f_py(x::U, c::Float64, p::Vector{T}, f_str::String) where {T,U <: Any}
         
         y = p[3] * x + p[4]        
         y = p[1] + p[2] * logistic!(y)
+                
+        y = softplus(y + c)
+        #y = max(eps(),y+c)
         
     elseif f_str == "softplus"
         
-        y = p[1] + softplus(p[2]*x + p[3] + c)
+        y = p[1] + softplus(p[2]*x + p[3])
+        y = max(eps(),y+c)
         
     end
-
-    y = softplus(y + c)
-    #y = max(eps(),y+c)
 
     return y
     
@@ -95,14 +96,15 @@ function f_py!(x::U, c::Float64, p::Vector{T}, f_str::String) where {T,U <: Any}
         x = p[3] * x + p[4]      
         x = p[1] + p[2] * logistic!(x)
         
+        x = softplus(x + c)
+        #x = max(eps(),x+c)
+        
     elseif f_str == "softplus"
         
         x = p[1] + softplus(p[2]*x + p[3])
+        x = max(eps(),x+c)
         
     end
-    
-    x = softplus(x + c)
-    #x = max(eps(),x+c)
 
     return x
     

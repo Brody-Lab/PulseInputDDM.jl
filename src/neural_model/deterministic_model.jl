@@ -98,7 +98,6 @@ function optimize_model_con(pz::Dict{}, py::Dict{}, data::Vector{Dict{Any,Any}},
     
     pz = check_pz!(pz)
 
-
     fit_vec = combine_latent_and_observation(pz["fit"], py["fit"])
     lb = combine_latent_and_observation(pz["lb"], py["lb"])[fit_vec]
     ub = combine_latent_and_observation(pz["ub"], py["ub"])[fit_vec]
@@ -108,8 +107,8 @@ function optimize_model_con(pz::Dict{}, py::Dict{}, data::Vector{Dict{Any,Any}},
 
     ll(x) = ll_wrapper(x, data, parameter_map_f, f_str)
     
-    opt_output = opt_ll_con(p_opt, ll, lb, ub; g_tol=g_tol, x_tol=x_tol, f_tol=f_tol,
-        iterations=iterations, show_trace=show_trace,outer_iterations=outer_iterations);
+    opt_output = opt_func_fminbox(p_opt, ll, lb, ub; g_tol=g_tol, x_tol=x_tol, f_tol=f_tol,
+        iterations=iterations, show_trace=show_trace);
     p_opt = Optim.minimizer(opt_output)
 
     pz["state"], py["state"] = parameter_map_f(p_opt)
@@ -177,8 +176,10 @@ end
 
 function compute_p0(ΔLR,k,dt,f_str;nconds::Int=7)
     
-    conds_bins, = qcut(vcat(ΔLR...),nconds,labels=false,duplicates="drop",retbins=true)
-    fr = map(i -> (1/dt)*mean(vcat(k...)[conds_bins .== i]),0:nconds-1)
+    #conds_bins, = qcut(vcat(ΔLR...),nconds,labels=false,duplicates="drop",retbins=true)
+    conds_bins = encode(LinearDiscretizer(binedges(DiscretizeUniformWidth(nconds), vcat(ΔLR...))), vcat(ΔLR...))
+
+    fr = map(i -> (1/dt)*mean(vcat(k...)[conds_bins .== i]),1:nconds)
 
     A = vcat(ΔLR...)
     b = vcat(k...)

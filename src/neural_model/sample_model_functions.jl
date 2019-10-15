@@ -3,16 +3,22 @@
 
 function boot_LL(pz,py,data,f_str,i,n)
     dcopy = deepcopy(data)
-    dcopy["spike_counts"] = sample_spikes_multiple_sessions(pz, py, [dcopy], f_str; rng=i)[1]  
-    
+    dcopy["spike_counts"] = sample_spikes_multiple_sessions(pz, py, [dcopy], f_str; rng=i)[1]    
     
     LL_ML = compute_LL(pz, py, [dcopy], n, f_str)
 
-    LL_null = mapreduce(d-> mapreduce(r-> mapreduce(n-> 
-                neural_null(d["spike_counts"][r][n], d["λ0"][r][n], d["dt"]), 
-                    +, 1:d["N"]), +, 1:d["ntrials"]), +, [data])
+    #LL_null = mapreduce(d-> mapreduce(r-> mapreduce(n-> 
+    #            neural_null(d["spike_counts"][r][n], d["λ0"][r][n], d["dt"]), 
+    #                +, 1:d["N"]), +, 1:d["ntrials"]), +, [data])
 
-    (LL_ML - LL_null) / dcopy["ntrials"]
+    #(LL_ML - LL_null) / dcopy["ntrials"]    
+
+    LL_null = mapreduce(d-> mapreduce(r-> mapreduce(n-> 
+        neural_null(d["spike_counts"][r][n], map(λ-> f_py(0.,λ, py[1][n],f_str), d["λ0"][r][n]), d["dt"]), 
+            +, 1:d["N"]), +, 1:d["ntrials"]), +, [dcopy])
+
+    #return 1. - (LL_ML/LL_null), LL_ML, LL_null
+    LL_ML - LL_null
     
 end
 
@@ -42,9 +48,9 @@ function sample_inputs_single_session(py::Vector{Vector{Float64}}, ntrials::Int;
     data = bin_clicks!(data,use_bin_center;dt=dt)
     
     Random.seed!(rng)   
-    data["λ0"] = [repeat([collect(range(10. *rand(),stop=10. * rand(), 
-                        length=Int(ceil(T./dt))))], outer=length(py)) for T in data["T"]]
-    #data["λ0"] = [repeat([zeros(Int(ceil(T./dt)))], outer=length(py)) for T in data["T"]]
+    #data["λ0"] = [repeat([collect(range(10. *rand(),stop=10. * rand(), 
+    #                    length=Int(ceil(T./dt))))], outer=length(py)) for T in data["T"]]
+    data["λ0"] = [repeat([zeros(Int(ceil(T./dt)))], outer=length(py)) for T in data["T"]]
             
     return data
     
@@ -114,6 +120,15 @@ end
 poisson_noise!(lambda,dt) = Int(rand(Poisson(lambda*dt)))
 
 #################################### Average expected rates across latent noise #########################
+
+function sample_per_trial_expected_rates_multiple_sessions(pz, py, data, f_str::String)
+    
+    output = map(i-> sample_expected_rates_multiple_sessions(pz, py, data, f_str; rng=i), 1:100)
+    μ_rate = mean(map(k-> output[k][1], 1:length(output)))
+    
+    return μ_rate
+    
+end
 
 function sample_average_expected_rates_multiple_sessions(pz, py, data, f_str::String)
     
