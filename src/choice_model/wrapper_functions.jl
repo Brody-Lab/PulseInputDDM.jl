@@ -1,71 +1,30 @@
-#################################### Choice observation model #################################
-
-function generate_syn_data_fit_CI(pz::Dict{}, pd::Dict{}, ntrials::Int;
-        n::Int=53, dt=1e-2, use_bin_center::Bool=false)
-
-    data = sample_inputs_and_choices(pz["generative"], pd["generative"], ntrials;
-        use_bin_center=use_bin_center)
-
-    data = bin_clicks!(data,use_bin_center;dt=dt)
-
-    pz, pd, = optimize_model(pz, pd, data; n=n, show_trace=true)
-    pz, pd = compute_H_CI!(pz, pd, data; n=n)
-
-end
-
-function load_and_optimize(path::String, sessids, ratnames; n::Int=53, dt::Float64=1e-2,
-        pz::Dict = Dict("name" => ["σ_i","B", "λ", "σ_a","σ_s","ϕ","τ_ϕ"],
-        "fit" => trues(dimz),
-        "initial" => [1e-6,20.,-0.1,100.,5.,0.2,0.005],
-        "lb" => [eps(), 4., -5., eps(), eps(), eps(), eps()],
-        "ub" => [10., 100, 5., 800., 40., 2., 10.]),
-        show_trace::Bool=true, iterations::Int=Int(2e3),
-        x_tol::Float64=1e-4, f_tol::Float64=1e-9, g_tol::Float64=1e-2)
-
-    data = aggregate_choice_data(path,sessids,ratnames)
-    data = bin_clicks!(data,use_bin_center;dt=dt)
-
-    pz, pd = load_and_optimize(data; n=n,
-        pz=pz, show_trace=show_trace, iterations=iterations)
-
-    return pz, pd
-
-end
-
-function load_and_optimize(data; n::Int=53,
-        pz::Dict = Dict("name" => ["σ_i","B", "λ", "σ_a","σ_s","ϕ","τ_ϕ"],
-        "fit" => trues(dimz),
-        "initial" => [1e-6,20.,-0.1,100.,5.,0.2,0.005],
-        "lb" => [eps(), 4., -5., eps(), eps(), eps(), eps()],
-        "ub" => [10., 100, 5., 800., 40., 2., 10.]),
-        show_trace::Bool=true, iterations::Int=Int(2e3),
-        x_tol::Float64=1e-4, f_tol::Float64=1e-9, g_tol::Float64=1e-2)
-
-    #parameters for the choice observation
-    pd = Dict("name" => vcat("bias","lapse"), "fit" => trues(2),
-        "initial" => vcat(0.,0.5))
-
-    pz, pd = optimize_model(pz, pd, data; n=n, show_trace=show_trace, iterations=iterations)
-
-    return pz, pd
-
-end
-
-function compute_Hessian(pz, pd, data; n::Int=53) where {TT <: Any}
+function compute_gradient(pz, pd, data; dx::Float64=0.25, state::String="state") where {TT <: Any}
 
     fit_vec = combine_latent_and_observation(pz["fit"], pd["fit"])
-    p_opt, p_const = split_variable_and_const(combine_latent_and_observation(pz["final"], pd["final"]),fit_vec)
+    p_opt, p_const = split_variable_and_const(combine_latent_and_observation(pz[state], pd[state]), fit_vec)
 
     parameter_map_f(x) = split_latent_and_observation(combine_variable_and_const(x, p_const, fit_vec))
-    ll(x) = ll_wrapper(x, data, parameter_map_f, n=n)
+    ll(x) = ll_wrapper(x, data, parameter_map_f, dx=dx)
+
+    return g = ForwardDiff.gradient(ll, p_opt)
+
+end
+
+function compute_Hessian(pz, pd, data; dx::Float64=0.25, state::String="state") where {TT <: Any}
+
+    fit_vec = combine_latent_and_observation(pz["fit"], pd["fit"])
+    p_opt, p_const = split_variable_and_const(combine_latent_and_observation(pz[state], pd[state]), fit_vec)
+
+    parameter_map_f(x) = split_latent_and_observation(combine_variable_and_const(x, p_const, fit_vec))
+    ll(x) = ll_wrapper(x, data, parameter_map_f, dx=dx)
 
     return H = ForwardDiff.hessian(ll, p_opt);
 
 end
 
-function compute_H_CI!(pz, pd, data; n::Int=53)
+function compute_H_CI!(pz, pd, data; dx::Float64=0.25)
 
-    H = compute_Hessian(pz, pd, data; n=n)
+    H = compute_Hessian(pz, pd, data; dx=dx)
 
     gooddims = 1:size(H,1)
 
@@ -90,17 +49,15 @@ function compute_H_CI!(pz, pd, data; n::Int=53)
 end
 
 
-
-
 """
-    optimize_model(pz::Dict{}, pd::Dict{}, data::Dict{}; n::Int=53,
+    optimize_model(pz::Dict{}, pd::Dict{}, data::Dict{}; dx::Float64=0.25,
         x_tol::Float64=1e-12, f_tol::Float64=1e-12, g_tol::Float64=1e-3,
         iterations::Int=Int(2e3), show_trace::Bool=true)
 
     Optimize parameters specified within fit vectors.
 
 """
-function optimize_model(pz::Dict{}, pd::Dict{}, data::Dict{}; n::Int=53,
+function optimize_model(pz::Dict{}, pd::Dict{}, data::Dict{}; dx::Float64=0.25,
         x_tol::Float64=1e-12, f_tol::Float64=1e-12, g_tol::Float64=1e-3,
         iterations::Int=Int(2e3), show_trace::Bool=true)
 
@@ -118,7 +75,7 @@ function optimize_model(pz::Dict{}, pd::Dict{}, data::Dict{}; n::Int=53,
     p_opt[p_opt .> ub] .= ub[p_opt .> ub]
 
     parameter_map_f(x) = split_latent_and_observation(combine_variable_and_const(x, p_const, fit_vec))
-    ll(x) = ll_wrapper(x, data, parameter_map_f, n=n)
+    ll(x) = ll_wrapper(x, data, parameter_map_f, dx=dx)
     opt_output = opt_func_fminbox(p_opt, ll, lb, ub; g_tol=g_tol, x_tol=x_tol,
         f_tol=f_tol, iterations=iterations,
         show_trace=show_trace)
@@ -131,18 +88,12 @@ function optimize_model(pz::Dict{}, pd::Dict{}, data::Dict{}; n::Int=53,
 
 end
 
-
-
-
-
-
-
 function ll_wrapper(p_opt::Vector{TT}, data::Dict, parameter_map_f::Function;
-        n::Int=53) where {TT <: Any}
+        dx::Float64=0.25) where {TT <: Any}
 
     pz, pd = parameter_map_f(p_opt)
 
-    LL = compute_LL(pz, pd, data; n=n)
+    LL = compute_LL(pz, pd, data; dx=dx)
 
     return -LL
 
@@ -155,4 +106,4 @@ end
     compute LL for your model. returns a scalar
 
 """
-compute_LL(pz::Vector{T}, pd::Vector{T}, data; n::Int=53) where {T <: Any} = sum(LL_all_trials(pz, pd, data, n=n))
+compute_LL(pz::Vector{T}, pd::Vector{T}, data; dx::Float64=0.25) where {T <: Any} = sum(LL_all_trials(pz, pd, data, dx=dx))

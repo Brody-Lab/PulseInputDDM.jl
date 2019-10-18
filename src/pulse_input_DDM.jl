@@ -4,14 +4,13 @@ using StatsBase, Distributions, Optim, LineSearches, JLD2
 using ForwardDiff, Distributed, LinearAlgebra
 using SpecialFunctions, MAT, Random
 using DSP, Discretizers
-import StatsFuns: logistic, logit, softplus
+import StatsFuns: logistic, logit, softplus, xlogy
 using Base.Threads, ImageFiltering
 import Base.convert
+using ForwardDiff: value
 
-#include("initialize_spike_obs_model.jl")
 include("latent_variable_model_functions.jl")
 include("analysis_functions.jl")
-include("choice_and_poisson_neural_observation.jl")
 include("data_sessions.jl")
 
 include("optim_funcs.jl")
@@ -24,7 +23,6 @@ include("choice_model/mapping_functions.jl")
 include("choice_model/sample_model_functions.jl")
 include("choice_model/manipulate_data_functions.jl")
 
-include("choice_model/dx/wrapper_functions.jl")
 include("choice_model/marino/wrapper_functions.jl")
 include("choice_model/marino/choice_observation_model.jl")
 include("choice_model/marino/mapping_functions.jl")
@@ -44,10 +42,9 @@ include("neural_model/load_and_optimize.jl")
 include("neural_model/deterministic_model.jl")
 include("neural_model/sample_model_functions_FP.jl")
 
-export compute_H_CI!, optimize_model, compute_LL, load_and_optimize, compute_Hessian, optimize_model_con
-export neural_null
+export compute_H_CI!, optimize_model, compute_LL, load_and_optimize, compute_Hessian
+export neural_null, compute_gradient, LL_all_trials
 export regress_init, init_pz_py, optimize_and_errorbars, compute_ΔLL
-export optimize_model_dx, compute_H_CI_dx!, compute_LL_dx, compute_gradient_dx
 
 export choice_null
 
