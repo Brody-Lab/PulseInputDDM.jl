@@ -64,7 +64,7 @@ function optimize_model(pz::Dict{}, pd::Dict{}, data::Dict{}; dx::Float64=0.25,
     haskey(pz,"state") ? nothing : pz["state"] = deepcopy(pz["initial"])
     haskey(pd,"state") ? nothing : pd["state"] = deepcopy(pd["initial"])
 
-    pz = check_pz!(pz)
+    check_pz(pz)
 
     fit_vec = combine_latent_and_observation(pz["fit"], pd["fit"])
     lb = combine_latent_and_observation(pz["lb"], pd["lb"])[fit_vec]

@@ -15,7 +15,7 @@ function optimize_model(pz::Dict{}, py::Dict{}, data::Vector{Dict{Any,Any}}, f_s
     haskey(pz,"state") ? nothing : pz["state"] = deepcopy(pz["initial"])
     haskey(py,"state") ? nothing : py["state"] = deepcopy(py["initial"])
 
-    pz = check_pz!(pz)
+    check_pz(pz)
 
     fit_vec = combine_latent_and_observation(pz["fit"], py["fit"])
     p_opt, p_const = split_combine_invmap(pz["state"], py["state"], fit_vec, data[1]["dt"], f_str, pz["lb"], pz["ub"])
@@ -46,7 +46,7 @@ function optimize_model_con(pz::Dict{}, py::Dict{}, data::Vector{Dict{Any,Any}},
     haskey(pz,"state") ? nothing : pz["state"] = deepcopy(pz["initial"])
     haskey(py,"state") ? nothing : py["state"] = deepcopy(py["initial"])
 
-    pz = check_pz!(pz)
+    check_pz(pz)
 
     fit_vec = combine_latent_and_observation(pz["fit"], py["fit"])
     lb = combine_latent_and_observation(pz["lb"], py["lb"])[fit_vec]

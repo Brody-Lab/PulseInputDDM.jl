@@ -1,40 +1,22 @@
+"""
+    check_pz(pz)
 
+    Checks the values of pz, looking for very specific parameters where singularities occur in the model.
 
-#################################### Optimization #################################
+"""
+function check_pz(pz)
 
-function check_pz!(pz)
-
-    if (pz["state"][6] == 1.) & pz["fit"][6]
+    if (pz["state"][pz["name"] == "ϕ"] == 1.) & pz["fit"][pz["name"] == "ϕ"]
         error("ϕ has a value of 1. and you are optimizing w.r.t. to it
             but this code ignores ϕ when it is exactly 1.
             Change you initialization of ϕ.")
     end
 
-    if (pz["state"][3] == 1.) & pz["fit"][3]
+    if (pz["state"][pz["name"] == "λ"] == 1.) & pz["fit"][pz["name"] == "λ"]
         error("λ has a value of 0. and you are optimizing w.r.t. to it
             but this code ignores λ when it is exactly 0.
             Change you initialization of λ.")
     end
-
-    #=
-
-    if any(pz["state"] .== pz["lb"])
-        @warn "some parameter(s) at lower bound. bumped it (them) up 1/4 from the lower bound."
-        pz["state"][pz["state"] .== pz["lb"]] .=
-            pz["lb"][pz["state"] .== pz["lb"]] .+
-            0.25 .* (pz["ub"][pz["state"] .== pz["lb"]] .- pz["lb"][pz["state"] .== pz["lb"]])
-    end
-
-    if any(pz["state"] .== pz["ub"])
-        @warn "some parameter(s) at upper bound. bumped it (them) down 1/4 from the upper bound."
-        pz["state"][pz["state"] .== pz["ub"]] .=
-            pz["ub"][pz["state"] .== pz["ub"]] .-
-            0.25 .* (pz["ub"][pz["state"] .== pz["ub"]] .- pz["lb"][pz["state"] .== pz["ub"]])
-    end
-
-    =#
-
-    return pz
 
 end
 
@@ -98,7 +80,3 @@ function opt_ll_Newton(p_opt,ll;g_tol::Float64=1e-12,x_tol::Float64=1e-16,f_tol:
     return output, lbfgsstate
 
 end
-
-########################## Priors ###########################################
-
-gauss_prior(p::Vector{TT}, mu::Vector{Float64}, beta::Vector{Float64}) where {TT} = -sum(beta .* (p - mu).^2)
