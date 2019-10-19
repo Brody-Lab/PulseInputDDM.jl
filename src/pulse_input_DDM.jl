@@ -19,7 +19,6 @@ include("sample_model_functions.jl")
 
 include("choice_model/choice_observation_model.jl")
 include("choice_model/wrapper_functions.jl")
-include("choice_model/mapping_functions.jl")
 include("choice_model/sample_model_functions.jl")
 include("choice_model/manipulate_data_functions.jl")
 

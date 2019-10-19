@@ -107,3 +107,8 @@ end
 
 """
 compute_LL(pz::Vector{T}, pd::Vector{T}, data; dx::Float64=0.25) where {T <: Any} = sum(LL_all_trials(pz, pd, data, dx=dx))
+
+split_latent_and_observation(p::Vector{TT}) where {TT} = p[1:dimz], p[dimz+1:end]
+
+combine_latent_and_observation(pz::Union{Vector{TT},BitArray{1}}, 
+    pd::Union{Vector{TT},BitArray{1}}) where {TT} = vcat(pz,pd)
