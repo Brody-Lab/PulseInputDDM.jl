@@ -1,4 +1,3 @@
-##### Choice observation model #################################
 
 function load_choice_data(path::String, file::String)
 

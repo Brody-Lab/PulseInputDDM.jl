@@ -11,22 +11,13 @@ using ForwardDiff: value
 
 include("latent_variable_model_functions.jl")
 include("analysis_functions.jl")
-include("data_sessions.jl")
-
 include("optim_funcs.jl")
-include("mapping_functions.jl")
 include("sample_model_functions.jl")
 
 include("choice_model/choice_observation_model.jl")
 include("choice_model/wrapper_functions.jl")
 include("choice_model/sample_model_functions.jl")
 include("choice_model/manipulate_data_functions.jl")
-
-include("choice_model/marino/wrapper_functions.jl")
-include("choice_model/marino/choice_observation_model.jl")
-include("choice_model/marino/mapping_functions.jl")
-include("choice_model/marino/sample_model_functions.jl")
-include("choice_model/marino/manipulate_data_functions.jl")
 
 export aggregate_choice_data, bin_clicks!
 export sample_choices_all_trials!, sample_inputs_and_choices
