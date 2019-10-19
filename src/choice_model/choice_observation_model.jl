@@ -1,3 +1,23 @@
+"""
+    bounded_mass_all_trials(pz::Vector{TT}, pd::Vector{TT}, data::Dict; dx::Float64=0.25) where {TT}
+
+    Computes the mass in the absorbing bins at the end of the trial. Written for Diksha.
+
+"""
+function bounded_mass_all_trials(pz::Vector{TT}, pd::Vector{TT}, data::Dict; dx::Float64=0.25) where {TT}
+
+    bias,lapse = pd[1],pd[2]
+    dt = data["dt"]
+    P,M,xc,n = initialize_latent_model(pz, dx, dt, L_lapse=lapse/2, R_lapse=lapse/2)
+
+    output = pmap((L,R,nT,nL,nR) -> P_single_trial(pz, P, M, dx, xc,
+        L, R, nT, nL, nR, n, dt),
+        data["leftbups"], data["rightbups"], data["nT"], data["binned_leftbups"],
+        data["binned_rightbups"])
+
+    return map(P-> P[[1,n]], output)
+
+end
 
 function LL_all_trials(pz::Vector{TT}, pd::Vector{TT}, data::Dict; dx::Float64=0.25) where {TT}
 

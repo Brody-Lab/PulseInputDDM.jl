@@ -42,11 +42,15 @@ function latent_one_step!(P::Vector{TT}, F::Array{TT,2}, pz::Vector{WW}, t::Int,
 
     σ2 = σ2_s * (sL + sR);   μ = -sL + sR
 
+    (sL + sR) > zero(TT) ? (M!(F,σ2+σ2_a*dt,λ, μ, dx, xc, n, dt); P  = F * P;) : P = M * P
+
+    #=
     if backwards
         (sL + sR) > zero(TT) ? (M!(F,σ2+σ2_a*dt,λ, μ/dt, dx, xc, n, dt); P  = F' * P;) : P = M' * P
     else
         (sL + sR) > zero(TT) ? (M!(F,σ2+σ2_a*dt,λ, μ/dt, dx, xc, n, dt); P  = F * P;) : P = M * P
     end
+    =#
 
     return P, F
 
@@ -54,7 +58,7 @@ end
 
 function bins(B::TT,dx::Float64) where {TT}
 
-    xc = collect(0.:dx:value(B))
+    xc = collect(0.:dx:floor(value(B)/dx)*dx)
 
     if xc[end] == B
         xc = vcat(xc[1:end-1], B + dx)
@@ -69,11 +73,16 @@ function bins(B::TT,dx::Float64) where {TT}
 
 end
 
-function M!(F::Array{WW,2}, σ2::YY, λ::ZZ, h::Union{TT}, dx::UU, xc::Vector{VV}, n::Int, dt::Float64) where {TT,UU,VV,WW,YY,ZZ <: Any}
+function expm1_div_x(x)
+
+    y = exp(x)
+    y == 1. ? one(y) : (y-1.)/log(y)
+
+end
+
+function M!(F::Array{WW,2}, σ2::YY, λ::ZZ, μ::Union{TT}, dx::UU, xc::Vector{VV}, n::Int, dt::Float64) where {TT,UU,VV,WW,YY,ZZ <: Any}
 
     F[1,1] = one(TT); F[n,n] = one(TT); F[:,2:n-1] = zeros(TT,n,n-2)
-
-    #########################################
 
     ndeltas = max(70,ceil(Int, 10. *sqrt(σ2)/dx))
 
@@ -84,7 +93,11 @@ function M!(F::Array{WW,2}, σ2::YY, λ::ZZ, h::Union{TT}, dx::UU, xc::Vector{VV
 
     @inbounds for j = 2:n-1
 
-        abs(λ) < 1e-150 ? mu = xc[j] + h * dt : mu = exp(λ*dt)*(xc[j] + h/λ) - h/λ
+        #abs(λ) < 1e-150 ? mu = xc[j] + μ : mu = exp(λ*dt)*(xc[j] + μ/(λ*dt)) - μ/(λ*dt)
+        #abs(λ) < 1e-150 ? mu = xc[j] + h * dt : mu = exp(λ*dt)*(xc[j] + h/λ) - h/λ
+        #mu = exp(λ*dt)*xc[j] + μ * (exp(λ*dt) - 1.)/(λ*dt)
+        #mu = exp(λ*dt)*xc[j] + μ * (expm1(λ*dt)/(λ*dt)
+        mu = exp(λ*dt)*xc[j] + μ * expm1_div_x(λ*dt)
 
         #now we're going to look over all the slices of the gaussian
         for k = 1:2*ndeltas+1
