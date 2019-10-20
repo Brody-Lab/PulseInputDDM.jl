@@ -44,13 +44,10 @@ where `save_path` is specified by you.
 ## Important functions
  
 ```@docs
-    optimize_model(pz::Vector{TT},py::Vector{Vector{TT}},pz_fit,py_fit,data;
-        dt::Float64=1e-2, n::Int=53, f_str="softplus",map_str::String="exp",
-        beta::Vector{Vector{Float64}}=Vector{Vector{Float64}}(),
-        mu0::Vector{Vector{Float64}}=Vector{Vector{Float64}}(),
-        x_tol::Float64=1e-16,f_tol::Float64=1e-16,g_tol::Float64=1e-12,
-        iterations::Int=Int(5e3),show_trace::Bool=true, 
-        λ0::Vector{Vector{Float64}}=Vector{Vector{Float64}}()) where {TT <: Any}
+    optimize_model(pz::Dict{}, py::Dict{}, data::Vector{Dict{Any,Any}}, f_str::String,
+        n::Int; x_tol::Float64=1e-16, f_tol::Float64=1e-16, g_tol::Float64=1e-3,
+        iterations::Int=Int(2e3), show_trace::Bool=true,
+        outer_iterations::Int=Int(2e3)) where {TT <: Any}
 ```
 
 ## Fitting the model on spock instead

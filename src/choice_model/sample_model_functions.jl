@@ -1,5 +1,4 @@
 
-#################################### Choice observation model #################################
 
 function sample_inputs_and_choices(pz::Vector{Float64}, pd::Vector{Float64}, ntrials::Int; 
         dtMC::Float64=1e-4, rng::Int = 1, use_bin_center::Bool=false)

@@ -1,7 +1,8 @@
 """
-    bounded_mass_all_trials(pz::Vector{TT}, pd::Vector{TT}, data::Dict; dx::Float64=0.25) where {TT}
+    bounded_mass_all_trials(pz, pd, data; dx=0.25)
 
-    Computes the mass in the absorbing bins at the end of the trial. Written for Diksha.
+    Computes the mass in the absorbing bin at the end of the trial consistent with the animal's choice. W
+    Written for Diksha.
 
 """
 function bounded_mass_all_trials(pz::Vector{TT}, pd::Vector{TT}, data::Dict; dx::Float64=0.25) where {TT}
@@ -15,11 +16,18 @@ function bounded_mass_all_trials(pz::Vector{TT}, pd::Vector{TT}, data::Dict; dx:
         data["leftbups"], data["rightbups"], data["nT"], data["binned_leftbups"],
         data["binned_rightbups"])
 
-    return map(P-> P[[1,n]], output)
+    return map((P,pokedR)-> (pokedR ? P[1] : P[n]), output, data["pokedR"])
 
 end
 
-function LL_all_trials(pz::Vector{TT}, pd::Vector{TT}, data::Dict; dx::Float64=0.25) where {TT}
+
+
+
+"""
+    LL_all_trials(pz, pd, data; dx=0.25)
+
+"""
+function LL_all_trials(pz::Vector{TT}, pd::Vector{UU}, data::Dict; dx::Float64=0.25) where {TT, UU <: Any}
 
     bias,lapse = pd[1],pd[2]
     dt = data["dt"]
@@ -32,6 +40,17 @@ function LL_all_trials(pz::Vector{TT}, pd::Vector{TT}, data::Dict; dx::Float64=0
 
 end
 
+
+
+
+"""
+    LL_single_trial(pz::Vector{TT}, P::Vector{TT}, M::Array{TT,2}, dx::Float64,
+        xc::Vector{VV}, L::Vector{Float64}, R::Vector{Float64}, nT::Int,
+        nL::Vector{Int}, nR::Vector{Int},
+        pokedR::Bool, bias::TT,
+        n::Int, dt::Float64) where {TT,UU,VV <: Any}
+
+"""
 function LL_single_trial(pz::Vector{TT}, P::Vector{TT}, M::Array{TT,2}, dx::Float64,
         xc::Vector{VV}, L::Vector{Float64}, R::Vector{Float64}, nT::Int,
         nL::Vector{Int}, nR::Vector{Int},
@@ -45,6 +64,15 @@ function LL_single_trial(pz::Vector{TT}, P::Vector{TT}, M::Array{TT,2}, dx::Floa
 
 end
 
+
+
+"""
+    P_single_trial!(pz::Vector{TT}, P::Vector{TT}, M::Array{TT,2}, dx::Float64,
+        xc::Vector{VV}, L::Vector{Float64}, R::Vector{Float64}, nT::Int,
+        nL::Vector{Int}, nR::Vector{Int},
+        n::Int, dt::Float64) where {TT,UU,VV <: Any}
+
+"""
 function P_single_trial!(pz::Vector{TT}, P::Vector{TT}, M::Array{TT,2}, dx::Float64,
         xc::Vector{VV}, L::Vector{Float64}, R::Vector{Float64}, nT::Int,
         nL::Vector{Int}, nR::Vector{Int},
@@ -65,6 +93,12 @@ function P_single_trial!(pz::Vector{TT}, P::Vector{TT}, M::Array{TT,2}, dx::Floa
 
 end
 
+
+
+"""
+    ceil_and_floor(xc, s, n, dx)
+
+"""
 function ceil_and_floor(xc, s, n, dx)
 
     hp, lp = ceil(Int, (s-xc[2])/dx)+2, floor(Int, (s-xc[2])/dx)+2
@@ -75,13 +109,19 @@ function ceil_and_floor(xc, s, n, dx)
     (lp > n) && (lp = n)
     ((xc[1]<s) & (s<xc[2])) && (hp = 2)
     ((xc[end-1]<s) & (s<xc[end])) && (lp = n - 1)
-    (xc[end] < s) && (hp = n) && (lp = n)
-    (s < xc[1]) && (hp = 1) && (lp = 1)
+    (xc[end] < s) && (hp = n; lp = n)
+    (s < xc[1]) && (hp = 1; lp = 1)
 
     return hp, lp
 
 end
 
+
+
+"""
+    likelihood!(bias::TT, xc, P, pokedR::Bool, n, dx) where {TT <: Any}
+
+"""
 function likelihood!(bias::TT, xc, P, pokedR::Bool, n, dx) where {TT <: Any}
 
     if ((bias > xc[end]) & (pokedR==true)) || ((bias < xc[1]) & (pokedR==false))
@@ -97,11 +137,15 @@ function likelihood!(bias::TT, xc, P, pokedR::Bool, n, dx) where {TT <: Any}
         end
 
         if lp==hp
+            
             P[lp] = P[lp]/2
+            
         else
+            
             dh = xc[hp] - bias
             dl = bias - xc[lp]
             dd = dh + dl
+            
             if pokedR
                 P[hp] = P[hp] * (1/2 + dh/dd/2)
                 P[lp] = P[lp] * (dh/dd/2)
@@ -109,6 +153,7 @@ function likelihood!(bias::TT, xc, P, pokedR::Bool, n, dx) where {TT <: Any}
                 P[hp] = P[hp] * (dl/dd/2)
                 P[lp] = P[lp] * (1/2 + dl/dd/2)
             end
+            
         end
     end
 
@@ -116,28 +161,16 @@ function likelihood!(bias::TT, xc, P, pokedR::Bool, n, dx) where {TT <: Any}
 
 end
 
+
+
+"""
+    choice_null(choices)
+
+"""
 choice_null(choices) = sum(choices .== true)*log(sum(choices .== true)/length(choices)) +
     sum(choices .== false)*log(sum(choices .== false)/length(choices))
 
 #=
-#this is outdated and won't work, but want to keep around until I fix it
-function LL_single_trial_w_posterior(pz::Vector{TT}, P::Vector{TT}, M::Array{TT,2}, dx::TT,
-        xc::Vector{TT},L::Vector{Float64}, R::Vector{Float64}, T::Int,
-        hereL::Vector{Int}, hereR::Vector{Int},
-        nbinsL::Union{TT,Int}, Sfrac::TT, pokedR::Bool,
-        n::Int, dt::Float64;
-        comp_posterior::Bool=false) where {TT}
-
-    #adapt magnitude of the click inputs
-    La, Ra = make_adapted_clicks(pz,L,R)
-
-    #vector to sum choice evidence
-    pokedL = convert(TT,!pokedR); pokedR = convert(TT,pokedR)
-    Pd = vcat(pokedL * ones(nbinsL), pokedL * Sfrac + pokedR * (one(Sfrac) - Sfrac), pokedR * ones(n - (nbinsL + 1)))
-
-    c = Vector{TT}(undef,T)
-    comp_posterior ? post = Array{Float64,2}(unde,n,T) : nothing
-    F = zeros(TT,n,n)     #empty transition matrix for time bins with clicks
 
     @inbounds for t = 1:T
 
@@ -149,24 +182,16 @@ function LL_single_trial_w_posterior(pz::Vector{TT}, P::Vector{TT}, M::Array{TT,
 
     end
 
-    if comp_posterior
+    P = ones(Float64,n); #initialze backward pass with all 1's
+    post[:,T] .*= P;
 
-        P = ones(Float64,n); #initialze backward pass with all 1's
-        post[:,T] .*= P;
+    @inbounds for t = T-1:-1:1
 
-        @inbounds for t = T-1:-1:1
-
-            (t + 1 == T) && (P .*=  Pd)
-            P,F = latent_one_step!(P,F,pz,t+1,hereL,hereR,La,Ra,M,dx,xc,n,dt;backwards=true)
-            P /= c[t+1]
-            post[:,t] .*= P
-
-        end
+        (t + 1 == T) && (P .*=  Pd)
+        P,F = latent_one_step!(P,F,pz,t+1,hereL,hereR,La,Ra,M,dx,xc,n,dt;backwards=true)
+        P /= c[t+1]
+        post[:,t] .*= P
 
     end
-
-    comp_posterior ? (return post) : (return sum(log.(c)))
-
-end
 
 =#

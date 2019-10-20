@@ -6,16 +6,16 @@
 """
 function check_pz(pz)
 
-    if (pz["state"][pz["name"] == "ϕ"] == 1.) & pz["fit"][pz["name"] == "ϕ"]
+    if (pz["state"][pz["name"] .== "ϕ"][1] == 1.) & pz["fit"][pz["name"] .== "ϕ"][1]
         error("ϕ has a value of 1. and you are optimizing w.r.t. to it
             but this code ignores ϕ when it is exactly 1.
-            Change you initialization of ϕ.")
+            Change your initialization of ϕ.")
     end
 
-    if (pz["state"][pz["name"] == "λ"] == 1.) & pz["fit"][pz["name"] == "λ"]
+    if (pz["state"][pz["name"] .== "λ"][1] == 1.) & pz["fit"][pz["name"] .== "λ"][1]
         error("λ has a value of 0. and you are optimizing w.r.t. to it
             but this code ignores λ when it is exactly 0.
-            Change you initialization of λ.")
+            Change your initialization of λ.")
     end
 
 end

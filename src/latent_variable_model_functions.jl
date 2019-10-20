@@ -1,39 +1,63 @@
 
 const dimz = 7
 
+
+"""
+    initialize_latent_model(pz::Vector{TT}, dx::Float64, dt::Float64;
+        L_lapse::TT=0., R_lapse::TT=0.) where {TT <: Any}
+
+"""
 function initialize_latent_model(pz::Vector{TT}, dx::Float64, dt::Float64;
-        L_lapse::UU=0., R_lapse::UU=0.) where {TT,UU}
+        L_lapse::TT=0., R_lapse::TT=0.) where {TT <: Any}
 
-    σ2_i,B,λ,σ2_a = pz[1:4]                      #break up latent variables
+    #break up latent variables
+    σ2_i,B,λ,σ2_a = pz[1:4]
 
-    xc,n = bins(B,dx)                              # spatial bin centers, width and edges
+    #bin centers and number of bins
+    xc,n = bins(B,dx)
 
-    P = P0(σ2_i,n,dx,xc,dt;
-        L_lapse=L_lapse, R_lapse=R_lapse)             # make initial latent distribution
+    # make initial latent distribution
+    P = P0(σ2_i,n,dx,xc,dt; L_lapse=L_lapse, R_lapse=R_lapse)
 
-    M = zeros(TT,n,n)                                 # build empty transition matrix
-    M!(M,σ2_a*dt,λ,zero(TT),dx,xc,n,dt)          # build state transition matrix for no input time bins
-
+    # build state transition matrix for times when there are no click inputs
+    M = transition_M(σ2_a*dt,λ,zero(TT),dx,xc,n,dt)
+    
     return P, M, xc, n
 
 end
 
-function P0(σ2_i::TT, n::Int, dx::VV, xc::Vector{WW}, dt::Float64;
-        L_lapse::UU=0., R_lapse::UU=0.) where {TT,UU,VV,WW <: Any}
+
+
+"""
+    P0(σ2_i::TT, n::Int, dx::Float64, xc::Vector{TT}, dt::Float64;
+        L_lapse::TT=0., R_lapse::TT=0.) where {TT <: Any}
+
+"""
+function P0(σ2_i::TT, n::Int, dx::Float64, xc::Vector{TT}, dt::Float64;
+        L_lapse::TT=0., R_lapse::TT=0.) where {TT <: Any}
 
     P = zeros(TT,n)
-    P[ceil(Int,n/2)] = one(TT) - (L_lapse + R_lapse)     # make initial delta function
+    # make initial delta function
+    P[ceil(Int,n/2)] = one(TT) - (L_lapse + R_lapse)
     P[1], P[n] = L_lapse, R_lapse
-    M = zeros(WW,n,n)                                    # build empty transition matrix
-    M!(M,σ2_i,zero(WW),zero(WW),dx,xc,n,dt)
+    M = transition_M(σ2_i,zero(TT),zero(TT),dx,xc,n,dt)
     P = M * P
 
 end
 
-function latent_one_step!(P::Vector{TT}, F::Array{TT,2}, pz::Vector{WW}, t::Int,
+
+
+"""
+    latent_one_step!(P::Vector{TT}, F::Array{TT,2}, pz::Vector{TT}, t::Int,
         nL::Vector{Int}, nR::Vector{Int},
-        La::Vector{YY}, Ra::Vector{YY}, M::Array{TT,2},
-        dx::UU, xc::Vector{VV}, n::Int, dt::Float64; backwards::Bool=false) where {TT,UU,VV,WW,YY <: Any}
+        La::Vector{TT}, Ra::Vector{TT}, M::Array{TT,2},
+        dx::Float64, xc::Vector{TT}, n::Int, dt::Float64; backwards::Bool=false) where {TT <: Any}
+
+"""
+function latent_one_step!(P::Vector{TT}, F::Array{TT,2}, pz::Vector{TT}, t::Int,
+        nL::Vector{Int}, nR::Vector{Int},
+        La::Vector{TT}, Ra::Vector{TT}, M::Array{TT,2},
+        dx::Float64, xc::Vector{TT}, n::Int, dt::Float64; backwards::Bool=false) where {TT <: Any}
 
     λ, σ2_a, σ2_s = pz[3:5]
 
@@ -42,7 +66,7 @@ function latent_one_step!(P::Vector{TT}, F::Array{TT,2}, pz::Vector{WW}, t::Int,
 
     σ2 = σ2_s * (sL + sR);   μ = -sL + sR
 
-    (sL + sR) > zero(TT) ? (M!(F,σ2+σ2_a*dt,λ, μ, dx, xc, n, dt); P  = F * P;) : P = M * P
+    (sL + sR) > zero(TT) ? (transition_M!(F,σ2+σ2_a*dt,λ, μ, dx, xc, n, dt); P  = F * P;) : P = M * P
 
     #=
     if backwards
@@ -56,7 +80,20 @@ function latent_one_step!(P::Vector{TT}, F::Array{TT,2}, pz::Vector{WW}, t::Int,
 
 end
 
-function bins(B::TT,dx::Float64) where {TT}
+
+
+"""
+    bins(B,dx)
+
+Computes the bin center locations and number of bins, given the boundary and desired (average) bin spacing.
+
+### Examples
+```jldoctest
+julia> xc,n = pulse_input_DDM.bins(10.,0.25)
+([-10.25, -9.75, -9.5, -9.25, -9.0, -8.75, -8.5, -8.25, -8.0, -7.75  …  7.75, 8.0, 8.25, 8.5, 8.75, 9.0, 9.25, 9.5, 9.75, 10.25], 81)
+```
+"""
+function bins(B::TT,dx::Float64) where {TT <: Any}
 
     xc = collect(0.:dx:floor(value(B)/dx)*dx)
 
@@ -73,6 +110,12 @@ function bins(B::TT,dx::Float64) where {TT}
 
 end
 
+
+
+"""
+    expm1_div_x(x)
+
+"""
 function expm1_div_x(x)
 
     y = exp(x)
@@ -80,7 +123,47 @@ function expm1_div_x(x)
 
 end
 
-function M!(F::Array{WW,2}, σ2::YY, λ::ZZ, μ::Union{TT}, dx::UU, xc::Vector{VV}, n::Int, dt::Float64) where {TT,UU,VV,WW,YY,ZZ <: Any}
+
+
+
+
+"""
+    transition_M(σ2, λ, μ, dx, xc, n, dt)
+
+Returns a nxn Markov transition matrix. The transition matrix is discrete approximation to the Fokker-Planck equation with drift λ, diffusion σ2 and driving current (i.e. click input) μ. dx and dt define the spatial and temporal binning, respectively. xc are the bin center locations. 
+
+See also: [`transition_M!`](@ref)
+
+### Examples
+```jldoctest
+julia> dt, dx, B, σ2, λ, μ = 0.1, 0.25, 10., 10., -0.5, 1.;
+
+julia> xc,n = pulse_input_DDM.bins(B, dx);
+
+julia> M = pulse_input_DDM.transition_M(σ2, λ, μ, dx, xc, n, dt);
+
+julia> size(M)
+(81, 81)
+```
+"""
+function transition_M(σ2::TT, λ::TT, μ::TT, dx::Float64, 
+        xc::Vector{TT}, n::Int, dt::Float64) where {TT <: Any}
+    
+    M = zeros(TT,n,n)
+    transition_M!(M,σ2,λ,μ,dx,xc,n,dt)
+    
+    return M
+    
+end
+
+
+"""
+    transition_M!(F::Array{TT,2}, σ2::TT, λ::TT, μ::TT, dx::Float64, 
+        xc::Vector{TT}, n::Int, dt::Float64) where {TT <: Any}
+
+"""
+function transition_M!(F::Array{TT,2}, σ2::TT, λ::TT, μ::TT, dx::Float64, 
+        xc::Vector{TT}, n::Int, dt::Float64) where {TT <: Any}
 
     F[1,1] = one(TT); F[n,n] = one(TT); F[:,2:n-1] = zeros(TT,n,n-2)
 
@@ -106,37 +189,37 @@ function M!(F::Array{WW,2}, σ2::YY, λ::ZZ, μ::Union{TT}, dx::UU, xc::Vector{V
 
             if s <= xc[1]
 
-                F[1,j] += ps[k];
+                F[1,j] += ps[k]
 
             elseif s >= xc[n]
 
-                F[n,j] += ps[k];
+                F[n,j] += ps[k]
 
             else
 
-                if xc[1] < s && xc[2] > s
+                if (xc[1] < s) && (xc[2] > s)
 
-                    lp,hp = 1,2;
+                    lp,hp = 1,2
 
-                elseif xc[n-1] < s && xc[n] > s
+                elseif (xc[n-1] < s) && (xc[n] > s)
 
-                    lp,hp = n-1,n;
+                    lp,hp = n-1,n
 
                 else
 
-                    hp,lp = ceil(Int, (s-xc[2])/dx) + 2, floor(Int, (s-xc[2])/dx) + 2;
+                    hp,lp = ceil(Int, (s-xc[2])/dx) + 2, floor(Int, (s-xc[2])/dx) + 2
 
                 end
 
-                if (hp == lp)
+                if hp == lp
 
-                    F[lp,j] += ps[k];
+                    F[lp,j] += ps[k]
 
                 else
 
-                    dd = xc[hp] - xc[lp];
-                    F[hp,j] += ps[k]*(s-xc[lp])/dd;
-                    F[lp,j] += ps[k]*(xc[hp]-s)/dd;
+                    dd = xc[hp] - xc[lp]
+                    F[hp,j] += ps[k]*(s-xc[lp])/dd
+                    F[lp,j] += ps[k]*(xc[hp]-s)/dd
 
                 end
 
@@ -148,6 +231,11 @@ function M!(F::Array{WW,2}, σ2::YY, λ::ZZ, μ::Union{TT}, dx::UU, xc::Vector{V
 
 end
 
+
+"""
+    make_adapted_clicks(pz::Vector{TT}, L::Vector{Float64}, R::Vector{Float64}) where {TT}
+
+"""
 function make_adapted_clicks(pz::Vector{TT}, L::Vector{Float64}, R::Vector{Float64}) where {TT}
 
     ϕ,τ_ϕ = pz[6:7]
@@ -170,6 +258,14 @@ function make_adapted_clicks(pz::Vector{TT}, L::Vector{Float64}, R::Vector{Float
 
 end
 
+
+
+
+
+"""
+    adapt_clicks!(Ca::Vector{TT},  ϕ::TT, τ_ϕ::TT, ici::Vector{Float64}) where {TT}
+
+"""
 function adapt_clicks!(Ca::Vector{TT},  ϕ::TT, τ_ϕ::TT, ici::Vector{Float64}) where {TT}
 
     for i = 1:length(ici)

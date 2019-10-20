@@ -1,38 +1,13 @@
 push!(LOAD_PATH,"../src/")
 
 using Documenter, pulse_input_DDM
-
-#=
-makedocs(sitename="pulse input DDM", 
-        modules = [pulse_input_DDM], 
-        doctest=false,
-        authors = "Brian DePasquale",
-        assets = ["assets/favicon.ico"],
-        pages = Any[
-        "Home" => "index.md",
-        "Basics" => Any[
-          "man/setting_things_up_on_scotty.md",
-          "man/getting_the_package.md",
-          "man/working_interactively_on_scotty.md",
-          "man/choice_observation_model.md",
-          "man/neural_observation_model.md",
-          "man/using_spock.md"
-         ],
-        "Other helpful info" => Any[
-           "man/vpn_is_annoying.md"
-        ],
-        "Development" => "man/development.md",
-        "Index" => "links.md",
-        "Functions" => "functions.md"
-         ])
-
-=#
+DocMeta.setdocmeta!(pulse_input_DDM, :DocTestSetup, :(using pulse_input_DDM); recursive=true)
 
 makedocs(sitename="pulse input DDM", 
         modules = [pulse_input_DDM], 
-        doctest=false,
+        doctest=true,
         authors = "Brian DePasquale",
-        assets = ["assets/favicon.ico"],
+        format = Documenter.HTML(assets = ["assets/favicon.ico"]),
         pages = Any[
         "Home" => "index.md",
         "Basics" => Any[
