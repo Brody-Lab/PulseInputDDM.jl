@@ -42,7 +42,7 @@ function sample_latent(nT::Int, L::Vector{Float64},R::Vector{Float64},
     
     vari, B, lambda, vara, vars, phi, tau_phi = pz
     
-    La, Ra = make_adapted_clicks(pz,L,R)
+    La, Ra = make_adapted_clicks(phi,tau_phi,L,R)
 
     A = Vector{TT}(undef,nT)
     a = sqrt(vari)*randn()

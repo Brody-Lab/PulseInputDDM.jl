@@ -1,55 +1,100 @@
 """
     bounded_mass_all_trials(pz, pd, data; dx=0.25)
 
-    Computes the mass in the absorbing bin at the end of the trial consistent with the animal's choice. W
-    Written for Diksha.
+Computes the mass in the absorbing bin at the end of the trial consistent with the animal's choice.
 
+### Examples
+```jldoctest
+julia> pz, pd = default_parameters(generative=true);
+
+julia> ntrials, use_bin_center, rng = 10, false, 1;
+
+julia> data = sample_inputs_and_choices(pz["generative"], pd["generative"], ntrials; rng=rng);
+
+julia> data = bin_clicks!(data,use_bin_center);
+
+julia> bounded_mass_all_trials(pz["generative"], pd["generative"], data)
+10-element Array{Float64,1}:
+ 0.4730234305246653  
+ 0.050000000000690735
+ 0.9498457918453798  
+ 0.6502294480995431  
+ 0.9498701314348695  
+ 0.9486683638140332  
+ 0.9499602489378979  
+ 0.9494364520875525  
+ 0.9497941680881434  
+ 0.857734284166645 
+```
 """
 function bounded_mass_all_trials(pz::Vector{TT}, pd::Vector{TT}, data::Dict; dx::Float64=0.25) where {TT}
 
-    bias,lapse = pd[1],pd[2]
+    bias, lapse = pd
+    σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ = pz
+    L, R, nT, nL, nR, choice = data["leftbups"], data["rightbups"], data["nT"], data["binned_leftbups"],
+        data["binned_rightbups"], data["pokedR"]
     dt = data["dt"]
-    P,M,xc,n = initialize_latent_model(pz, dx, dt, L_lapse=lapse/2, R_lapse=lapse/2)
+    
+    P,M,xc,n = initialize_latent_model(σ2_i, B, λ, σ2_a, dx, dt, L_lapse=lapse/2, R_lapse=lapse/2)
 
-    output = pmap((L,R,nT,nL,nR) -> P_single_trial(pz, P, M, dx, xc,
-        L, R, nT, nL, nR, n, dt),
-        data["leftbups"], data["rightbups"], data["nT"], data["binned_leftbups"],
-        data["binned_rightbups"])
+    P = pmap((L,R,nT,nL,nR) -> P_single_trial!(λ, σ2_a, σ2_s, ϕ, τ_ϕ, 
+        P, M, dx, xc, L, R, nT, nL, nR, n, dt), L, R, nT, nL, nR)
 
-    return map((P,pokedR)-> (pokedR ? P[1] : P[n]), output, data["pokedR"])
+    return map((P,choice)-> (choice ? P[n] : P[1]), P, choice)
 
 end
-
-
 
 
 """
     LL_all_trials(pz, pd, data; dx=0.25)
 
+Computes the log likelihood for a set of trials consistent with the animal's choice on each trial.
+
+### Examples
+
+```jldoctest
+julia> pz, pd = default_parameters(generative=true);
+
+julia> ntrials, use_bin_center, rng = 10, false, 1;
+
+julia> data = sample_inputs_and_choices(pz["generative"], pd["generative"], ntrials; rng=rng);
+
+julia> data = bin_clicks!(data,use_bin_center);
+
+julia> LL_all_trials(pz["generative"], pd["generative"], data)
+10-element Array{Float64,1}:
+ -0.09673131654173264 
+ -2.995732195594889   
+ -0.05129331779430949 
+ -0.06204809221624061 
+ -0.05129413814902191 
+ -0.05129408701986206 
+ -0.05129402919086469 
+ -0.051293301292408694
+ -0.051293585770327346
+ -0.056150291769304285
+```
 """
 function LL_all_trials(pz::Vector{TT}, pd::Vector{TT}, data::Dict; dx::Float64=0.25) where {TT <: Any}
 
-    bias,lapse = pd[1],pd[2]
+    bias, lapse = pd
     σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ = pz
-    L, R, nT, nL, nR, choice = data["leftbups"], data["rightbups"], data["nT"], data["binned_leftbups"],
-        data["binned_rightbups"], data["pokedR"]
+    L, R, nT, nL, nR, choice = [data[key] for key in ["leftbups","rightbups","nT","binned_leftbups","binned_rightbups","pokedR"]]
     dt = data["dt"]
 
     P,M,xc,n = initialize_latent_model(σ2_i, B, λ, σ2_a, dx, dt, L_lapse=lapse/2, R_lapse=lapse/2)
 
-    output = pmap((L,R,nT,nL,nR,choice) -> LL_single_trial(λ, σ2_a, σ2_s, ϕ, τ_ϕ,
-        P, M, dx, xc, L, R, nT, nL, nR, choice, bias, n, dt),
-            L, R, nT, nL, nR, choice)
+    pmap((L,R,nT,nL,nR,choice) -> LL_single_trial!(λ, σ2_a, σ2_s, ϕ, τ_ϕ,
+        P, M, dx, xc, L, R, nT, nL, nR, choice, bias, n, dt), L, R, nT, nL, nR, choice)
 
 end
 
 
 """
-    LL_single_trial(λ, σ2_a, σ2_s, ϕ, τ_ϕ,
-        P, M, dx, xc, L, R, nT,
-        nL, nR, pokedR bias, n, dt)
+    LL_single_trial!(λ, σ2_a, σ2_s, ϕ, τ_ϕ,
+        P, M, dx, xc, L, R, nT, nL, nR, pokedR bias, n, dt)
 """
-function LL_single_trial(λ::TT, σ2_a::TT, σ2_s::TT, ϕ::TT, τ_ϕ::TT,
+function LL_single_trial!(λ::TT, σ2_a::TT, σ2_s::TT, ϕ::TT, τ_ϕ::TT,
         P::Vector{TT}, M::Array{TT,2}, dx::Float64,
         xc::Vector{VV}, L::Vector{Float64}, R::Vector{Float64}, nT::Int,
         nL::Vector{Int}, nR::Vector{Int},
@@ -57,27 +102,23 @@ function LL_single_trial(λ::TT, σ2_a::TT, σ2_s::TT, ϕ::TT, τ_ϕ::TT,
         n::Int, dt::Float64) where {TT,UU,VV <: Any}
 
     P = P_single_trial!(λ,σ2_a,σ2_s,ϕ,τ_ϕ,P,M,dx,xc,L,R,nT,nL,nR,n,dt)
-    P = likelihood!(bias, xc, P, pokedR, n, dx)
+    P = likelihood!(bias,xc,P,pokedR,n,dx)
 
     return log(sum(P))
 
 end
 
 
-
 """
     P_single_trial!(λ, σ2_a, σ2_s, ϕ, τ_ϕ,
-        P::Vector{TT}, M::Array{TT,2}, dx::Float64,
-        xc::Vector{VV}, L::Vector{Float64}, R::Vector{Float64}, nT::Int,
-        nL::Vector{Int}, nR::Vector{Int},
-        n::Int, dt::Float64)
+        P, M, dx, xc, L, R, nT, nL, nR, n, dt)
 
 """
 function P_single_trial!(λ::TT, σ2_a::TT, σ2_s::TT, ϕ::TT, τ_ϕ::TT,
         P::Vector{TT}, M::Array{TT,2}, dx::Float64,
-        xc::Vector{VV}, L::Vector{Float64}, R::Vector{Float64}, nT::Int,
+        xc::Vector{TT}, L::Vector{Float64}, R::Vector{Float64}, nT::Int,
         nL::Vector{Int}, nR::Vector{Int},
-        n::Int, dt::Float64) where {TT,UU,VV <: Any}
+        n::Int, dt::Float64) where {TT <: Any}
 
     #adapt magnitude of the click inputs
     La, Ra = make_adapted_clicks(ϕ,τ_ϕ,L,R)
@@ -119,7 +160,7 @@ end
 
 
 """
-    likelihood!(bias::TT, xc, P, pokedR::Bool, n, dx) where {TT <: Any}
+    likelihood!(bias, xc, P, pokedR, n, dx)
 
 """
 function likelihood!(bias::TT, xc, P, pokedR::Bool, n, dx) where {TT <: Any}

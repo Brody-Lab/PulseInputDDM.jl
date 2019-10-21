@@ -2,7 +2,6 @@
     check_pz(pz)
 
     Checks the values of pz, looking for very specific parameters where singularities occur in the model.
-
 """
 function check_pz(pz)
 
@@ -20,14 +19,14 @@ function check_pz(pz)
 
 end
 
-split_variable_and_const(p::Vector{TT}, fit_vec::Union{BitArray{1},Vector{Bool}}) where TT = p[fit_vec],p[.!fit_vec]
+split_variable_and_const(p::Vector{TT}, fit_vec::Union{BitArray{1},Vector{Bool}}) where TT = p[fit_vec], p[.!fit_vec]
 
 function combine_variable_and_const(p_opt::Vector{TT}, p_const::Vector{Float64}, 
             fit_vec::Union{BitArray{1},Vector{Bool}}) where TT
     
     p = Vector{TT}(undef,length(fit_vec))
-    p[fit_vec] = p_opt;
-    p[.!fit_vec] = p_const;
+    p[fit_vec] = p_opt
+    p[.!fit_vec] = p_const
     
     return p
     
@@ -52,6 +51,8 @@ function opt_func_fminbox(x, ll, lb, ub;
     return output
 
 end
+
+#=
 
 function opt_ll(p_opt,ll;g_tol::Float64=1e-12,x_tol::Float64=1e-16,f_tol::Float64=1e-16,iterations::Int=Int(5e3),
         show_trace::Bool=true, extended_trace::Bool=false)
@@ -93,3 +94,5 @@ function opt_ll_Newton(p_opt,ll;g_tol::Float64=1e-12,x_tol::Float64=1e-16,f_tol:
     return output, lbfgsstate
 
 end
+
+=#
