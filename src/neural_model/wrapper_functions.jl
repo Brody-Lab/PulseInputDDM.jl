@@ -1,11 +1,10 @@
 """
-    optimize_model(pz::Dict{}, py::Dict{}, data::Vector{Dict{Any,Any}}, f_str::String,
-        n::Int; x_tol::Float64=1e-16, f_tol::Float64=1e-16, g_tol::Float64=1e-3,
-        iterations::Int=Int(2e3), show_trace::Bool=true,
-        outer_iterations::Int=Int(2e3)) where {TT <: Any}
+    optimize_model(pz, py, data, f_str, n; x_tol=1e-16,
+        f_tol=1e-16, g_tol=1e-3,iterations=Int(2e3), show_trace=true,
+        outer_iterations=Int(2e3))
 
-    Optimize parameters specified within fit vectors.
-
+Optimize model parameters. pz and py are dictionaries that contains initial values, boundaries,
+and specification of which parameters to fit.
 """
 function optimize_model(pz::Dict{}, py::Dict{}, data::Vector{Dict{Any,Any}}, f_str::String,
         n::Int; x_tol::Float64=1e-16, f_tol::Float64=1e-16, g_tol::Float64=1e-3,
@@ -52,14 +51,13 @@ end
 
 
 """
-    compute_LL(pz::Vector{T}, py::Vector{Vector{Vector{U}}}, data::Vector{Dict{Any,Any}},
-        n::Int, f_str::String) where {T,U <: Any}
+    compute_LL(pz, py, data, n, f_str)
 
     compute LL for your model. returns a scalar
 
 """
-function compute_LL(pz::Vector{T}, py::Vector{Vector{Vector{U}}}, data::Vector{Dict{Any,Any}},
-        n::Int, f_str::String) where {T,U <: Any}
+function compute_LL(pz::Vector{T}, py::Vector{Vector{Vector{T}}}, data::Vector{Dict{Any,Any}},
+        n::Int, f_str::String) where {T <: Any}
 
     LL = sum(map((py,data)-> sum(LL_all_trials(pz, py, data, n, f_str)), py, data))
 
@@ -240,6 +238,3 @@ function compute_H_CI!(pz::Dict{}, py::Dict{}, data::Vector{Dict{Any,Any}}, f_st
 end
 
 =#
-
-
-

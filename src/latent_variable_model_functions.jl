@@ -1,7 +1,6 @@
 
 const dimz = 7
 
-
 """
     initialize_latent_model(pz::Vector{TT}, dx::Float64, dt::Float64;
         L_lapse::TT=0., R_lapse::TT=0.) where {TT <: Any}
@@ -21,7 +20,7 @@ function initialize_latent_model(pz::Vector{TT}, dx::Float64, dt::Float64;
 
     # build state transition matrix for times when there are no click inputs
     M = transition_M(σ2_a*dt,λ,zero(TT),dx,xc,n,dt)
-    
+
     return P, M, xc, n
 
 end
@@ -130,7 +129,7 @@ end
 """
     transition_M(σ2, λ, μ, dx, xc, n, dt)
 
-Returns a nxn Markov transition matrix. The transition matrix is discrete approximation to the Fokker-Planck equation with drift λ, diffusion σ2 and driving current (i.e. click input) μ. dx and dt define the spatial and temporal binning, respectively. xc are the bin center locations. 
+Returns a \$n \\times n\$ Markov transition matrix. The transition matrix is discrete approximation to the Fokker-Planck equation with drift λ, diffusion σ2 and driving current (i.e. click input) μ. dx and dt define the spatial and temporal binning, respectively. xc are the bin center locations.
 
 See also: [`transition_M!`](@ref)
 
@@ -146,23 +145,23 @@ julia> size(M)
 (81, 81)
 ```
 """
-function transition_M(σ2::TT, λ::TT, μ::TT, dx::Float64, 
+function transition_M(σ2::TT, λ::TT, μ::TT, dx::Float64,
         xc::Vector{TT}, n::Int, dt::Float64) where {TT <: Any}
-    
+
     M = zeros(TT,n,n)
     transition_M!(M,σ2,λ,μ,dx,xc,n,dt)
-    
+
     return M
-    
+
 end
 
 
 """
-    transition_M!(F::Array{TT,2}, σ2::TT, λ::TT, μ::TT, dx::Float64, 
+    transition_M!(F::Array{TT,2}, σ2::TT, λ::TT, μ::TT, dx::Float64,
         xc::Vector{TT}, n::Int, dt::Float64) where {TT <: Any}
 
 """
-function transition_M!(F::Array{TT,2}, σ2::TT, λ::TT, μ::TT, dx::Float64, 
+function transition_M!(F::Array{TT,2}, σ2::TT, λ::TT, μ::TT, dx::Float64,
         xc::Vector{TT}, n::Int, dt::Float64) where {TT <: Any}
 
     F[1,1] = one(TT); F[n,n] = one(TT); F[:,2:n-1] = zeros(TT,n,n-2)
