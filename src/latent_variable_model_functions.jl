@@ -2,15 +2,11 @@
 const dimz = 7
 
 """
-    initialize_latent_model(pz::Vector{TT}, dx::Float64, dt::Float64;
-        L_lapse::TT=0., R_lapse::TT=0.) where {TT <: Any}
+    initialize_latent_model(σ2_i, B, λ, σ2_a, dx, dt; L_lapse=0., R_lapse=0.)
 
 """
-function initialize_latent_model(pz::Vector{TT}, dx::Float64, dt::Float64;
-        L_lapse::TT=0., R_lapse::TT=0.) where {TT <: Any}
-
-    #break up latent variables
-    σ2_i,B,λ,σ2_a = pz[1:4]
+function initialize_latent_model(σ2_i::TT, B::TT, λ::TT, σ2_a::TT,
+     dx::Float64, dt::Float64; L_lapse::TT=0., R_lapse::TT=0.) where {TT <: Any}
 
     #bin centers and number of bins
     xc,n = bins(B,dx)
@@ -26,10 +22,8 @@ function initialize_latent_model(pz::Vector{TT}, dx::Float64, dt::Float64;
 end
 
 
-
 """
-    P0(σ2_i::TT, n::Int, dx::Float64, xc::Vector{TT}, dt::Float64;
-        L_lapse::TT=0., R_lapse::TT=0.) where {TT <: Any}
+    P0(σ2_i, n dx, xc, dt; L_lapse=0., R_lapse=0.)
 
 """
 function P0(σ2_i::TT, n::Int, dx::Float64, xc::Vector{TT}, dt::Float64;
@@ -45,27 +39,26 @@ function P0(σ2_i::TT, n::Int, dx::Float64, xc::Vector{TT}, dt::Float64;
 end
 
 
+"""
+    latent_one_step!(P, F, λ, σ2_a, σ2_s, t, nL, nR, La, Ra, M, dx, xc, n, dt)
 
 """
-    latent_one_step!(P::Vector{TT}, F::Array{TT,2}, pz::Vector{TT}, t::Int,
-        nL::Vector{Int}, nR::Vector{Int},
+function latent_one_step!(P::Vector{TT}, F::Array{TT,2}, λ::TT, σ2_a::TT, σ2_s::TT,
+        t::Int, nL::Vector{Int}, nR::Vector{Int},
         La::Vector{TT}, Ra::Vector{TT}, M::Array{TT,2},
         dx::Float64, xc::Vector{TT}, n::Int, dt::Float64; backwards::Bool=false) where {TT <: Any}
-
-"""
-function latent_one_step!(P::Vector{TT}, F::Array{TT,2}, pz::Vector{TT}, t::Int,
-        nL::Vector{Int}, nR::Vector{Int},
-        La::Vector{TT}, Ra::Vector{TT}, M::Array{TT,2},
-        dx::Float64, xc::Vector{TT}, n::Int, dt::Float64; backwards::Bool=false) where {TT <: Any}
-
-    λ, σ2_a, σ2_s = pz[3:5]
 
     any(t .== nL) ? sL = sum(La[t .== nL]) : sL = zero(TT)
     any(t .== nR) ? sR = sum(Ra[t .== nR]) : sR = zero(TT)
 
     σ2 = σ2_s * (sL + sR);   μ = -sL + sR
 
-    (sL + sR) > zero(TT) ? (transition_M!(F,σ2+σ2_a*dt,λ, μ, dx, xc, n, dt); P  = F * P;) : P = M * P
+    if (sL + sR) > zero(TT)
+        transition_M!(F,σ2+σ2_a*dt,λ, μ, dx, xc, n, dt)
+        P = F * P
+    else
+        P = M * P
+    end
 
     #=
     if backwards
@@ -78,7 +71,6 @@ function latent_one_step!(P::Vector{TT}, F::Array{TT,2}, pz::Vector{TT}, t::Int,
     return P, F
 
 end
-
 
 
 """
@@ -110,7 +102,6 @@ function bins(B::TT,dx::Float64) where {TT <: Any}
 end
 
 
-
 """
     expm1_div_x(x)
 
@@ -121,9 +112,6 @@ function expm1_div_x(x)
     y == 1. ? one(y) : (y-1.)/log(y)
 
 end
-
-
-
 
 
 """
@@ -232,12 +220,10 @@ end
 
 
 """
-    make_adapted_clicks(pz::Vector{TT}, L::Vector{Float64}, R::Vector{Float64}) where {TT}
+    make_adapted_clicks(ϕ, τ_ϕ, L, R)
 
 """
-function make_adapted_clicks(pz::Vector{TT}, L::Vector{Float64}, R::Vector{Float64}) where {TT}
-
-    ϕ,τ_ϕ = pz[6:7]
+function make_adapted_clicks(ϕ::TT, τ_ϕ::TT, L::Vector{Float64}, R::Vector{Float64}) where {TT}
 
     La, Ra = ones(TT,length(L)), ones(TT,length(R))
 
@@ -250,22 +236,21 @@ function make_adapted_clicks(pz::Vector{TT}, L::Vector{Float64}, R::Vector{Float
     #    La[1], Ra[1] = eps(), eps()
     #end
 
-    (length(L) > 1 && ϕ != 1.) ? (ici_L = diff(L); adapt_clicks!(La, ϕ, τ_ϕ, ici_L)) : nothing
-    (length(R) > 1 && ϕ != 1.) ? (ici_R = diff(R); adapt_clicks!(Ra, ϕ, τ_ϕ, ici_R)) : nothing
+    (length(L) > 1 && ϕ != 1.) ? adapt_clicks!(La, L, ϕ, τ_ϕ) : nothing
+    (length(R) > 1 && ϕ != 1.) ? adapt_clicks!(Ra, R, ϕ, τ_ϕ) : nothing
 
     return La, Ra
 
 end
 
 
-
-
+"""
+    adapt_clicks!(Ca, C, ϕ, τ_ϕ)
 
 """
-    adapt_clicks!(Ca::Vector{TT},  ϕ::TT, τ_ϕ::TT, ici::Vector{Float64}) where {TT}
+function adapt_clicks!(Ca::Vector{TT}, C::Vector{Float64}, ϕ::TT, τ_ϕ::TT) where {TT}
 
-"""
-function adapt_clicks!(Ca::Vector{TT},  ϕ::TT, τ_ϕ::TT, ici::Vector{Float64}) where {TT}
+    ici = diff(C)
 
     for i = 1:length(ici)
         arg = xlogy(τ_ϕ, abs(1. - Ca[i]* ϕ))

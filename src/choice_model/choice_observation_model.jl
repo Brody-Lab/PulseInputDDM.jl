@@ -27,37 +27,36 @@ end
     LL_all_trials(pz, pd, data; dx=0.25)
 
 """
-function LL_all_trials(pz::Vector{TT}, pd::Vector{UU}, data::Dict; dx::Float64=0.25) where {TT, UU <: Any}
+function LL_all_trials(pz::Vector{TT}, pd::Vector{TT}, data::Dict; dx::Float64=0.25) where {TT <: Any}
 
     bias,lapse = pd[1],pd[2]
+    σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ = pz
+    L, R, nT, nL, nR, choice = data["leftbups"], data["rightbups"], data["nT"], data["binned_leftbups"],
+        data["binned_rightbups"], data["pokedR"]
     dt = data["dt"]
-    P,M,xc,n = initialize_latent_model(pz, dx, dt, L_lapse=lapse/2, R_lapse=lapse/2)
 
-    output = pmap((L,R,nT,nL,nR,choice) -> LL_single_trial(pz, P, M, dx, xc,
-        L, R, nT, nL, nR, choice, bias, n, dt),
-        data["leftbups"], data["rightbups"], data["nT"], data["binned_leftbups"],
-        data["binned_rightbups"], data["pokedR"])
+    P,M,xc,n = initialize_latent_model(σ2_i, B, λ, σ2_a, dx, dt, L_lapse=lapse/2, R_lapse=lapse/2)
+
+    output = pmap((L,R,nT,nL,nR,choice) -> LL_single_trial(λ, σ2_a, σ2_s, ϕ, τ_ϕ,
+        P, M, dx, xc, L, R, nT, nL, nR, choice, bias, n, dt),
+            L, R, nT, nL, nR, choice)
 
 end
 
 
-
-
 """
-    LL_single_trial(pz::Vector{TT}, P::Vector{TT}, M::Array{TT,2}, dx::Float64,
+    LL_single_trial(λ, σ2_a, σ2_s, ϕ, τ_ϕ,
+        P, M, dx, xc, L, R, nT,
+        nL, nR, pokedR bias, n, dt)
+"""
+function LL_single_trial(λ::TT, σ2_a::TT, σ2_s::TT, ϕ::TT, τ_ϕ::TT,
+        P::Vector{TT}, M::Array{TT,2}, dx::Float64,
         xc::Vector{VV}, L::Vector{Float64}, R::Vector{Float64}, nT::Int,
         nL::Vector{Int}, nR::Vector{Int},
         pokedR::Bool, bias::TT,
         n::Int, dt::Float64) where {TT,UU,VV <: Any}
 
-"""
-function LL_single_trial(pz::Vector{TT}, P::Vector{TT}, M::Array{TT,2}, dx::Float64,
-        xc::Vector{VV}, L::Vector{Float64}, R::Vector{Float64}, nT::Int,
-        nL::Vector{Int}, nR::Vector{Int},
-        pokedR::Bool, bias::TT,
-        n::Int, dt::Float64) where {TT,UU,VV <: Any}
-
-    P = P_single_trial!(pz, P, M, dx, xc, L, R, nT, nL, nR, n, dt)
+    P = P_single_trial!(λ,σ2_a,σ2_s,ϕ,τ_ϕ,P,M,dx,xc,L,R,nT,nL,nR,n,dt)
     P = likelihood!(bias, xc, P, pokedR, n, dx)
 
     return log(sum(P))
@@ -67,32 +66,34 @@ end
 
 
 """
-    P_single_trial!(pz::Vector{TT}, P::Vector{TT}, M::Array{TT,2}, dx::Float64,
+    P_single_trial!(λ, σ2_a, σ2_s, ϕ, τ_ϕ,
+        P::Vector{TT}, M::Array{TT,2}, dx::Float64,
         xc::Vector{VV}, L::Vector{Float64}, R::Vector{Float64}, nT::Int,
         nL::Vector{Int}, nR::Vector{Int},
-        n::Int, dt::Float64) where {TT,UU,VV <: Any}
+        n::Int, dt::Float64)
 
 """
-function P_single_trial!(pz::Vector{TT}, P::Vector{TT}, M::Array{TT,2}, dx::Float64,
+function P_single_trial!(λ::TT, σ2_a::TT, σ2_s::TT, ϕ::TT, τ_ϕ::TT,
+        P::Vector{TT}, M::Array{TT,2}, dx::Float64,
         xc::Vector{VV}, L::Vector{Float64}, R::Vector{Float64}, nT::Int,
         nL::Vector{Int}, nR::Vector{Int},
         n::Int, dt::Float64) where {TT,UU,VV <: Any}
 
     #adapt magnitude of the click inputs
-    La, Ra = make_adapted_clicks(pz,L,R)
+    La, Ra = make_adapted_clicks(ϕ,τ_ϕ,L,R)
 
-    F = zeros(TT,n,n)     #empty transition matrix for time bins with clicks
+    #empty transition matrix for time bins with clicks
+    F = zeros(TT,n,n)
 
     @inbounds for t = 1:nT
 
-        P,F = latent_one_step!(P,F,pz,t,nL,nR,La,Ra,M,dx,xc,n,dt)
+        P,F = latent_one_step!(P,F,λ,σ2_a,σ2_s,t,nL,nR,La,Ra,M,dx,xc,n,dt)
 
     end
 
     return P
 
 end
-
 
 
 """
@@ -117,7 +118,6 @@ function ceil_and_floor(xc, s, n, dx)
 end
 
 
-
 """
     likelihood!(bias::TT, xc, P, pokedR::Bool, n, dx) where {TT <: Any}
 
@@ -137,15 +137,15 @@ function likelihood!(bias::TT, xc, P, pokedR::Bool, n, dx) where {TT <: Any}
         end
 
         if lp==hp
-            
+
             P[lp] = P[lp]/2
-            
+
         else
-            
+
             dh = xc[hp] - bias
             dl = bias - xc[lp]
             dd = dh + dl
-            
+
             if pokedR
                 P[hp] = P[hp] * (1/2 + dh/dd/2)
                 P[lp] = P[lp] * (dh/dd/2)
@@ -153,14 +153,13 @@ function likelihood!(bias::TT, xc, P, pokedR::Bool, n, dx) where {TT <: Any}
                 P[hp] = P[hp] * (dl/dd/2)
                 P[lp] = P[lp] * (1/2 + dl/dd/2)
             end
-            
+
         end
     end
 
     return P
 
 end
-
 
 
 """

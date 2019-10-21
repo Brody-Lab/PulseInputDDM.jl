@@ -54,7 +54,6 @@ function optimize_model(; ntrials::Int=20000, dx::Float64=0.25,
 end
 
 
-
 """
     optimize_model(data; dx=0.25, x_tol=1e-12, f_tol=1e-12, g_tol=1e-3,
         iterations=Int(2e3), show_trace=true)
@@ -73,8 +72,6 @@ function optimize_model(data::Dict{}; dx::Float64=0.25,
     return pz, pd, converged
 
 end
-
-
 
 
 """
@@ -96,13 +93,15 @@ function optimize_model(pz::Dict{}, pd::Dict{}, data::Dict{}; dx::Float64=0.25,
     fit_vec = combine_latent_and_observation(pz["fit"], pd["fit"])
     lb = combine_latent_and_observation(pz["lb"], pd["lb"])[fit_vec]
     ub = combine_latent_and_observation(pz["ub"], pd["ub"])[fit_vec]
-    p_opt, p_const = split_variable_and_const(combine_latent_and_observation(pz["state"], pd["state"]), fit_vec)
+
+    p_opt, ll, parameter_map_f = split_opt_params_and_close(pz,pd,data; dx=dx,state=state)
+    #p_opt, p_const = split_variable_and_const(combine_latent_and_observation(pz["state"], pd["state"]), fit_vec)
 
     p_opt[p_opt .< lb] .= lb[p_opt .< lb]
     p_opt[p_opt .> ub] .= ub[p_opt .> ub]
 
-    parameter_map_f(x) = split_latent_and_observation(combine_variable_and_const(x, p_const, fit_vec))
-    ll(x) = ll_wrapper(x, data, parameter_map_f, dx=dx)
+    #parameter_map_f(x) = split_latent_and_observation(combine_variable_and_const(x, p_const, fit_vec))
+    #ll(x) = ll_wrapper(x, data, parameter_map_f, dx=dx)
     opt_output = opt_func_fminbox(p_opt, ll, lb, ub; g_tol=g_tol, x_tol=x_tol,
         f_tol=f_tol, iterations=iterations, show_trace=show_trace)
 
@@ -116,53 +115,34 @@ function optimize_model(pz::Dict{}, pd::Dict{}, data::Dict{}; dx::Float64=0.25,
 end
 
 
-
 """
     compute_gradient(pz, pd, data; dx=0.25, state="state")
-
 """
 function compute_gradient(pz::Dict{}, pd::Dict{}, data::Dict{};
     dx::Float64=0.25, state::String="state") where {TT <: Any}
 
-    fit_vec = combine_latent_and_observation(pz["fit"], pd["fit"])
-    p_opt, p_const = split_variable_and_const(combine_latent_and_observation(pz[state], pd[state]), fit_vec)
-
-    parameter_map_f(x) = split_latent_and_observation(combine_variable_and_const(x, p_const, fit_vec))
-    ll(x) = ll_wrapper(x, data, parameter_map_f, dx=dx)
-
-    return g = ForwardDiff.gradient(ll, p_opt)
+    p_opt, ll, = split_opt_params_and_close(pz,pd,data; dx=dx,state=state)
+    ForwardDiff.gradient(ll, p_opt)
 
 end
-
-
 
 
 """
     compute_Hessian(pz, pd, data; dx=0.25, state="state")
-
 """
 function compute_Hessian(pz::Dict{}, pd::Dict{}, data::Dict{};
     dx::Float64=0.25, state::String="state") where {TT <: Any}
 
-    fit_vec = combine_latent_and_observation(pz["fit"], pd["fit"])
-    p_opt, p_const = split_variable_and_const(combine_latent_and_observation(pz[state], pd[state]), fit_vec)
-
-    parameter_map_f(x) = split_latent_and_observation(combine_variable_and_const(x, p_const, fit_vec))
-    ll(x) = ll_wrapper(x, data, parameter_map_f, dx=dx)
-
-    return H = ForwardDiff.hessian(ll, p_opt);
+    p_opt, ll, = split_opt_params_and_close(pz,pd,data; dx=dx,state=state)
+    ForwardDiff.hessian(ll, p_opt);
 
 end
 
 
-
 """
-    compute_H_CI!(pz, pd, data; dx=0.25)
-
+    compute_CIs!(pz, pd, data)
 """
-function compute_H_CI!(pz, pd, data; dx::Float64=0.25)
-
-    H = compute_Hessian(pz, pd, data; dx=dx)
+function compute_CIs!(pz, pd, H)
 
     gooddims = 1:size(H,1)
 
@@ -170,10 +150,12 @@ function compute_H_CI!(pz, pd, data; dx::Float64=0.25)
     otherbad = vcat(map(i-> findall(abs.(eigvecs(H[gooddims,gooddims])[:,evs[i]]) .> 0.5), 1:length(evs))...)
     gooddims = setdiff(gooddims,otherbad)
 
-    fit_vec = combine_latent_and_observation(pz["fit"], pd["fit"])
-    p_opt, p_const = split_variable_and_const(combine_latent_and_observation(pz["final"], pd["final"]), fit_vec)
+    #fit_vec = combine_latent_and_observation(pz["fit"], pd["fit"])
+    #p_opt, p_const = split_variable_and_const(combine_latent_and_observation(pz["final"], pd["final"]), fit_vec)
 
-    parameter_map_f(x) = split_latent_and_observation(combine_variable_and_const(x, p_const, fit_vec))
+    #parameter_map_f(x) = split_latent_and_observation(combine_variable_and_const(x, p_const, fit_vec))
+
+    p_opt, ll, parameter_map_f = split_opt_params_and_close(pz,pd,Dict{}; state="final")
 
     CI = fill!(Vector{Float64}(undef,size(H,1)),1e8);
 
@@ -182,7 +164,7 @@ function compute_H_CI!(pz, pd, data; dx::Float64=0.25)
     pz["CI_plus"], pd["CI_plus"] = parameter_map_f(p_opt + CI)
     pz["CI_minus"], pd["CI_minus"] = parameter_map_f(p_opt - CI)
 
-    return pz, pd, H
+    return pz, pd
 
 end
 
@@ -194,7 +176,6 @@ A wrapper function that accepts a vector of mixed parameters, splits the vector
 into two vectors based on the parameter mapping function provided as an input,
 and compute the negative log likelihood of the data given the parametes. Used
 in optimization.
-
 """
 function ll_wrapper(p_opt::Vector{TT}, data::Dict, parameter_map_f::Function;
         dx::Float64=0.25) where {TT <: Any}
@@ -205,15 +186,38 @@ function ll_wrapper(p_opt::Vector{TT}, data::Dict, parameter_map_f::Function;
 end
 
 
-
-
 """
     compute_LL(pz, pd, data; dx=0.25)
 
-Computes the log likelihood of the animal's choices (data["pokedR"] in data), given the model parameters pz and pd.
-
+Computes the log likelihood of the animal's choices (data["pokedR"] in data) given the model parameters
+contained within the Vectors pz and pd.
 """
 compute_LL(pz::Vector{T}, pd::Vector{T}, data; dx::Float64=0.25) where {T <: Any} = sum(LL_all_trials(pz, pd, data, dx=dx))
+
+"""
+    compute_LL(pz, pd, data; dx=0.25, state="state")
+
+Computes the log likelihood of the animal's choices (data["pokedR"] in data) given the model parameters
+contained within the Dicts pz and pd. The optional argument `state` determines which key
+(e.g. initial, final, state, generative, etc.) will be used (since the functions
+this function calls accepts Vectors of Floats)
+"""
+function compute_LL(pz::Dict{}, pd::Dict{}, data::Dict{}; dx::Float64=0.25, state::String="state") where {T <: Any}
+    sum(LL_all_trials(pz[state], pd[state], data, dx=dx))
+end
+
+
+function split_opt_params_and_close(pz::Dict{}, pd::Dict{}, data::Dict{}; dx::Float64=0.25, state::String="state")
+
+    fit_vec = combine_latent_and_observation(pz["fit"], pd["fit"])
+    p_opt, p_const = split_variable_and_const(combine_latent_and_observation(pz[state], pd[state]), fit_vec)
+
+    parameter_map_f(x) = split_latent_and_observation(combine_variable_and_const(x, p_const, fit_vec))
+    ll(x) = ll_wrapper(x, data, parameter_map_f, dx=dx)
+
+    return p_opt, ll, parameter_map_f
+
+end
 
 
 """

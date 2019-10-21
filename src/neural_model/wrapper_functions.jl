@@ -53,8 +53,7 @@ end
 """
     compute_LL(pz, py, data, n, f_str)
 
-    compute LL for your model. returns a scalar
-
+compute LL for your model. returns a scalar
 """
 function compute_LL(pz::Vector{T}, py::Vector{Vector{Vector{T}}}, data::Vector{Dict{Any,Any}},
         n::Int, f_str::String) where {T <: Any}
@@ -72,7 +71,7 @@ end
 """
     compute_H_CI!(pz::Dict{}, py::Dict{}, data::Vector{Dict{Any,Any}}, f_str::String, n::Int)
 
-    compute LL for your model. returns a scalar
+compute LL for your model. returns a scalar
 
 """
 function compute_H_CI!(pz::Dict{}, py::Dict{}, data::Vector{Dict{Any,Any}}, f_str::String, n::Int)
