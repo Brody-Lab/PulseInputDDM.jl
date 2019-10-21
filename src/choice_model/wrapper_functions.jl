@@ -41,7 +41,8 @@ function optimize_model(; ntrials::Int=20000, dx::Float64=0.25,
         dt::Float64=1e-2, use_bin_center::Bool=false, rng::Int=1)
 
     pz, pd = default_parameters(generative=true)
-    data = sample_inputs_and_choices(pzstar, pdstar, ntrials; rng=rng)
+    data = sample_inputs_and_choices(pz["generative"],
+        pd["generative"], ntrials; rng=rng)
     data = bin_clicks!(data,use_bin_center;dt=dt);
 
     pz, pd, converged = optimize_model(pz, pd, data; dx=dx,

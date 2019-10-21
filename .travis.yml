@@ -1,27 +1,24 @@
 language: julia
 
-os: 
+os:
     - linux
 
 julia:
-    - 1.0
+    - 1.2
 
 env:
     - PYTHON=""
 
 notifications:
   email: false
-    
+
 jobs:
   include:
       - stage: "Documentation"
-        julia: 1.0
+        julia: 1.2
         os: linux
         script:
           - julia --project=docs/ -e 'using Pkg; Pkg.develop(PackageSpec(path=pwd()));
-                                                 Pkg.instantiate(); Pkg.rm("MAT"); 
-                                                 Pkg.add(PackageSpec(url = 
-                                                 "https://github.com/halleysfifthinc/MAT.jl", 
-                                                 rev = "v0.7-update")); Pkg.instantiate();'
+                                                 Pkg.instantiate();'
           - julia --project=docs/ docs/make.jl
         after_success: skip
