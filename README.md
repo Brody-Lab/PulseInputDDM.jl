@@ -14,7 +14,7 @@ To solve for the ML model parameters, we need to compute gradients. Packages exi
 
 # OK. I get it. How do I get started?
 
-I suggest you run this on scotty or spock, which already has Julia on it.
+I suggest you run this on spock, which already has Julia on it.
 
 Then you need to add this package by typing `Pkg.add(https://github.com/PrincetonUniversity/pulse_input_DDM/`.
 
