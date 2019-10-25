@@ -25,7 +25,7 @@ print s
 ### Exampe .jl file
 
 ```julia
-using pulse_input_DDM, MAT
+using pulse_input_DDM
 
 println("using ", nprocs(), " cores")
 data_path, save_path = "../data/", "../results/"
@@ -37,48 +37,27 @@ file = files[1]
 
 println("loading data \n")
 data = load_choice_data(data_path, file)
+data = bin_clicks!(data)
 
-dt, use_bin_center = 1e-2, false
-data = bin_clicks!(data,use_bin_center;dt=dt)
-
-pd = Dict("name" => vcat("bias","lapse"),
-          "fit" => vcat(true, true),
-          "initial" => vcat(0.,0.5),
-          "lb" => [-Inf, 0.],
-          "ub" => [Inf, 1.])
-
-pz = Dict("name" => ["σ_i","B", "λ", "σ_a","σ_s","ϕ","τ_ϕ"],
-          "fit" => vcat(false, true, true, true, true, true, true),
-          "initial" => [eps(), 10., -0.1, 20.,0.5, 1.0-eps(), 0.008],
-          "lb" => [0., 8., -5., 0., 0., 0.01, 0.005],
-          "ub" => [2., 40., 5., 100., 2.5, 1.2, 1.])
+pz,pd = default_parameters()
 
 if isfile(save_path*file)
 
     println("reloading saved ML params \n")
-    pz["state"] = read(matopen(save_path*file),"ML_params")[1:7]
-    pd["state"] = read(matopen(save_path*file),"ML_params")[8:9]
-
+    pz,pd = reload_optimization_parameters(save_path,file,pz,pd
+)
 end
 
 println("optimize! \n")
-pz, pd, converged = optimize_model_dx(pz, pd, data)
+pz, pd, converged = optimize_model(pz, pd, data)
 println("optimization complete \n")
 println("converged: converged \n")
 
 println("computing Hessian! \n")
-pz, pd, H = compute_H_CI_dx!(pz, pd, data)
+pz, pd, H = compute_H_CI!(pz, pd, data)
 
 println("done. saving ML parameters! \n")
-matwrite(save_path*file,
-    Dict("ML_params"=> vcat(pz["final"], pd["final"]),
-        "name" => vcat(pz["name"], pd["name"]),
-        "CI_plus" => vcat(pz["CI_plus"], pd["CI_plus"]),
-        "CI_minus" => vcat(pz["CI_minus"], pd["CI_minus"]),
-        "H" => H,
-        "lb"=> vcat(pz["lb"], pd["lb"]),
-        "ub"=> vcat(pz["ub"], pd["ub"]),
-        "fit"=> vcat(pz["fit"], pd["fit"])))
+save_optimization_parameters(save_path,file,pz,pd)
 ```
 
 ### Now fit the model!

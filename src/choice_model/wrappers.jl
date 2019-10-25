@@ -1,4 +1,3 @@
-
 """
     default_parameters(;generative=false)
 
@@ -41,13 +40,11 @@ function optimize_model(; ntrials::Int=20000, dx::Float64=0.25,
         dt::Float64=1e-2, use_bin_center::Bool=false, rng::Int=1)
 
     pz, pd = default_parameters(generative=true)
-    data = sample_inputs_and_choices(pz["generative"],
-        pd["generative"], ntrials; rng=rng)
-    data = bin_clicks!(data,use_bin_center;dt=dt);
+    data = sample_clicks_and_choices(pz["generative"], pd["generative"], ntrials; rng=rng)
+    data = bin_clicks!(data,use_bin_center=use_bin_center, dt=dt)
 
     pz, pd, converged = optimize_model(pz, pd, data; dx=dx,
-        x_tol=x_tol, f_tol=f_tol, g_tol=g_tol,
-        iterations=iterations, show_trace=show_trace)
+        x_tol=x_tol, f_tol=f_tol, g_tol=g_tol, iterations=iterations, show_trace=show_trace)
 
     return pz, pd, converged
 
@@ -95,13 +92,10 @@ function optimize_model(pz::Dict{}, pd::Dict{}, data::Dict{}; dx::Float64=0.25,
     ub = combine_latent_and_observation(pz["ub"], pd["ub"])[fit_vec]
 
     p_opt, ll, parameter_map_f = split_opt_params_and_close(pz,pd,data; dx=dx,state=state)
-    #p_opt, p_const = split_variable_and_const(combine_latent_and_observation(pz["state"], pd["state"]), fit_vec)
 
     p_opt[p_opt .< lb] .= lb[p_opt .< lb]
     p_opt[p_opt .> ub] .= ub[p_opt .> ub]
 
-    #parameter_map_f(x) = split_latent_and_observation(combine_variable_and_const(x, p_const, fit_vec))
-    #ll(x) = ll_wrapper(x, data, parameter_map_f, dx=dx)
     opt_output = opt_func_fminbox(p_opt, ll, lb, ub; g_tol=g_tol, x_tol=x_tol,
         f_tol=f_tol, iterations=iterations, show_trace=show_trace)
 
@@ -122,6 +116,22 @@ function compute_gradient(pz::Dict{}, pd::Dict{}, data::Dict{};
     dx::Float64=0.25, state::String="state") where {TT <: Any}
 
     p_opt, ll, = split_opt_params_and_close(pz,pd,data; dx=dx,state=state)
+    ForwardDiff.gradient(ll, p_opt)
+
+end
+
+
+"""
+    compute_gradient(; ntrials=20000, dx=0.25, dt=1e-2, use_bin_center=false, rng=1)
+Generates default parameters, data and then computes the gradient
+"""
+function compute_gradient(; ntrials::Int=20000, dx::Float64=0.25,
+        dt::Float64=1e-2, use_bin_center::Bool=false, rng::Int=1)
+
+    pz, pd = default_parameters(generative=true)
+    data = sample_clicks_and_choices(pz["generative"], pd["generative"], ntrials; rng=rng)
+    data = bin_clicks!(data,use_bin_center=use_bin_center, dt=dt)
+    p_opt, ll, = split_opt_params_and_close(pz,pd,data; dx=dx, state="generative")
     ForwardDiff.gradient(ll, p_opt)
 
 end
@@ -194,6 +204,7 @@ contained within the Vectors pz and pd.
 """
 compute_LL(pz::Vector{T}, pd::Vector{T}, data; dx::Float64=0.25) where {T <: Any} = sum(LL_all_trials(pz, pd, data, dx=dx))
 
+
 """
     compute_LL(pz, pd, data; dx=0.25, state="state")
 
@@ -207,6 +218,23 @@ function compute_LL(pz::Dict{}, pd::Dict{}, data::Dict{}; dx::Float64=0.25, stat
 end
 
 
+"""
+    compute_LL(; ntrials=2e4, dx=0.25, dt=1e-2, use_bin_center=false, rng=1)
+Generates default parameters, data and computes the LL of that data
+"""
+function compute_LL(; ntrials::Int=20000, dx::Float64=0.25,
+        dt::Float64=1e-2, use_bin_center::Bool=false, rng::Int=1)
+
+    pz, pd = default_parameters(generative=true)
+    data = sample_clicks_and_choices(pz["generative"], pd["generative"], ntrials; rng=rng)
+    data = bin_clicks!(data,use_bin_center=use_bin_center, dt=dt)
+    sum(LL_all_trials(pz["generative"], pd["generative"], data, dx=dx))
+
+end
+
+
+"""
+"""
 function split_opt_params_and_close(pz::Dict{}, pd::Dict{}, data::Dict{}; dx::Float64=0.25, state::String="state")
 
     fit_vec = combine_latent_and_observation(pz["fit"], pd["fit"])

@@ -1,3 +1,8 @@
+"""
+    pulse_input_DDM
+
+A julia module for fitting bounded accumlator models using behavioral and/or neural data from pulse-based evidence accumlation tasks.
+"""
 module pulse_input_DDM
 
 using StatsBase, Distributions, Optim, LineSearches, JLD2
@@ -8,14 +13,14 @@ import StatsFuns: logistic, logit, softplus, xlogy
 using ImageFiltering
 using ForwardDiff: value
 
-include("latent_variable_model_functions.jl")
+include("base_model.jl")
 include("analysis_functions.jl")
 include("optim_funcs.jl")
-include("sample_model_functions.jl")
-include("choice_model/choice_observation_model.jl")
-include("choice_model/wrapper_functions.jl")
-include("choice_model/sample_model_functions.jl")
-include("choice_model/manipulate_data_functions.jl")
+include("sample_model.jl")
+include("choice_model/compute_LL.jl")
+include("choice_model/wrappers.jl")
+include("choice_model/sample_model.jl")
+include("choice_model/process_data.jl")
 include("neural_model/poisson_neural_observation.jl")
 include("neural_model/wrapper_functions.jl")
 include("neural_model/mapping_functions.jl")
