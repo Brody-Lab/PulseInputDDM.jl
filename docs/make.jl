@@ -12,7 +12,7 @@ makedocs(sitename="pulse input DDM",
         "Home" => "index.md",
         "Basics" => Any[
           "man/getting_the_package.md",
-          "man/choice_observation_model-v2.md",
+          "man/choice_observation_model.md",
           "man/neural_observation_model.md"
          ],
         "Other helpful info" => Any[

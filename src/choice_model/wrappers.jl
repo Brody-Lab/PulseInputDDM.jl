@@ -160,11 +160,6 @@ function compute_CIs!(pz, pd, H)
     otherbad = vcat(map(i-> findall(abs.(eigvecs(H[gooddims,gooddims])[:,evs[i]]) .> 0.5), 1:length(evs))...)
     gooddims = setdiff(gooddims,otherbad)
 
-    #fit_vec = combine_latent_and_observation(pz["fit"], pd["fit"])
-    #p_opt, p_const = split_variable_and_const(combine_latent_and_observation(pz["final"], pd["final"]), fit_vec)
-
-    #parameter_map_f(x) = split_latent_and_observation(combine_variable_and_const(x, p_const, fit_vec))
-
     p_opt, ll, parameter_map_f = split_opt_params_and_close(pz,pd,Dict{}; state="final")
 
     CI = fill!(Vector{Float64}(undef,size(H,1)),1e8);

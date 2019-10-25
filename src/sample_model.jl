@@ -8,8 +8,8 @@ function sample_clicks(ntrials::Int; rng::Int=1)
 
     output = map(generate_stimulus,1:ntrials)
 
-    data["leftbups"] = map(i->output[i][3],1:ntrials)
-    data["rightbups"] = map(i->output[i][2],1:ntrials)
+    data["left"] = map(i->output[i][3],1:ntrials)
+    data["right"] = map(i->output[i][2],1:ntrials)
     data["T"] = map(i->output[i][1],1:ntrials)
     data["ntrials"] = ntrials
     
@@ -47,8 +47,7 @@ function sample_latent(nT::Int, L::Vector{Float64},R::Vector{Float64},
         pz::Vector{TT}, use_bin_center::Bool; 
         dt::Float64=1e-4) where {TT <: Any}
     
-    σ2_i, B, λ, vara, vars, ϕ, τ_ϕ = pz
-    
+    σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ = pz
     La, Ra = make_adapted_clicks(ϕ, τ_ϕ, L, R)
 
     A = Vector{TT}(undef,nT)
@@ -57,9 +56,9 @@ function sample_latent(nT::Int, L::Vector{Float64},R::Vector{Float64},
     for t = 1:nT
             
         if use_bin_center && t == 1         
-            a = sample_one_step!(a, t, vara, vars, λ, nL, nR, La, Ra, dt/2)
+            a = sample_one_step!(a, t, σ2_a, σ2_s, λ, nL, nR, La, Ra, dt/2)
         else
-            a = sample_one_step!(a, t, vara, vars, λ, nL, nR, La, Ra, dt)
+            a = sample_one_step!(a, t, σ2_a, σ2_s, λ, nL, nR, La, Ra, dt)
         end
 
         abs(a) > B ? (a = B * sign(a); A[t:nT] .= a; break) : A[t] = a
@@ -73,25 +72,22 @@ end
 
 """
 """
-function sample_one_step!(a::TT, t::Int, vara::TT, vars::TT, lambda::TT, nL::Vector{Int}, nR::Vector{Int}, 
+function sample_one_step!(a::TT, t::Int, σ2_a::TT, σ2_s::TT, λ::TT, 
+        nL::Vector{Int}, nR::Vector{Int}, 
         La, Ra, dt::Float64) where {TT <: Any}
     
-    #inputs
     any(t .== nL) ? sL = sum(La[t .== nL]) : sL = zero(TT)
     any(t .== nR) ? sR = sum(Ra[t .== nR]) : sR = zero(TT)
-    var, mu = vars * (sL + sR), -sL + sR  
+    σ2, μ = σ2_s * (sL + sR), -sL + sR  
     
-    eta = sqrt(vara * dt + var) * randn()
+    η = sqrt(σ2_a * dt + σ2) * randn()
     
-    if abs(lambda) < 1e-150 
-        a += mu + eta
+    if abs(λ) < 1e-150 
+        a += μ + η
     else
-        h = mu/(dt*lambda)
-        a = exp(lambda*dt)*(a + h) - h + eta
+        h = μ/(dt*λ)
+        a = exp(λ*dt)*(a + h) - h + η
     end
-    
-    #(sL + sR) > zero(TT) ? a += mu + sqrt(var) * randn() : nothing
-    #a += (dt*lambda) * a + sqrt(vara * dt) * randn()
     
     return a
 

@@ -31,8 +31,8 @@ function bounded_mass_all_trials(pz::Vector{TT}, pd::Vector{TT}, data::Dict; dx:
 
     bias, lapse = pd
     σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ = pz
-    L, R, nT, nL, nR, choice = data["leftbups"], data["rightbups"], data["nT"], data["binned_leftbups"],
-        data["binned_rightbups"], data["pokedR"]
+    L, R, nT, nL, nR, choice = data["left"], data["right"], data["nT"], data["binned_left"],
+        data["binned_right"], data["pokedR"]
     dt = data["dt"]
     
     P,M,xc,n = initialize_latent_model(σ2_i, B, λ, σ2_a, dx, dt, L_lapse=lapse/2, R_lapse=lapse/2)
@@ -79,7 +79,7 @@ function LL_all_trials(pz::Vector{TT}, pd::Vector{TT}, data::Dict; dx::Float64=0
 
     bias, lapse = pd
     σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ = pz
-    L, R, nT, nL, nR, choice = [data[key] for key in ["leftbups","rightbups","nT","binned_leftbups","binned_rightbups","pokedR"]]
+    L, R, nT, nL, nR, choice = [data[key] for key in ["left","right","nT","binned_left","binned_right","pokedR"]]
     dt = data["dt"]
 
     P,M,xc,n = initialize_latent_model(σ2_i, B, λ, σ2_a, dx, dt, L_lapse=lapse/2, R_lapse=lapse/2)
@@ -102,7 +102,7 @@ function LL_single_trial!(λ::TT, σ2_a::TT, σ2_s::TT, ϕ::TT, τ_ϕ::TT,
         n::Int, dt::Float64) where {TT,UU,VV <: Any}
 
     P = P_single_trial!(λ,σ2_a,σ2_s,ϕ,τ_ϕ,P,M,dx,xc,L,R,nT,nL,nR,n,dt)
-    P = likelihood!(bias,xc,P,pokedR,n,dx)
+    P = choice_likelihood!(bias,xc,P,pokedR,n,dx)
 
     return log(sum(P))
 
@@ -138,38 +138,23 @@ end
 
 
 """
-    ceil_and_floor(xc, s, n, dx)
+    choice_likelihood!(bias, xc, P, pokedR, n, dx)
 
 """
-function ceil_and_floor(xc, s, n, dx)
+function choice_likelihood!(bias::TT, xc::Vector{TT}, P::Vector{TT}, 
+                 pokedR::Bool, n::Int, dx::Float64) where {TT <: Any}
 
-    hp, lp = ceil(Int, (s-xc[2])/dx)+2, floor(Int, (s-xc[2])/dx)+2
+    hp, lp = searchsortedfirst(xc,bias), searchsortedlast(xc,bias)
 
-    (hp < 1) && (hp = 1)
-    (lp < 1) && (lp = 1)
-    (hp > n) && (hp = n)
-    (lp > n) && (lp = n)
-    ((xc[1]<s) & (s<xc[2])) && (hp = 2)
-    ((xc[end-1]<s) & (s<xc[end])) && (lp = n - 1)
-    (xc[end] < s) && (hp = n; lp = n)
-    (s < xc[1]) && (hp = 1; lp = 1)
+    if ((hp == n+1) & (pokedR==true)) || ((lp == 0) & (pokedR==false))
 
-    return hp, lp
-
-end
-
-
-"""
-    likelihood!(bias, xc, P, pokedR, n, dx)
-
-"""
-function likelihood!(bias::TT, xc, P, pokedR::Bool, n, dx) where {TT <: Any}
-
-    if ((bias > xc[end]) & (pokedR==true)) || ((bias < xc[1]) & (pokedR==false))
        P .= zero(TT)
-    else
 
-        hp, lp = ceil_and_floor(xc, bias, n, dx)
+    elseif ((hp == n+1) & (pokedR==false)) || ((lp == 0) & (pokedR==true))
+
+       P .= one(TT)
+
+    else
 
         if pokedR
             P[1:lp-1] .= zero(TT)
@@ -179,7 +164,9 @@ function likelihood!(bias::TT, xc, P, pokedR::Bool, n, dx) where {TT <: Any}
 
         if lp==hp
 
-            P[lp] = P[lp]/2
+            #P[lp] = P[lp]/2
+            dh = xc[lp] - bias
+            P[lp] = P[lp] * (1/2 + dh)
 
         else
 
