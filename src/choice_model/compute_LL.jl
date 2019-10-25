@@ -55,11 +55,11 @@ Computes the log likelihood for a set of trials consistent with the animal's cho
 ```jldoctest
 julia> pz, pd = default_parameters(generative=true);
 
-julia> ntrials, use_bin_center, rng = 10, false, 1;
+julia> ntrials, rng = 10, 1;
 
 julia> data = sample_inputs_and_choices(pz["generative"], pd["generative"], ntrials; rng=rng);
 
-julia> data = bin_clicks!(data,use_bin_center);
+julia> data = bin_clicks!(data);
 
 julia> LL_all_trials(pz["generative"], pd["generative"], data)
 10-element Array{Float64,1}:
@@ -140,51 +140,76 @@ end
 """
     choice_likelihood!(bias, xc, P, pokedR, n, dx)
 
+Preserves mass in the distribution P on the side consistent with the choice pokedR relative to the point bias. Deals gracefully in situations where the bias equals a bin center. However, if the bias grows larger than the bound, the LL becomes very large and the gradient is zero. However, it's general convexity of the -LL surface w.r.t this parameter should generally preclude it from approaches these regions. 
+
+### Examples
+
+```jldoctest
+julia> dx, dt = 0.25, 1e-2;
+
+julia> bias = 0.51;
+
+julia> σ2_i, B, λ, σ2_a = 1., 2., 0., 10.; # the bound height of 2 is intentionally low, so P is not too long
+
+julia> P, M, xc, n = pulse_input_DDM.initialize_latent_model(σ2_i, B, λ, σ2_a, dx, dt);
+
+julia> pokedR = true
+
+julia> choice_likelihood!(bias, xc, P, pokedR, n, dx)
+17-element Array{Float64,1}:
+ 0.0                 
+ 0.0                 
+ 0.0                 
+ 0.0                 
+ 0.0                 
+ 0.0                 
+ 0.0                 
+ 0.0                 
+ 0.0                 
+ 0.0                 
+ 0.042939280425050505
+ 0.0721183816406887  
+ 0.0617258328633044  
+ 0.044851870106541264
+ 0.033257283820292104
+ 0.028336925646975725
+ 0.02390136497472017 
+```
 """
 function choice_likelihood!(bias::TT, xc::Vector{TT}, P::Vector{TT}, 
                  pokedR::Bool, n::Int, dx::Float64) where {TT <: Any}
 
-    hp, lp = searchsortedfirst(xc,bias), searchsortedlast(xc,bias)
-
-    if ((hp == n+1) & (pokedR==true)) || ((lp == 0) & (pokedR==false))
-
-       P .= zero(TT)
-
-    elseif ((hp == n+1) & (pokedR==false)) || ((lp == 0) & (pokedR==true))
-
-       P .= one(TT)
-
+    lp = searchsortedlast(xc,bias)
+    hp = lp + 1
+    
+    if ((hp==n+1) & (pokedR==true))
+        P[1:lp-1] .= zero(TT)
+        P[lp] = eps()
+        
+    elseif((lp==0) & (pokedR==false))
+        P[hp+1:end] .= zero(TT)
+        P[hp] = eps()
+        
+    elseif ((hp==n+1) & (pokedR==false)) || ((lp==0) & (pokedR==true))
+        P .= one(TT)
+        
     else
+        
+        dh, dl = xc[hp] - bias, bias - xc[lp]
+        dd = dh + dl
 
         if pokedR
             P[1:lp-1] .= zero(TT)
+            P[hp] = P[hp] * (1/2 + dh/dd/2)
+            P[lp] = P[lp] * (dh/dd/2)
         else
             P[hp+1:end] .= zero(TT)
+            P[hp] = P[hp] * (dl/dd/2)
+            P[lp] = P[lp] * (1/2 + dl/dd/2)
         end
-
-        if lp==hp
-
-            #P[lp] = P[lp]/2
-            dh = xc[lp] - bias
-            P[lp] = P[lp] * (1/2 + dh)
-
-        else
-
-            dh = xc[hp] - bias
-            dl = bias - xc[lp]
-            dd = dh + dl
-
-            if pokedR
-                P[hp] = P[hp] * (1/2 + dh/dd/2)
-                P[lp] = P[lp] * (dh/dd/2)
-            else
-                P[hp] = P[hp] * (dl/dd/2)
-                P[lp] = P[lp] * (1/2 + dl/dd/2)
-            end
-
-        end
+        
     end
-
+    
     return P
 
 end
