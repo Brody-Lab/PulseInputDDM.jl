@@ -91,7 +91,7 @@ function optimize_model(pz::Dict{}, pd::Dict{}, data::Dict{}; dx::Float64=0.25,
     lb = combine_latent_and_observation(pz["lb"], pd["lb"])[fit_vec]
     ub = combine_latent_and_observation(pz["ub"], pd["ub"])[fit_vec]
 
-    p_opt, ll, parameter_map_f = split_opt_params_and_close(pz,pd,data; dx=dx,state=state)
+    p_opt, ll, parameter_map_f = split_opt_params_and_close(pz,pd,data; dx=dx, state="state")
 
     p_opt[p_opt .< lb] .= lb[p_opt .< lb]
     p_opt[p_opt .> ub] .= ub[p_opt .> ub]
