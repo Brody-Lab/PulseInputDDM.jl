@@ -28,6 +28,29 @@ end
 
 
 """
+    optimize_model(pz, pd; ntrials=20000, dx:=0.25, x_tol=1e-12, f_tol=1e-12, g_tol=1e-3,
+        iterations=Int(2e3), show_trace=true, dt=1e-2, use_bin_center=false, rng=1)
+
+Generate data using known generative paramaeters (must be provided) and then optimize model
+parameters using that data. Useful for testing the model fitting procedure.
+"""
+function optimize_model(pz::Dict{}, pd::Dict{}; ntrials::Int=20000, dx::Float64=0.25,
+        x_tol::Float64=1e-12, f_tol::Float64=1e-12, g_tol::Float64=1e-3,
+        iterations::Int=Int(2e3), show_trace::Bool=true,
+        dt::Float64=1e-2, use_bin_center::Bool=false, rng::Int=1)
+
+    data = sample_clicks_and_choices(pz["generative"], pd["generative"], ntrials; rng=rng)
+    data = bin_clicks!(data,use_bin_center=use_bin_center, dt=dt)
+
+    pz, pd, converged = optimize_model(pz, pd, data; dx=dx,
+        x_tol=x_tol, f_tol=f_tol, g_tol=g_tol, iterations=iterations, show_trace=show_trace)
+
+    return pz, pd, converged
+
+end
+
+
+"""
     optimize_model(; ntrials=20000, dx:=0.25, x_tol=1e-12, f_tol=1e-12, g_tol=1e-3,
         iterations=Int(2e3), show_trace=true, dt=1e-2, use_bin_center=false, rng=1)
 
