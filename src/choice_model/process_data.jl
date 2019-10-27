@@ -7,8 +7,14 @@ function load_choice_data(path::String, file::String)
     data["T"] = data["T"]
     data["pokedR"] = vec(convert(BitArray, data["pokedR"]))
     data["correct"] = vec(convert(BitArray, data["correct"]))
-    data["left"] = map(x-> vec(collect(x)), data["left"])
-    data["right"] = map(x-> vec(collect(x)), data["right"])
+    
+    mykeys = collect(keys(data))
+    
+    Lkey_bool = map(key-> occursin("left", key), mykeys)
+    Rkey_bool = findall(map(key-> occursin("right", key), mykeys))
+    
+    data["left"] = map(x-> vec(collect(x)), data[mykeys[Lkey_bool]])
+    data["right"] = map(x-> vec(collect(x)), data[mykeys[Rkey_bool]])
     
     return data
 
@@ -66,12 +72,17 @@ function save_optimization_parameters(path, file, pz, pd; H=[])
 
     dict = Dict("ML_params"=> vcat(pz["final"], pd["final"]),
         "name" => vcat(pz["name"], pd["name"]),
-        "CI_plus" => vcat(pz["CI_plus"], pd["CI_plus"]),
-        "CI_minus" => vcat(pz["CI_minus"], pd["CI_minus"]),
         "lb"=> vcat(pz["lb"], pd["lb"]),
         "ub"=> vcat(pz["ub"], pd["ub"]),
         "fit"=> vcat(pz["fit"], pd["fit"]))
 
+    if haskey(pz,"CI_plus")
+        
+        dict["CI_plus"] = vcat(pz["CI_plus"], pd["CI_plus"])
+        dict["CI_minus"] = vcat(pz["CI_minus"], pd["CI_minus"])
+
+    end
+    
     if !isempty(H)
         dict["H"] = H
     end

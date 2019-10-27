@@ -40,10 +40,16 @@ end
 
 
 """
+    opt_func_fminbox(x, ll, lb, ub;
+        g_tol=1e-12, x_tol=1e-16, f_tol=1e-16,
+        iterations=Int(5e3), outer_iterations=Int(1e1)
+        show_trace=true, extended_trace=false)
+
+Wrapper for executing a constrained optimization based on the objective function ll. x is the initial starting point.
 """
 function opt_func_fminbox(x, ll, lb, ub;
         g_tol::Float64=1e-12, x_tol::Float64=1e-16, f_tol::Float64=1e-16,
-        iterations::Int=Int(5e3),
+        iterations::Int=Int(5e3), outer_iterations::Int=Int(1e1),
         show_trace::Bool=true, extended_trace::Bool=false)
 
     obj = OnceDifferentiable(ll, x; autodiff=:forward)
@@ -53,7 +59,7 @@ function opt_func_fminbox(x, ll, lb, ub;
         iterations= iterations, allow_f_increases=true,
         store_trace = true, show_trace = show_trace, extended_trace=extended_trace,
         outer_g_tol=g_tol, outer_x_tol=x_tol, outer_f_tol=f_tol,
-        outer_iterations= iterations, allow_outer_f_increases=true)
+        outer_iterations= outer_iterations, allow_outer_f_increases=true)
 
     output = Optim.optimize(obj, lb, ub, x, Fminbox(m), options)
 

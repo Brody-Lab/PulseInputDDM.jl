@@ -45,14 +45,15 @@ function optimize_model(pz::Dict{}, pd::Dict{}; ntrials::Int=20000, dx::Float64=
     pz, pd, converged = optimize_model(pz, pd, data; dx=dx,
         x_tol=x_tol, f_tol=f_tol, g_tol=g_tol, iterations=iterations, show_trace=show_trace)
 
-    return pz, pd, converged
+    return pz, pd, data, converged
 
 end
 
 
 """
     optimize_model(; ntrials=20000, dx:=0.25, x_tol=1e-12, f_tol=1e-12, g_tol=1e-3,
-        iterations=Int(2e3), show_trace=true, dt=1e-2, use_bin_center=false, rng=1)
+        iterations=Int(2e3), show_trace=true, dt=1e-2, use_bin_center=false, rng=1,
+        outer_iterations=Int(1e1))
 
 Generate data using known generative paramaeters and then optimize model
 parameters using that data. Useful for testing the model fitting procedure.
@@ -60,34 +61,38 @@ parameters using that data. Useful for testing the model fitting procedure.
 function optimize_model(; ntrials::Int=20000, dx::Float64=0.25,
         x_tol::Float64=1e-12, f_tol::Float64=1e-12, g_tol::Float64=1e-3,
         iterations::Int=Int(2e3), show_trace::Bool=true,
-        dt::Float64=1e-2, use_bin_center::Bool=false, rng::Int=1)
+        dt::Float64=1e-2, use_bin_center::Bool=false, rng::Int=1,
+        outer_iterations::Int=Int(1e1))
 
     pz, pd = default_parameters(generative=true)
     data = sample_clicks_and_choices(pz["generative"], pd["generative"], ntrials; rng=rng)
     data = bin_clicks!(data,use_bin_center=use_bin_center, dt=dt)
 
     pz, pd, converged = optimize_model(pz, pd, data; dx=dx,
-        x_tol=x_tol, f_tol=f_tol, g_tol=g_tol, iterations=iterations, show_trace=show_trace)
+        x_tol=x_tol, f_tol=f_tol, g_tol=g_tol, iterations=iterations, 
+        show_trace=show_trace, outer_iterations=outer_iterations)
 
-    return pz, pd, converged
+    return pz, pd, data, converged
 
 end
 
 
 """
     optimize_model(data; dx=0.25, x_tol=1e-12, f_tol=1e-12, g_tol=1e-3,
-        iterations=Int(2e3), show_trace=true)
+        iterations=Int(2e3), show_trace=true, outer_iterations=Int(1e1))
 
 Optimize model parameters using default parameter initialization.
 """
 function optimize_model(data::Dict{}; dx::Float64=0.25,
         x_tol::Float64=1e-12, f_tol::Float64=1e-12, g_tol::Float64=1e-3,
-        iterations::Int=Int(2e3), show_trace::Bool=true)
+        iterations::Int=Int(2e3), show_trace::Bool=true,
+        outer_iterations::Int=Int(1e1))
 
     pz, pd = default_parameters()
     pz, pd, converged = optimize_model(pz, pd, data; dx=dx,
         x_tol=x_tol, f_tol=f_tol, g_tol=g_tol,
-        iterations=iterations, show_trace=show_trace)
+        iterations=iterations, show_trace=show_trace,
+        outer_iterations=outer_iterations)
 
     return pz, pd, converged
 
@@ -96,14 +101,15 @@ end
 
 """
     optimize_model(pz, pd, data; dx=0.25, x_tol=1e-12, f_tol=1e-12, g_tol=1e-3,
-        iterations=Int(2e3), show_trace=true)
+        iterations=Int(2e3), show_trace=true, outer_iterations=Int(1e1))
 
 Optimize model parameters. pz and pd are dictionaries that contains initial values, boundaries,
 and specification of which parameters to fit.
 """
 function optimize_model(pz::Dict{}, pd::Dict{}, data::Dict{}; dx::Float64=0.25,
         x_tol::Float64=1e-12, f_tol::Float64=1e-12, g_tol::Float64=1e-3,
-        iterations::Int=Int(2e3), show_trace::Bool=true)
+        iterations::Int=Int(2e3), show_trace::Bool=true, 
+        outer_iterations::Int=Int(1e1))
 
     haskey(pz,"state") ? nothing : pz["state"] = deepcopy(pz["initial"])
     haskey(pd,"state") ? nothing : pd["state"] = deepcopy(pd["initial"])
@@ -120,7 +126,7 @@ function optimize_model(pz::Dict{}, pd::Dict{}, data::Dict{}; dx::Float64=0.25,
     p_opt[p_opt .> ub] .= ub[p_opt .> ub]
 
     opt_output = opt_func_fminbox(p_opt, ll, lb, ub; g_tol=g_tol, x_tol=x_tol,
-        f_tol=f_tol, iterations=iterations, show_trace=show_trace)
+        f_tol=f_tol, iterations=iterations, outer_iterations=outer_iterations, show_trace=show_trace)
 
     p_opt, converged = Optim.minimizer(opt_output), Optim.converged(opt_output)
 
