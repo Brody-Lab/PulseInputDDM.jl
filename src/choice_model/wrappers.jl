@@ -111,6 +111,7 @@ function optimize_model(pz::Dict{}, pd::Dict{}, data::Dict{}; dx::Float64=0.25,
         iterations::Int=Int(2e3), show_trace::Bool=true, 
         outer_iterations::Int=Int(1e1))
 
+    println("optimize! \n")
     haskey(pz,"state") ? nothing : pz["state"] = deepcopy(pz["initial"])
     haskey(pd,"state") ? nothing : pd["state"] = deepcopy(pd["initial"])
 
@@ -132,6 +133,8 @@ function optimize_model(pz::Dict{}, pd::Dict{}, data::Dict{}; dx::Float64=0.25,
 
     pz["state"], pd["state"] = parameter_map_f(p_opt)
     pz["final"], pd["final"] = pz["state"], pd["state"]
+    println("optimization complete \n")
+    println("converged: $converged \n")
 
     return pz, pd, converged
 
@@ -172,8 +175,9 @@ end
 function compute_Hessian(pz::Dict{}, pd::Dict{}, data::Dict{};
     dx::Float64=0.25, state::String="state") where {TT <: Any}
 
+    println("computing Hessian! \n")
     p_opt, ll, = split_opt_params_and_close(pz,pd,data; dx=dx,state=state)
-    ForwardDiff.hessian(ll, p_opt);
+    ForwardDiff.hessian(ll, p_opt)
 
 end
 
@@ -182,6 +186,8 @@ end
     compute_CIs!(pz, pd, data)
 """
 function compute_CIs!(pz, pd, H)
+
+    println("computing confidence intervals \n")
 
     gooddims = 1:size(H,1)
 

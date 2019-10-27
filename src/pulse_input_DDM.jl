@@ -31,10 +31,11 @@ include("neural_model/deterministic_model.jl")
 include("neural_model/sample_model_functions_FP.jl")
 
 export dimz
-export compute_H_CI!, optimize_model, compute_LL, compute_Hessian, compute_gradient
+export compute_CIs!, optimize_model, compute_LL, compute_Hessian, compute_gradient
 export sample_inputs_and_choices, sample_choices_all_trials, default_parameters
 export LL_all_trials
 export bin_clicks!, load_choice_data, bounded_mass_all_trials
+export reload_optimization_parameters, save_optimization_parameters
 
 #=
 

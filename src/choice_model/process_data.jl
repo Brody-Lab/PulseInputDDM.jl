@@ -1,7 +1,9 @@
 """
 """
-function load_choice_data(path::String, file::String)
+function load_choice_data(path::String, file::String; 
+                use_bin_center::Bool=false, dt::Float64=1e-2)
 
+    println("loading data \n")
     data = read(matopen(path*file), "rawdata")
 
     data["T"] = data["T"]
@@ -15,6 +17,8 @@ function load_choice_data(path::String, file::String)
     
     data["left"] = map(x-> vec(collect(x)), data[mykeys[Lkey_bool]])
     data["right"] = map(x-> vec(collect(x)), data[mykeys[Rkey_bool]])
+
+    data = bin_clicks!(data; use_bin_center=use_bin_center, dt=dt)
     
     return data
 
@@ -70,6 +74,7 @@ Given a path and dictionaries produced by optimize_model(), save the results of 
 """
 function save_optimization_parameters(path, file, pz, pd; H=[])
 
+    println("done. saving ML parameters! \n")
     dict = Dict("ML_params"=> vcat(pz["final"], pd["final"]),
         "name" => vcat(pz["name"], pd["name"]),
         "lb"=> vcat(pz["lb"], pd["lb"]),
@@ -99,6 +104,7 @@ place them in the "state" key of the dictionaires that optimize_model() expects.
 """
 function reload_optimization_parameters(path, file, pz, pd)
 
+    println("reloading saved ML params \n")
     pz["state"] = read(matopen(path*file),"ML_params")[1:dimz]
     pd["state"] = read(matopen(path*file),"ML_params")[dimz+1:dimz+2]
 
