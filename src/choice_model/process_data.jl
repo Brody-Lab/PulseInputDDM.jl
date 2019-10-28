@@ -17,7 +17,10 @@ function load_choice_data(path::String, file::String;
     
     data["left"] = map(x-> vec(collect(x)), data[mykeys[Lkey_bool][1]])
     data["right"] = map(x-> vec(collect(x)), data[mykeys[Rkey_bool][1]])
-    data["correct"] = vec(convert(BitArray, data[mykeys[corkey_bool][1]]))
+
+    if !isempty(corkey_bool)
+        data["correct"] = vec(convert(BitArray, data[mykeys[corkey_bool][1]]))
+    end
 
     data = bin_clicks!(data; use_bin_center=use_bin_center, dt=dt)
     

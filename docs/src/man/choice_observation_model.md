@@ -1,74 +1,81 @@
-# Fitting the model on spock using choice data
+# Fitting the model to choices
 
-OK, let's fit the model using the animal's choices!
+## How to save your data so it can be loaded correctly 
 
-## Data (on disk) conventions
+The package expects your data to live in a single .mat file which should contain a struct called `rawdata`. Each element of `rawdata` should have data for one behavioral trial and `rawdata` should contain the following fields with the specified structure:
 
-`name_sess.mat` should contain a single structure array called `rawdata`. Each element of `rawdata` should have data for one behavioral trials and `rawdata` should contain the following fields with the specified structure:
-
-- `rawdata.left`: row-vector containing the relative timing, in seconds, of left clicks on an individual trial. 0 seconds is the start of the click stimulus.
-- `rawdata.right`: row-vector containing the relative timing in seconds (origin at 0 sec) of right clicks on an individual trial. 0 seconds is the start of the click stimulus. 
+- `rawdata.leftbups`: row-vector containing the relative timing, in seconds, of left clicks on an individual trial. 0 seconds is the start of the click stimulus.
+- `rawdata.rightbups`: row-vector containing the relative timing in seconds (origin at 0 sec) of right clicks on an individual trial. 0 seconds is the start of the click stimulus. 
 - `rawdata.T`: the duration of the trial, in seconds. The beginning of a trial is defined as the start of the click stimulus. The end of a trial is defined based on the behavioral event “cpoke_end”. This was the Hanks convention.
-- `rawdata.pokedR`: `Bool` representing the animal choice (1 = R).
-- `rawdata.correct`: `Bool` representing the correct choice (1 = R). Based on the difference in left and right clicks on that trial (not the generative gamma for that trial).
+- `rawdata.pokedR`: `Bool` representing the animal choice (1 = right).
 
-## Load the data and fit the model interactively
+## Fitting the model
 
+Once your data is corretly formatted and you have the package added in julia, you are ready to fit the model. You need to write a slurm script to use spock's resources and a .jl file to load the data and fit the model. See examples of each below. These files are also located in the package in the `demos` directory.
 
 ### Example slurm script
 
-```python
-s = "Python syntax highlighting"
-print s
+This will start a job called `fit_choice_model`. Output will be written to a log file called `fit_choice_model.out`. This will run on the `Brody` partition of spock for 12 hours, using 44 cores and 64 GB of memory. You'll notice that we load the julia module (like we did when we added the package) and then we call julia (`-p 44` uses the 44 cores) and ask it to run the .jl file.
+
+```
+#!/usr/bin/env bash
+
+#SBATCH -J 'fit_choice_model'
+#SBATCH -o ../logs/fit_choice_model.out
+#SBATCH -p Brody
+#SBATCH --time=12:00:00
+#SBATCH --mem=64000
+#SBATCH -c 44
+
+module load julia/1.0.0
+julia -p 44 ../scripts/fit_choice_model.jl
 ```
 
-### Exampe .jl file
+### Example .jl file
+
+See comments in the script to understand what each line is doing.
 
 ```julia
+#use the resources of the package
 using pulse_input_DDM
 
 println("using ", nprocs(), " cores")
-data_path, save_path = "../data/", "../results/"
+
+#define useful paths to the data and to a directory to save results
+data_path, save_path = "../data/dmFC_muscimol/", "../results/dmFC_muscimol/"
+
+#if the directory that you are saving to doesn't exist, make it
 isdir(save_path) ? nothing : mkpath(save_path)
 
+#read the name of the file located in the data directory
 files = readdir(data_path)
 files = files[.!isdir.(files)]
 file = files[1]
 
-println("loading data \n")
+#load your data
 data = load_choice_data(data_path, file)
-data = bin_clicks!(data)
 
-pz,pd = default_parameters()
+#generate default parameters for initializing the optimization
+pz, pd = default_parameters()
 
+#if you've already ran the optimization once and want to restart from where you stoped, this will reload those parameters
 if isfile(save_path*file)
-
-    println("reloading saved ML params \n")
-    pz,pd = reload_optimization_parameters(save_path,file,pz,pd)
-
+    pz, pd = reload_optimization_parameters(save_path, file, pz, pd)    
 end
 
-println("optimize! \n")
-pz, pd, converged = optimize_model(pz, pd, data)
-println("optimization complete \n")
-println("converged: converged \n")
+#run the optimization
+pz, pd, = optimize_model(pz, pd, data)
 
-println("computing Hessian! \n")
-pz, pd, H = compute_H_CI!(pz, pd, data)
+#compute the Hessian around the ML solution, for confidence intervals
+H = compute_Hessian(pz, pd, data; state="final")
 
-println("done. saving ML parameters! \n")
+#compute confidence intervals
+pz, pd = compute_CIs!(pz, pd, H)
+
+#save results
 save_optimization_parameters(save_path,file,pz,pd)
 ```
 
-### Now fit the model!
+### Getting help
 
-You can use the function `optimize_model()` to run the model.
-
-```
-    pz, pd, = optimize_model(pz, pd, data)
-
-```
-
- 
-
-
+To get more details about how any function in this package works, in julia you can type `?` and then the name of the function. Documentation will display in the REPL.

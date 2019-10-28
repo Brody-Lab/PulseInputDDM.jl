@@ -1,4 +1,4 @@
-# Fitting a model to neural activity
+# Fitting the model to neural activity
 
 Now, let's try fiting the model using neural data.
 
