@@ -8,15 +8,16 @@ function load_choice_data(path::String, file::String;
 
     data["T"] = data["T"]
     data["pokedR"] = vec(convert(BitArray, data["pokedR"]))
-    data["correct"] = vec(convert(BitArray, data["correct"]))
     
     mykeys = collect(keys(data))
     
-    Lkey_bool = map(key-> occursin("left", key), mykeys)
+    Lkey_bool = findall(map(key-> occursin("left", key), mykeys))
     Rkey_bool = findall(map(key-> occursin("right", key), mykeys))
+    corkey_bool = findall(map(key-> occursin("correct", key), mykeys))
     
-    data["left"] = map(x-> vec(collect(x)), data[mykeys[Lkey_bool]])
-    data["right"] = map(x-> vec(collect(x)), data[mykeys[Rkey_bool]])
+    data["left"] = map(x-> vec(collect(x)), data[mykeys[Lkey_bool][1]])
+    data["right"] = map(x-> vec(collect(x)), data[mykeys[Rkey_bool][1]])
+    data["correct"] = vec(convert(BitArray, data[mykeys[corkey_bool][1]]))
 
     data = bin_clicks!(data; use_bin_center=use_bin_center, dt=dt)
     

@@ -195,7 +195,7 @@ function compute_CIs!(pz, pd, H)
     otherbad = vcat(map(i-> findall(abs.(eigvecs(H[gooddims,gooddims])[:,evs[i]]) .> 0.5), 1:length(evs))...)
     gooddims = setdiff(gooddims,otherbad)
 
-    p_opt, ll, parameter_map_f = split_opt_params_and_close(pz,pd,Dict{}; state="final")
+    p_opt, ll, parameter_map_f = split_opt_params_and_close(pz,pd,Dict(); state="final")
 
     CI = fill!(Vector{Float64}(undef,size(H,1)),1e8);
 

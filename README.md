@@ -14,9 +14,9 @@ To solve for the maximum likelihood model parameters we need to compute gradient
 
 # OK. I get it. How do I get started?
 
-I suggest you run this on spock which already has Julia on it.
+I suggest you run this on spock which already has Julia on it. To use julia on spock, yo have to 'load' the julia module, which you can do with `module load julia/1.0.0`. At the julia prompt, you now need to add this package. Julia has a `package manager` which you can enter into by typing `]` at the julia prompt. Then, type `add https://github.com/Brody-Lab/pulse_input_DDM/` to add this package, assuming you are a member of the Brody-Lab github organization. You will need to enter you username and password to start installing the package.
 
-Then you need to add this package by typing `Pkg.add(https://github.com/Brody-Lab/pulse_input_DDM/)`.
+When major modification are made to the code base, you will need to update the package. You can do this in julia's pacakge manager (remember `]`) by typing `update`.
 
 # Useful functions
 
