@@ -9,9 +9,9 @@ julia> pz, pd = default_parameters(generative=true);
 
 julia> ntrials, use_bin_center, rng = 10, false, 1;
 
-julia> data = sample_inputs_and_choices(pz["generative"], pd["generative"], ntrials; rng=rng);
+julia> data = pulse_input_DDM.sample_clicks_and_choices(pz["generative"], pd["generative"], ntrials; rng=rng);
 
-julia> data = bin_clicks!(data,use_bin_center);
+julia> data = pulse_input_DDM.bin_clicks!(data,use_bin_center);
 
 julia> bounded_mass_all_trials(pz["generative"], pd["generative"], data)
 10-element Array{Float64,1}:
@@ -57,9 +57,9 @@ julia> pz, pd = default_parameters(generative=true);
 
 julia> ntrials, rng = 10, 1;
 
-julia> data = sample_inputs_and_choices(pz["generative"], pd["generative"], ntrials; rng=rng);
+julia> data = pulse_input_DDM.sample_inputs_and_choices(pz["generative"], pd["generative"], ntrials; rng=rng);
 
-julia> data = bin_clicks!(data);
+julia> data = pulse_input_DDM.bin_clicks!(data);
 
 julia> LL_all_trials(pz["generative"], pd["generative"], data)
 10-element Array{Float64,1}:
@@ -153,9 +153,9 @@ julia> σ2_i, B, λ, σ2_a = 1., 2., 0., 10.; # the bound height of 2 is intenti
 
 julia> P, M, xc, n = pulse_input_DDM.initialize_latent_model(σ2_i, B, λ, σ2_a, dx, dt);
 
-julia> pokedR = true
+julia> pokedR = true;
 
-julia> choice_likelihood!(bias, xc, P, pokedR, n, dx)
+julia> pulse_input_DDM.choice_likelihood!(bias, xc, P, pokedR, n, dx)
 17-element Array{Float64,1}:
  0.0                 
  0.0                 
