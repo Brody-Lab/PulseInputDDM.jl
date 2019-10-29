@@ -186,3 +186,39 @@ function compute_CIs_n!(pz::Dict, pd::Dict, data::Dict; state::String="final")
     return pz, pd, CI
 
 end
+
+function compute_Hessian_n(pz::Dict{}, pd::Dict{}, data::Dict{};
+    n::Int=53, state::String="state") where {TT <: Any}
+
+    println("computing Hessian! \n")
+    p_opt, ll, = split_opt_params_and_close_n(pz,pd,data; n=n,state=state)
+    ForwardDiff.hessian(ll, p_opt)
+
+end
+
+
+"""
+    compute_CIs_n!(pz, pd, H)
+"""
+function compute_CIs_n!(pz::Dict, pd::Dict, H::Array{Float64,2})
+
+    println("computing confidence intervals \n")
+
+    gooddims = 1:size(H,1)
+
+    evs = findall(eigvals(H[gooddims,gooddims]) .<= 0)
+    otherbad = vcat(map(i-> findall(abs.(eigvecs(H[gooddims,gooddims])[:,evs[i]]) .> 0.5), 1:length(evs))...)
+    gooddims = setdiff(gooddims,otherbad)
+
+    p_opt, ll, parameter_map_f = split_opt_params_and_close_n(pz,pd,Dict(); state="final")
+
+    CI = fill!(Vector{Float64}(undef,size(H,1)),1e8);
+
+    CI[gooddims] = 2*sqrt.(diag(inv(H[gooddims,gooddims])))
+
+    pz["CI_plus"], pd["CI_plus"] = parameter_map_f(p_opt + CI)
+    pz["CI_minus"], pd["CI_minus"] = parameter_map_f(p_opt - CI)
+
+    return pz, pd
+
+end
