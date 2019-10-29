@@ -22,7 +22,6 @@ include("choice_model/compute_LL.jl")
 include("choice_model/wrappers.jl")
 include("choice_model/sample_model.jl")
 include("choice_model/process_data.jl")
-include("choice_model/fixed_num_bins.jl")
 
 include("neural_model/poisson_neural_observation.jl")
 include("neural_model/wrapper_functions.jl")

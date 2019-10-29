@@ -83,11 +83,11 @@ end
         P, M, dx, xc, L, R, nT, nL, nR, pokedR bias, n, dt)
 """
 function LL_single_trial!(λ::TT, σ2_a::TT, σ2_s::TT, ϕ::TT, τ_ϕ::TT,
-        P::Vector{TT}, M::Array{TT,2}, dx::UU,
-        xc::Vector{VV}, L::Vector{Float64}, R::Vector{Float64}, nT::Int,
+        P::Vector{TT}, M::Array{TT,2}, dx::Float64,
+        xc::Vector{TT}, L::Vector{Float64}, R::Vector{Float64}, nT::Int,
         nL::Vector{Int}, nR::Vector{Int},
         pokedR::Bool, bias::TT,
-        n::Int, dt::Float64) where {TT,UU,VV <: Any}
+        n::Int, dt::Float64) where TT
 
     P = P_single_trial!(λ,σ2_a,σ2_s,ϕ,τ_ϕ,P,M,dx,xc,L,R,nT,nL,nR,n,dt)
     P = choice_likelihood!(bias,xc,P,pokedR,n,dx)
@@ -103,10 +103,10 @@ end
 
 """
 function P_single_trial!(λ::TT, σ2_a::TT, σ2_s::TT, ϕ::TT, τ_ϕ::TT,
-        P::Vector{TT}, M::Array{TT,2}, dx::UU,
+        P::Vector{TT}, M::Array{TT,2}, dx::Float64,
         xc::Vector{TT}, L::Vector{Float64}, R::Vector{Float64}, nT::Int,
         nL::Vector{Int}, nR::Vector{Int},
-        n::Int, dt::Float64) where {TT,UU <: Any}
+        n::Int, dt::Float64) where TT
 
     #adapt magnitude of the click inputs
     La, Ra = make_adapted_clicks(ϕ,τ_ϕ,L,R)
@@ -165,7 +165,7 @@ julia> pulse_input_DDM.choice_likelihood!(bias, xc, P, pokedR, n, dx)
 ```
 """
 function choice_likelihood!(bias::TT, xc::Vector{TT}, P::Vector{TT}, 
-                 pokedR::Bool, n::Int, dx::UU) where {TT,UU <: Any}
+                 pokedR::Bool, n::Int, dx::Float64) where TT
 
     lp = searchsortedlast(xc,bias)
     hp = lp + 1

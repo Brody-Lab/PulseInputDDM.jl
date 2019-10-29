@@ -216,8 +216,8 @@ function compute_CIs!(pz::Dict, pd::Dict, H::Array{Float64,2})
 
     CI[gooddims] = 2*sqrt.(diag(inv(H[gooddims,gooddims])))
 
-    pz["CI_plus"], pd["CI_plus"] = parameter_map_f(p_opt + CI)
-    pz["CI_minus"], pd["CI_minus"] = parameter_map_f(p_opt - CI)
+    pz["CI_plus_hessian"], pd["CI_plus_hessian"] = parameter_map_f(p_opt + CI)
+    pz["CI_minus_hessian"], pd["CI_minus_hessian"] = parameter_map_f(p_opt - CI)
 
     return pz, pd
 
@@ -229,16 +229,15 @@ end
 
 Computes confidence intervals based on the likelihood ratio test
 """
-function compute_CIs!(pz::Dict, pd::Dict, data::Dict; state::String="final")
-
-    ll_θ = compute_LL(pz[state], pd[state], data) 
-
+function compute_CIs!(pz::Dict, pd::Dict, data::Dict; dx::Float64=0.25, state::String="final")
+    
+    fit_vec = combine_latent_and_observation(pz["fit"], pd["fit"])
     lb = combine_latent_and_observation(pz["lb"], pd["lb"])
     ub = combine_latent_and_observation(pz["ub"], pd["ub"])
-
-    fit_vec = combine_latent_and_observation(pz["fit"], pd["fit"])
-
+    
     CI = Vector{Vector{Float64}}(undef,length(fit_vec))
+    
+    ll_θ = compute_LL(pz[state], pd[state], data; dx=dx) 
 
     for i = 1:length(fit_vec)
         
@@ -260,6 +259,7 @@ function compute_CIs!(pz::Dict, pd::Dict, data::Dict; state::String="final")
         #CI[i] = sort(find_zeros(ll, lb[i], ub[i]; naive=true, no_pts=3))
 
         CI[i] = []
+        
         for j = 1:length(idxs)
             newroot = find_zero(ll, (xs[idxs[j]], xs[idxs[j]+1]), Bisection())
             push!(CI[i], newroot)
@@ -283,8 +283,8 @@ function compute_CIs!(pz::Dict, pd::Dict, data::Dict; state::String="final")
 
     end
 
-    pz["CI_plus"], pd["CI_plus"] = split_latent_and_observation(map(ci-> ci[2], CI))
-    pz["CI_minus"], pd["CI_minus"] = split_latent_and_observation(map(ci-> ci[1], CI))
+    pz["CI_plus_LRtest"], pd["CI_plus_LRtest"] = split_latent_and_observation(map(ci-> ci[2], CI))
+    pz["CI_minus_LRtest"], pd["CI_minus_LRtest"] = split_latent_and_observation(map(ci-> ci[1], CI))
 
     return pz, pd, CI
 

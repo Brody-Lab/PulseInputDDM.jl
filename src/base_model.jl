@@ -26,8 +26,8 @@ end
     P0(σ2_i, n dx, xc, dt; L_lapse=0., R_lapse=0.)
 
 """
-function P0(σ2_i::TT, n::Int, dx::UU, xc::Vector{TT}, dt::Float64;
-        L_lapse::TT=0., R_lapse::TT=0.) where {TT,UU <: Any}
+function P0(σ2_i::TT, n::Int, dx::Float64, xc::Vector{TT}, dt::Float64;
+        L_lapse::TT=0., R_lapse::TT=0.) where {TT <: Any}
 
     P = zeros(TT,n)
     # make initial delta function
@@ -46,7 +46,7 @@ end
 function latent_one_step!(P::Vector{TT}, F::Array{TT,2}, λ::TT, σ2_a::TT, σ2_s::TT,
         t::Int, nL::Vector{Int}, nR::Vector{Int},
         La::Vector{TT}, Ra::Vector{TT}, M::Array{TT,2},
-        dx::UU, xc::Vector{TT}, n::Int, dt::Float64; backwards::Bool=false) where {TT,UU <: Any}
+        dx::Float64, xc::Vector{TT}, n::Int, dt::Float64; backwards::Bool=false) where {TT <: Any}
 
     any(t .== nL) ? sL = sum(La[t .== nL]) : sL = zero(TT)
     any(t .== nR) ? sR = sum(Ra[t .== nR]) : sR = zero(TT)
@@ -133,8 +133,8 @@ julia> size(M)
 (81, 81)
 ```
 """
-function transition_M(σ2::TT, λ::TT, μ::TT, dx::UU,
-        xc::Vector{TT}, n::Int, dt::Float64) where {TT,UU <: Any}
+function transition_M(σ2::TT, λ::TT, μ::TT, dx::Float64,
+        xc::Vector{TT}, n::Int, dt::Float64) where {TT <: Any}
 
     M = zeros(TT,n,n)
     transition_M!(M,σ2,λ,μ,dx,xc,n,dt)
@@ -149,8 +149,8 @@ end
         xc::Vector{TT}, n::Int, dt::Float64) where {TT <: Any}
 
 """
-function transition_M!(F::Array{TT,2}, σ2::TT, λ::TT, μ::TT, dx::UU,
-        xc::Vector{TT}, n::Int, dt::Float64) where {TT,UU <: Any}
+function transition_M!(F::Array{TT,2}, σ2::TT, λ::TT, μ::TT, dx::Float64,
+        xc::Vector{TT}, n::Int, dt::Float64) where {TT <: Any}
 
     F[1,1] = one(TT); F[n,n] = one(TT); F[:,2:n-1] = zeros(TT,n,n-2)
 

@@ -1,4 +1,9 @@
 """
+    Not being used currently. If I reincorporate, need to deal with dx type
+"""
+
+
+"""
     optimize_model_n(pz, pd, data; n=53, x_tol=1e-10, f_tol=1e-6, g_tol=1e-3,
         iterations=Int(2e3), show_trace=true, outer_iterations=Int(1e1))
 
