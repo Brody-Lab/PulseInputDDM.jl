@@ -5,13 +5,7 @@ Computes the mass in the absorbing bin at the end of the trial consistent with t
 
 ### Examples
 ```jldoctest
-julia> pz, pd = default_parameters(generative=true);
-
-julia> ntrials, use_bin_center, rng = 10, false, 1;
-
-julia> data = pulse_input_DDM.sample_clicks_and_choices(pz["generative"], pd["generative"], ntrials; rng=rng);
-
-julia> data = pulse_input_DDM.bin_clicks!(data,use_bin_center);
+julia> pz, pd, data = default_parameters_and_data(generative=true, ntrials=10, rng=1);
 
 julia> bounded_mass_all_trials(pz["generative"], pd["generative"], data)
 10-element Array{Float64,1}:
@@ -53,13 +47,7 @@ Computes the log likelihood for a set of trials consistent with the animal's cho
 ### Examples
 
 ```jldoctest
-julia> pz, pd = default_parameters(generative=true);
-
-julia> ntrials, rng = 10, 1;
-
-julia> data = pulse_input_DDM.sample_inputs_and_choices(pz["generative"], pd["generative"], ntrials; rng=rng);
-
-julia> data = pulse_input_DDM.bin_clicks!(data);
+julia> pz, pd, data = default_parameters_and_data(generative=true, ntrials=10, rng=1);
 
 julia> LL_all_trials(pz["generative"], pd["generative"], data)
 10-element Array{Float64,1}:

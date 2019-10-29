@@ -138,6 +138,8 @@ function compute_CIs_n!(pz::Dict, pd::Dict, data::Dict; state::String="final")
     CI = Vector{Vector{Float64}}(undef,length(fit_vec))
 
     for i = 1:length(fit_vec)
+        
+        println(i)
 
         fit_vec2 = falses(length(fit_vec))
         fit_vec2[i] = true
@@ -156,12 +158,12 @@ function compute_CIs_n!(pz::Dict, pd::Dict, data::Dict; state::String="final")
 
         CI[i] = []
         for j = 1:length(idxs)
-            newroot = find_zero(ll, (xs[idxs[j]], xs[idxs[j]+1]), Bisection())
+            @time newroot = find_zero(ll, (xs[idxs[j]], xs[idxs[j]+1]), Bisection())
             push!(CI[i], newroot)
         end
 
         if length(CI[i]) > 2
-            warn("More than three roots found. Uh oh.")
+            @warn "More than three roots found. Uh oh."
         end
 
         if length(CI[i]) == 0
@@ -181,6 +183,6 @@ function compute_CIs_n!(pz::Dict, pd::Dict, data::Dict; state::String="final")
     pz["CI_plus"], pd["CI_plus"] = split_latent_and_observation(map(ci-> ci[2], CI))
     pz["CI_minus"], pd["CI_minus"] = split_latent_and_observation(map(ci-> ci[1], CI))
 
-    return pz, pd
+    return pz, pd, CI
 
 end
