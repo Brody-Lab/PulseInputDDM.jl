@@ -1,7 +1,7 @@
 """
     check_pz(pz)
 
-    Checks the values of pz, looking for very specific parameters where singularities occur in the model.
+Checks the values of pz, looking for very specific parameters where singularities occur in the model.
 """
 function check_pz(pz)
 
@@ -21,11 +21,17 @@ end
 
 
 """
+    split_variable_and_const(p, fit_vec)
+
+Split one vector into two, the first being a optimization variables, the second constants, based on the Boolean vector fit_vec
 """
 split_variable_and_const(p::Vector{TT}, fit_vec::Union{BitArray{1},Vector{Bool}}) where TT = p[fit_vec], p[.!fit_vec]
 
 
 """
+    combine_variable_and_const(p_opt, p_const)
+
+Combine two vector into one. The first vector is variables for optimization, the second are constants.
 """
 function combine_variable_and_const(p_opt::Vector{TT}, p_const::Vector{Float64}, 
             fit_vec::Union{BitArray{1},Vector{Bool}}) where TT
@@ -41,7 +47,7 @@ end
 
 """
     opt_func_fminbox(x, ll, lb, ub;
-        g_tol=1e-12, x_tol=1e-16, f_tol=1e-16,
+        g_tol=1e-3, x_tol=1e-10, f_tol=1e-6,
         iterations=Int(5e3), outer_iterations=Int(1e1)
         show_trace=true, extended_trace=false)
 

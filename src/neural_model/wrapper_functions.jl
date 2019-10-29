@@ -36,6 +36,8 @@ function optimize_model(pz::Dict{}, py::Dict{}, data::Vector{Dict{Any,Any}}, f_s
 
 end
 
+"""
+"""
 function ll_wrapper(p_opt::Vector{TT}, data::Vector{Dict{Any,Any}}, parameter_map_f::Function, f_str::String,
         n::Int) where {TT <: Any}
 
@@ -45,9 +47,6 @@ function ll_wrapper(p_opt::Vector{TT}, data::Vector{Dict{Any,Any}}, parameter_ma
     return -LL
 
 end
-
-
-
 
 
 """
@@ -61,11 +60,6 @@ function compute_LL(pz::Vector{T}, py::Vector{Vector{Vector{T}}}, data::Vector{D
     LL = sum(map((py,data)-> sum(LL_all_trials(pz, py, data, n, f_str)), py, data))
 
 end
-
-
-
-
-
 
 
 """
@@ -111,7 +105,6 @@ function compute_H_CI!(pz::Dict{}, py::Dict{}, data::Vector{Dict{Any,Any}}, f_st
     return pz, py, H
 
 end
-
 
 
 """

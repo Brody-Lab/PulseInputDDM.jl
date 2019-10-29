@@ -12,6 +12,7 @@ using DSP, Discretizers
 import StatsFuns: logistic, logit, softplus, xlogy
 using ImageFiltering
 using ForwardDiff: value
+using Roots
 
 include("base_model.jl")
 include("analysis_functions.jl")
@@ -21,6 +22,8 @@ include("choice_model/compute_LL.jl")
 include("choice_model/wrappers.jl")
 include("choice_model/sample_model.jl")
 include("choice_model/process_data.jl")
+include("choice_model/fixed_num_bins.jl")
+
 include("neural_model/poisson_neural_observation.jl")
 include("neural_model/wrapper_functions.jl")
 include("neural_model/mapping_functions.jl")
@@ -35,6 +38,7 @@ export compute_CIs!, optimize_model, compute_LL, compute_Hessian, compute_gradie
 export default_parameters, LL_all_trials
 export bin_clicks!, load_choice_data, bounded_mass_all_trials
 export reload_optimization_parameters, save_optimization_parameters
+export default_parameters_and_data
 
 #=
 
