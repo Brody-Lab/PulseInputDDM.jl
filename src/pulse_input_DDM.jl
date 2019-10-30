@@ -23,11 +23,10 @@ include("choice_model/wrappers.jl")
 include("choice_model/sample_model.jl")
 include("choice_model/process_data.jl")
 
-include("neural_model/poisson_neural_observation.jl")
-include("neural_model/wrapper_functions.jl")
-include("neural_model/mapping_functions.jl")
+include("neural_model/compute_LL.jl")
+include("neural_model/wrappers.jl")
 include("neural_model/sample_model_functions.jl")
-include("neural_model/manipulate_data_functions.jl")
+include("neural_model/process_data.jl")
 include("neural_model/load_and_optimize.jl")
 include("neural_model/deterministic_model.jl")
 include("neural_model/sample_model_functions_FP.jl")
@@ -38,6 +37,7 @@ export default_parameters, LL_all_trials
 export bin_clicks!, load_choice_data, bounded_mass_all_trials
 export reload_optimization_parameters, save_optimization_parameters
 export default_parameters_and_data
+export LL_across_range
 
 #=
 

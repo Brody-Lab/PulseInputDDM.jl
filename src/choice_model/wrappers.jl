@@ -246,8 +246,7 @@ function compute_CIs!(pz::Dict, pd::Dict, data::Dict; dx::Float64=0.25, state::S
         fit_vec2 = falses(length(fit_vec))
         fit_vec2[i] = true
             
-        p_opt, p_const = split_variable_and_const(combine_latent_and_observation(pz[state], 
-                pd[state]), fit_vec2)
+        p_opt, p_const = split_variable_and_const(combine_latent_and_observation(pz[state], pd[state]), fit_vec2)
 
         parameter_map_f(x) = split_latent_and_observation(combine_variable_and_const(x, p_const, fit_vec2))
         ll(x) = -ll_wrapper([x], data, parameter_map_f) - (ll_θ - 1.92)
@@ -287,6 +286,44 @@ function compute_CIs!(pz::Dict, pd::Dict, data::Dict; dx::Float64=0.25, state::S
     pz["CI_minus_LRtest"], pd["CI_minus_LRtest"] = split_latent_and_observation(map(ci-> ci[1], CI))
 
     return pz, pd, CI
+
+end
+
+
+"""
+    LL_across_range(pz, pd, data)
+
+"""
+function LL_across_range(pz::Dict, pd::Dict, data::Dict, lb, ub; dx::Float64=0.25, state::String="final")
+    
+    fit_vec = combine_latent_and_observation(pz["fit"], pd["fit"])
+    
+    lb_vec = combine_latent_and_observation(lb[1], lb[2])
+    ub_vec = combine_latent_and_observation(ub[1], ub[2])
+    
+    LLs = Vector{Vector{Float64}}(undef,length(fit_vec))
+    xs = Vector{Vector{Float64}}(undef,length(fit_vec))
+    
+    ll_θ = compute_LL(pz[state], pd[state], data; dx=dx) 
+
+    for i = 1:length(fit_vec)
+        
+        println(i)
+
+        fit_vec2 = falses(length(fit_vec))
+        fit_vec2[i] = true
+            
+        p_opt, p_const = split_variable_and_const(combine_latent_and_observation(pz[state], pd[state]), fit_vec2)
+
+        parameter_map_f(x) = split_latent_and_observation(combine_variable_and_const(x, p_const, fit_vec2))
+        ll(x) = -ll_wrapper([x], data, parameter_map_f) - (ll_θ - 1.92)
+        
+        xs[i] = range(lb_vec[i], stop=ub_vec[i], length=50)
+        LLs[i] = map(x->ll(x), xs[i])
+
+    end
+
+    return LLs, xs
 
 end
 

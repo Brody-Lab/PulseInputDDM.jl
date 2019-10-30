@@ -85,10 +85,17 @@ function save_optimization_parameters(path, file, pz, pd; H=[])
         "ub"=> vcat(pz["ub"], pd["ub"]),
         "fit"=> vcat(pz["fit"], pd["fit"]))
 
-    if haskey(pz,"CI_plus")
+    if haskey(pz,"CI_plus_LRtest")
         
-        dict["CI_plus"] = vcat(pz["CI_plus"], pd["CI_plus"])
-        dict["CI_minus"] = vcat(pz["CI_minus"], pd["CI_minus"])
+        dict["CI_plus_LRtest"] = vcat(pz["CI_plus_LRtest"], pd["CI_plus_LRtest"])
+        dict["CI_minus_LRtest"] = vcat(pz["CI_minus_LRtest"], pd["CI_minus_LRtest"])
+
+    end
+    
+    if haskey(pz,"CI_plus_hessian")
+        
+        dict["CI_plus_hessian"] = vcat(pz["CI_plus_hessian"], pd["CI_plus_hessian"])
+        dict["CI_minus_hessian"] = vcat(pz["CI_minus_hessian"], pd["CI_minus_hessian"])
 
     end
     

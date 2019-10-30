@@ -1,49 +1,34 @@
-function LL_all_trials(pz::Vector{TT}, py::Vector{Vector{UU}}, 
-        dt, use_bin_center, leftbups,
-        rightbups, nT, binned_leftbups, 
-        binned_rightbups, spike_counts, 
-        λ0,n::Int, f_str::String) where {TT,UU <: Any}
-     
-    P,M,xc,dx, = initialize_latent_model(pz,n,dt)
-                            
-    output = pmap((L,R,T,nL,nR,SC,λ0) -> LL_single_trial(pz, P, M, dx, xc,
-        L, R, T, nL, nR, py, SC, dt, n, λ0, f_str, use_bin_center),
-        leftbups, rightbups, nT, 
-        binned_leftbups, 
-        binned_rightbups, spike_counts, 
-        λ0)   
-    
-end
-
-
-function LL_all_trials(pz::Vector{TT}, py::Vector{Vector{UU}}, data::Dict, 
-        n::Int, f_str::String) where {TT,UU <: Any}
+"""
+"""
+function LL_all_trials(pz::Vector{TT}, py::Vector{Vector{TT}}, data::Dict, f_str::String; dx::Float64=0.25) where {TT <: Any}
      
     dt = data["dt"]
-    use_bin_center = data["use_bin_center"] #this should always be false for this model
-    P,M,xc,dx, = initialize_latent_model(pz,n,dt)
+    use_bin_center = data["use_bin_center"]
+    L, R, nT, nL, nR, SC, λ0 = [data[key] for key in ["left","right","nT","binned_left","binned_right","spike_counts", "λ0"]]
+    σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ = pz
     
-    #trials = sample(1:data["ntrials"], min(100,data["ntrials"]), replace = false)
-    trials = sample(1:data["ntrials"], data["ntrials"], replace = false)
-                            
-    output = pmap((L,R,T,nL,nR,SC,λ0) -> LL_single_trial(pz, P, M, dx, xc,
-        L, R, T, nL, nR, py, SC, dt, n, λ0, f_str, use_bin_center),
-        data["leftbups"][trials], data["rightbups"][trials], data["nT"][trials], 
-        data["binned_leftbups"][trials], 
-        data["binned_rightbups"][trials], data["spike_counts"][trials], 
-        data["λ0"][trials], batch_size=1)   
+    P,M,xc,n = initialize_latent_model(σ2_i, B, λ, σ2_a, dx, dt)
+                                
+    pmap((L,R,nT,nL,nR,SC,λ0) -> LL_single_trial(λ, σ2_a, σ2_s, ϕ, τ_ϕ, 
+            P, M, xc, L, R, nT, nL, nR, py, SC, dt, n, λ0, f_str; 
+            dx=dx, use_bin_center=use_bin_center),
+        L, R, nT, nL, nR, SC, λ0, batch_size=1)   
     
 end
 
-function LL_single_trial(pz::Vector{ZZ}, P::Vector{TT}, M::Array{TT,2}, dx::VV,
-        xc::Vector{WW},L::Vector{Float64}, R::Vector{Float64}, T::Int,
+
+"""
+"""
+function LL_single_trial(λ::TT, σ2_a::TT, σ2_s::TT, ϕ::TT, τ_ϕ::TT,, 
+        P::Vector{TT}, M::Array{TT,2},
+        xc::Vector{TT}, L::Vector{Float64}, R::Vector{Float64}, nT::Int,
         nL::Vector{Int}, nR::Vector{Int},
-        py::Vector{Vector{YY}}, k::Vector{Vector{Int}},dt::Float64,n::Int,
-        λ0::Vector{Vector{UU}},
-        f_str::String, use_bin_center::Bool) where {UU,TT,VV,WW,YY,ZZ <: Any}
+        py::Vector{Vector{TT}}, k::Vector{Vector{Int}}, dt::Float64, n::Int,
+        λ0::Vector{Vector{TT}},
+        f_str::String; use_bin_center::Bool=true, dx::Float64=0.25) where {TT <: Any}
 
     #adapt magnitude of the click inputs
-    La, Ra = make_adapted_clicks(pz,L,R)
+    La, Ra = make_adapted_clicks(ϕ,τ_ϕ,L,R)
 
     c = Vector{TT}(undef,T)
     F = zeros(TT,n,n) #empty transition matrix for time bins with clicks
@@ -51,9 +36,9 @@ function LL_single_trial(pz::Vector{ZZ}, P::Vector{TT}, M::Array{TT,2}, dx::VV,
     @inbounds for t = 1:T
 
         if use_bin_center && t == 1
-            P, = latent_one_step!(P,F,pz,t,nL,nR,La,Ra,M,dx,xc,n,dt/2)
+            P,F = latent_one_step!(P,F,λ,σ2_a,σ2_s,t,nL,nR,La,Ra,M,dx,xc,n,dt/2)
         else
-            P, = latent_one_step!(P,F,pz,t,nL,nR,La,Ra,M,dx,xc,n,dt)
+            P,F = latent_one_step!(P,F,λ,σ2_a,σ2_s,t,nL,nR,La,Ra,M,dx,xc,n,dt)
         end
         
         P .*= vcat(map(xc-> exp(sum(map((k,py,λ0)-> logpdf(Poisson(f_py(xc,λ0[t],py,f_str) * dt), 
