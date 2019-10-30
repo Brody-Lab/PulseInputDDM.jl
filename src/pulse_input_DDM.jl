@@ -18,18 +18,19 @@ include("base_model.jl")
 include("analysis_functions.jl")
 include("optim_funcs.jl")
 include("sample_model.jl")
+
 include("choice_model/compute_LL.jl")
 include("choice_model/wrappers.jl")
 include("choice_model/sample_model.jl")
 include("choice_model/process_data.jl")
 
-include("neural_model/compute_LL.jl")
-include("neural_model/wrappers.jl")
-include("neural_model/sample_model_functions.jl")
-include("neural_model/process_data.jl")
-include("neural_model/load_and_optimize.jl")
-include("neural_model/deterministic_model.jl")
-include("neural_model/sample_model_functions_FP.jl")
+#include("neural_model/compute_LL.jl")
+#include("neural_model/wrappers.jl")
+#include("neural_model/sample_model_functions.jl")
+#include("neural_model/process_data.jl")
+#include("neural_model/load_and_optimize.jl")
+#include("neural_model/deterministic_model.jl")
+#include("neural_model/sample_model_functions_FP.jl")
 
 export dimz
 export compute_CIs!, optimize_model, compute_LL, compute_Hessian, compute_gradient
