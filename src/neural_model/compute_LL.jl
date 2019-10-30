@@ -1,10 +1,15 @@
 """
+    LL_all_trials(pz, py, data, f_str; dx=0.25)
+
+Computes the log likelihood for a set of trials consistent with the observed neural activity on each trial.
 """
-function LL_all_trials(pz::Vector{TT}, py::Vector{Vector{TT}}, data::Dict, f_str::String; dx::Float64=0.25) where {TT <: Any}
+function LL_all_trials(pz::Vector{TT}, py::Vector{Vector{TT}}, data::Dict, f_str::String, dx::Float64) where {TT <: Any}
      
     dt = data["dt"]
     use_bin_center = data["use_bin_center"]
-    L, R, nT, nL, nR, SC, λ0 = [data[key] for key in ["left","right","nT","binned_left","binned_right","spike_counts", "λ0"]]
+    #L, R, nT, nL, nR, SC, λ0 = [data[key] for key in ["left","right","nT","binned_left","binned_right","spike_counts", "λ0"]]
+    L, R, nT, nL, nR, SC, λ0 = [data[key] for key in ["leftbups","rightbups","nT","binned_leftbups",
+                "binned_rightbups","spike_counts", "λ0"]]
     σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ = pz
     
     P,M,xc,n = initialize_latent_model(σ2_i, B, λ, σ2_a, dx, dt)
@@ -19,21 +24,21 @@ end
 
 """
 """
-function LL_single_trial(λ::TT, σ2_a::TT, σ2_s::TT, ϕ::TT, τ_ϕ::TT,, 
+function LL_single_trial(λ::TT, σ2_a::TT, σ2_s::TT, ϕ::TT, τ_ϕ::TT, 
         P::Vector{TT}, M::Array{TT,2},
         xc::Vector{TT}, L::Vector{Float64}, R::Vector{Float64}, nT::Int,
         nL::Vector{Int}, nR::Vector{Int},
         py::Vector{Vector{TT}}, k::Vector{Vector{Int}}, dt::Float64, n::Int,
-        λ0::Vector{Vector{TT}},
-        f_str::String; use_bin_center::Bool=true, dx::Float64=0.25) where {TT <: Any}
+        λ0::Vector{Vector{UU}},
+        f_str::String; use_bin_center::Bool=true, dx::Float64=0.25) where {TT,UU <: Any}
 
     #adapt magnitude of the click inputs
     La, Ra = make_adapted_clicks(ϕ,τ_ϕ,L,R)
 
-    c = Vector{TT}(undef,T)
+    c = Vector{TT}(undef,nT)
     F = zeros(TT,n,n) #empty transition matrix for time bins with clicks
 
-    @inbounds for t = 1:T
+    @inbounds for t = 1:nT
 
         if use_bin_center && t == 1
             P,F = latent_one_step!(P,F,λ,σ2_a,σ2_s,t,nL,nR,La,Ra,M,dx,xc,n,dt/2)
@@ -53,6 +58,9 @@ function LL_single_trial(λ::TT, σ2_a::TT, σ2_s::TT, ϕ::TT, τ_ϕ::TT,,
 
 end
 
+
+"""
+"""
 function f_py(x::U, c::Float64, p::Vector{T}, f_str::String) where {T,U <: Any}
 
     if f_str == "sig"
@@ -74,6 +82,9 @@ function f_py(x::U, c::Float64, p::Vector{T}, f_str::String) where {T,U <: Any}
     
 end
 
+
+"""
+"""
 function f_py!(x::U, c::Float64, p::Vector{T}, f_str::String) where {T,U <: Any}
 
     if f_str == "sig"
@@ -95,6 +106,9 @@ function f_py!(x::U, c::Float64, p::Vector{T}, f_str::String) where {T,U <: Any}
     
 end
 
+
+"""
+"""
 function logistic!(x::T) where {T <: Any}
         
     if x >= 0.         
@@ -109,6 +123,9 @@ function logistic!(x::T) where {T <: Any}
     
 end
 
+
+"""
+"""
 neural_null(k,λ,dt) = sum(logpdf.(Poisson.(λ*dt),k))
 
 #=

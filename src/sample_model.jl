@@ -8,8 +8,8 @@ function sample_clicks(ntrials::Int; rng::Int=1)
 
     output = map(generate_stimulus,1:ntrials)
 
-    data["left"] = map(i->output[i][3],1:ntrials)
-    data["right"] = map(i->output[i][2],1:ntrials)
+    data["leftbups"] = map(i->output[i][3],1:ntrials)
+    data["rightbups"] = map(i->output[i][2],1:ntrials)
     data["T"] = map(i->output[i][1],1:ntrials)
     data["ntrials"] = ntrials
     

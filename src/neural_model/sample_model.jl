@@ -1,6 +1,5 @@
-
-#################################### Poisson neural observation model #########################
-
+"""
+"""
 function boot_LL(pz,py,data,f_str,i,n)
     dcopy = deepcopy(data)
     dcopy["spike_counts"] = sample_spikes_multiple_sessions(pz, py, [dcopy], f_str; rng=i)[1]    
@@ -22,45 +21,45 @@ function boot_LL(pz,py,data,f_str,i,n)
     
 end
 
-function sample_input_and_spikes_multiple_sessions(pz::Vector{Float64}, py::Vector{Vector{Vector{Float64}}}, 
-        ntrials_per_sess::Vector{Int}; f_str::String="softplus", rng::Int=0, use_bin_center::Bool=false)
-    
-    nsessions = length(ntrials_per_sess)
+
+"""
+"""
+function sample_clicks_and_spikes(pz::Vector{Float64}, py::Vector{Vector{Vector{Float64}}}, 
+        f_str::String, num_sessions::Int, num_trials_per_session::Vector{Int}; use_bin_center::Bool=false,
+        dtMC::Float64=1e-4, rng::Int=0)
+        
+    data = map((ntrials,rng)-> sample_clicks(ntrials; rng=rng), num_trials_per_session, (1:num_sessions) .+ rng) 
       
-    data = map((py,ntrials,rng)-> sample_inputs_single_session(py, ntrials; rng=rng,
-            use_bin_center=use_bin_center), py, ntrials_per_sess, (1:nsessions) .+ rng) 
+    map((data,py) -> data=sample_λ0!(data, py; dtMC=dtMC), data, py)
     
-    #data["spike_times"] = sample_spikes_single_session(data, pz, py; dt=dt, rng=rng, f_str=f_str)
-    Y = sample_spikes_multiple_sessions(pz, py, data, f_str; rng=rng)      
+    Y = sample_spikes_multiple_sessions(pz, py, data, f_str, use_bin_center, dtMC; rng=rng)      
     map((data,Y)-> data["spike_counts"] = Y, data, Y) 
         
     return data
     
 end
 
-#this function is not really clearly written/only used for very specifc reasons. consider rewriting
-function sample_inputs_single_session(py::Vector{Vector{Float64}}, ntrials::Int; 
-        dt::Float64=1e-4, rng::Int=1, use_bin_center::Bool=false)
+function sample_λ0!(data, py::Vector{Vector{Float64}}; dtMC::Float64=1e-4, rng::Int=1)
     
-    data = sample_clicks(ntrials; rng=rng)
-    data["dtMC"],data["synthetic"],data["N"] = dt, true, length(py)
-        
-    data = bin_clicks!(data,use_bin_center;dt=dt)
-    
-    Random.seed!(rng)   
+    data["dt_synthetic"], data["synthetic"], data["N"] = dtMC, true, length(py)
+            
+    #Random.seed!(rng)   
     #data["λ0"] = [repeat([collect(range(10. *rand(),stop=10. * rand(), 
     #                    length=Int(ceil(T./dt))))], outer=length(py)) for T in data["T"]]
-    data["λ0"] = [repeat([zeros(Int(ceil(T./dt)))], outer=length(py)) for T in data["T"]]
+    data["λ0"] = [repeat([zeros(Int(ceil(T./dtMC)))], outer=length(py)) for T in data["T"]]
             
     return data
     
 end
 
+
+"""
+"""
 function sample_spikes_multiple_sessions(pz::Vector{Float64}, py::Vector{Vector{Vector{Float64}}}, 
-        data, f_str::String; rng::Int=1)
+        data, f_str::String, use_bin_center::Bool, dt::Float64; rng::Int=1)
     
-    λ, = sample_expected_rates_multiple_sessions(pz, py, data, f_str; rng=rng) 
-    Y = map((λ,data)-> map(λ-> map(λ-> poisson_noise!.(λ, data["dt"]), λ), λ), λ,data)         
+    λ, = sample_expected_rates_multiple_sessions(pz, py, data, f_str, use_bin_center, dt; rng=rng) 
+    Y = map((λ,data)-> map(λ-> map(λ-> poisson_noise!.(λ, dt), λ), λ), λ, data)         
     #Y = map((py,λ0)-> poisson_noise!.(map((a, λ0)-> f_py!(a, λ0, py, f_str), a, λ0), dt), py, λ0)  
             
     #this assumes only one spike per bin, which should most often be true at 1e-4, but not guaranteed!
@@ -73,11 +72,11 @@ function sample_spikes_multiple_sessions(pz::Vector{Float64}, py::Vector{Vector{
 end
 
 function sample_expected_rates_multiple_sessions(pz::Vector{Float64}, py::Vector{Vector{Vector{Float64}}}, 
-        data, f_str::String; rng::Int=1)
+        data, f_str::String, use_bin_center::Bool, dt::Float64; rng::Int=1)
     
     nsessions = length(data)
       
-    output = map((data, py)-> sample_expected_rates_single_session(data, pz, py, f_str; rng=rng), 
+    output = map((data, py)-> sample_expected_rates_single_session(data, pz, py, f_str, use_bin_center, dt; rng=rng), 
         data, py)   
     
     λ = map(x-> x[1], output)
@@ -88,15 +87,15 @@ function sample_expected_rates_multiple_sessions(pz::Vector{Float64}, py::Vector
 end
 
 function sample_expected_rates_single_session(data::Dict, pz::Vector{Float64}, py::Vector{Vector{Float64}}, 
-        f_str::String; rng::Int=1)
+        f_str::String, use_bin_center::Bool, dt::Float64; rng::Int=1)
     
     Random.seed!(rng)   
-    use_bin_center = data["use_bin_center"]
-    dt = data["dt"]
-    output = pmap((λ0,nT,L,R,nL,nR,rng) -> sample_expected_rates_single_trial(pz,py,λ0,nT,L,R,nL,nR,dt,
-        f_str,use_bin_center; rng=rng), 
-        data["λ0"], data["nT"], data["leftbups"], data["rightbups"], data["binned_leftbups"], 
-        data["binned_rightbups"], shuffle(1:length(data["T"])))    
+    
+    T, L, R, λ0 = data["T"], data["leftbups"], data["rightbups"], data["λ0"]
+    nT, nL, nR = bin_clicks(T,L,R;dt=dt, use_bin_center=use_bin_center)
+    
+    output = pmap((λ0,nT,L,R,nL,nR,rng) -> sample_expected_rates_single_trial(pz,py,λ0,nT,L,R,nL,nR,
+        f_str,use_bin_center,dt; rng=rng), λ0, nT, L, R, nL, nR, shuffle(1:length(T)))    
     
     λ = map(x-> x[1], output)
     a = map(x-> x[2], output)  
@@ -106,8 +105,8 @@ function sample_expected_rates_single_session(data::Dict, pz::Vector{Float64}, p
 end
 
 function sample_expected_rates_single_trial(pz::Vector{Float64}, py::Vector{Vector{Float64}}, λ0::Vector{Vector{Float64}}, 
-        nT::Int, L::Vector{Float64}, R::Vector{Float64}, nL::Vector{Int}, nR::Vector{Int}, dt::Float64,
-        f_str::String,use_bin_center::Bool; rng::Int=1)
+        nT::Int, L::Vector{Float64}, R::Vector{Float64}, nL::Vector{Int}, nR::Vector{Int},
+        f_str::String, use_bin_center::Bool, dt::Float64; rng::Int=1)
     
     Random.seed!(rng)  
     a = sample_latent(nT,L,R,nL,nR,pz,use_bin_center;dt=dt)
@@ -119,8 +118,9 @@ end
 
 poisson_noise!(lambda,dt) = Int(rand(Poisson(lambda*dt)))
 
-#################################### Average expected rates across latent noise #########################
 
+"""
+"""
 function sample_per_trial_expected_rates_multiple_sessions(pz, py, data, f_str::String)
     
     output = map(i-> sample_expected_rates_multiple_sessions(pz, py, data, f_str; rng=i), 1:100)
@@ -130,6 +130,9 @@ function sample_per_trial_expected_rates_multiple_sessions(pz, py, data, f_str::
     
 end
 
+
+"""
+"""
 function sample_average_expected_rates_multiple_sessions(pz, py, data, f_str::String)
     
     output = map(i-> sample_expected_rates_multiple_sessions(pz, py, data, f_str; rng=i), 1:100)
@@ -149,6 +152,9 @@ function sample_average_expected_rates_multiple_sessions(pz, py, data, f_str::St
     
 end
 
+
+"""
+"""
 function condition_mean_varying_duration_trials(μ_rate, conds, nconds, N, nT)
     
     map(n-> map(c-> [mean([μ_rate[conds .== c][k][n][t] 

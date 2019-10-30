@@ -6,7 +6,7 @@ const dimz = 7
 
 """
 function initialize_latent_model(σ2_i::TT, B::TT, λ::TT, σ2_a::TT,
-     dx::Float64, dt::Float64; L_lapse::TT=0., R_lapse::TT=0.) where {TT <: Any}
+     dx::Float64, dt::Float64; L_lapse::UU=0., R_lapse::UU=0.) where {TT,UU <: Any}
 
     #bin centers and number of bins
     xc,n = bins(B,dx)
@@ -27,7 +27,7 @@ end
 
 """
 function P0(σ2_i::TT, n::Int, dx::Float64, xc::Vector{TT}, dt::Float64;
-        L_lapse::TT=0., R_lapse::TT=0.) where {TT <: Any}
+        L_lapse::UU=0., R_lapse::UU=0.) where {TT,UU <: Any}
 
     P = zeros(TT,n)
     # make initial delta function

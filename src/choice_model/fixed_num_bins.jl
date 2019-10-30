@@ -116,6 +116,8 @@ end
 """
 function bins(B::TT,n::Int) where {TT}
 
+    #at some point, if i ever wanted to check n model vs dx model
+    #make dx here a Float64, not a dual
     dx = 2. *B/(n-2);  #bin width
 
     xc = vcat(collect(range(-(B+dx/2.),stop=-dx,length=Int((n-1)/2.))),0.,

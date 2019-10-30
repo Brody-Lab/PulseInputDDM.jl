@@ -15,8 +15,8 @@ function load_choice_data(path::String, file::String;
     Rkey_bool = findall(map(key-> occursin("right", key), mykeys))
     corkey_bool = findall(map(key-> occursin("correct", key), mykeys))
     
-    data["left"] = map(x-> vec(collect(x)), data[mykeys[Lkey_bool][1]])
-    data["right"] = map(x-> vec(collect(x)), data[mykeys[Rkey_bool][1]])
+    data["leftbups"] = map(x-> vec(collect(x)), data[mykeys[Lkey_bool][1]])
+    data["rightbups"] = map(x-> vec(collect(x)), data[mykeys[Rkey_bool][1]])
 
     if !isempty(corkey_bool)
         data["correct"] = vec(convert(BitArray, data[mykeys[corkey_bool][1]]))
@@ -36,11 +36,11 @@ function bin_clicks!(data::Dict; use_bin_center::Bool=false, dt::Float64=1e-2)
     data["dt"] = dt
     data["use_bin_center"] = use_bin_center
     
-    data["nT"], data["binned_left"], data["binned_right"] = 
-        bin_clicks(data["T"], data["left"], data["right"], dt=dt, use_bin_center=use_bin_center)
+    data["nT"], data["binned_leftbups"], data["binned_rightbups"] = 
+        bin_clicks(data["T"], data["leftbups"], data["rightbups"], dt=dt, use_bin_center=use_bin_center)
     
-    data["ΔLRT"] = map((nT,L,R)-> diffLR(nT,L,R,data["dt"])[end], data["nT"], data["left"], data["right"])
-    data["ΔLR"] = map((nT,L,R)-> diffLR(nT,L,R,data["dt"]), data["nT"], data["left"], data["right"])
+    data["ΔLRT"] = map((nT,L,R)-> diffLR(nT,L,R,data["dt"])[end], data["nT"], data["leftbups"], data["rightbups"])
+    data["ΔLR"] = map((nT,L,R)-> diffLR(nT,L,R,data["dt"]), data["nT"], data["leftbups"], data["rightbups"])
     
     return data    
 
