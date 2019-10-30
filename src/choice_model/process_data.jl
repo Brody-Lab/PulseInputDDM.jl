@@ -100,7 +100,10 @@ function save_optimization_parameters(path, file, pz, pd; H=[])
     end
     
     if !isempty(H)
-        dict["H"] = H
+        #dict["H"] = H
+        hfile = matopen(path*"hessian_"*file, "w")
+        write(hfile, "H", H)
+        close(hfile)
     end
 
     matwrite(path*file, dict)
