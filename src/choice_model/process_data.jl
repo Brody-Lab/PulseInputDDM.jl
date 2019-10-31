@@ -5,27 +5,41 @@ function load_choice_data(path::String, file::String;
 
     println("loading data \n")
     data = read(matopen(path*file), "rawdata")
-
-    data["T"] = data["T"]
-    data["pokedR"] = vec(convert(BitArray, data["pokedR"]))
-    
-    mykeys = collect(keys(data))
-    
-    Lkey_bool = findall(map(key-> occursin("left", key), mykeys))
-    Rkey_bool = findall(map(key-> occursin("right", key), mykeys))
-    corkey_bool = findall(map(key-> occursin("correct", key), mykeys))
-    
-    data["leftbups"] = map(x-> vec(collect(x)), data[mykeys[Lkey_bool][1]])
-    data["rightbups"] = map(x-> vec(collect(x)), data[mykeys[Rkey_bool][1]])
-
-    if !isempty(corkey_bool)
-        data["correct"] = vec(convert(BitArray, data[mykeys[corkey_bool][1]]))
-    end
-
+        
+    data = process_click_input_data!(data)    
+    data = process_choice_data!(data)
     data = bin_clicks!(data; use_bin_center=use_bin_center, dt=dt)
     
     return data
 
+end
+
+
+"""
+"""
+function process_choice_data!(data)
+    
+    data["pokedR"] = vec(convert(BitArray, data["pokedR"]))
+     
+    if !isempty(occursin.("correct", collect(keys(data))))
+        data["correct"] = vec(convert(BitArray, data[occursin.("correct", collect(keys(data)))]))
+    end
+
+    return data
+
+end
+
+
+"""
+"""
+function process_click_input_data!(data)
+    
+    data["T"] = vec(data["T"])
+    data["leftbups"] = map(x-> vec(collect(x)), data[occursin.("left", collect(keys(data)))])
+    data["rightbups"] = map(x-> vec(collect(x)), data[occursin.("right", collect(keys(data)))])   
+    
+    return data
+    
 end
 
 

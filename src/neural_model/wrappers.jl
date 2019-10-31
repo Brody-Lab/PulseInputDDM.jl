@@ -7,7 +7,7 @@ function default_parameters(f_str::String, cells_per_session::Vector{Int},
         num_sessions::Int; generative::Bool=false)
     
     pz::Dict = Dict("name" => ["σ_i","B", "λ", "σ_a","σ_s","ϕ","τ_ϕ"],
-        "fit" => vcat(trues(7)),
+        "fit" => vcat(trues(4),falses(3)),
         "initial" => vcat(0.1, 11., -0.1, 20., 0.1, 0.8, 0.01),
         "lb" => [eps(), 8., -5., eps(), eps(), 0.01, 0.005],
         "ub" => [100., 100., 5., 100., 2.5, 1.2, 1.5])
@@ -39,13 +39,13 @@ function default_parameters(f_str::String, cells_per_session::Vector{Int},
 
     if generative
         
-        pz["generative"] = [0.2, 18., -0.5, 5., 1.0, 0.4, 0.02]
+        pz["generative"] = [0.5, 15., -0.5, 10., 1.2, 0.6, 0.02]
         pz["initial"][.!pz["fit"]] = pz["generative"][.!pz["fit"]]
         
         if f_str == "softplus"
-            py["generative"] = [[[1.,0.5, 0.] for n in 1:N] for N in cells_per_session]
+            py["generative"] = [[[10., 5.0*sign(randn()), 0.] for n in 1:N] for N in cells_per_session]
         elseif f_str == "sig"
-            py["generative"] = [[[10.,10., 1., 0.] for n in 1:N] for N in cells_per_session]
+            py["generative"] = [[[10., 10., 1., 0.] for n in 1:N] for N in cells_per_session]
         end
     end
 
@@ -387,4 +387,35 @@ function split_latent_and_observation(p::Vector{T}, N::Vector{Int}, dimy::Int) w
 
     return pz, py
     
+end
+
+
+"""
+    LL_across_range(pz, py, data)
+
+"""
+function LL_across_range(pz::Dict, py::Dict, data, f_str, lb, ub, i; dx::Float64=0.25, state::String="final")
+    
+    fit_vec = combine_latent_and_observation(pz["fit"], py["fit"])
+    
+    lb_vec = combine_latent_and_observation(lb[1], lb[2])
+    ub_vec = combine_latent_and_observation(ub[1], ub[2])
+        
+    ll_θ = compute_LL(pz[state], py[state], data, f_str, dx) 
+
+    fit_vec2 = falses(length(fit_vec))
+    fit_vec2[i] = true
+
+    p_opt, p_const = split_variable_and_const(combine_latent_and_observation(pz[state], py[state]), fit_vec2)
+
+    parameter_map_f(x) = split_latent_and_observation(combine_variable_and_const(x, p_const, fit_vec2), 
+        py["cells_per_session"], py["dimy"])    
+    
+    ll(x) = -ll_wrapper([x], data, parameter_map_f, f_str, dx) - (ll_θ - 1.92)
+
+    xs = range(lb_vec[i], stop=ub_vec[i], length=50)
+    LLs = map(x->ll(x), xs)
+
+    return LLs, xs
+
 end
