@@ -110,7 +110,7 @@ end
 
 """
     optimize_model(f_str; num_sessions, num_trials_per_session, cells_per_session; 
-        dx=0.25, x_tol=1e-10,
+        n=53, x_tol=1e-10,
         f_tol=1e-6, g_tol=1e-3,iterations=Int(2e3), show_trace=true,
         outer_iterations=Int(2e3), outer_iterations=Int(2e1),
         generative=true, rng=1, dt=1e-2, use_bin_center=true)
@@ -120,7 +120,7 @@ Generate parameters and data and thn Optimize model parameters. pz and py are di
 function optimize_model(f_str::String, num_sessions::Int, 
         num_trials_per_session::Vector{Int}, 
         cells_per_session::Vector{Int};
-        dx::Float64=0.25, x_tol::Float64=1e-10, f_tol::Float64=1e-6, g_tol::Float64=1e-3,
+        n::Int=53, x_tol::Float64=1e-10, f_tol::Float64=1e-6, g_tol::Float64=1e-3,
         iterations::Int=Int(2e3), show_trace::Bool=true,
         outer_iterations::Int=Int(2e1), generative::Bool=true, 
         rng::Int=1, dt::Float64=1e-2, use_bin_center::Bool=true)
@@ -131,7 +131,7 @@ function optimize_model(f_str::String, num_sessions::Int,
     py = initialize_py!(pz, py, data, f_str; show_trace=false)
     
     pz, py, converged, opt_output = optimize_model(pz, py, data, f_str;
-        dx=dx, x_tol=x_tol, f_tol=f_tol, g_tol=g_tol,
+        n=n, x_tol=x_tol, f_tol=f_tol, g_tol=g_tol,
         iterations=iterations, show_trace=show_trace, 
         outer_iterations=outer_iterations)
 
@@ -141,7 +141,7 @@ end
 
 
 """
-    optimize_model(data, f_str; dx=0.25, x_tol=1e-10,
+    optimize_model(data, f_str; n=53, x_tol=1e-10,
         f_tol=1e-6, g_tol=1e-3,iterations=Int(2e3), show_trace=true,
         outer_iterations=Int(2e3), outer_iterations=Int(2e1))
 
@@ -151,14 +151,14 @@ Optimize model parameters. pz and py are dictionaries that contains initial valu
 and specification of which parameters to fit.
 """
 function optimize_model(data::Vector{Dict{Any,Any}}, f_str::String;
-        dx::Float64=0.25, x_tol::Float64=1e-10, f_tol::Float64=1e-6, g_tol::Float64=1e-3,
+        n::Int=53, x_tol::Float64=1e-10, f_tol::Float64=1e-6, g_tol::Float64=1e-3,
         iterations::Int=Int(2e3), show_trace::Bool=true,
         outer_iterations::Int=Int(2e1))
         
     pz, py = default_parameters(data, f_str; show_trace=false, generative=false)
     
     pz, py, converged, opt_output = optimize_model(pz, py, data, f_str;
-        dx=dx, x_tol=x_tol, f_tol=f_tol, g_tol=g_tol,
+        n=n, x_tol=x_tol, f_tol=f_tol, g_tol=g_tol,
         iterations=iterations, show_trace=show_trace, 
         outer_iterations=outer_iterations)
 
@@ -168,7 +168,7 @@ end
 
 
 """
-    optimize_model(pz, py, data, f_str; dx=0.25, x_tol=1e-10,
+    optimize_model(pz, py, data, f_str; n=53, x_tol=1e-10,
         f_tol=1e-6, g_tol=1e-3,iterations=Int(2e3), show_trace=true,
         outer_iterations=Int(2e3), outer_iterations=Int(2e1))
 
@@ -176,7 +176,7 @@ Optimize model parameters. pz and py are dictionaries that contains initial valu
 and specification of which parameters to fit.
 """
 function optimize_model(pz::Dict{}, py::Dict{}, data::Vector{Dict{Any,Any}}, f_str::String;
-        dx::Float64=0.25, x_tol::Float64=1e-10, f_tol::Float64=1e-6, g_tol::Float64=1e-3,
+        n::Int=53, x_tol::Float64=1e-10, f_tol::Float64=1e-6, g_tol::Float64=1e-3,
         iterations::Int=Int(2e3), show_trace::Bool=true,
         outer_iterations::Int=Int(2e1)) where {TT <: Any}
 
@@ -191,7 +191,7 @@ function optimize_model(pz::Dict{}, py::Dict{}, data::Vector{Dict{Any,Any}}, f_s
     lb = combine_latent_and_observation(pz["lb"], py["lb"])[fit_vec]
     ub = combine_latent_and_observation(pz["ub"], py["ub"])[fit_vec]
     
-    p_opt, ll, parameter_map_f = split_opt_params_and_close(pz,py,data,f_str,dx; state="state")
+    p_opt, ll, parameter_map_f = split_opt_params_and_close(pz,py,data,f_str,n; state="state")
     
     p_opt[p_opt .< lb] .= lb[p_opt .< lb]
     p_opt[p_opt .> ub] .= ub[p_opt .> ub]
@@ -212,7 +212,7 @@ end
 
 
 """
-    ll_wrapper(p_opt, data, parameter_map_f, f_str, dx)
+    ll_wrapper(p_opt, data, parameter_map_f, f_str, n)
 
 A wrapper function that accepts a vector of mixed parameters, splits the vector
 into two vectors based on the parameter mapping function provided as an input,
@@ -220,29 +220,29 @@ and compute the negative log likelihood of the data given the parametes. Used
 in optimization.
 """
 function ll_wrapper(p_opt::Vector{TT}, data::Vector{Dict{Any,Any}}, parameter_map_f::Function, f_str::String,
-        dx::Float64) where {TT <: Any}
+        n::Int) where {TT <: Any}
 
     pz, py = parameter_map_f(p_opt)
-    -compute_LL(pz, py, data, f_str, dx)
+    -compute_LL(pz, py, data, f_str, n)
 
 end
 
 
 """
-    compute_LL(pz, py, data, f_str, dx; state=state)
+    compute_LL(pz, py, data, f_str, n; state=state)
 
 Computes the log likelihood of the neural activity given the model parameters contained within the Vectors pz and py.
 """
 function compute_LL(pz::Dict{}, py::Dict{}, data::Vector{Dict{Any,Any}},
-        f_str::String, dx::Float64; state::String="state") where {T <: Any}
+        f_str::String, n::Int; state::String="state") where {T <: Any}
 
-    compute_LL(pz[state], py[state], data, f_str, dx)
+    compute_LL(pz[state], py[state], data, f_str, n)
 
 end
 
 
 """
-    compute_LL(pz, py, data, f_str, dx)
+    compute_LL(pz, py, data, f_str, n)
 
 Computes the log likelihood of the neural activity given the model parameters contained within the Vectors pz and py.
 
@@ -258,9 +258,9 @@ julia> compute_LL(pz["generative"], py["generative"], data, f_str)
 ```
 """
 function compute_LL(pz::Vector{T}, py::Vector{Vector{Vector{T}}}, data::Vector{Dict{Any,Any}},
-        f_str::String, dx::Float64) where {T <: Any}
+        f_str::String, n::Int) where {T <: Any}
 
-    sum(map((py,data)-> sum(LL_all_trials(pz, py, data, f_str, dx)), py, data))
+    sum(map((py,data)-> sum(LL_all_trials(pz, py, data, f_str, n)), py, data))
 
 end
 
@@ -268,7 +268,7 @@ end
 """
 """
 function split_opt_params_and_close(pz::Dict{}, py::Dict{}, data::Vector{Dict{Any,Any}}, f_str::String, 
-        dx::Float64; state::String="state")
+        n::Int; state::String="state")
     
     fit_vec = combine_latent_and_observation(pz["fit"], py["fit"])
     
@@ -277,7 +277,7 @@ function split_opt_params_and_close(pz::Dict{}, py::Dict{}, data::Vector{Dict{An
     parameter_map_f(x) = split_latent_and_observation(combine_variable_and_const(x, p_const, fit_vec), 
         py["cells_per_session"], py["dimy"])
 
-    ll(x) = ll_wrapper(x, data, parameter_map_f, f_str, dx)
+    ll(x) = ll_wrapper(x, data, parameter_map_f, f_str, n)
     
     return p_opt, ll, parameter_map_f
 
@@ -285,11 +285,11 @@ end
 
 
 """
-    compute_CIs!(pz, py, data, f_str; dx=0.25)
+    compute_CIs!(pz, py, data, f_str; n=53)
 
 compute LL for your model. returns a scalar
 """
-function compute_CIs!(pz::Dict{}, py::Dict{}, H, f_str::String; dx::Float64=0.25)
+function compute_CIs!(pz::Dict{}, py::Dict{}, H, f_str::String; n::Int=53)
 
     println("computing confidence intervals \n")
     
@@ -305,7 +305,7 @@ function compute_CIs!(pz::Dict{}, py::Dict{}, H, f_str::String; dx::Float64=0.25
         @warn "CI computation failed."
     end
     
-    p_opt, ll, parameter_map_f = split_opt_params_and_close(pz,py,[Dict()],f_str,dx; state="final")
+    p_opt, ll, parameter_map_f = split_opt_params_and_close(pz,py,[Dict()],f_str,n; state="final")
 
     pz["CI_plus_hessian"], py["CI_plus_hessian"] = parameter_map_f(p_opt + CI)
     pz["CI_minus_hessian"], py["CI_minus_hessian"] = parameter_map_f(p_opt - CI)
@@ -316,15 +316,15 @@ end
 
 
 """
-    compute_Hessian(pz, py, data, f_str; dx=0.25)
+    compute_Hessian(pz, py, data, f_str; n=53)
 
 compute Hessian
 """
 function compute_Hessian(pz::Dict{}, py::Dict{}, data::Vector{Dict{Any,Any}}, f_str::String;
-        dx::Float64=0.25, state::String="state")
+        n::Int=53, state::String="state")
 
     println("computing Hessian! \n")
-    p_opt, ll, = split_opt_params_and_close(pz,py,data,f_str,dx; state=state)
+    p_opt, ll, = split_opt_params_and_close(pz,py,data,f_str,n; state=state)
     ForwardDiff.hessian(ll, p_opt)
 
 end
@@ -333,10 +333,10 @@ end
 """
 """
 function compute_gradient(pz::Dict{}, py::Dict{}, data::Vector{Dict{Any,Any}}, f_str::String;
-        dx::Float64=0.25, state::String="state")
+        n::Int=53, state::String="state")
     
     println("computing gradient \n")
-    p_opt, ll, = split_opt_params_and_close(pz,py,data,f_str,dx; state=state)
+    p_opt, ll, = split_opt_params_and_close(pz,py,data,f_str,n; state=state)
     ForwardDiff.gradient(ll, p_opt)
 
 end
@@ -396,14 +396,14 @@ end
     LL_across_range(pz, py, data)
 
 """
-function LL_across_range(pz::Dict, py::Dict, data, f_str, lb, ub, i; dx::Float64=0.25, state::String="final")
+function LL_across_range(pz::Dict, py::Dict, data, f_str, lb, ub, i; n::Int=53, state::String="final")
     
     fit_vec = combine_latent_and_observation(pz["fit"], py["fit"])
     
     lb_vec = combine_latent_and_observation(lb[1], lb[2])
     ub_vec = combine_latent_and_observation(ub[1], ub[2])
         
-    ll_θ = compute_LL(pz[state], py[state], data, f_str, dx) 
+    ll_θ = compute_LL(pz[state], py[state], data, f_str, n) 
 
     fit_vec2 = falses(length(fit_vec))
     fit_vec2[i] = true
@@ -413,7 +413,7 @@ function LL_across_range(pz::Dict, py::Dict, data, f_str, lb, ub, i; dx::Float64
     parameter_map_f(x) = split_latent_and_observation(combine_variable_and_const(x, p_const, fit_vec2), 
         py["cells_per_session"], py["dimy"])    
     
-    ll(x) = -ll_wrapper([x], data, parameter_map_f, f_str, dx) - (ll_θ - 1.92)
+    ll(x) = -ll_wrapper([x], data, parameter_map_f, f_str, n) - (ll_θ - 1.92)
 
     xs = range(lb_vec[i], stop=ub_vec[i], length=50)
     LLs = map(x->ll(x), xs)

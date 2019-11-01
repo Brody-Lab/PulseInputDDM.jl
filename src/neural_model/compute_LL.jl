@@ -1,9 +1,9 @@
 """
-    LL_all_trials(pz, py, data, f_str; dx=0.25)
+    LL_all_trials(pz, py, data, f_str; n=53)
 
 Computes the log likelihood for a set of trials consistent with the observed neural activity on each trial.
 """
-function LL_all_trials(pz::Vector{TT}, py::Vector{Vector{TT}}, data::Dict, f_str::String, dx::Float64) where {TT <: Any}
+function LL_all_trials(pz::Vector{TT}, py::Vector{Vector{TT}}, data::Dict, f_str::String, n::Int) where {TT <: Any}
      
     dt = data["dt"]
     use_bin_center = data["use_bin_center"]
@@ -12,11 +12,11 @@ function LL_all_trials(pz::Vector{TT}, py::Vector{Vector{TT}}, data::Dict, f_str
                 "binned_rightbups","spike_counts", "λ0"]]
     σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ = pz
     
-    P,M,xc,n = initialize_latent_model(σ2_i, B, λ, σ2_a, dx, dt)
+    P,M,xc,dx = initialize_latent_model(σ2_i, B, λ, σ2_a, n, dt)
                                 
     pmap((L,R,nT,nL,nR,SC,λ0) -> LL_single_trial(λ, σ2_a, σ2_s, ϕ, τ_ϕ, 
-            P, M, xc, L, R, nT, nL, nR, py, SC, dt, n, λ0, f_str; 
-            dx=dx, use_bin_center=use_bin_center),
+            P, M, xc, L, R, nT, nL, nR, py, SC, dt, dx, λ0, f_str; 
+            n=n, use_bin_center=use_bin_center),
         L, R, nT, nL, nR, SC, λ0, batch_size=1)   
     
 end
@@ -28,9 +28,9 @@ function LL_single_trial(λ::TT, σ2_a::TT, σ2_s::TT, ϕ::TT, τ_ϕ::TT,
         P::Vector{TT}, M::Array{TT,2},
         xc::Vector{TT}, L::Vector{Float64}, R::Vector{Float64}, nT::Int,
         nL::Vector{Int}, nR::Vector{Int},
-        py::Vector{Vector{TT}}, k::Vector{Vector{Int}}, dt::Float64, n::Int,
+        py::Vector{Vector{TT}}, k::Vector{Vector{Int}}, dt::Float64, dx::VV,
         λ0::Vector{Vector{UU}},
-        f_str::String; use_bin_center::Bool=true, dx::Float64=0.25) where {TT,UU <: Any}
+        f_str::String; use_bin_center::Bool=true, n::Int=53) where {TT,UU,VV <: Any}
 
     #adapt magnitude of the click inputs
     La, Ra = make_adapted_clicks(ϕ,τ_ϕ,L,R)
