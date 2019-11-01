@@ -5,11 +5,9 @@ DocMeta.setdocmeta!(pulse_input_DDM, :DocTestSetup, :(using pulse_input_DDM); re
 
 # Make changes here if you add to documentation
 pages = Any["Home" => Any["index.md"],
-        "Basics" => Any["man/getting_the_package.md",
-          "man/choice_observation_model.md",
-          "man/neural_observation_model.md"],
+        "Basics" => Any["man/getting_the_package.md", "man/choice_observation_model.md", "man/neural_observation_model.md"],
         "Other helpful info" => Any["man/vpn_is_annoying.md"],
-        "Development" =>  Any["man/development.md"],
+        "Development" => Any["man/development.md"],
         "Index" =>  Any["links.md"],
         "Functions" =>  Any["functions.md"]]
 
