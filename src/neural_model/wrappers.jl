@@ -145,6 +145,8 @@ end
         f_tol=1e-6, g_tol=1e-3,iterations=Int(2e3), show_trace=true,
         outer_iterations=Int(2e3), outer_iterations=Int(2e1))
 
+BACK IN THE DAY, TOLS USED TO BE x_tol::Float64=1e-4, f_tol::Float64=1e-9, g_tol::Float64=1e-2
+
 Optimize model parameters. pz and py are dictionaries that contains initial values, boundaries,
 and specification of which parameters to fit.
 """

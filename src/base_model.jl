@@ -74,31 +74,25 @@ end
 
 
 """
-    bins(B,dx)
+    bins(B,n)
 
-Computes the bin center locations and number of bins, given the boundary and desired (average) bin spacing.
+Computes the bin center locations and bin spacing, given the boundary and number of bins.
 
 ### Examples
 ```jldoctest
-julia> xc,n = pulse_input_DDM.bins(10.,0.25)
+julia> xc,n = pulse_input_DDM.bins(10.,53)
 ([-10.25, -9.75, -9.5, -9.25, -9.0, -8.75, -8.5, -8.25, -8.0, -7.75  …  7.75, 8.0, 8.25, 8.5, 8.75, 9.0, 9.25, 9.5, 9.75, 10.25], 81)
 ```
 """
-function bins(B::TT,dx::Float64) where {TT <: Any}
-
-    xc = collect(0.:dx:floor(value(B)/dx)*dx)
-
-    if xc[end] == B
-        xc = vcat(xc[1:end-1], B + dx)
-    else
-        xc = vcat(xc, 2*B - xc[end])
-    end
-
-    xc = vcat(-xc[end:-1:2], xc)
-    n = length(xc)
-
-    return xc, n
-
+function bins(B::TT, n::Int) where {TT}
+    
+    dx = 2. *B/(n-2);  #bin width
+    
+    xc = vcat(collect(range(-(B+dx/2.),stop=-dx,length=Int((n-1)/2.))),0.,
+        collect(range(dx,stop=(B+dx/2.),length=Int((n-1)/2)))); #centers
+    
+    return xc, dx
+    
 end
 
 
