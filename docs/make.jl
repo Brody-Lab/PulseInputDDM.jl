@@ -4,7 +4,7 @@ using Documenter, pulse_input_DDM
 DocMeta.setdocmeta!(pulse_input_DDM, :DocTestSetup, :(using pulse_input_DDM); recursive=true)
 
 # Make changes here if you add to documentation
-pages = Any[Any["Home" => "index.md"],
+pages = Any["Home" => Any["index.md"],
         "Basics" => Any["man/getting_the_package.md",
           "man/choice_observation_model.md",
           "man/neural_observation_model.md"],
