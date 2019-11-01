@@ -1,5 +1,3 @@
-# Development
-
 ## Developing the code
 
 If you want to go beyond using the code to add some functionality and then share it with everyone, here's my suggested method for doing that. 
@@ -9,6 +7,14 @@ Julia's package manager makes it easy to develop packages that are hosted as git
 **Normally** I try to make all changes to my code base in the `dev` branch of my repository. The general idea here is that all experimental code development should take place off the `master` branch and only be merged with the master branch once its continued stability and robustness is insured. 
 
 If you followed the above instructions, you likely only have the `master` branch in your `~/.julia/dev` directory. To 'switch over' (`checkout` in the language of git) to the `dev` branch on you local machine and to 'match it up' with the `dev` branch on github, in a shell (**not** in julia) you should navigate to `~/.julia/dev` and then type `git checkout --track origin/dev`. You can verify that you are now on the `dev` branch with `git branch` (a star should appear next to `dev`).
+
+To jump back to the master branch, type `git checkout master`. Now all of the code if this git repo is switch over to whatever state it was in in the `master` bracnh. Now swithc over to the `dev` branch again with `git checkout dev`. Now all of the code reflects its status in the `dev` branch.
+
+Now, the proper thing to do here is to make _another_ branch, off of the `dev` branch to make some code changes. Once those changes are complete, we can attempt to `merge` them into the `dev` branch, and once the `dev` branch is super-duper stable, we can merge _that_ with `master`. 
+
+To make a new branch, called `brians_dev` off of `dev` type `git checkout -b brians_dev dev` (make sure you are on branch `dev` with `git branch`). Now from here, you can make (`git add`) and commit (`git commit`) changes as you normally would, which will all be confined to this branch. 
+
+To push these new changes to a new remote branch in the repo, type `git push -u origin brians_dev`. The `-u` option will 'sync' up this branch with the newly created `brians_dev` remote branch so that when you `push` and `pull` on this branch it does so from the correct remote branch.
 
 [Here's a useful page of instructions about julia package development](https://tlienart.github.io/pub/julia/dev-pkg.html).
 

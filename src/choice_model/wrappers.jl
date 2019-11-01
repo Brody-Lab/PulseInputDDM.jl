@@ -288,7 +288,7 @@ function compute_CIs!(pz::Dict, pd::Dict, data::Dict; dx::Float64=0.25, state::S
 
     try
         pz["CI_plus_LRtest"], pd["CI_plus_LRtest"] = split_latent_and_observation(map(ci-> ci[2], CI))
-        pd["CI_minus_LRtest"], pd["CI_minus_LRtest"] = split_latent_and_observation(map(ci-> ci[1], CI))
+        pd["CI_plus_LRtest"], pd["CI_minus_LRtest"] = split_latent_and_observation(map(ci-> ci[1], CI))
     catch
         @warn "something went wrong putting CI into pz and pd"
     end
