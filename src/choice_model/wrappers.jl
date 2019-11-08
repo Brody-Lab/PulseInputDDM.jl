@@ -256,7 +256,7 @@ function compute_CIs!(pz::Dict, pd::Dict, data::Dict; n::Int=53, state::String="
         p_opt, p_const = split_variable_and_const(combine_latent_and_observation(pz[state], pd[state]), fit_vec2)
 
         parameter_map_f(x) = split_latent_and_observation(combine_variable_and_const(x, p_const, fit_vec2))
-        ll(x) = -ll_wrapper([x], data, parameter_map_f) - (ll_θ - 1.92)
+        ll(x) = compute_LL([x], data, parameter_map_f) - (ll_θ - 1.92)
         
         xs[i] = range(lb[i], stop=ub[i], length=50)
         LLs[i] = map(x->ll(x), xs[i])
@@ -327,7 +327,7 @@ function LL_across_range(pz::Dict, pd::Dict, data::Dict, lb, ub; n::Int=53, stat
         p_opt, p_const = split_variable_and_const(combine_latent_and_observation(pz[state], pd[state]), fit_vec2)
 
         parameter_map_f(x) = split_latent_and_observation(combine_variable_and_const(x, p_const, fit_vec2))
-        ll(x) = -ll_wrapper([x], data, parameter_map_f) - (ll_θ - 1.92)
+        ll(x) = compute_LL([x], data, parameter_map_f) - (ll_θ - 1.92)
         
         xs[i] = range(lb_vec[i], stop=ub_vec[i], length=50)
         LLs[i] = map(x->ll(x), xs[i])
@@ -340,18 +340,16 @@ end
 
 
 """
-    ll_wrapper(p_opt, data, parameter_map_f; n=53)
+    compute_LL(x, data, parameter_map_f; n=53)
 
 A wrapper function that accepts a vector of mixed parameters, splits the vector
-into two vectors based on the parameter mapping function provided as an input,
-and compute the negative log likelihood of the data given the parametes. Used
-in optimization.
+into two vectors based on the parameter mapping function provided as an input. Used
+in optimization, Hessian and gradient computation.
 """
-function ll_wrapper(p_opt::Vector{TT}, data::Dict, parameter_map_f::Function;
-        n::Int=53) where {TT <: Any}
+function compute_LL(x::Vector{TT}, data::Dict, parameter_map_f::Function; n::Int=53) where {TT <: Any}
 
-    pz, pd = parameter_map_f(p_opt)
-    -compute_LL(pz, pd, data; n=n)
+    pz, pd = parameter_map_f(x)
+    compute_LL(pz, pd, data; n=n)
 
 end
 
@@ -401,7 +399,7 @@ function split_opt_params_and_close(pz::Dict{}, pd::Dict{}, data::Dict{}; n::Int
     p_opt, p_const = split_variable_and_const(combine_latent_and_observation(pz[state], pd[state]), fit_vec)
 
     parameter_map_f(x) = split_latent_and_observation(combine_variable_and_const(x, p_const, fit_vec))
-    ll(x) = ll_wrapper(x, data, parameter_map_f, n=n)
+    ll(x) = -compute_LL(x, data, parameter_map_f, n=n)
 
     return p_opt, ll, parameter_map_f
 
