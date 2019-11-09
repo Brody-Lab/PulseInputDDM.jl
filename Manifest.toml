@@ -55,12 +55,6 @@ git-tree-sha1 = "16d4acb3d37dc05b714977ffefa8890843dc8985"
 uuid = "d5fb7624-851a-54ee-a528-d3f3bac0b4a0"
 version = "0.2.3"
 
-[[CSTParser]]
-deps = ["Tokenize"]
-git-tree-sha1 = "99dda94f5af21a4565dc2b97edf6a95485f116c3"
-uuid = "00ebfdb7-1f24-5e51-bd34-a7502290713f"
-version = "1.0.0"
-
 [[Calculus]]
 deps = ["Compat"]
 git-tree-sha1 = "bd8bbd105ba583a42385bd6dc4a20dad8ab3dc11"
@@ -292,12 +286,6 @@ git-tree-sha1 = "e18c7ab779ecd44b1d5b2245e5257cf53a3c21d2"
 uuid = "23992714-dd62-5051-b70f-ba57cb901cac"
 version = "0.6.0"
 
-[[MacroTools]]
-deps = ["CSTParser", "Compat", "DataStructures", "Test", "Tokenize"]
-git-tree-sha1 = "d6e9dedb8c92c3465575442da456aec15a89ff76"
-uuid = "1914dd2f-81c6-5fcd-8719-6d5c9610ff09"
-version = "0.5.1"
-
 [[MappedArrays]]
 git-tree-sha1 = "e2a02fe7ee86a10c707ff1756ab1650b40b140bb"
 uuid = "dbb5928d-eab1-5f90-85c2-b9b0edb7c900"
@@ -496,11 +484,6 @@ deps = ["OffsetArrays", "Test"]
 git-tree-sha1 = "58f6f07d3b54a363ec283a8f5fc9fb4ecebde656"
 uuid = "06e1c1a7-607b-532d-9fad-de7d9aa2abac"
 version = "0.2.3"
-
-[[Tokenize]]
-git-tree-sha1 = "dfcdbbfb2d0370716c815cbd6f8a364efb6f42cf"
-uuid = "0796e94c-ce3b-5d07-9a54-7f471281c624"
-version = "0.5.6"
 
 [[TranscodingStreams]]
 deps = ["Random", "Test"]
