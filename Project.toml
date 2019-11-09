@@ -4,7 +4,6 @@ authors = ["Brian DePasquale <depasquale@princeton.edu>"]
 version = "0.0.1"
 
 [deps]
-DSP = "717857b8-e6f2-59f4-9121-6e50c889abd2"
 Discretizers = "6e83dbb3-75ca-525b-8ae2-3751f0dd50b4"
 Distributed = "8ba89e20-285c-5b6f-9357-94700520ee1b"
 Distributions = "31c24e10-a181-5473-b8eb-7969acd0382f"
@@ -17,5 +16,6 @@ MAT = "23992714-dd62-5051-b70f-ba57cb901cac"
 Optim = "429524aa-4258-5aef-a3af-852621145aeb"
 Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
 Roots = "f2b01f46-fcfa-551c-844a-d8ac1e96c665"
+SpecialFunctions = "276daf66-3868-5448-9aa4-cd146d93841b"
 StatsBase = "2913bbd2-ae8a-5f71-8c99-4fb6c76f3a91"
 StatsFuns = "4c63d2b9-4356-54db-8cca-17b64c39e42c"
