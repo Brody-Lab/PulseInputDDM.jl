@@ -7,7 +7,7 @@ module pulse_input_DDM
 
 using StatsBase, Distributions, LineSearches, JLD2
 using ForwardDiff, Distributed, LinearAlgebra
-using Optim,
+using Optim
 using SpecialFunctions, MAT, Random
 using Discretizers
 import StatsFuns: logistic, logit, softplus, xlogy
