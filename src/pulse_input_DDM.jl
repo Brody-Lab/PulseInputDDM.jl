@@ -8,7 +8,8 @@ module pulse_input_DDM
 using StatsBase, Distributions, Optim, LineSearches, JLD2
 using ForwardDiff, Distributed, LinearAlgebra
 using SpecialFunctions, MAT, Random
-using DSP, Discretizers
+using Discretizers
+#using DSP
 import StatsFuns: logistic, logit, softplus, xlogy
 using ImageFiltering
 using ForwardDiff: value

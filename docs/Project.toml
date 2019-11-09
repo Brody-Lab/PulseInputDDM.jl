@@ -1,6 +1,5 @@
 [deps]
 Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
-pulse_input_DDM = "c2542da2-1f7d-11e9-2506-87691095ebb2"
 
 [compat]
 Documenter = "~0.23"
