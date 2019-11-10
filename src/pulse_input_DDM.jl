@@ -9,7 +9,7 @@ using StatsBase, Distributions, Optim, LineSearches, JLD2
 using ForwardDiff, Distributed, LinearAlgebra
 using SpecialFunctions, MAT, Random
 using Discretizers
-#using DSP
+using DSP
 import StatsFuns: logistic, logit, softplus, xlogy
 using ImageFiltering
 using ForwardDiff: value
