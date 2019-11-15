@@ -253,8 +253,8 @@ julia> f_str, num_sessions, cells_per_session, num_trials_per_session = "sig", 2
 
 julia> pz, py, data = default_parameters_and_data(f_str, num_sessions, num_trials_per_session, cells_per_session; generative=true);
 
-julia> compute_LL(pz["generative"], py["generative"], data, f_str)
--380.6843430666023
+julia> round(compute_LL(pz["generative"], py["generative"], data, f_str), digits=2)
+-330.56
 ```
 """
 function compute_LL(pz::Vector{T}, py::Vector{Vector{Vector{T}}}, data::Vector{Dict{Any,Any}},
@@ -349,7 +349,7 @@ Combines two vectors into one vector. The first vector is for components related
 to the latent variables, the second vector is for components related to the observation model.
 ### Examples
 ```jldoctest
-julia> pz, pd = pulse_input_DDM.default_parameters();
+julia> pz, py = pulse_input_DDM.default_parameters();
 
 julia> p = pulse_input_DDM.combine_latent_and_observation(pz["initial"], py["initial"]);
 

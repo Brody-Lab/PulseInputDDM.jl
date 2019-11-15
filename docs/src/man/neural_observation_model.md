@@ -21,13 +21,13 @@ You can use the function `optimize_model` to run the model.
 
 ```julia
     pz, py = optimize_model(data)
-``` 
+```
 
 ## Important functions
 
 ```@docs
     compute_LL(pz::Dict{}, py::Dict{}, data::Vector{Dict{Any,Any}},
-        f_str::String, dx::Float64; state::String="state") where {T <: Any}
+      f_str::String, n::Int; state::String="state") where {T <: Any}
 ```
 
 ## Fitting the model on spock instead

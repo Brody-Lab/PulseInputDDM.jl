@@ -80,19 +80,19 @@ Computes the bin center locations and bin spacing, given the boundary and number
 
 ### Examples
 ```jldoctest
-julia> xc,n = pulse_input_DDM.bins(10.,53)
-([-10.25, -9.75, -9.5, -9.25, -9.0, -8.75, -8.5, -8.25, -8.0, -7.75  …  7.75, 8.0, 8.25, 8.5, 8.75, 9.0, 9.25, 9.5, 9.75, 10.25], 81)
+julia> xc,dx = pulse_input_DDM.bins(25.5,53)
+([-26.0, -25.0, -24.0, -23.0, -22.0, -21.0, -20.0, -19.0, -18.0, -17.0  …  17.0, 18.0, 19.0, 20.0, 21.0, 22.0, 23.0, 24.0, 25.0, 26.0], 1.0)
 ```
 """
 function bins(B::TT, n::Int) where {TT}
-    
+
     dx = 2. *B/(n-2)
-    
+
     xc = vcat(collect(range(-(B+dx/2.),stop=-dx,length=Int((n-1)/2.))),0.,
         collect(range(dx,stop=(B+dx/2.),length=Int((n-1)/2))))
-    
+
     return xc, dx
-    
+
 end
 
 
@@ -117,14 +117,14 @@ See also: [`transition_M!`](@ref)
 
 ### Examples
 ```jldoctest
-julia> dt, dx, B, σ2, λ, μ = 0.1, 0.25, 10., 10., -0.5, 1.;
+julia> dt, n, B, σ2, λ, μ = 0.1, 53, 10., 10., -0.5, 1.;
 
-julia> xc,n = pulse_input_DDM.bins(B, dx);
+julia> xc,dx = pulse_input_DDM.bins(B, n);
 
 julia> M = pulse_input_DDM.transition_M(σ2, λ, μ, dx, xc, n, dt);
 
 julia> size(M)
-(81, 81)
+(53, 53)
 ```
 """
 function transition_M(σ2::TT, λ::TT, μ::TT, dx::UU,
