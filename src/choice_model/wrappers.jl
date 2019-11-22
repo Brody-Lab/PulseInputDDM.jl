@@ -31,7 +31,7 @@ end
     default_parameters_and_data(;generative=false,ntrials=2000,rng=1)
 Returns default parameters and some simulated data
 """
-function default_parameters_and_data(;generative::Bool=false, ntrials::Int=2000, rng::Int=1,
+function default_parameters_and_data(;generative::Bool=true, ntrials::Int=2000, rng::Int=1,
                                     dt::Float64=1e-2, use_bin_center::Bool=false)
     pz, pd = default_parameters(;generative=true)
     data = sample_clicks_and_choices(pz["generative"], pd["generative"], ntrials; rng=rng)
@@ -84,7 +84,7 @@ function optimize_model(; ntrials::Int=20000, n::Int=53,
     data = bin_clicks!(data,use_bin_center=use_bin_center, dt=dt)
 
     pz, pd, converged = optimize_model(pz, pd, data; n=n,
-        x_tol=x_tol, f_tol=f_tol, g_tol=g_tol, iterations=iterations, 
+        x_tol=x_tol, f_tol=f_tol, g_tol=g_tol, iterations=iterations,
         show_trace=show_trace, outer_iterations=outer_iterations)
 
     return pz, pd, data, converged
@@ -126,7 +126,7 @@ BACK IN THE DAY TOLS WERE: x_tol::Float64=1e-4, f_tol::Float64=1e-9, g_tol::Floa
 """
 function optimize_model(pz::Dict{}, pd::Dict{}, data::Dict{}; n::Int=53,
         x_tol::Float64=1e-10, f_tol::Float64=1e-6, g_tol::Float64=1e-3,
-        iterations::Int=Int(2e3), show_trace::Bool=true, 
+        iterations::Int=Int(2e3), show_trace::Bool=true,
         outer_iterations::Int=Int(1e1))
 
     println("optimize! \n")
@@ -206,7 +206,7 @@ end
 function compute_CIs!(pz::Dict, pd::Dict, H::Array{Float64,2})
 
     println("computing confidence intervals \n")
-    
+
     CI = fill!(Vector{Float64}(undef,size(H,1)),1e8)
 
     try
@@ -220,7 +220,7 @@ function compute_CIs!(pz::Dict, pd::Dict, H::Array{Float64,2})
     end
 
     p_opt, ll, parameter_map_f = split_opt_params_and_close(pz,pd,Dict(); state="final")
-    
+
     pz["CI_plus_hessian"], pd["CI_plus_hessian"] = parameter_map_f(p_opt + CI)
     pz["CI_minus_hessian"], pd["CI_minus_hessian"] = parameter_map_f(p_opt - CI)
 
@@ -235,29 +235,29 @@ end
 Computes confidence intervals based on the likelihood ratio test
 """
 function compute_CIs!(pz::Dict, pd::Dict, data::Dict; n::Int=53, state::String="final")
-    
+
     fit_vec = combine_latent_and_observation(pz["fit"], pd["fit"])
     lb = combine_latent_and_observation(pz["lb"], pd["lb"])
     ub = combine_latent_and_observation(pz["ub"], pd["ub"])
-    
+
     CI = Vector{Vector{Float64}}(undef,length(fit_vec))
     LLs = Vector{Vector{Float64}}(undef,length(fit_vec))
     xs = Vector{Vector{Float64}}(undef,length(fit_vec))
-    
-    ll_θ = compute_LL(pz[state], pd[state], data; n=n) 
+
+    ll_θ = compute_LL(pz[state], pd[state], data; n=n)
 
     for i = 1:length(fit_vec)
-        
+
         println(i)
 
         fit_vec2 = falses(length(fit_vec))
         fit_vec2[i] = true
-            
+
         p_opt, p_const = split_variable_and_const(combine_latent_and_observation(pz[state], pd[state]), fit_vec2)
 
         parameter_map_f(x) = split_latent_and_observation(combine_variable_and_const(x, p_const, fit_vec2))
         ll(x) = compute_LL([x], data, parameter_map_f) - (ll_θ - 1.92)
-        
+
         xs[i] = range(lb[i], stop=ub[i], length=50)
         LLs[i] = map(x->ll(x), xs[i])
         idxs = findall(diff(sign.(LLs[i])) .!= 0)
@@ -265,7 +265,7 @@ function compute_CIs!(pz::Dict, pd::Dict, data::Dict; n::Int=53, state::String="
         #CI[i] = sort(find_zeros(ll, lb[i], ub[i]; naive=true, no_pts=3))
 
         CI[i] = []
-        
+
         for j = 1:length(idxs)
             newroot = find_zero(ll, (xs[i][idxs[j]], xs[i][idxs[j]+1]), Bisection())
             push!(CI[i], newroot)
@@ -306,29 +306,29 @@ end
 
 """
 function LL_across_range(pz::Dict, pd::Dict, data::Dict, lb, ub; n::Int=53, state::String="final")
-    
+
     fit_vec = combine_latent_and_observation(pz["fit"], pd["fit"])
-    
+
     lb_vec = combine_latent_and_observation(lb[1], lb[2])
     ub_vec = combine_latent_and_observation(ub[1], ub[2])
-    
+
     LLs = Vector{Vector{Float64}}(undef,length(fit_vec))
     xs = Vector{Vector{Float64}}(undef,length(fit_vec))
-    
-    ll_θ = compute_LL(pz[state], pd[state], data; n=n) 
+
+    ll_θ = compute_LL(pz[state], pd[state], data; n=n)
 
     for i = 1:length(fit_vec)
-        
+
         println(i)
 
         fit_vec2 = falses(length(fit_vec))
         fit_vec2[i] = true
-            
+
         p_opt, p_const = split_variable_and_const(combine_latent_and_observation(pz[state], pd[state]), fit_vec2)
 
         parameter_map_f(x) = split_latent_and_observation(combine_variable_and_const(x, p_const, fit_vec2))
         ll(x) = compute_LL([x], data, parameter_map_f) - (ll_θ - 1.92)
-        
+
         xs[i] = range(lb_vec[i], stop=ub_vec[i], length=50)
         LLs[i] = map(x->ll(x), xs[i])
 
