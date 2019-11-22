@@ -14,6 +14,9 @@ import StatsFuns: logistic, logit, softplus, xlogy
 using ImageFiltering
 using ForwardDiff: value
 using Roots
+using TransformVariables, Parameters
+
+include("MCMC.jl")
 
 include("base_model.jl")
 include("analysis_functions.jl")
@@ -41,6 +44,8 @@ export bin_clicks!, load_choice_data, bounded_mass_all_trials
 export reload_optimization_parameters, save_optimization_parameters
 export default_parameters_and_data
 export LL_across_range
+
+export DDMProblem
 
 export mean_exp_rate_per_trial, mean_exp_rate_per_cond
 
