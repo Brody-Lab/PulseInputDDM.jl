@@ -1,2 +1,3 @@
 docs/build/
-demos/.ipynb_checkpoints
+examples/.ipynb_checkpoints
+docs/src/generated

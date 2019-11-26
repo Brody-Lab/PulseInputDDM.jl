@@ -22,7 +22,7 @@ pz, pd = default_parameters()
 
 #if you've already ran the optimization once and want to restart from where you stoped, this will reload those parameters
 if isfile(save_path*file)
-    pz, pd = reload_optimization_parameters(save_path, file, pz, pd)    
+    pz, pd = reload_optimization_parameters(save_path, file, pz, pd)
 end
 
 #run the optimization

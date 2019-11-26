@@ -1,26 +1,27 @@
-using LogDensityProblems, DynamicHMC, DynamicHMC.Diagnostics
+using LogDensityProblems, Random, DynamicHMC, DynamicHMC.Diagnostics, pulse_input_DDM            # use for AD
+import ForwardDiff
 using MCMCDiagnostics
-@everywhere using Statistics, Random
-import ForwardDiff              # use for AD
-@everywhere using pulse_input_DDM
+using Statistics
 
-pz2,pd2,data = default_parameters_and_data(ntrials=1000)
-
-p = DDMProblem(data)((pz2["generative"], pd2["generative"]))
+f_str, num_sessions, num_trials_per_session, cells_per_session = "softplus", 1, [50], [2]
+pz,pd,data = default_parameters_and_data(ntrials=1000)
+pz, py, data = default_parameters_and_data(f_str, num_sessions, num_trials_per_session, cells_per_session)
+p = DDMProblem(data)
+#p = DDMProblem(data)((pz2["generative"], pd2["generative"]))
 #θ = (pz2["generative"], pd2["generative"])
 #p((pz2["generative"], pd2["generative"]))
 
 #t = problem_transformation(p)
 #t = as((B = asℝ₊,))
 #P = TransformedLogDensity(t, p)
-∇P = ADgradient(:ForwardDiff, TransformedLogDensity(problem_transformation(p), p));
+∇P = ADgradient(:ForwardDiff, TransformedLogDensity(pulse_input_DDM.problem_transformation(p), p));
 
-results2 = mcmc_with_warmup(Random.GLOBAL_RNG, ∇P, 1000)
+@time results = mcmc_with_warmup(Random.GLOBAL_RNG, ∇P, 1000)
 
 # To get the posterior for ``α``, we need to use `get_position` and
 # then transform
 
-posterior = transform.(t, results.chain);
+posterior = transform.(pulse_input_DDM.problem_transformation(p), results.chain);
 
 # Extract the parameter.
 
