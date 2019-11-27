@@ -39,23 +39,21 @@ T, L, R = data["T"], data["leftbups"], data["rightbups"]
 binned = map((T,L,R)-> pulse_input_DDM.bin_clicks(T,L,R; dt=dt), data["T"], data["leftbups"], data["rightbups"])
 nT, nL, nR = map(x->getindex.(binned, x), 1:3)
 
-#I = inputs.(L, R, T, nT, nL, nR, dt)
-I = inputs(L, R, T, nT, nL, nR, dt)
+I = inputs.(L, R, T, nT, nL, nR, dt)
+#I = inputs(L, R, T, nT, nL, nR, dt)
 
-#dist = map(i-> choiceDDM(pz2, pd2, i), I);
-dist = choiceDDM(pz2, pd2, I);
+dist = map(i-> choiceDDM(pz2, pd2, i), I);
+#dist = choiceDDM(pz2, pd2, I);
 
 #@time LL_all_trials(pz["generative"], pd["generative"], data)
 #@time pulse_input_DDM.LL_all_trials_thread(pz["generative"], pd["generative"], data)
 
 #data = rand(dist, Nobs)
 #need dtMC, not dt
-#choices = rand.(dist);
-choices = rand(dist);
+choices = rand.(dist);
 
 
-#logpdf.(dist, choices)
-logpdf(dist, choices)
+logpdf.(dist, choices)
 
 #using Distributed
 #addprocs(4)
@@ -75,11 +73,11 @@ logpdf(dist, choices)
     pz = latent(σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ)
     pd = choice(bias, lapse)
 
-    #Threads.@threads for i in 1:length(data)
+    Threads.@threads for i in 1:length(data)
     #@sync @distributed for i in 1:length(data)
-    #    data[i] ~ choiceDDM(pz, pd, inputs[i])
-    #end
-    data ~ choiceDDM(pz, pd, inputs)
+        data[i] ~ choiceDDM(pz, pd, inputs[i])
+    end
+    #data ~ choiceDDM(pz, pd, inputs)
 end
 
 #chain = sample(model(choices, I), NUTS(1000, .8), 2000)
@@ -88,8 +86,8 @@ iterations = 1000
 τ = 10
 # Start sampling.
 #chain = sample(coinflip(data), HMC(iterations, ϵ, τ));
-#chain_HMC = sample(model(choices, I), HMC(ϵ, τ), iterations)
-chain = sample(model(choices, I), MH(), 2000)
+chain_HMC = sample(model(choices, I), HMC(ϵ, τ), iterations)
+#chain = sample(model(choices, I), MH(), 2000)
 #chain = sample(model(choices, I, n, dt))
 
 #histogram(chain[:B])

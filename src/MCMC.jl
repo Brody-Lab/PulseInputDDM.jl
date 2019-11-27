@@ -68,25 +68,14 @@ end
 """
 """
 struct inputs
-    L::Vector{Vector{Float64}}
-    R::Vector{Vector{Float64}}
-    T::Vector{Float64}
-    nT::Vector{Int}
-    nL::Vector{Vector{Int}}
-    nR::Vector{Vector{Int}}
+    L::Vector{Float64}
+    R::Vector{Float64}
+    T::Float64
+    nT::Int
+    nL::Vector{Int}
+    nR::Vector{Int}
     dt
 end
-
-
-#struct inputs
-#    L::Vector{Float64}
-#    R::Vector{Float64}
-#    T::Float64
-#    nT::Int
-#    nL::Vector{Int}
-#    nR::Vector{Int}
-#    dt
-#end
 
 
 """
@@ -94,7 +83,7 @@ end
 struct choiceDDM <: ContinuousUnivariateDistribution
     pz
     pd
-    inputs
+    clicks
 end
 
 
@@ -103,32 +92,17 @@ end
 
 My function!
 """
-#function rand(dist::choiceDDM; dtMC::Float64=1e-4, rng::Int = 1, use_bin_center::Bool=false)
-
-#    @unpack pz, pd, inputs = dist
-#    @unpack σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ = pz
-#    @unpack bias, lapse = pd
-#    @unpack L, R, T = inputs
-#    binned = bin_clicks(T,L,R; dt=dtMC)
-#    pz = vcat(σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ)
-#    pd = vcat(bias, lapse)
-
-#    sample_choice_single_trial(L, R, binned..., pz, pd; use_bin_center=use_bin_center, dtMC=dtMC, rng=rng)
-
-#end
 function rand(dist::choiceDDM; dtMC::Float64=1e-4, rng::Int = 1, use_bin_center::Bool=false)
 
-    @unpack pz, pd, inputs = dist
+    @unpack pz, pd, clicks = dist
     @unpack σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ = pz
     @unpack bias, lapse = pd
-    @unpack L, R, T = inputs
-    binned = map((T,L,R)-> bin_clicks(T,L,R; dt=dtMC), T, L, R)
+    @unpack L, R, T = clicks
+    binned = bin_clicks(T,L,R; dt=dtMC)
     pz = vcat(σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ)
     pd = vcat(bias, lapse)
 
-    pmap((L,R,binned,rng) -> sample_choice_single_trial(L,R,binned...,pz,pd;
-            use_bin_center=use_bin_center, dtMC=dtMC, rng=rng), L, R, binned,
-            shuffle(1:length(T)))
+    sample_choice_single_trial(L, R, binned..., pz, pd; use_bin_center=use_bin_center, dtMC=dtMC, rng=rng)
 
 end
 
@@ -151,12 +125,15 @@ end
 
 """
 """
-function logpdf(d::TT, choice::Vector{Bool}; n::Int=53) where {TT<:choiceDDM}
-#function logpdf(d::TT, choice::Bool; n::Int=53) where {TT<:choiceDDM}
+function logpdf(dist::TT, choice::Bool; n::Int=53) where {TT<:choiceDDM}
 
-    sum(LL_all_trials(d, choice; n=n))
-    #P,M,xc,dx = initialize_latent_model(σ2_i, B, λ, σ2_a, n, dt, L_lapse=lapse/2, R_lapse=lapse/2)
+    @unpack pz, pd, clicks = dist
+    @unpack σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ = pz
+    @unpack bias, lapse = pd
+    @unpack L, R, nT, nL, nR, dt = clicks
 
-    #LL_single_trial!(λ, σ2_a, σ2_s, ϕ, τ_ϕ, P, M, dx, xc, L, R, nT, nL, nR, choice, bias, n, dt)
+    P,M,xc,dx = initialize_latent_model(σ2_i, B, λ, σ2_a, n, dt, L_lapse=lapse/2, R_lapse=lapse/2)
+
+    LL_single_trial!(λ, σ2_a, σ2_s, ϕ, τ_ϕ, P, M, dx, xc, L, R, nT, nL, nR, choice, bias, n, dt)
 
 end
