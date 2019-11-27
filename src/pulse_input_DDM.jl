@@ -15,6 +15,9 @@ using ImageFiltering
 using ForwardDiff: value
 using Roots
 using TransformVariables, Parameters
+import Base.rand
+import Distributions: logpdf
+using Base.Threads
 
 include("MCMC.jl")
 
@@ -45,7 +48,8 @@ export reload_optimization_parameters, save_optimization_parameters
 export default_parameters_and_data
 export LL_across_range
 
-export DDMProblem
+export DDMProblem, choiceDDM, latent, choice, inputs
+export logpdf
 
 export mean_exp_rate_per_trial, mean_exp_rate_per_cond
 

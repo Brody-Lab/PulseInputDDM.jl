@@ -78,6 +78,26 @@ function LL_all_trials(pz::Vector{TT}, pd::Vector{TT}, data::Dict; n::Int=53) wh
 end
 
 
+function LL_all_trials_thread(pz::Vector{TT}, pd::Vector{TT}, data::Dict; n::Int=53) where {TT <: Any}
+
+    bias, lapse = pd
+    σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ = pz
+    L, R, nT, nL, nR, choice = [data[key] for key in ["leftbups","rightbups","nT","binned_leftbups","binned_rightbups","pokedR"]]
+    dt = data["dt"]
+
+    P,M,xc,dx = initialize_latent_model(σ2_i, B, λ, σ2_a, n, dt, L_lapse=lapse/2, R_lapse=lapse/2)
+
+    LL = Vector{Float64}(undef,length(nT))
+    Threads.@threads for i in 1:length(nT)
+        LL[i] = LL_single_trial!(λ, σ2_a, σ2_s, ϕ, τ_ϕ,
+            copy(P), M, dx, xc, L[i], R[i], nT[i], nL[i], nR[i], choice[i], bias, n, dt)
+    end
+
+    return LL
+
+end
+
+
 """
 """
 function LL_all_trials(σ2_i::TT, B::TT, λ::TT, σ2_a::TT, σ2_s::TT,
