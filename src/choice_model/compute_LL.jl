@@ -78,6 +78,23 @@ function LL_all_trials(pz::Vector{TT}, pd::Vector{TT}, data::Dict; n::Int=53) wh
 end
 
 
+"""
+"""
+function LL_all_trials(d::choiceDDM, choice::Vector{Bool}; n::Int=53) where {TT <: Any}
+
+    @unpack pz, pd, inputs = d
+    @unpack σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ = pz
+    @unpack bias, lapse = pd
+    @unpack L, R, T, nT, nL, nR, dt = inputs
+
+    P,M,xc,dx = initialize_latent_model(σ2_i, B, λ, σ2_a, n, dt, L_lapse=lapse/2, R_lapse=lapse/2)
+
+    pmap((L,R,nT,nL,nR,choice) -> LL_single_trial!(λ, σ2_a, σ2_s, ϕ, τ_ϕ,
+        P, M, dx, xc, L, R, nT, nL, nR, choice, bias, n, dt), L, R, nT, nL, nR, choice)
+
+end
+
+
 function LL_all_trials_thread(pz::Vector{TT}, pd::Vector{TT}, data::Dict; n::Int=53) where {TT <: Any}
 
     bias, lapse = pd
