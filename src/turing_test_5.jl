@@ -1,5 +1,4 @@
 using Distributions, Turing, Random, Parameters
-using Turing
 using Base.Threads
 using pulse_input_DDM
 #ProjDir = @__DIR__
@@ -82,8 +81,8 @@ iterations = 1000
 τ = 10
 # Start sampling.
 #chain = sample(coinflip(data), HMC(iterations, ϵ, τ));
-chain_HMC = sample(model(choices, I), HMC(ϵ, τ), iterations)
-#chain = sample(model(choices, I), MH(), 2000)
+#chain_HMC = sample(model(choices, I), HMC(ϵ, τ), iterations)
+chain = sample(model(choices, I), MH(), 2000)
 #chain = sample(model(choices, I, n, dt))
 
-histogram(chain[:B])
+#histogram(chain[:B])
