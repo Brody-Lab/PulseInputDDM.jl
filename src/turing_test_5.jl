@@ -29,9 +29,11 @@ end
 using Distributions, Turing, Random, Parameters
 using Base.Threads, pulse_input_DDM
 
-pz, pd, data = default_parameters_and_data(ntrials=1000);
-pz2 = latent(pz["generative"]...);
-pd2 = choice(pd["generative"]...);
+pz = [0.5, 10., -0.5, 20., 1.5, 0.8, 0.05]
+pd = [1.,0.05]
+pz2 = latent(pz...);
+pd2 = choice(pd...);
+data = pulse_input_DDM.sample_clicks(1000)
 
 dt, n = 1e-2, 53
 
@@ -60,15 +62,18 @@ logpdf.(dist, choices)
 
 @model model(data, inputs, n, dt) = begin
 
-    σ2_i ~ Uniform(0., 2.)
-    B ~ Uniform(2., 30.)
-    λ ~ Uniform(-5., 5.)
+    σ2_i, B, λ, σ2_s, ϕ, τ_ϕ = 0.5, 10., -0.5, 1.5, 0.8, 0.05
+    bias, lapse = 1.,0.05
+
+    #σ2_i ~ Uniform(0., 2.)
+    #B ~ Uniform(2., 30.)
+    #λ ~ Uniform(-5., 5.)
     σ2_a ~ Uniform(0., 100.)
-    σ2_s ~ Uniform(0., 2.5)
-    ϕ ~ Uniform(0.01, 1.2)
-    τ_ϕ ~ Uniform(0.005, 1.)
-    bias ~ Uniform(-10., 10.)
-    lapse ~ Uniform(0., 1.)
+    #σ2_s ~ Uniform(0., 2.5)
+    #ϕ ~ Uniform(0.01, 1.2)
+    #τ_ϕ ~ Uniform(0.005, 1.)
+    #bias ~ Uniform(-10., 10.)
+    #lapse ~ Uniform(0., 1.)
 
     pz = latent(σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ)
     pd = choice(bias, lapse)
@@ -86,7 +91,7 @@ iterations = 1000
 τ = 10
 # Start sampling.
 #chain = sample(coinflip(data), HMC(iterations, ϵ, τ));
-chain_HMC = sample(model(choices, I), HMC(ϵ, τ), iterations)
+@time chain_HMC_2 = sample(model(choices, I), HMC(ϵ, τ), iterations)
 #chain = sample(model(choices, I), MH(), 2000)
 #chain = sample(model(choices, I, n, dt))
 

@@ -5,8 +5,8 @@ const dimz = 7
     initialize_latent_model(σ2_i, B, λ, σ2_a, n, dt; L_lapse=0., R_lapse=0.)
 
 """
-function initialize_latent_model(σ2_i::TT, B::TT, λ::TT, σ2_a::TT,
-     n::Int, dt::Float64; L_lapse::UU=0., R_lapse::UU=0.) where {TT,UU <: Any}
+function initialize_latent_model(σ2_i::TT, B::TT, λ::TT, σ2_a::VV,
+     n::Int, dt::Float64; L_lapse::UU=0., R_lapse::UU=0.) where {TT,UU,VV <: Any}
 
     #bin centers and number of bins
     xc,dx = bins(B,n)
@@ -43,10 +43,10 @@ end
     latent_one_step!(P, F, λ, σ2_a, σ2_s, t, nL, nR, La, Ra, M, dx, xc, n, dt)
 
 """
-function latent_one_step!(P::Vector{TT}, F::Array{TT,2}, λ::TT, σ2_a::TT, σ2_s::TT,
+function latent_one_step!(P::Vector{TT}, F::Array{TT,2}, λ::TT, σ2_a::VV, σ2_s::TT,
         t::Int, nL::Vector{Int}, nR::Vector{Int},
         La::Vector{TT}, Ra::Vector{TT}, M::Array{TT,2},
-        dx::UU, xc::Vector{TT}, n::Int, dt::Float64; backwards::Bool=false) where {TT,UU <: Any}
+        dx::UU, xc::Vector{TT}, n::Int, dt::Float64; backwards::Bool=false) where {TT,UU,VV <: Any}
 
     any(t .== nL) ? sL = sum(La[t .== nL]) : sL = zero(TT)
     any(t .== nR) ? sR = sum(Ra[t .== nR]) : sR = zero(TT)
@@ -127,8 +127,8 @@ julia> size(M)
 (53, 53)
 ```
 """
-function transition_M(σ2::TT, λ::TT, μ::TT, dx::UU,
-        xc::Vector{TT}, n::Int, dt::Float64) where {TT,UU <: Any}
+function transition_M(σ2::VV, λ::TT, μ::TT, dx::UU,
+        xc::Vector{TT}, n::Int, dt::Float64) where {TT,UU,VV <: Any}
 
     M = zeros(TT,n,n)
     transition_M!(M,σ2,λ,μ,dx,xc,n,dt)
@@ -143,8 +143,8 @@ end
         xc::Vector{TT}, n::Int, dt::Float64) where {TT <: Any}
 
 """
-function transition_M!(F::Array{TT,2}, σ2::TT, λ::TT, μ::TT, dx::UU,
-        xc::Vector{TT}, n::Int, dt::Float64) where {TT,UU <: Any}
+function transition_M!(F::Array{TT,2}, σ2::VV, λ::TT, μ::TT, dx::UU,
+        xc::Vector{TT}, n::Int, dt::Float64) where {TT,UU,VV <: Any}
 
     F[1,1] = one(TT); F[n,n] = one(TT); F[:,2:n-1] = zeros(TT,n,n-2)
 
