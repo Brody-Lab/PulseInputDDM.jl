@@ -62,9 +62,6 @@ logpdf.(dist, choices)
 
 @model model(data, inputs, n, dt) = begin
 
-    σ2_i, B, λ, σ2_s, ϕ, τ_ϕ = 0.5, 10., -0.5, 1.5, 0.8, 0.05
-    bias, lapse = 1.,0.05
-
     #σ2_i ~ Uniform(0., 2.)
     #B ~ Uniform(2., 30.)
     #λ ~ Uniform(-5., 5.)
@@ -74,6 +71,14 @@ logpdf.(dist, choices)
     #τ_ϕ ~ Uniform(0.005, 1.)
     #bias ~ Uniform(-10., 10.)
     #lapse ~ Uniform(0., 1.)
+    σ2_i ~ Normal(0.5, 0.)
+    B ~ Normal(10., 0.)
+    λ ~ Normal(-0.5, 0.)
+    σ2_s ~ Normal(1.5, 0.)
+    ϕ ~ Normal(0.8, 0.)
+    τ_ϕ ~ Normal(0.05, 0.)
+    bias ~ Normal(1., 0.)
+    lapse ~ Normal(0.05, 0.)
 
     pz = latent(σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ)
     pd = choice(bias, lapse)
@@ -91,7 +96,7 @@ iterations = 1000
 τ = 10
 # Start sampling.
 #chain = sample(coinflip(data), HMC(iterations, ϵ, τ));
-@time chain_HMC_2 = sample(model(choices, I), HMC(ϵ, τ), iterations)
+@time chain_HMC = sample(model(choices, I), HMC(ϵ, τ), iterations)
 #chain = sample(model(choices, I), MH(), 2000)
 #chain = sample(model(choices, I, n, dt))
 
