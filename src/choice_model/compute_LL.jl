@@ -135,12 +135,12 @@ end
     LL_single_trial!(λ, σ2_a, σ2_s, ϕ, τ_ϕ,
         P, M, dx, xc, L, R, nT, nL, nR, pokedR bias, n, dt)
 """
-function LL_single_trial!(λ::TT, σ2_a::TT, σ2_s::TT, ϕ::TT, τ_ϕ::TT,
+function LL_single_trial!(λ::TT, σ2_a::VV, σ2_s::TT, ϕ::TT, τ_ϕ::TT,
         P::Vector{TT}, M::Array{TT,2}, dx::UU,
         xc::Vector{TT}, L::Vector{Float64}, R::Vector{Float64}, nT::Int,
         nL::Vector{Int}, nR::Vector{Int},
         pokedR::Bool, bias::TT,
-        n::Int, dt::Float64) where {TT,UU <: Any}
+        n::Int, dt::Float64) where {TT,UU,VV <: Any}
 
     P = P_single_trial!(λ,σ2_a,σ2_s,ϕ,τ_ϕ,P,M,dx,xc,L,R,nT,nL,nR,n,dt)
     P = choice_likelihood!(bias,xc,P,pokedR,n,dx)
@@ -155,11 +155,11 @@ end
         P, M, dx, xc, L, R, nT, nL, nR, n, dt)
 
 """
-function P_single_trial!(λ::TT, σ2_a::TT, σ2_s::TT, ϕ::TT, τ_ϕ::TT,
+function P_single_trial!(λ::TT, σ2_a::VV, σ2_s::TT, ϕ::TT, τ_ϕ::TT,
         P::Vector{TT}, M::Array{TT,2}, dx::UU,
         xc::Vector{TT}, L::Vector{Float64}, R::Vector{Float64}, nT::Int,
         nL::Vector{Int}, nR::Vector{Int},
-        n::Int, dt::Float64) where {TT,UU <: Any}
+        n::Int, dt::Float64) where {TT,UU,VV <: Any}
 
     #adapt magnitude of the click inputs
     La, Ra = make_adapted_clicks(ϕ,τ_ϕ,L,R)
