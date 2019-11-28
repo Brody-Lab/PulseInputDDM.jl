@@ -45,8 +45,8 @@ end
 """
 function latent_one_step!(P::Vector{TT}, F::Array{TT,2}, λ::TT, σ2_a::VV, σ2_s::TT,
         t::Int, nL::Vector{Int}, nR::Vector{Int},
-        La::Vector{TT}, Ra::Vector{TT}, M::Array{TT,2},
-        dx::UU, xc::Vector{TT}, n::Int, dt::Float64; backwards::Bool=false) where {TT,UU,VV <: Any}
+        La::Vector{TT}, Ra::Vector{TT}, M::Array{WW,2},
+        dx::UU, xc::Vector{TT}, n::Int, dt::Float64; backwards::Bool=false) where {TT,UU,VV,WW <: Any}
 
     any(t .== nL) ? sL = sum(La[t .== nL]) : sL = zero(TT)
     any(t .== nR) ? sR = sum(Ra[t .== nR]) : sR = zero(TT)
