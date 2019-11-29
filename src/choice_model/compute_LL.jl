@@ -135,12 +135,12 @@ end
     LL_single_trial!(λ, σ2_a, σ2_s, ϕ, τ_ϕ,
         P, M, dx, xc, L, R, nT, nL, nR, pokedR bias, n, dt)
 """
-function LL_single_trial!(λ::TT, σ2_a::TT, σ2_s::TT, ϕ::TT, τ_ϕ::TT,
-        P::Vector{TT}, M::Array{TT,2}, dx::UU,
-        xc::Vector{TT}, L::Vector{Float64}, R::Vector{Float64}, nT::Int,
+function LL_single_trial!(λ::TT, σ2_a::T2, σ2_s::T3, ϕ::T4, τ_ϕ::T5,
+        P::Vector{T6}, M::Array{T7,2}, dx::T8,
+        xc::Vector{T8}, L::Vector{Float64}, R::Vector{Float64}, nT::Int,
         nL::Vector{Int}, nR::Vector{Int},
-        pokedR::Bool, bias::TT,
-        n::Int, dt::Float64) where {TT,UU <: Any}
+        pokedR::Bool, bias::T9,
+        n::Int, dt::Float64) where {TT,T2,T3,T4,T5,T6,T7,T8,T9 <: Any}
 
     P = P_single_trial!(λ,σ2_a,σ2_s,ϕ,τ_ϕ,P,M,dx,xc,L,R,nT,nL,nR,n,dt)
     P = choice_likelihood!(bias,xc,P,pokedR,n,dx)
@@ -155,17 +155,17 @@ end
         P, M, dx, xc, L, R, nT, nL, nR, n, dt)
 
 """
-function P_single_trial!(λ::TT, σ2_a::TT, σ2_s::TT, ϕ::TT, τ_ϕ::TT,
-        P::Vector{TT}, M::Array{TT,2}, dx::UU,
-        xc::Vector{TT}, L::Vector{Float64}, R::Vector{Float64}, nT::Int,
+function P_single_trial!(λ::TT, σ2_a::T2, σ2_s::T3, ϕ::T4, τ_ϕ::T5,
+        P::Vector{T6}, M::Array{T7,2}, dx::T8,
+        xc::Vector{T9}, L::Vector{Float64}, R::Vector{Float64}, nT::Int,
         nL::Vector{Int}, nR::Vector{Int},
-        n::Int, dt::Float64) where {TT,UU <: Any}
+        n::Int, dt::Float64) where {TT,T2,T3,T4,T5,T6,T7,T8,T9 <: Any}
 
     #adapt magnitude of the click inputs
     La, Ra = make_adapted_clicks(ϕ,τ_ϕ,L,R)
 
     #empty transition matrix for time bins with clicks
-    F = zeros(TT,n,n)
+    F = zeros(T7,n,n)
 
     @inbounds for t = 1:nT
 
@@ -213,8 +213,8 @@ julia> round.(pulse_input_DDM.choice_likelihood!(bias, xc, P, pokedR, n, dx), di
  0.02
 ```
 """
-function choice_likelihood!(bias::TT, xc::Vector{TT}, P::Vector{TT},
-                 pokedR::Bool, n::Int, dx::UU) where {TT,UU <: Any}
+function choice_likelihood!(bias::TT, xc::Vector{T2}, P::Vector{T3},
+                 pokedR::Bool, n::Int, dx::T2) where {TT,T2,T3 <: Any}
 
     lp = searchsortedlast(xc,bias)
     hp = lp + 1
