@@ -62,6 +62,15 @@ logpdf.(dist, choices)
 
 @model model(data, inputs, n, dt) = begin
 
+    σ2_i = 0.5
+    B = 10.
+    λ = -0.5
+    σ2_s = 1.5
+    ϕ = 0.8
+    τ_ϕ = 0.05
+    bias = 1.
+    lapse = 0.05
+
     #σ2_i ~ Uniform(0., 2.)
     #B ~ Uniform(2., 30.)
     #λ ~ Uniform(-5., 5.)
@@ -71,14 +80,14 @@ logpdf.(dist, choices)
     #τ_ϕ ~ Uniform(0.005, 1.)
     #bias ~ Uniform(-10., 10.)
     #lapse ~ Uniform(0., 1.)
-    σ2_i ~ Normal(0.5, 0.)
-    B ~ Normal(10., 0.)
-    λ ~ Normal(-0.5, 0.)
-    σ2_s ~ Normal(1.5, 0.)
-    ϕ ~ Normal(0.8, 0.)
-    τ_ϕ ~ Normal(0.05, 0.)
-    bias ~ Normal(1., 0.)
-    lapse ~ Normal(0.05, 0.)
+    #σ2_i ~ Normal(0.5, 0.)
+    #B ~ Normal(10., 0.)
+    #λ ~ Normal(-0.5, 0.)
+    #σ2_s ~ Normal(1.5, 0.)
+    #ϕ ~ Normal(0.8, 0.)
+    #τ_ϕ ~ Normal(0.05, 0.)
+    #bias ~ Normal(1., 0.)
+    #lapse ~ Normal(0.05, 0.)
 
     pz = latent(σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ)
     pd = choice(bias, lapse)
