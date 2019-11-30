@@ -110,3 +110,5 @@ iterations = 1000
 #chain = sample(model(choices, I, n, dt))
 
 #histogram(chain[:B])
+
+using ForwardDiff: hessian
