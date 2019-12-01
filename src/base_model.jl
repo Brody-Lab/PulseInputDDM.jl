@@ -5,8 +5,8 @@ const dimz = 7
     initialize_latent_model(σ2_i, B, λ, σ2_a, n, dt; L_lapse=0., R_lapse=0.)
 
 """
-function initialize_latent_model(σ2_i::TT, B::TT, λ::TT, σ2_a::TT,
-     n::Int, dt::Float64; L_lapse::UU=0., R_lapse::UU=0.) where {TT,UU <: Any}
+function initialize_latent_model(σ2_i::TT, B::T2, λ::T3, σ2_a::T4,
+     n::Int, dt::Float64; L_lapse::UU=0., R_lapse::UU=0.) where {TT,UU,T2,T3,T4 <: Any}
 
     #bin centers and number of bins
     xc,dx = bins(B,n)
@@ -15,7 +15,7 @@ function initialize_latent_model(σ2_i::TT, B::TT, λ::TT, σ2_a::TT,
     P = P0(σ2_i,n,dx,xc,dt; L_lapse=L_lapse, R_lapse=R_lapse)
 
     # build state transition matrix for times when there are no click inputs
-    M = transition_M(σ2_a*dt,λ,zero(TT),dx,xc,n,dt)
+    M = transition_M(σ2_a*dt,λ,zero(T4),dx,xc,n,dt)
 
     return P, M, xc, dx
 
@@ -26,8 +26,8 @@ end
     P0(σ2_i, n dx, xc, dt; L_lapse=0., R_lapse=0.)
 
 """
-function P0(σ2_i::TT, n::Int, dx::VV, xc::Vector{TT}, dt::Float64;
-        L_lapse::UU=0., R_lapse::UU=0.) where {TT,UU,VV <: Any}
+function P0(σ2_i::TT, n::Int, dx::T2, xc::Vector{T2}, dt::Float64;
+        L_lapse::UU=0., R_lapse::UU=0.) where {TT,UU,T2 <: Any}
 
     P = zeros(TT,n)
     # make initial delta function
@@ -43,17 +43,17 @@ end
     latent_one_step!(P, F, λ, σ2_a, σ2_s, t, nL, nR, La, Ra, M, dx, xc, n, dt)
 
 """
-function latent_one_step!(P::Vector{TT}, F::Array{TT,2}, λ::TT, σ2_a::TT, σ2_s::TT,
+function latent_one_step!(P::Vector{TT}, F::Array{T2,2}, λ::T3, σ2_a::T4, σ2_s::T5,
         t::Int, nL::Vector{Int}, nR::Vector{Int},
-        La::Vector{TT}, Ra::Vector{TT}, M::Array{TT,2},
-        dx::UU, xc::Vector{TT}, n::Int, dt::Float64; backwards::Bool=false) where {TT,UU <: Any}
+        La::Vector{T6}, Ra::Vector{T6}, M::Array{T7,2},
+        dx::T8, xc::Vector{T8}, n::Int, dt::Float64; backwards::Bool=false) where {TT,T2,T3,T4,T5,T6,T7,T8 <: Any}
 
-    any(t .== nL) ? sL = sum(La[t .== nL]) : sL = zero(TT)
-    any(t .== nR) ? sR = sum(Ra[t .== nR]) : sR = zero(TT)
+    any(t .== nL) ? sL = sum(La[t .== nL]) : sL = zero(T6)
+    any(t .== nR) ? sR = sum(Ra[t .== nR]) : sR = zero(T6)
 
     σ2 = σ2_s * (sL + sR);   μ = -sL + sR
 
-    if (sL + sR) > zero(TT)
+    if (sL + sR) > zero(T6)
         transition_M!(F,σ2+σ2_a*dt,λ, μ, dx, xc, n, dt)
         P = F * P
     else
@@ -127,8 +127,8 @@ julia> size(M)
 (53, 53)
 ```
 """
-function transition_M(σ2::TT, λ::TT, μ::TT, dx::UU,
-        xc::Vector{TT}, n::Int, dt::Float64) where {TT,UU <: Any}
+function transition_M(σ2::TT, λ::T2, μ::T3, dx::T4,
+        xc::Vector{T4}, n::Int, dt::Float64) where {TT,T2,T3,T4 <: Any}
 
     M = zeros(TT,n,n)
     transition_M!(M,σ2,λ,μ,dx,xc,n,dt)
@@ -143,8 +143,8 @@ end
         xc::Vector{TT}, n::Int, dt::Float64) where {TT <: Any}
 
 """
-function transition_M!(F::Array{TT,2}, σ2::TT, λ::TT, μ::TT, dx::UU,
-        xc::Vector{TT}, n::Int, dt::Float64) where {TT,UU <: Any}
+function transition_M!(F::Array{TT,2}, σ2::T2, λ::T3, μ::T4, dx::T5,
+        xc::Vector{T5}, n::Int, dt::Float64) where {TT,T2,T3,T4,T5 <: Any}
 
     F[1,1] = one(TT); F[n,n] = one(TT); F[:,2:n-1] = zeros(TT,n,n-2)
 
