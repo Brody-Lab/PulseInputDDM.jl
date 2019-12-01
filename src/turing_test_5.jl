@@ -29,9 +29,16 @@ end
 using Distributions, Turing, Random, Parameters
 using Base.Threads, pulse_input_DDM
 
-pz, pd, data = default_parameters_and_data(ntrials=1000);
-pz2 = latent(pz["generative"]...);
-pd2 = choice(pd["generative"]...);
+pz = [eps(), 10., -0.5, 20., 1.0, 0.6, 0.02]
+pd = [1.,0.05]
+
+#data = pulse_input_DDM.sample_clicks_and_choices(pz, pd, 1000)
+#data = pulse_input_DDM.bin_clicks!(data)
+data = pulse_input_DDM.sample_clicks(1000)
+
+#pz, pd, data = default_parameters_and_data(ntrials=1000);
+pz2 = latent(pz...)
+pd2 = choice(pd...)
 
 dt, n = 1e-2, 53
 
@@ -50,10 +57,10 @@ dist = map(i-> choiceDDM(pz2, pd2, i), I);
 
 #data = rand(dist, Nobs)
 #need dtMC, not dt
-choices = rand.(dist);
+choices = rand.(dist)
 
 
-logpdf.(dist, choices)
+#logpdf.(dist, choices)
 
 #using Distributed
 #addprocs(4)
@@ -86,7 +93,8 @@ iterations = 1000
 τ = 10
 # Start sampling.
 #chain = sample(coinflip(data), HMC(iterations, ϵ, τ));
-chain_HMC = sample(model(choices, I), HMC(ϵ, τ), iterations)
+@time chain_HMC = sample(model(choices, I), HMC(ϵ, τ), iterations)
+#NUTS_HMC = sample(model(choices, I), NUTS(0.65), iterations)
 #chain = sample(model(choices, I), MH(), 2000)
 #chain = sample(model(choices, I, n, dt))
 
