@@ -34,7 +34,7 @@ pd = [1.,0.05]
 
 #data = pulse_input_DDM.sample_clicks_and_choices(pz, pd, 1000)
 #data = pulse_input_DDM.bin_clicks!(data)
-data = pulse_input_DDM.sample_clicks(1000)
+data = pulse_input_DDM.sample_clicks(10000)
 
 #pz, pd, data = default_parameters_and_data(ntrials=1000);
 pz2 = latent(pz...)
@@ -67,15 +67,24 @@ choices = rand.(dist)
 
 @model model(data, inputs, n, dt) = begin
 
-    σ2_i ~ Uniform(0., 2.)
-    B ~ Uniform(2., 30.)
-    λ ~ Uniform(-5., 5.)
+    #σ2_i ~ Uniform(0., 2.)
+    #B ~ Uniform(2., 30.)
+    #λ ~ Uniform(-5., 5.)
     σ2_a ~ Uniform(0., 100.)
-    σ2_s ~ Uniform(0., 2.5)
-    ϕ ~ Uniform(0.01, 1.2)
-    τ_ϕ ~ Uniform(0.005, 1.)
-    bias ~ Uniform(-10., 10.)
-    lapse ~ Uniform(0., 1.)
+    #σ2_s ~ Uniform(0., 2.5)
+    #ϕ ~ Uniform(0.01, 1.2)
+    #τ_ϕ ~ Uniform(0.005, 1.)
+    #bias ~ Uniform(-10., 10.)
+    #lapse ~ Uniform(0., 1.)
+
+    σ2_i = eps()
+    B = 10
+    λ = -0.5
+    σ2_s = 1.0
+    ϕ = 0.6
+    τ_ϕ = 0.02
+    bias = 1.0
+    lapse = 0.05
 
     pz = latent(σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ)
     pd = choice(bias, lapse)
@@ -93,9 +102,9 @@ iterations = 1000
 τ = 10
 # Start sampling.
 #chain = sample(coinflip(data), HMC(iterations, ϵ, τ));
-@time chain_HMC = sample(model(choices, I), HMC(ϵ, τ), iterations)
+#@time chain_HMC = sample(model(choices, I), HMC(ϵ, τ), iterations)
 #NUTS_HMC = sample(model(choices, I), NUTS(0.65), iterations)
-#chain = sample(model(choices, I), MH(), 2000)
+chain = sample(model(choices, I), MH(), 2000)
 #chain = sample(model(choices, I, n, dt))
 
 #histogram(chain[:B])
