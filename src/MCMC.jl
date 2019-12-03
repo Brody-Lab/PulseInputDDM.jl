@@ -199,7 +199,7 @@ end
 
 function insupport(d::TT) where {TT<:choiceDDM}
 
-    @unpack pz, pd = dist
+    @unpack pz, pd = d
     @unpack σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ = pz
     @unpack bias, lapse = pd
 

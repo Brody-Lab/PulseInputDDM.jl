@@ -44,8 +44,8 @@ logpdf(dist,choices)
 
 
 # Define the components of a basic model.
-insupport(θ) = θ[2] >= 0
-dist(θ) = Normal(θ[1], θ[2])
+#insupport(θ) = θ[2] >= 0
+#dist(θ) = Normal(θ[1], θ[2])
 #density(data, θ) = insupport(θ) ? sum(logpdf.(dist(θ), data)) : -Inf
 density(choices,dist) = logpdf(dist,choices)
 
@@ -55,7 +55,7 @@ density(choices,dist) = logpdf(dist,choices)
 # Construct a DensityModel.
 #model = DensityModel(density, data)
 
-model = DensityModel(logpdf,choices)
+model = DensityModel(density,choices)
 
 # Set up our sampler with initial parameters.
 spl = MetropolisHastings([0.0, 0.0])
