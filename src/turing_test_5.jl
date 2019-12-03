@@ -26,30 +26,35 @@ end
 #σ = rand(Uniform(.2, 1))
 #dist = LNR(μ=μ, σ=σ, ϕ=0.0)
 
-using Distributions, Turing, Random, Parameters
-using Base.Threads, pulse_input_DDM
 
-pz = [0.5, 10., -0.5, 20., 1.0, 0.6, 0.02]
-pd = [1.,0.05]
+@everywhere begin
 
-#data = pulse_input_DDM.sample_clicks_and_choices(pz, pd, 1000)
-#data = pulse_input_DDM.bin_clicks!(data)
-data = pulse_input_DDM.sample_clicks(20000)
+    using Distributions, Turing, Random, Parameters
+    using Base.Threads, pulse_input_DDM
 
-#pz, pd, data = default_parameters_and_data(ntrials=1000);
-pz2 = latent(pz...)
-pd2 = choice(pd...)
+    pz = [0.5, 10., -0.5, 20., 1.0, 0.6, 0.02]
+    pd = [1.,0.05]
 
-dt, n = 1e-2, 53
+    #data = pulse_input_DDM.sample_clicks_and_choices(pz, pd, 1000)
+    #data = pulse_input_DDM.bin_clicks!(data)
+    data = pulse_input_DDM.sample_clicks(20000)
 
-T, L, R = data["T"], data["leftbups"], data["rightbups"]
-binned = map((T,L,R)-> pulse_input_DDM.bin_clicks(T,L,R; dt=dt), data["T"], data["leftbups"], data["rightbups"])
-nT, nL, nR = map(x->getindex.(binned, x), 1:3)
+    #pz, pd, data = default_parameters_and_data(ntrials=1000);
+    pz2 = latent(pz...)
+    pd2 = choice(pd...)
 
-I = inputs.(L, R, T, nT, nL, nR, dt)
-#I = inputs(L, R, T, nT, nL, nR, dt)
+    dt, n = 1e-2, 53
 
-dist = map(i-> choiceDDM(pz2, pd2, i), I);
+    T, L, R = data["T"], data["leftbups"], data["rightbups"]
+    binned = map((T,L,R)-> pulse_input_DDM.bin_clicks(T,L,R; dt=dt), data["T"], data["leftbups"], data["rightbups"])
+    nT, nL, nR = map(x->getindex.(binned, x), 1:3)
+
+    I = inputs.(L, R, T, nT, nL, nR, dt)
+    #I = inputs(L, R, T, nT, nL, nR, dt)
+
+    dist = map(i-> choiceDDM(pz2, pd2, i), I);
+
+end
 #dist = choiceDDM(pz2, pd2, I);
 
 #@time LL_all_trials(pz["generative"], pd["generative"], data)
@@ -57,7 +62,7 @@ dist = map(i-> choiceDDM(pz2, pd2, i), I);
 
 #data = rand(dist, Nobs)
 #need dtMC, not dt
-choices = rand.(dist)
+@everywhere choices = rand.(dist)
 
 #data["pokedR"] = choices
 #data["binned_leftbups"] = nL
@@ -77,9 +82,7 @@ choices = rand.(dist)
 #using Distributed
 #addprocs(4)
 
-#=
-
-@model model(data, inputs, n, dt) = begin
+@everywhere @model model(data, inputs, n, dt) = begin
 
     #σ2_i ~ Uniform(0., 2.)
     #B ~ Uniform(2., 30.)
@@ -110,8 +113,6 @@ choices = rand.(dist)
     end
     #data ~ choiceDDM(pz, pd, inputs)
 end
-
-=#
 
 #chain = sample(model(choices, I), NUTS(1000, .8), 2000)
 #iterations = 100
