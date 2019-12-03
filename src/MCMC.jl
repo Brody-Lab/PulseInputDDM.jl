@@ -185,10 +185,26 @@ function logpdf(d::TT, choice::Vector{Bool}; n::Int=53) where {TT<:choiceDDM}
     #@unpack bias, lapse = pd
     #@unpack L, R, nT, nL, nR, dt = clicks
 
-    sum(LL_all_trials(d, choice; n=n))
+    if insupport(d)
+        sum(LL_all_trials(d, choice; n=n))
+    else
+        -Inf
+    end
 
     #P,M,xc,dx = initialize_latent_model(σ2_i, B, λ, σ2_a, n, dt, L_lapse=lapse/2, R_lapse=lapse/2)
 
     #LL_single_trial!(λ, σ2_a, σ2_s, ϕ, τ_ϕ, P, M, dx, xc, L, R, nT, nL, nR, choice, bias, n, dt)
+
+end
+
+function insupport(d::TT) where {TT<:choiceDDM}
+
+    @unpack pz, pd = dist
+    @unpack σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ = pz
+    @unpack bias, lapse = pd
+
+    (0. <= σ2_i <= 2.) && (2. <= B <= 30.) && (-5. <= λ <= 5.) &&
+        (0. <= σ2_a <= 100.) && (0. <= σ2_s <= 2.5) && (0.01 <= ϕ <= 1.2) &&
+            (0.005 <= τ_ϕ <= 1.) && (-10. <= bias <= 10.) && (0. <= lapse <= 1.)
 
 end

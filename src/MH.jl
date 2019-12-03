@@ -39,18 +39,23 @@ choices = rand(dist)
 
 #logpdf.(dist, choices)
 
+logpdf(dist,choices)
+
 
 
 # Define the components of a basic model.
 insupport(θ) = θ[2] >= 0
 dist(θ) = Normal(θ[1], θ[2])
-density(data, θ) = insupport(θ) ? sum(logpdf.(dist(θ), data)) : -Inf
+#density(data, θ) = insupport(θ) ? sum(logpdf.(dist(θ), data)) : -Inf
+density(choices,dist) = logpdf(dist,choices)
 
 # Generate a set of data from the posterior we want to estimate.
-data = rand(Normal(0, 1), 30)
+#data = rand(Normal(0, 1), 30)
 
 # Construct a DensityModel.
-model = DensityModel(density, data)
+#model = DensityModel(density, data)
+
+model = DensityModel(logpdf,choices)
 
 # Set up our sampler with initial parameters.
 spl = MetropolisHastings([0.0, 0.0])
