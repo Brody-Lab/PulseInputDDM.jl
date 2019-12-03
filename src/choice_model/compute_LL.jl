@@ -82,7 +82,7 @@ end
 """
 function LL_all_trials(d::choiceDDM, choice::Vector{Bool}; n::Int=53) where {TT <: Any}
 
-    @unpack pz, pd, inputs = d
+    @unpack pz, pd, clicks = d
     @unpack σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ = pz
     @unpack bias, lapse = pd
     @unpack L, R, T, nT, nL, nR, dt = clicks
