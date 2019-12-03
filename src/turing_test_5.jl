@@ -29,12 +29,12 @@ end
 using Distributions, Turing, Random, Parameters
 using Base.Threads, pulse_input_DDM
 
-pz = [eps(), 10., -0.5, 20., 1.0, 0.6, 0.02]
+pz = [0.5, 10., -0.5, 20., 1.0, 0.6, 0.02]
 pd = [1.,0.05]
 
 #data = pulse_input_DDM.sample_clicks_and_choices(pz, pd, 1000)
 #data = pulse_input_DDM.bin_clicks!(data)
-data = pulse_input_DDM.sample_clicks(10000)
+data = pulse_input_DDM.sample_clicks(20000)
 
 #pz, pd, data = default_parameters_and_data(ntrials=1000);
 pz2 = latent(pz...)
@@ -59,6 +59,18 @@ dist = map(i-> choiceDDM(pz2, pd2, i), I);
 #need dtMC, not dt
 choices = rand.(dist)
 
+#data["pokedR"] = choices
+#data["binned_leftbups"] = nL
+#data["binned_rightbups"] = nR
+#data["nT"] = nT
+#data["dt"] = dt
+
+#LLs = collect(range(10.,stop=80,length=200))
+#LL = Vector{Float64}(undef,length(LLs))
+
+#for j = 1:length(LLs)
+#    LL[j] = compute_LL([0.5, 10., -0.5, LLs[j], 1.0, 0.6, 0.02], pd, data)
+#end
 
 #logpdf.(dist, choices)
 
@@ -77,7 +89,7 @@ choices = rand.(dist)
     #bias ~ Uniform(-10., 10.)
     #lapse ~ Uniform(0., 1.)
 
-    σ2_i = eps()
+    σ2_i = 0.5
     B = 10
     λ = -0.5
     σ2_s = 1.0
@@ -89,7 +101,8 @@ choices = rand.(dist)
     pz = latent(σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ)
     pd = choice(bias, lapse)
 
-    Threads.@threads for i in 1:length(data)
+    #Threads.@threads for i in 1:length(data)
+    for i in 1:length(data)
     #@sync @distributed for i in 1:length(data)
         data[i] ~ choiceDDM(pz, pd, inputs[i])
     end
@@ -97,14 +110,21 @@ choices = rand.(dist)
 end
 
 #chain = sample(model(choices, I), NUTS(1000, .8), 2000)
-iterations = 1000
-ϵ = 0.05
-τ = 10
+#iterations = 100
+#ϵ = 0.05
+#τ = 10
 # Start sampling.
 #chain = sample(coinflip(data), HMC(iterations, ϵ, τ));
 #@time chain_HMC = sample(model(choices, I), HMC(ϵ, τ), iterations)
 #NUTS_HMC = sample(model(choices, I), NUTS(0.65), iterations)
-chain = sample(model(choices, I), MH(), 2000)
+#chain_MH = sample(model(choices, I), MH(), iterations)
 #chain = sample(model(choices, I, n, dt))
+
+#yo = Vector{Float64}(undef,1000)
+
+#@time Threads.@threads for j = 1:1000
+#    i = ceil(Int, length(dist)*rand())
+#    yo[j] = @elapsed logpdf(dist[i],choices[i])
+#end
 
 #histogram(chain[:B])
