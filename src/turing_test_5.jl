@@ -77,6 +77,8 @@ choices = rand.(dist)
 #using Distributed
 #addprocs(4)
 
+#=
+
 @model model(data, inputs, n, dt) = begin
 
     #σ2_i ~ Uniform(0., 2.)
@@ -108,6 +110,8 @@ choices = rand.(dist)
     end
     #data ~ choiceDDM(pz, pd, inputs)
 end
+
+=#
 
 #chain = sample(model(choices, I), NUTS(1000, .8), 2000)
 #iterations = 100
