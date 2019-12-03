@@ -85,7 +85,7 @@ function LL_all_trials(d::choiceDDM, choice::Vector{Bool}; n::Int=53) where {TT 
     @unpack pz, pd, inputs = d
     @unpack σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ = pz
     @unpack bias, lapse = pd
-    @unpack L, R, T, nT, nL, nR, dt = inputs
+    @unpack L, R, T, nT, nL, nR, dt = clicks
 
     P,M,xc,dx = initialize_latent_model(σ2_i, B, λ, σ2_a, n, dt, L_lapse=lapse/2, R_lapse=lapse/2)
 

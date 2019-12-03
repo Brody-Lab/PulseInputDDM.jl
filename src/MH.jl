@@ -1,10 +1,8 @@
 #MH
 
 using AdvancedMH
-
-
-using Distributions, Turing, Random, Parameters
-using Base.Threads, pulse_input_DDM
+using Distributions, Random, Parameters
+using pulse_input_DDM
 
 pz = [0.5, 10., -0.5, 20., 1.0, 0.6, 0.02]
 pd = [1.,0.05]
@@ -23,21 +21,23 @@ T, L, R = data["T"], data["leftbups"], data["rightbups"]
 binned = map((T,L,R)-> pulse_input_DDM.bin_clicks(T,L,R; dt=dt), data["T"], data["leftbups"], data["rightbups"])
 nT, nL, nR = map(x->getindex.(binned, x), 1:3)
 
-I = inputs.(L, R, T, nT, nL, nR, dt)
-#I = inputs(L, R, T, nT, nL, nR, dt)
+#I = inputs.(L, R, T, nT, nL, nR, dt)
+I = inputs(L, R, T, nT, nL, nR, dt)
 
-dist = map(i-> choiceDDM(pz2, pd2, i), I);
+#dist = map(i-> choiceDDM(pz2, pd2, i), I);
 
-end
-#dist = choiceDDM(pz2, pd2, I);
+#end
+dist = choiceDDM(pz2, pd2, I);
 
 #@time LL_all_trials(pz["generative"], pd["generative"], data)
 #@time pulse_input_DDM.LL_all_trials_thread(pz["generative"], pd["generative"], data)
 
 #data = rand(dist, Nobs)
 #need dtMC, not dt
-@everywhere choices = rand.(dist)
+#@everywhere choices = rand.(dist)
+choices = rand(dist)
 
+#logpdf.(dist, choices)
 
 
 
