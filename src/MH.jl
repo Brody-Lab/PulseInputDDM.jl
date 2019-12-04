@@ -8,7 +8,7 @@ using TransformVariables
 pz = [0.5, 10., -0.5, 20., 1.0, 0.6, 0.02]
 pd = [1.,0.05]
 
-npoints = 10000
+npoints = 1000
 
 #data = pulse_input_DDM.sample_clicks_and_choices(pz, pd, 1000)
 #data = pulse_input_DDM.bin_clicks!(data)
@@ -111,10 +111,9 @@ model = DensityModel(density5)
 spl = MetropolisHastings(zeros(9))
 
 # Sample from the posterior.
-chain = sample(model, spl, 2000; param_names=["σ_i", "B", "λ", "σ_a", "σ_s", "ϕ", "τ_ϕ", "bias", "lapse"])
+chain = sample(model, spl, 20000; param_names=["σ_i", "B", "λ", "σ_a", "σ_s", "ϕ", "τ_ϕ", "bias", "lapse"])
 #chain = sample(model, spl, 200; param_names=["σ_a", "σ_s"])
 
-#=
 
 function ∂ℓπ∂θ(x)
     res = GradientResult(x)
@@ -132,15 +131,15 @@ using ForwardDiff: gradient!
 n_samples = 20
 
 # Draw a random starting points
-θ_init = vcat(pz, pd)
+#θ_init = vcat(pz, pd)
+θ_init = zeros(9)
 
-ϵ = 0.1
+ϵ = 0.05
 n_steps = 1
 
 metric = DiagEuclideanMetric(length(θ_init))
-h = Hamiltonian(metric, density3, ∂ℓπ∂θ)
+h = Hamiltonian(metric, density5, ∂ℓπ∂θ)
 lf = Leapfrog(ϵ)
+#lf = Leapfrog(find_good_eps(h, θ_init))
 prop = StaticTrajectory(lf, n_steps)
-chain_HMC = sample(h, prop, θ_init, n_samples; progress=true)
-
-=#
+samples, stats = sample(h, prop, θ_init, n_samples; progress=true)
