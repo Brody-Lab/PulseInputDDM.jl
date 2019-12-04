@@ -8,7 +8,7 @@ using TransformVariables
 pz = [0.5, 10., -0.5, 20., 1.0, 0.6, 0.02]
 pd = [1.,0.05]
 
-npoints = 1000
+npoints = 10000
 
 #data = pulse_input_DDM.sample_clicks_and_choices(pz, pd, 1000)
 #data = pulse_input_DDM.bin_clicks!(data)
@@ -42,31 +42,31 @@ choices = rand(dist)
 
 #logpdf.(dist, choices)
 
-logpdf(dist,choices)
+#logpdf(dist,choices)
 
 
 # Define the components of a basic model.
 #insupport(θ) = θ[2] >= 0
 #dist(θ) = Normal(θ[1], θ[2])
 #density(data, θ) = insupport(θ) ? sum(logpdf.(dist(θ), data)) : -Inf
-function density(x)
-    pz = latent(x[1:7]...)
-    pd = choice(x[8:9]...)
-    dist = choiceDDM(pz, pd, I);
-    logpdf(dist, choices)
-end
+#function density(x)
+#    pz = latent(x[1:7]...)
+#    pd = choice(x[8:9]...)
+#    dist = choiceDDM(pz, pd, I);
+#    logpdf(dist, choices)
+#end
 
 #density3(x) = pulse_input_DDM.density2(x, pz, pd, L, R, nT, nL, nR, choices; n=n, dt=dt)
 density3(x) = pulse_input_DDM.density4(x, L, R, nT, nL, nR, choices; n=n, dt=dt)
 
-pulse_input_DDM.problem_transformation(tuple(pz...,pd...))
+#pulse_input_DDM.problem_transformation(tuple(pz...,pd...))
 
-LLs = collect(range(1e-12,stop=100-1e-12,length=20))
-LL = Vector{Float64}(undef,length(LLs))
+#LLs = collect(range(1e-12,stop=100-1e-12,length=20))
+#LL = Vector{Float64}(undef,length(LLs))
 
-for j = 1:length(LLs)
-    LL[j] = density3([LLs[j],pz[5]])
-end
+#for j = 1:length(LLs)
+#    LL[j] = density3([LLs[j],pz[5]])
+#end
 
 t = as((as(Real, 0., 2.), as(Real, 2., 30.),
         as(Real, -5, 5), as(Real, 0., 100.), as(Real, 0., 2.5),
@@ -76,9 +76,9 @@ t = as((as(Real, 0., 2.), as(Real, 2., 30.),
 #(0. < σ2_a < 100.) && (0. < σ2_s < 2.5) && (0.01 < ϕ < 1.2) &&
 #(0.005 < τ_ϕ < 1.) && (-10. < bias < 10.) && (0. < lapse < 1.)
 
-x = tuple(pz...,pd...)
+#x = tuple(pz...,pd...)
 
-blah(x) = transform_and_logjac(t, collect(x))
+#blah(x) = transform_and_logjac(t, collect(x))
 
 density5(x) = transform_logdensity(t, density3, collect(x))
 
@@ -102,7 +102,7 @@ model = DensityModel(density5)
 #                    Uniform(0.,100.), Uniform(0.,2.5), Uniform(0.01,1.2),
 #                    Uniform(0.005,1.), Uniform(-10.,10.), Uniform(0,1)]
 
-conditionals = [Uniform(0.,100.),Uniform(0.,2.5)]
+#conditionals = [Uniform(0.,100.),Uniform(0.,2.5)]
 
 #spl = MetropolisHastings(vcat(pz,pd), Product(conditionals))
 #spl = MetropolisHastings([pz[4]], Product(conditionals))
@@ -111,8 +111,10 @@ conditionals = [Uniform(0.,100.),Uniform(0.,2.5)]
 spl = MetropolisHastings(zeros(9))
 
 # Sample from the posterior.
-chain = sample(model, spl, 200; param_names=["σ_i", "B", "λ", "σ_a", "σ_s", "ϕ", "τ_ϕ", "bias", "lapse"])
+chain = sample(model, spl, 2000; param_names=["σ_i", "B", "λ", "σ_a", "σ_s", "ϕ", "τ_ϕ", "bias", "lapse"])
 #chain = sample(model, spl, 200; param_names=["σ_a", "σ_s"])
+
+#=
 
 function ∂ℓπ∂θ(x)
     res = GradientResult(x)
@@ -140,3 +142,5 @@ h = Hamiltonian(metric, density3, ∂ℓπ∂θ)
 lf = Leapfrog(ϵ)
 prop = StaticTrajectory(lf, n_steps)
 chain_HMC = sample(h, prop, θ_init, n_samples; progress=true)
+
+=#
