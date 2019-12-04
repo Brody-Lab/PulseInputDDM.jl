@@ -3,13 +3,16 @@
 using AdvancedMH
 using Distributions, Random, Parameters
 using pulse_input_DDM
+using TransformVariables
 
 pz = [0.5, 10., -0.5, 20., 1.0, 0.6, 0.02]
 pd = [1.,0.05]
 
+npoints = 1000
+
 #data = pulse_input_DDM.sample_clicks_and_choices(pz, pd, 1000)
 #data = pulse_input_DDM.bin_clicks!(data)
-data = pulse_input_DDM.sample_clicks(20000)
+data = pulse_input_DDM.sample_clicks(npoints)
 
 #pz, pd, data = default_parameters_and_data(ntrials=1000);
 pz2 = latent(pz...)
@@ -42,12 +45,47 @@ choices = rand(dist)
 logpdf(dist,choices)
 
 
-
 # Define the components of a basic model.
 #insupport(θ) = θ[2] >= 0
 #dist(θ) = Normal(θ[1], θ[2])
 #density(data, θ) = insupport(θ) ? sum(logpdf.(dist(θ), data)) : -Inf
-density(choices,dist) = logpdf(dist,choices)
+function density(x)
+    pz = latent(x[1:7]...)
+    pd = choice(x[8:9]...)
+    dist = choiceDDM(pz, pd, I);
+    logpdf(dist, choices)
+end
+
+#density3(x) = pulse_input_DDM.density2(x, pz, pd, L, R, nT, nL, nR, choices; n=n, dt=dt)
+density3(x) = pulse_input_DDM.density4(x, L, R, nT, nL, nR, choices; n=n, dt=dt)
+
+pulse_input_DDM.problem_transformation(tuple(pz...,pd...))
+
+LLs = collect(range(1e-12,stop=100-1e-12,length=20))
+LL = Vector{Float64}(undef,length(LLs))
+
+for j = 1:length(LLs)
+    LL[j] = density3([LLs[j],pz[5]])
+end
+
+t = as((as(Real, 0., 2.), as(Real, 2., 30.),
+        as(Real, -5, 5), as(Real, 0., 100.), as(Real, 0., 2.5),
+        as(Real, 0.01, 1.2), as(Real, 0.005, 1.), as(Real, -10., 10.), as(Real, 0., 1.)))
+
+#(0. < σ2_i < 2.) && (2. < B < 30.) && (-5. < λ < 5.) &&
+#(0. < σ2_a < 100.) && (0. < σ2_s < 2.5) && (0.01 < ϕ < 1.2) &&
+#(0.005 < τ_ϕ < 1.) && (-10. < bias < 10.) && (0. < lapse < 1.)
+
+x = tuple(pz...,pd...)
+
+blah(x) = transform_and_logjac(t, collect(x))
+
+density5(x) = transform_logdensity(t, density3, collect(x))
+
+#x = (1.,2.)
+#t = as((as(Real, 0., 2.), as(Real, 8., 30.)))
+#f(x) = logpdf(MvNormal(length(x),1.), collect(x))
+#transform_logdensity(t, f, collect(x))
 
 # Generate a set of data from the posterior we want to estimate.
 #data = rand(Normal(0, 1), 30)
@@ -55,10 +93,50 @@ density(choices,dist) = logpdf(dist,choices)
 # Construct a DensityModel.
 #model = DensityModel(density, data)
 
-model = DensityModel(density,choices)
+#model = DensityModel(density, choices)
+#model = DensityModel(density)
+model = DensityModel(density5)
 
 # Set up our sampler with initial parameters.
-spl = MetropolisHastings([0.0, 0.0])
+#conditionals = [Uniform(0.,2.), Uniform(2.,30.), Uniform(-5.,5.),
+#                    Uniform(0.,100.), Uniform(0.,2.5), Uniform(0.01,1.2),
+#                    Uniform(0.005,1.), Uniform(-10.,10.), Uniform(0,1)]
+
+conditionals = [Uniform(0.,100.),Uniform(0.,2.5)]
+
+#spl = MetropolisHastings(vcat(pz,pd), Product(conditionals))
+#spl = MetropolisHastings([pz[4]], Product(conditionals))
+#spl = MetropolisHastings(vcat(pz,pd))
+#spl = MetropolisHastings(pz[4:5])
+spl = MetropolisHastings(zeros(9))
 
 # Sample from the posterior.
-chain = sample(model, spl, 100000)
+chain = sample(model, spl, 200; param_names=["σ_i", "B", "λ", "σ_a", "σ_s", "ϕ", "τ_ϕ", "bias", "lapse"])
+#chain = sample(model, spl, 200; param_names=["σ_a", "σ_s"])
+
+function ∂ℓπ∂θ(x)
+    res = GradientResult(x)
+    gradient!(res, density5, x)
+    return (value(res), gradient(res))
+end
+
+### Build up a HMC sampler to draw samples
+using AdvancedHMC
+using Distributions: logpdf, MvNormal
+using DiffResults: GradientResult, value, gradient
+using ForwardDiff: gradient!
+
+# Sampling parameter settings
+n_samples = 20
+
+# Draw a random starting points
+θ_init = vcat(pz, pd)
+
+ϵ = 0.1
+n_steps = 1
+
+metric = DiagEuclideanMetric(length(θ_init))
+h = Hamiltonian(metric, density3, ∂ℓπ∂θ)
+lf = Leapfrog(ϵ)
+prop = StaticTrajectory(lf, n_steps)
+chain_HMC = sample(h, prop, θ_init, n_samples; progress=true)

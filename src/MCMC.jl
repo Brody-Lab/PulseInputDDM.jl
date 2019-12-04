@@ -44,6 +44,18 @@ function problem_transformation(problem::DDMProblem)
 end
 
 
+function problem_transformation(x)
+
+    tz = as((as(Real, 0., 2.), as(Real, 8., 30.),
+            as(Real, -5, 5), as(Real, 0., 100.), as(Real, 0., 2.5),
+            as(Real, 0.01, 1.2), as(Real, 0.005, 1.)))
+
+    td = as((as(Real, -30., 30.), as(Real, 0., 1.)))
+
+    as((tz,td))
+end
+
+
 """
 """
 struct latent{T1,T2,T3,T4,T5,T6,T7}
@@ -185,11 +197,11 @@ function logpdf(d::TT, choice::Vector{Bool}; n::Int=53) where {TT<:choiceDDM}
     #@unpack bias, lapse = pd
     #@unpack L, R, nT, nL, nR, dt = clicks
 
-    if insupport(d)
+    #if insupport(d)
         sum(LL_all_trials(d, choice; n=n))
-    else
-        -Inf
-    end
+    #else
+#        -Inf
+#    end
 
     #P,M,xc,dx = initialize_latent_model(σ2_i, B, λ, σ2_a, n, dt, L_lapse=lapse/2, R_lapse=lapse/2)
 
@@ -197,14 +209,75 @@ function logpdf(d::TT, choice::Vector{Bool}; n::Int=53) where {TT<:choiceDDM}
 
 end
 
-function insupport(d::TT) where {TT<:choiceDDM}
+#function insupport(d::TT) where {TT<:choiceDDM}
+function insupport(x)
 
-    @unpack pz, pd = d
-    @unpack σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ = pz
-    @unpack bias, lapse = pd
+    #@unpack pz, pd = d
+    #@unpack σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ = pz
+    #@unpack bias, lapse = pd
+    σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ = x[1:7]
+    bias, lapse = x[8:9]
 
-    (0. <= σ2_i <= 2.) && (2. <= B <= 30.) && (-5. <= λ <= 5.) &&
-        (0. <= σ2_a <= 100.) && (0. <= σ2_s <= 2.5) && (0.01 <= ϕ <= 1.2) &&
-            (0.005 <= τ_ϕ <= 1.) && (-10. <= bias <= 10.) && (0. <= lapse <= 1.)
+    (0. < σ2_i < 2.) && (2. < B < 30.) && (-5. < λ < 5.) &&
+        (0. < σ2_a < 100.) && (0. < σ2_s < 2.5) && (0.01 < ϕ < 1.2) &&
+            (0.005 < τ_ϕ < 1.) && (-10. < bias < 10.) && (0. < lapse < 1.)
+
+end
+
+function insupport2(x)
+
+    σ2_a, σ2_s = x
+    (0. < σ2_a < 100.) && (0. < σ2_s < 2.5)
+
+end
+
+function density2(x, pz, pd, L, R, nT, nL, nR, choice::Vector{Bool};
+    n::Int=53, dt::Float64=1e-2) where {TT <: Any}
+
+    σ2_a, σ2_s = x
+    #pz = x[1:7]
+    #pd = x[8:9]
+    bias, lapse = pd
+    #σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ = pz
+    σ2_i, B, λ = pz[1:3]
+    ϕ, τ_ϕ = pz[6:7]
+
+    if insupport2(x)
+
+        P,M,xc,dx = initialize_latent_model(σ2_i, B, λ, σ2_a, n, dt, L_lapse=lapse/2, R_lapse=lapse/2)
+
+        sum(pmap((L,R,nT,nL,nR,choice) -> LL_single_trial!(λ, σ2_a, σ2_s, ϕ, τ_ϕ,
+            P, M, dx, xc, L, R, nT, nL, nR, choice, bias, n, dt), L, R, nT, nL, nR, choice))
+
+    else
+
+        @warn "outside support!"
+        -Inf
+
+    end
+
+end
+
+function density4(x, L, R, nT, nL, nR, choice::Vector{Bool};
+    n::Int=53, dt::Float64=1e-2) where {TT <: Any}
+
+    pz = x[1:7]
+    pd = x[8:9]
+    bias, lapse = pd
+    σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ = pz
+
+    if insupport(x)
+
+        P,M,xc,dx = initialize_latent_model(σ2_i, B, λ, σ2_a, n, dt, L_lapse=lapse/2, R_lapse=lapse/2)
+
+        sum(pmap((L,R,nT,nL,nR,choice) -> LL_single_trial!(λ, σ2_a, σ2_s, ϕ, τ_ϕ,
+            P, M, dx, xc, L, R, nT, nL, nR, choice, bias, n, dt), L, R, nT, nL, nR, choice))
+
+    else
+
+        @warn "outside support!"
+        -Inf
+
+    end
 
 end
