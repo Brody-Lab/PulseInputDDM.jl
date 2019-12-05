@@ -1,26 +1,19 @@
-using AdvancedMH
-using Distributions, Random, Parameters
-using pulse_input_DDM
-using TransformVariables
-
-#pz = [0.5, 10., -0.5, 20., 1.0, 0.6, 0.02]
-#pd = [1.,0.05]
-
-#npoints = 1000
-
-#data = pulse_input_DDM.sample_clicks_and_choices(pz, pd, 1000)
-#data = pulse_input_DDM.bin_clicks!(data)
-#data = pulse_input_DDM.sample_clicks(npoints)
+using AdvancedMH, pulse_input_DDM, Distributions, Random
 
 pz, pd, data = default_parameters_and_data(ntrials=1000);
-model = DensityModel(compute_LL)
+model = DensityModel(x-> compute_LL(x,data))
 
-h = -1 * compute_Hessian(pz, pd, data);
-#h⁻¹ = inv(h)
+h = compute_Hessian(pz,pd, data; state="generative");
+h⁻¹ = inv(h)
+#h = 0.5 * (h + h')
+V = eigvecs(h⁻¹)
+d = collect(Diagonal(max.(0,eigvals(h⁻¹))))
+h⁻¹PSD = V * d * V'
+#hPSD⁻¹ = inv(hPSD)
 #h⁻¹ = 0.5 * (h⁻¹ + h⁻¹')
 
-spl = MetropolisHastings(vcat(pz,pd), MvNormal(zeros(9), 0.1 * [0.1, 1., 1., 10., 0.1, 0.01, 0.01, 0.1, 0.1]));
-chain = sample(model, spl, 1000; param_names=["σ_i", "B", "λ", "σ_a", "σ_s", "ϕ", "τ_ϕ", "bias", "lapse"])
+spl = MetropolisHastings(vcat(pz["generative"],pd["generative"]), MvNormal(zeros(9), 0.1 * [0.1, 1., 1., 10., 0.1, 0.01, 0.01, 0.1, 0.1]));
+chain = sample(Random.GLOBAL_RNG, model, spl, 1000; param_names=vcat(pz["names"],pd["names"]))
 #chain = sample(model, spl, 200; param_names=["σ_a", "σ_s"])
 
 
