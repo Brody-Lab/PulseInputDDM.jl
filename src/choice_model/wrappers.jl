@@ -18,7 +18,7 @@ function default_parameters(;generative::Bool=false)
               "ub" => [2., 30., 5., 100., 2.5, 1.2, 1.])
 
     if generative
-        pz["generative"] = [eps(), 18., -0.5, 5., 1.5, 0.4, 0.02]
+        pz["generative"] = [0.5, 18., -0.5, 20., 1.5, 0.4, 0.02]
         pd["generative"] = [1.,0.05]
     end
 
@@ -350,6 +350,22 @@ function compute_LL(x::Vector{TT}, data::Dict, parameter_map_f::Function; n::Int
 
     pz, pd = parameter_map_f(x)
     compute_LL(pz, pd, data; n=n)
+
+end
+
+
+function compute_LL(x::Vector{TT}, data::Dict; n::Int=53) where {TT <: Any}
+
+    pz = x[1:7]
+    pd = x[8:9]
+
+    if insupport(x)
+        compute_LL(pz, pd, data; n=n)
+
+    else
+        @warn "outside support!"
+        -Inf
+    end
 
 end
 
