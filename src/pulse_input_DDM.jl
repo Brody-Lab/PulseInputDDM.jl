@@ -19,7 +19,7 @@ import Base.rand
 import Distributions: logpdf
 using Base.Threads
 
-include("MCMC.jl")
+include("MH/MCMC.jl")
 
 include("base_model.jl")
 include("analysis_functions.jl")

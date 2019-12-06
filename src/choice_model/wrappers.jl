@@ -13,7 +13,7 @@ function default_parameters(;generative::Bool=false)
 
     pz = Dict("name" => ["σ_i","B", "λ", "σ_a","σ_s","ϕ","τ_ϕ"],
               "fit" => vcat(true, true, true, true, true, true, true),
-              "initial" => [eps(), 15., -0.1, 20., 0.5, 0.8, 0.008],
+              "initial" => [0.5, 15., -0.1, 100., 0.5, 0.8, 0.008],
               "lb" => [0., 8., -5., 0., 0., 0.01, 0.005],
               "ub" => [2., 30., 5., 100., 2.5, 1.2, 1.])
 
@@ -361,11 +361,24 @@ function compute_LL(x::Vector{TT}, data::Dict; n::Int=53) where {TT <: Any}
 
     if insupport(x)
         compute_LL(pz, pd, data; n=n)
-
-    else
-        @warn "outside support!"
+    else @warn "outside support"
         -Inf
     end
+
+end
+
+#function insupport(d::TT) where {TT<:choiceDDM}
+function insupport(x)
+
+    #@unpack pz, pd = d
+    #@unpack σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ = pz
+    #@unpack bias, lapse = pd
+    σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ = x[1:7]
+    bias, lapse = x[8:9]
+
+    (0. < σ2_i < Inf) && (2. < B < Inf) && (-5. < λ < 5.) &&
+        (0. < σ2_a < Inf) && (0. < σ2_s < Inf) && (0. < ϕ < 1.2) &&
+            (0.005 < τ_ϕ < Inf) && (-10. < bias < 10.) && (0. < lapse < 1.)
 
 end
 
