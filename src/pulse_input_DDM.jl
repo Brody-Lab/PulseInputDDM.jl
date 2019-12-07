@@ -41,8 +41,6 @@ export reload_optimization_parameters, save_optimization_parameters
 export default_parameters_and_data
 export LL_across_range
 
-export DDMProblem
-
 export mean_exp_rate_per_trial, mean_exp_rate_per_cond
 
 #=
