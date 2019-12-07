@@ -377,7 +377,7 @@ function insupport(x)
     bias, lapse = x[8:9]
 
     (0. < σ2_i < Inf) && (2. < B < Inf) && (-5. < λ < 5.) &&
-        (0. < σ2_a < Inf) && (0. < σ2_s < Inf) && (0. < ϕ < 1.2) &&
+        (0. < σ2_a < Inf) && (0. < σ2_s < Inf) && (0. < ϕ < Inf) &&
             (0.005 < τ_ϕ < Inf) && (-10. < bias < 10.) && (0. < lapse < 1.)
 
 end
