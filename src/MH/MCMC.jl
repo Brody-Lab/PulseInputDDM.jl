@@ -209,21 +209,6 @@ function logpdf(d::TT, choice::Vector{Bool}; n::Int=53) where {TT<:choiceDDM}
 
 end
 
-#function insupport(d::TT) where {TT<:choiceDDM}
-function insupport(x)
-
-    #@unpack pz, pd = d
-    #@unpack σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ = pz
-    #@unpack bias, lapse = pd
-    σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ = x[1:7]
-    bias, lapse = x[8:9]
-
-    (0. < σ2_i < 2.) && (2. < B < 30.) && (-5. < λ < 5.) &&
-        (0. < σ2_a < 100.) && (0. < σ2_s < 2.5) && (0.01 < ϕ < 1.2) &&
-            (0.005 < τ_ϕ < 1.) && (-10. < bias < 10.) && (0. < lapse < 1.)
-
-end
-
 function insupport2(x)
 
     σ2_a, σ2_s = x
