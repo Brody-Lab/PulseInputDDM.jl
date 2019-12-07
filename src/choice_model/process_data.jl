@@ -22,7 +22,7 @@ function process_choice_data!(data)
     data["pokedR"] = vec(convert(BitArray, data["pokedR"]))
 
     if !isempty(occursin.("correct", collect(keys(data))))
-        data["correct"] = vec(convert(BitArray, data[occursin.("correct", collect(keys(data)))]))
+        data["correct"] = vec(convert(BitArray, data[collect(keys(data))[occursin.("correct", collect(keys(data)))][1]]))
     end
 
     return data
