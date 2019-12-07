@@ -5,27 +5,41 @@ function load_choice_data(path::String, file::String;
 
     println("loading data \n")
     data = read(matopen(path*file), "rawdata")
-
-    data["T"] = data["T"]
-    data["pokedR"] = vec(convert(BitArray, data["pokedR"]))
-    
-    mykeys = collect(keys(data))
-    
-    Lkey_bool = findall(map(key-> occursin("left", key), mykeys))
-    Rkey_bool = findall(map(key-> occursin("right", key), mykeys))
-    corkey_bool = findall(map(key-> occursin("correct", key), mykeys))
-    
-    data["left"] = map(x-> vec(collect(x)), data[mykeys[Lkey_bool][1]])
-    data["right"] = map(x-> vec(collect(x)), data[mykeys[Rkey_bool][1]])
-
-    if !isempty(corkey_bool)
-        data["correct"] = vec(convert(BitArray, data[mykeys[corkey_bool][1]]))
-    end
-
+        
+    data = process_click_input_data!(data)    
+    data = process_choice_data!(data)
     data = bin_clicks!(data; use_bin_center=use_bin_center, dt=dt)
     
     return data
 
+end
+
+
+"""
+"""
+function process_choice_data!(data)
+    
+    data["pokedR"] = vec(convert(BitArray, data["pokedR"]))
+     
+    if !isempty(occursin.("correct", collect(keys(data))))
+        data["correct"] = vec(convert(BitArray, data[occursin.("correct", collect(keys(data)))]))
+    end
+
+    return data
+
+end
+
+
+"""
+"""
+function process_click_input_data!(data)
+    
+    data["T"] = vec(data["T"])
+    data["leftbups"] = map(x-> vec(collect(x)), data[occursin.("left", collect(keys(data)))])
+    data["rightbups"] = map(x-> vec(collect(x)), data[occursin.("right", collect(keys(data)))])   
+    
+    return data
+    
 end
 
 
@@ -36,11 +50,11 @@ function bin_clicks!(data::Dict; use_bin_center::Bool=false, dt::Float64=1e-2)
     data["dt"] = dt
     data["use_bin_center"] = use_bin_center
     
-    data["nT"], data["binned_left"], data["binned_right"] = 
-        bin_clicks(data["T"], data["left"], data["right"], dt=dt, use_bin_center=use_bin_center)
+    data["nT"], data["binned_leftbups"], data["binned_rightbups"] = 
+        bin_clicks(data["T"], data["leftbups"], data["rightbups"], dt=dt, use_bin_center=use_bin_center)
     
-    data["ΔLRT"] = map((nT,L,R)-> diffLR(nT,L,R,data["dt"])[end], data["nT"], data["left"], data["right"])
-    data["ΔLR"] = map((nT,L,R)-> diffLR(nT,L,R,data["dt"]), data["nT"], data["left"], data["right"])
+    data["ΔLRT"] = map((nT,L,R)-> diffLR(nT,L,R,data["dt"])[end], data["nT"], data["leftbups"], data["rightbups"])
+    data["ΔLR"] = map((nT,L,R)-> diffLR(nT,L,R,data["dt"]), data["nT"], data["leftbups"], data["rightbups"])
     
     return data    
 

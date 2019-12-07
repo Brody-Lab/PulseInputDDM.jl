@@ -1,6 +1,6 @@
 #  Getting started
 
-You need to add the pulse_input_DDM package from github. Startup julia by loading the julia module on scotty or spock:
+You need to add the pulse\_input\_DDM package from github. Startup julia by loading the julia module on scotty or spock:
 
 ```
     >> module load julia/1.0.0
