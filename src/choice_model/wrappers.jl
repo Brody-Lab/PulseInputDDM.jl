@@ -12,8 +12,8 @@ function default_parameters(;generative::Bool=false)
               "ub" => [30, 1.])
 
     pz = Dict("name" => ["σ_i","B", "λ", "σ_a","σ_s","ϕ","τ_ϕ"],
-              "fit" => vcat(false, true, true, true, true, true, true),
-              "initial" => [eps(), 15., -0.1, 20., 0.5, 0.8, 0.008],
+              "fit" => vcat(true, true, true, true, true, true, true),
+              "initial" => [0.1, 15., -0.1, 20., 0.5, 0.8, 0.008],
               "lb" => [0., 8., -5., 0., 0., 0.01, 0.005],
               "ub" => [2., 30., 5., 100., 2.5, 1.2, 1.])
 
