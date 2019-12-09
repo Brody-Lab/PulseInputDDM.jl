@@ -1,3 +1,8 @@
+## create struct
+## unpacking
+## mapping
+## jacobians and hessian
+
 """
     default_parameters(;generative=false)
 
@@ -144,8 +149,8 @@ function optimize_model(pz::Dict{}, pd::Dict{}, data::Dict{}; n::Int=53,
     p_opt[p_opt .< lb] .= lb[p_opt .< lb]
     p_opt[p_opt .> ub] .= ub[p_opt .> ub]
 
-    opt_output = opt_func_fminbox(p_opt, ll, lb, ub; g_tol=g_tol, x_tol=x_tol,
-        f_tol=f_tol, iterations=iterations, outer_iterations=outer_iterations, show_trace=show_trace)
+    opt_output = opt_func(p_opt, ll; g_tol=g_tol, x_tol=x_tol,
+        f_tol=f_tol, iterations=iterations, show_trace=show_trace)
 
     p_opt, converged = Optim.minimizer(opt_output), Optim.converged(opt_output)
 
@@ -441,3 +446,5 @@ true
 """
 combine_latent_and_observation(pz::Union{Vector{TT},BitArray{1}},
     pd::Union{Vector{TT},BitArray{1}}) where {TT} = vcat(pz,pd)
+
+transform(lb, ub) = as(Tuple(as.(Real, lb, ub)))
