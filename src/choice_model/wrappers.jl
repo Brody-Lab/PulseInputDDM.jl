@@ -2,6 +2,7 @@
 ## unpacking
 ## mapping
 ## jacobians and hessian
+## add logpdf and rand for LL and sample
 
 """
     default_parameters(;generative=false)
