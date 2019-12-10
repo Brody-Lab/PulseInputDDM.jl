@@ -354,8 +354,9 @@ in optimization, Hessian and gradient computation.
 """
 function compute_LL(x::Vector{TT}, data::Dict, parameter_map_f::Function; n::Int=53) where {TT <: Any}
 
+    model = choiceDDM(latent,)
     pz, pd = parameter_map_f(x)
-    compute_LL(pz, pd, data; n=n)
+    compute_LL(model, choice; n=n)
 
 end
 
@@ -366,7 +367,7 @@ end
 Computes the log likelihood of the animal's choices (data["pokedR"] in data) given the model parameters
 contained within the Vectors pz and pd.
 """
-compute_LL(pz::Vector{T}, pd::Vector{T}, data; n::Int=53) where {T <: Any} = sum(LL_all_trials(pz, pd, data, n=n))
+compute_LL(choiceDDM, choice; n::Int=53) where {T <: Any} = sum(LL_all_trials(choiceDDM, choice; n=n))
 
 
 """

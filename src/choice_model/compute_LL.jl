@@ -40,7 +40,7 @@ end
 
 
 """
-    LL_all_trials(pz, pd, data; n=53)
+    LL_all_trials(choiceDDM; n=53)
 
 Computes the log likelihood for a set of trials consistent with the animal's choice on each trial.
 
@@ -63,12 +63,12 @@ julia> round.(LL_all_trials(pz["generative"], pd["generative"], data), digits=2)
  -0.15
 ```
 """
-function LL_all_trials(pz::Vector{TT}, pd::Vector{TT}, data::Dict; n::Int=53) where {TT <: Any}
+function LL_all_trials(choiceDDM, choice; n::Int=53) where {TT <: Any}
 
-    bias, lapse = pd
-    σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ = pz
-    L, R, nT, nL, nR, choice = [data[key] for key in ["leftbups","rightbups","nT","binned_leftbups","binned_rightbups","pokedR"]]
-    dt = data["dt"]
+    @unpack pz, pd, clicks = choiceDDM
+    @unpack bias, lapse = pd
+    @unpack σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ = pz
+    @unpack L, R, nT, nL, nR, dt = clicks
 
     P,M,xc,dx = initialize_latent_model(σ2_i, B, λ, σ2_a, n, dt, L_lapse=lapse/2, R_lapse=lapse/2)
 

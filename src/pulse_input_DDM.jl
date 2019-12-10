@@ -44,6 +44,8 @@ export LL_across_range
 
 export mean_exp_rate_per_trial, mean_exp_rate_per_cond
 
+export latent, choiceDDM, choice, clicks
+
 #=
 
 export neural_null
@@ -65,34 +67,46 @@ export filter_data_by_cell!
 
 """
 """
-struct DDMProblem
-    data::Dict{Any,Any}
+struct choiceDDM <: ContinuousUnivariateDistribution
+    pz
+    pd
+    clicks
 end
 
 
 """
 """
-struct neuralDDMProblem
-    data::Array{Dict{Any,Any},1}
+struct latent{T1,T2,T3,T4,T5,T6,T7}
+    σ2_i::T1
+    B::T2
+    λ::T3
+    σ2_a::T4
+    σ2_s::T5
+    ϕ::T6
+    τ_ϕ::T7
 end
 
 
 """
 """
-function (problem::DDMProblem)(θ)
-    pz, pd = θ
-    @unpack data = problem
-    compute_LL(collect(pz), collect(pd), data)
+struct choice{T1,T2}
+    bias::T1
+    lapse::T2
 end
 
 
 """
 """
-function (problem::neuralDDMProblem)(θ,f_str)
-    pz, py = θ
-    @unpack data = problem
-    compute_LL(collect(pz), collect(py), data, f_str)
+struct clicks
+    L::Vector{Vector{Float64}}
+    R::Vector{Vector{Float64}}
+    T::Vector{Float64}
+    nT::Vector{Int}
+    nL::Vector{Vector{Int}}
+    nR::Vector{Vector{Int}}
+    dt::Float64
 end
+
 
 
 
