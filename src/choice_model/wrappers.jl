@@ -141,11 +141,10 @@ function optimize_model(pz::Dict{}, pd::Dict{}, data::Dict{}; n::Int=53,
 
     p_opt, ll, parameter_map_f = split_opt_params_and_close(pz,pd,data; n=n, state="state")
 
-    p_opt[p_opt .< lb] .= lb[p_opt .< lb]
-    p_opt[p_opt .> ub] .= ub[p_opt .> ub]
+    F = as(Tuple(as.(Real, lb, ub)))
 
-    opt_output = opt_func_fminbox(p_opt, ll, lb, ub; g_tol=g_tol, x_tol=x_tol,
-        f_tol=f_tol, iterations=iterations, outer_iterations=outer_iterations, show_trace=show_trace)
+    opt_output = opt_func(p_opt, ll; g_tol=g_tol, x_tol=x_tol,
+        f_tol=f_tol, iterations=iterations, show_trace=show_trace)
 
     p_opt, converged = Optim.minimizer(opt_output), Optim.converged(opt_output)
 
