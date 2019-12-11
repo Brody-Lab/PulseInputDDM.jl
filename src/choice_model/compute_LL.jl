@@ -63,31 +63,33 @@ julia> round.(LL_all_trials(pz["generative"], pd["generative"], data), digits=2)
  -0.15
 ```
 """
-function LL_all_trials(choiceDDM, choice; n::Int=53) where {TT <: Any}
+function loglikelihood(model_wdata::choiceDDM_wdata; n::Int=53) where {TT <: Any}
 
-    @unpack pz, pd, clicks = choiceDDM
-    @unpack bias, lapse = pd
-    @unpack σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ = pz
-    @unpack L, R, nT, nL, nR, dt = clicks
+    @unpack model, choices = model_wdata
+    @unpack θ, binned_clicks = model
+    @unpack clicks, nT, nL, nR, dt = binned_clicks
+    @unpack θz, bias, lapse = θ
+    @unpack σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ = θz
+    @unpack L, R = clicks
 
     P,M,xc,dx = initialize_latent_model(σ2_i, B, λ, σ2_a, n, dt, L_lapse=lapse/2, R_lapse=lapse/2)
 
-    pmap((L,R,nT,nL,nR,choice) -> LL_single_trial!(λ, σ2_a, σ2_s, ϕ, τ_ϕ,
-        P, M, dx, xc, L, R, nT, nL, nR, choice, bias, n, dt), L, R, nT, nL, nR, choice)
+    sum(pmap((L,R,nT,nL,nR,choice) -> loglikelihood!(λ, σ2_a, σ2_s, ϕ, τ_ϕ,
+        P, M, dx, xc, L, R, nT, nL, nR, choice, bias, n, dt), L, R, nT, nL, nR, choices))
 
 end
 
 
 """
-    LL_single_trial!(λ, σ2_a, σ2_s, ϕ, τ_ϕ,
+    loglikelihood!(λ, σ2_a, σ2_s, ϕ, τ_ϕ,
         P, M, dx, xc, L, R, nT, nL, nR, pokedR bias, n, dt)
 """
-function LL_single_trial!(λ::TT, σ2_a::TT, σ2_s::TT, ϕ::TT, τ_ϕ::TT,
+function loglikelihood!(λ::TT, σ2_a::TT, σ2_s::TT, ϕ::TT, τ_ϕ::TT,
         P::Vector{TT}, M::Array{TT,2}, dx::UU,
         xc::Vector{TT}, L::Vector{Float64}, R::Vector{Float64}, nT::Int,
         nL::Vector{Int}, nR::Vector{Int},
         pokedR::Bool, bias::TT,
-        n::Int, dt::Float64) where {TT,UU <: Any}
+        n::Int, dt::Float64) where {TT,UU <: Real}
 
     P = P_single_trial!(λ,σ2_a,σ2_s,ϕ,τ_ϕ,P,M,dx,xc,L,R,nT,nL,nR,n,dt)
     P = choice_likelihood!(bias,xc,P,pokedR,n,dx)
@@ -106,10 +108,10 @@ function P_single_trial!(λ::TT, σ2_a::TT, σ2_s::TT, ϕ::TT, τ_ϕ::TT,
         P::Vector{TT}, M::Array{TT,2}, dx::UU,
         xc::Vector{TT}, L::Vector{Float64}, R::Vector{Float64}, nT::Int,
         nL::Vector{Int}, nR::Vector{Int},
-        n::Int, dt::Float64) where {TT,UU <: Any}
+        n::Int, dt::Float64) where {TT,UU <: Real}
 
     #adapt magnitude of the click inputs
-    La, Ra = make_adapted_clicks(ϕ,τ_ϕ,L,R)
+    La, Ra = adapt_clicks(ϕ,τ_ϕ,L,R)
 
     #empty transition matrix for time bins with clicks
     F = zeros(TT,n,n)

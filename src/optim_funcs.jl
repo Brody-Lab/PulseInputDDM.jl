@@ -1,44 +1,13 @@
 """
-    check_pz(pz)
-
-Checks the values of pz, looking for very specific parameters where singularities occur in the model.
-"""
-function check_pz(pz)
-
-    if (pz["state"][pz["name"] .== "ϕ"][1] == 1.) & pz["fit"][pz["name"] .== "ϕ"][1]
-        error("ϕ has a value of 1. and you are optimizing w.r.t. to it
-            but this code ignores ϕ when it is exactly 1.
-            Change your initialization of ϕ.")
-    end
-
-    if (pz["state"][pz["name"] .== "λ"][1] == 1.) & pz["fit"][pz["name"] .== "λ"][1]
-        error("λ has a value of 0. and you are optimizing w.r.t. to it
-            but this code ignores λ when it is exactly 0.
-            Change your initialization of λ.")
-    end
-
-end
-
-
-"""
-    split_variable_and_const(p, fit_vec)
-
-Split one vector into two, the first being a optimization variables, the second constants, based on the Boolean vector fit_vec
-"""
-split_variable_and_const(p::Vector{TT}, fit_vec::Union{BitArray{1},Vector{Bool}}) where TT = p[fit_vec], p[.!fit_vec]
-
-
-"""
-    combine_variable_and_const(p_opt, p_const)
+    x_c(p_opt, p_const)
 
 Combine two vector into one. The first vector is variables for optimization, the second are constants.
 """
-function combine_variable_and_const(p_opt::Vector{TT}, p_const::Vector{Float64},
-            fit_vec::Union{BitArray{1},Vector{Bool}}) where TT
+function x_c(x::Vector{TT}, c::Vector{Float64}, fit::Union{BitArray{1},Vector{Bool}}) where TT
 
-    p = Vector{TT}(undef,length(fit_vec))
-    p[fit_vec] = p_opt
-    p[.!fit_vec] = p_const
+    p = Vector{TT}(undef,length(fit))
+    p[fit] = x
+    p[.!fit] = c
 
     return p
 

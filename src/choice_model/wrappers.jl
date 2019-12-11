@@ -3,47 +3,16 @@
 ## mapping
 ## jacobians and hessian
 ## add logpdf and rand for LL and sample
-
-"""
-    default_parameters(;generative=false)
-
-Returns two dictionaries of default model parameters.
-"""
-function default_parameters(;generative::Bool=false)
-
-    pd = Dict("name" => vcat("bias","lapse"),
-              "fit" => vcat(true, true),
-              "initial" => vcat(0.,0.01),
-              "lb" => [-30, 0.],
-              "ub" => [30, 1.])
-
-    pz = Dict("name" => ["σ_i","B", "λ", "σ_a","σ_s","ϕ","τ_ϕ"],
-              "fit" => vcat(true, true, true, true, true, true, true),
-              "initial" => [0.1, 15., -0.1, 20., 0.5, 0.8, 0.008],
-              "lb" => [0., 8., -5., 0., 0., 0.01, 0.005],
-              "ub" => [2., 30., 5., 100., 2.5, 1.2, 1.])
-
-    if generative
-        pz["generative"] = [eps(), 18., -0.5, 5., 1.5, 0.4, 0.02]
-        pd["generative"] = [1.,0.05]
-    end
-
-    return pz, pd
-
-end
-
-
 """
     default_parameters_and_data(;generative=false,ntrials=2000,rng=1)
 Returns default parameters and some simulated data
 """
-function default_parameters_and_data(;generative::Bool=true, ntrials::Int=2000, rng::Int=1,
-                                    dt::Float64=1e-2, use_bin_center::Bool=false)
-    pz, pd = default_parameters(;generative=true)
-    data = sample_clicks_and_choices(pz["generative"], pd["generative"], ntrials; rng=rng)
-    data = bin_clicks!(data,use_bin_center=use_bin_center,dt=dt)
+function default_model(; ntrials::Int=2000, rng::Int=1, dt::Float64=1e-2, centered::Bool=false)
 
-    return pz, pd, data
+    θ = θchoice()
+    clicks, choices = rand(θ, ntrials; rng=rng)
+    binned_clicks = bin_clicks(clicks, centered=centered, dt=dt)
+    choiceDDM_wdata(choiceDDM(θ, binned_clicks), choices)
 
 end
 
@@ -55,13 +24,13 @@ end
 Generate data using known generative paramaeters (must be provided) and then optimize model
 parameters using that data. Useful for testing the model fitting procedure.
 """
-function optimize_model(pz::Dict{}, pd::Dict{}; ntrials::Int=20000, n::Int=53,
+function optimize(pz::Dict{}, pd::Dict{}; ntrials::Int=20000, n::Int=53,
         x_tol::Float64=1e-10, f_tol::Float64=1e-6, g_tol::Float64=1e-3,
         iterations::Int=Int(2e3), show_trace::Bool=true,
         dt::Float64=1e-2, use_bin_center::Bool=false, rng::Int=1)
 
     data = sample_clicks_and_choices(pz["generative"], pd["generative"], ntrials; rng=rng)
-    data = bin_clicks!(data,use_bin_center=use_bin_center, dt=dt)
+    data = bin_clicks(data,use_bin_center=use_bin_center, dt=dt)
 
     pz, pd, converged = optimize_model(pz, pd, data; n=n,
         x_tol=x_tol, f_tol=f_tol, g_tol=g_tol, iterations=iterations, show_trace=show_trace)
@@ -79,7 +48,7 @@ end
 Generate data using known generative paramaeters and then optimize model
 parameters using that data. Useful for testing the model fitting procedure.
 """
-function optimize_model(; ntrials::Int=20000, n::Int=53,
+function optimize(; ntrials::Int=20000, n::Int=53,
         x_tol::Float64=1e-10, f_tol::Float64=1e-6, g_tol::Float64=1e-3,
         iterations::Int=Int(2e3), show_trace::Bool=true,
         dt::Float64=1e-2, use_bin_center::Bool=false, rng::Int=1,
@@ -104,7 +73,7 @@ end
 
 Optimize model parameters using default parameter initialization.
 """
-function optimize_model(data::Dict{}; n::Int=53,
+function optimize(data::Dict{}; n::Int=53,
         x_tol::Float64=1e-10, f_tol::Float64=1e-6, g_tol::Float64=1e-3,
         iterations::Int=Int(2e3), show_trace::Bool=true,
         outer_iterations::Int=Int(1e1))
@@ -130,45 +99,71 @@ and specification of which parameters to fit.
 BACK IN THE DAY TOLS WERE: x_tol::Float64=1e-4, f_tol::Float64=1e-9, g_tol::Float64=1e-2
 
 """
-function optimize_model(pz::Dict{}, pd::Dict{}, data::Dict{}; n::Int=53,
+function optimize(model_wdata_wopt::choiceDDM_wdata_wopt; n::Int=53,
         x_tol::Float64=1e-10, f_tol::Float64=1e-6, g_tol::Float64=1e-3,
         iterations::Int=Int(2e3), show_trace::Bool=true,
         outer_iterations::Int=Int(1e1))
 
     println("optimize! \n")
-    haskey(pz,"state") ? nothing : pz["state"] = deepcopy(pz["initial"])
-    haskey(pd,"state") ? nothing : pd["state"] = deepcopy(pd["initial"])
 
-    check_pz(pz)
+    @unpack opt, model_wdata = model_wdata_wopt
+    @unpack model = model_wdata
+    @unpack fit, lb, ub, x0 = opt
+    c, x0 = x0[.!fit], x0[fit]
+    F = as(Tuple(as.(Real, lb, ub)))
+    x_c(x) = x_c(x,c,fit)
+    ℓℓ(y) = -loglikelihood(collect(y), model_wdata; n=n)
+    Fℓℓ(x) = transform_logdensity(F, ℓℓ, x_c(x))
 
-    fit_vec = combine_latent_and_observation(pz["fit"], pd["fit"])
-    lb = combine_latent_and_observation(pz["lb"], pd["lb"])[fit_vec]
-    ub = combine_latent_and_observation(pz["ub"], pd["ub"])[fit_vec]
-
-    p_opt, ll, parameter_map_f = split_opt_params_and_close(pz,pd,data; n=n, state="state")
-
-    p_opt[p_opt .< lb] .= lb[p_opt .< lb]
-    p_opt[p_opt .> ub] .= ub[p_opt .> ub]
-
-    opt_output = opt_func(p_opt, ll; g_tol=g_tol, x_tol=x_tol,
+    output = opt_func(x0, ℓℓ; g_tol=g_tol, x_tol=x_tol,
         f_tol=f_tol, iterations=iterations, show_trace=show_trace)
 
-    p_opt, converged = Optim.minimizer(opt_output), Optim.converged(opt_output)
+    x, converged = Optim.minimizer(output), Optim.converged(output)
+    x = collect(transform(F, x_c(x)))
 
-    pz["state"], pd["state"] = parameter_map_f(p_opt)
-    pz["final"], pd["final"] = pz["state"], pd["state"]
-    println("optimization complete \n")
-    println("converged: $converged \n")
+    model_wdata = pack!(x, model_wdata)
 
-    return pz, pd, converged
+    println("optimization complete. converged: $converged \n")
+
+    return model_wdata_wopt, converged
 
 end
 
 
 """
-    compute_gradient(pz, pd, data; n=53, state="state")
+    loglikelihood(x, model; n=53)
+
+A wrapper function that accepts a vector of mixed parameters, splits the vector
+into two vectors based on the parameter mapping function provided as an input. Used
+in optimization, Hessian and gradient computation.
 """
-function compute_gradient(pz::Dict{}, pd::Dict{}, data::Dict{};
+function loglikelihood(x::Vector{TT}, model::choiceDDM_wdata; n::Int=53) where {TT <: Real}
+
+    model = pack!(x, model)
+    sum(loglikelihood(model; n=n))
+
+end
+
+
+"""
+    loglikelihood(; ntrials=2e4, n=53, dt=1e-2, use_bin_center=false, rng=1)
+Generates default parameters, data and computes the LL of that data
+"""
+function loglikelihood(; ntrials::Int=20000, n::Int=53,
+        dt::Float64=1e-2, use_bin_center::Bool=false, rng::Int=1)
+
+    pz, pd = default_parameters(generative=true)
+    data = sample_clicks_and_choices(pz["generative"], pd["generative"], ntrials; rng=rng)
+    data = bin_clicks!(data,use_bin_center=use_bin_center, dt=dt)
+    sum(LL_all_trials(pz["generative"], pd["generative"], data, n=n))
+
+end
+
+
+"""
+    gradient(pz, pd, data; n=53, state="state")
+"""
+function gradient(pz::Dict{}, pd::Dict{}, data::Dict{};
     n::Int=53, state::String="state") where {TT <: Any}
 
     p_opt, ll, = split_opt_params_and_close(pz,pd,data; n=n,state=state)
@@ -181,7 +176,7 @@ end
     compute_gradient(; ntrials=20000, n=53, dt=1e-2, use_bin_center=false, rng=1)
 Generates default parameters, data and then computes the gradient
 """
-function compute_gradient(; ntrials::Int=20000, n::Int=53,
+function gradient(; ntrials::Int=20000, n::Int=53,
         dt::Float64=1e-2, use_bin_center::Bool=false, rng::Int=1)
 
     pz, pd = default_parameters(generative=true)
@@ -196,7 +191,7 @@ end
 """
     compute_Hessian(pz, pd, data; n=53, state="state")
 """
-function compute_Hessian(pz::Dict{}, pd::Dict{}, data::Dict{};
+function Hessian(pz::Dict{}, pd::Dict{}, data::Dict{};
     n::Int=53, state::String="state") where {TT <: Any}
 
     println("computing Hessian! \n")
@@ -209,7 +204,7 @@ end
 """
     compute_CIs!(pz, pd, H)
 """
-function compute_CIs!(pz::Dict, pd::Dict, H::Array{Float64,2})
+function CIs(pz::Dict, pd::Dict, H::Array{Float64,2})
 
     println("computing confidence intervals \n")
 
@@ -240,7 +235,7 @@ end
 
 Computes confidence intervals based on the likelihood ratio test
 """
-function compute_CIs!(pz::Dict, pd::Dict, data::Dict; n::Int=53, state::String="final")
+function CIs(pz::Dict, pd::Dict, data::Dict; n::Int=53, state::String="final")
 
     fit_vec = combine_latent_and_observation(pz["fit"], pd["fit"])
     lb = combine_latent_and_observation(pz["lb"], pd["lb"])
@@ -346,75 +341,7 @@ end
 
 
 """
-    compute_LL(x, data, parameter_map_f; n=53)
-
-A wrapper function that accepts a vector of mixed parameters, splits the vector
-into two vectors based on the parameter mapping function provided as an input. Used
-in optimization, Hessian and gradient computation.
-"""
-function compute_LL(x::Vector{TT}, data::Dict, parameter_map_f::Function; n::Int=53) where {TT <: Any}
-
-    model = choiceDDM(latent,)
-    pz, pd = parameter_map_f(x)
-    compute_LL(model, choice; n=n)
-
-end
-
-
-"""
-    compute_LL(pz, pd, data; n=53)
-
-Computes the log likelihood of the animal's choices (data["pokedR"] in data) given the model parameters
-contained within the Vectors pz and pd.
-"""
-compute_LL(choiceDDM, choice; n::Int=53) where {T <: Any} = sum(LL_all_trials(choiceDDM, choice; n=n))
-
-
-"""
-    compute_LL(pz, pd, data; n=53, state="state")
-
-Computes the log likelihood of the animal's choices (data["pokedR"] in data) given the model parameters
-contained within the Dicts pz and pd. The optional argument `state` determines which key
-(e.g. initial, final, state, generative, etc.) will be used (since the functions
-this function calls accepts Vectors of Floats)
-"""
-function compute_LL(pz::Dict{}, pd::Dict{}, data::Dict{}; n::Int=53, state::String="state") where {T <: Any}
-    compute_LL(pz[state], pd[state], data, n=n)
-end
-
-
-"""
-    compute_LL(; ntrials=2e4, n=53, dt=1e-2, use_bin_center=false, rng=1)
-Generates default parameters, data and computes the LL of that data
-"""
-function compute_LL(; ntrials::Int=20000, n::Int=53,
-        dt::Float64=1e-2, use_bin_center::Bool=false, rng::Int=1)
-
-    pz, pd = default_parameters(generative=true)
-    data = sample_clicks_and_choices(pz["generative"], pd["generative"], ntrials; rng=rng)
-    data = bin_clicks!(data,use_bin_center=use_bin_center, dt=dt)
-    sum(LL_all_trials(pz["generative"], pd["generative"], data, n=n))
-
-end
-
-
-"""
-"""
-function split_opt_params_and_close(pz::Dict{}, pd::Dict{}, data::Dict{}; n::Int=53, state::String="state")
-
-    fit_vec = combine_latent_and_observation(pz["fit"], pd["fit"])
-    p_opt, p_const = split_variable_and_const(combine_latent_and_observation(pz[state], pd[state]), fit_vec)
-
-    parameter_map_f(x) = split_latent_and_observation(combine_variable_and_const(x, p_const, fit_vec))
-    ll(x) = -compute_LL(x, data, parameter_map_f, n=n)
-
-    return p_opt, ll, parameter_map_f
-
-end
-
-
-"""
-    split_latent_and_observation(p)
+    pack(p)
 
 Splits a vector up into two vectors. The first vector is for components related
 to the latent variables, the second is for components related to the observation model.
@@ -428,25 +355,12 @@ julia> pulse_input_DDM.split_latent_and_observation(p) == (pz["initial"], pd["in
 true
 ```
 """
-split_latent_and_observation(p::Vector{TT}) where {TT} = p[1:dimz], p[dimz+1:end]
+function pack!(x::Vector{TT}, model) where {TT <: Real}
 
+    σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ, bias, lapse = x
+    @pack! model.model.θ.θz = σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ
+    @pack! model.model.θ = bias, lapse
 
-"""
-    combine_latent_and_observation(pz,pd)
+    return model
 
-Combines two vectors into one vector. The first vector is for components related
-to the latent variables, the second vectoris for components related to the observation model.
-### Examples
-```jldoctest
-julia> pz, pd = pulse_input_DDM.default_parameters();
-
-julia> p = pulse_input_DDM.combine_latent_and_observation(pz["initial"], pd["initial"]);
-
-julia> pulse_input_DDM.split_latent_and_observation(p) == (pz["initial"], pd["initial"])
-true
-```
-"""
-combine_latent_and_observation(pz::Union{Vector{TT},BitArray{1}},
-    pd::Union{Vector{TT},BitArray{1}}) where {TT} = vcat(pz,pd)
-
-transform(lb, ub) = as(Tuple(as.(Real, lb, ub)))
+end

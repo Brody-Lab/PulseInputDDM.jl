@@ -14,6 +14,112 @@ import StatsFuns: logistic, logit, softplus, xlogy
 using ImageFiltering
 using ForwardDiff: value
 using Parameters, TransformVariables
+import Base.rand
+
+export dimz
+export loglikelihood, default_model
+export compute_CIs!, optimize, Hessian, gradient
+export bin_clicks!, load, bounded_mass_all_trials
+export reload, save
+
+export mean_exp_rate_per_trial, mean_exp_rate_per_cond
+
+export choiceDDM, clicks, θchoice, choiceDDM_wdata, opt, choiceDDM_wdata_wopt
+export θz, θd, binned_clicks
+
+#=
+
+export neural_null
+export compute_ΔLL
+
+export choice_null
+export sample_input_and_spikes_multiple_sessions, sample_inputs_and_spikes_single_session
+export sample_spikes_single_session, sample_spikes_single_trial, sample_expected_rates_single_session
+
+export sample_choices_all_trials
+export aggregate_spiking_data, bin_clicks_spikes_and_λ0!
+
+export diffLR
+
+export filter_data_by_cell!
+
+=#
+"""
+"""
+@with_kw mutable struct θz{T<:Real} @deftype T
+    σ2_i = 0.1
+    B = 18.
+    λ = -0.5; @assert λ != 0.
+    σ2_a = 5.
+    σ2_s = 1.5
+    ϕ = 0.4; @assert ϕ != 1.
+    τ_ϕ = 0.02
+end
+
+
+"""
+"""
+@with_kw mutable struct θchoice{T1, T<:Real}
+    θz::T1 = θz()
+    bias::T = 1.
+    lapse::T = 0.05
+end
+
+
+"""
+"""
+@with_kw struct clicks
+    L::Vector{Vector{Float64}}
+    R::Vector{Vector{Float64}}
+    T::Vector{Float64}
+    ntrials::Int
+end
+
+
+"""
+"""
+@with_kw struct binned_clicks{T}
+    clicks::T
+    nT::Vector{Int}
+    nL::Vector{Vector{Int}}
+    nR::Vector{Vector{Int}}
+    dt::Float64
+    centered::Bool
+end
+
+
+"""
+"""
+@with_kw mutable struct choiceDDM{T,U} <: ContinuousUnivariateDistribution
+    θ::T = θchoice()
+    binned_clicks::U
+end
+
+
+"""
+"""
+@with_kw mutable struct choiceDDM_wdata{T}
+    model::T
+    choices::Vector{Bool}
+end
+
+"""
+"""
+@with_kw struct opt
+    fit::Vector{Bool} = vcat(trues(7), trues(2))
+    lb::Vector{Float64} = vcat([0., 8., -5., 0., 0., 0.01, 0.005], [-30, 0.])
+    ub::Vector{Float64} = vcat([2., 30., 5., 100., 2.5, 1.2, 1.], [30, 1.])
+    x0::Vector{Float64} = vcat([0.1, 15., -0.1, 20., 0.5, 0.8, 0.008], [0.,0.01])
+end
+
+
+"""
+"""
+@with_kw mutable struct choiceDDM_wdata_wopt{T,U}
+    model_wdata::T
+    opt::U = opt()
+end
+
 
 include("base_model.jl")
 include("analysis_functions.jl")
@@ -33,83 +139,5 @@ include("neural_model/deterministic_model.jl")
 
 #include("neural_model/load_and_optimize.jl")
 #include("neural_model/sample_model_functions_FP.jl")
-
-export dimz
-export compute_CIs!, optimize_model, compute_LL, compute_Hessian, compute_gradient
-export default_parameters, LL_all_trials
-export bin_clicks!, load_choice_data, bounded_mass_all_trials
-export reload_optimization_parameters, save_optimization_parameters
-export default_parameters_and_data
-export LL_across_range
-
-export mean_exp_rate_per_trial, mean_exp_rate_per_cond
-
-export latent, choiceDDM, choice, clicks
-
-#=
-
-export neural_null
-export compute_ΔLL
-
-export choice_null
-export sample_input_and_spikes_multiple_sessions, sample_inputs_and_spikes_single_session
-export sample_spikes_single_session, sample_spikes_single_trial, sample_expected_rates_single_session
-
-export sample_choices_all_trials
-export aggregate_spiking_data, bin_clicks_spikes_and_λ0!
-
-export diffLR
-
-export filter_data_by_cell!
-
-=#
-
-
-"""
-"""
-struct choiceDDM <: ContinuousUnivariateDistribution
-    pz
-    pd
-    clicks
-end
-
-
-"""
-"""
-struct latent{T1,T2,T3,T4,T5,T6,T7}
-    σ2_i::T1
-    B::T2
-    λ::T3
-    σ2_a::T4
-    σ2_s::T5
-    ϕ::T6
-    τ_ϕ::T7
-end
-
-
-"""
-"""
-struct choice{T1,T2}
-    bias::T1
-    lapse::T2
-end
-
-
-"""
-"""
-struct clicks
-    L::Vector{Vector{Float64}}
-    R::Vector{Vector{Float64}}
-    T::Vector{Float64}
-    nT::Vector{Int}
-    nL::Vector{Vector{Int}}
-    nR::Vector{Vector{Int}}
-    dt::Float64
-end
-
-
-
-
-
 
 end

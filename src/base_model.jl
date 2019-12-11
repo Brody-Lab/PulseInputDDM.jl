@@ -214,10 +214,10 @@ end
 
 
 """
-    make_adapted_clicks(ϕ, τ_ϕ, L, R)
+    adapted_clicks(ϕ, τ_ϕ, L, R)
 
 """
-function make_adapted_clicks(ϕ::TT, τ_ϕ::TT, L::Vector{Float64}, R::Vector{Float64}) where {TT}
+function adapt_clicks(ϕ::TT, τ_ϕ::TT, L::Vector{Float64}, R::Vector{Float64}) where {TT}
 
     La, Ra = ones(TT,length(L)), ones(TT,length(R))
 
@@ -230,8 +230,8 @@ function make_adapted_clicks(ϕ::TT, τ_ϕ::TT, L::Vector{Float64}, R::Vector{Fl
     #    La[1], Ra[1] = eps(), eps()
     #end
 
-    (length(L) > 1 && ϕ != 1.) ? adapt_clicks!(La, L, ϕ, τ_ϕ) : nothing
-    (length(R) > 1 && ϕ != 1.) ? adapt_clicks!(Ra, R, ϕ, τ_ϕ) : nothing
+    (length(L) > 1 && ϕ != 1.) ? adapt_clicks!(ϕ, τ_ϕ, La, L) : nothing
+    (length(R) > 1 && ϕ != 1.) ? adapt_clicks!(ϕ, τ_ϕ, Ra, R) : nothing
 
     return La, Ra
 
@@ -242,7 +242,7 @@ end
     adapt_clicks!(Ca, C, ϕ, τ_ϕ)
 
 """
-function adapt_clicks!(Ca::Vector{TT}, C::Vector{Float64}, ϕ::TT, τ_ϕ::TT) where {TT}
+function adapt_clicks!(ϕ::TT, τ_ϕ::TT, Ca::Vector{TT}, C::Vector{Float64}) where {TT}
 
     ici = diff(C)
 
