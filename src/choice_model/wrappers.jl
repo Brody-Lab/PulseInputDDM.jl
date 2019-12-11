@@ -135,23 +135,31 @@ function optimize_model(pz::Dict{}, pd::Dict{}, data::Dict{}; n::Int=53,
 
     check_pz(pz)
 
-    fit_vec = combine_latent_and_observation(pz["fit"], pd["fit"])
-    lb = combine_latent_and_observation(pz["lb"], pd["lb"])[fit_vec]
-    ub = combine_latent_and_observation(pz["ub"], pd["ub"])[fit_vec]
-
-    p_opt, ll, parameter_map_f = split_opt_params_and_close(pz,pd,data; n=n, state="state")
+    fit = combine_latent_and_observation(pz["fit"], pd["fit"])
+    lb = combine_latent_and_observation(pz["lb"], pd["lb"])[fit]
+    ub = combine_latent_and_observation(pz["ub"], pd["ub"])[fit]
 
     F = as(Tuple(as.(Real, lb, ub)))
 
-    opt_output = opt_func(p_opt, ll; g_tol=g_tol, x_tol=x_tol,
+    y0 = combine_latent_and_observation(pz["state"], pd["state"])
+    x0 = collect(inverse(F,y0))
+
+    x0, c = split_variable_and_const(x0, fit)
+
+    x_c(x) = combine_variable_and_const(x, c, fit)
+    ℓℓ(y) = -compute_LL(collect(y), data, n=n)
+    Fℓℓ(x) = transform_logdensity(F, ℓℓ, x_c(x))
+
+    output = opt_func(x0, Fℓℓ; g_tol=g_tol, x_tol=x_tol,
         f_tol=f_tol, iterations=iterations, show_trace=show_trace)
 
-    p_opt, converged = Optim.minimizer(opt_output), Optim.converged(opt_output)
+    x, converged = Optim.minimizer(output), Optim.converged(output)
+    x = x_c(x)
+    x = collect(transform(F,x))
 
-    pz["state"], pd["state"] = parameter_map_f(p_opt)
+    pz["state"], pd["state"] = split_latent_and_observation(x)
     pz["final"], pd["final"] = pz["state"], pd["state"]
-    println("optimization complete \n")
-    println("converged: $converged \n")
+    println("optimization complete . converged: $converged \n")
 
     return pz, pd, converged
 
@@ -345,9 +353,9 @@ A wrapper function that accepts a vector of mixed parameters, splits the vector
 into two vectors based on the parameter mapping function provided as an input. Used
 in optimization, Hessian and gradient computation.
 """
-function compute_LL(x::Vector{TT}, data::Dict, parameter_map_f::Function; n::Int=53) where {TT <: Any}
+function compute_LL(x::Vector{TT}, data::Dict; n::Int=53) where {TT <: Any}
 
-    pz, pd = parameter_map_f(x)
+    pz, pd = split_latent_and_observation(x)
     compute_LL(pz, pd, data; n=n)
 
 end
