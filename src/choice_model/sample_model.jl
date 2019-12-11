@@ -16,10 +16,10 @@ end
 function sample_choices_all_trials(data::Dict, pz::Vector{Float64}, pd::Vector{Float64};
         dtMC::Float64=1e-4, rng::Int = 1, use_bin_center::Bool=false)
 
-    Random.seed!(rng)
+    rng = sample(Random.seed!(rng), 1:ntrials, ntrials; replace=false)
     nT,nL,nR = bin_clicks(data["T"],data["leftbups"],data["rightbups"]; dt=dtMC, use_bin_center=use_bin_center)
     choices = pmap((nT,L,R,nL,nR,rng) -> sample_choice_single_trial(nT,L,R,nL,nR,pz,pd;
-            use_bin_center=use_bin_center, rng=rng), nT, data["leftbups"], data["rightbups"], nL, nR, shuffle(1:length(data["T"])))
+            use_bin_center=use_bin_center, rng=rng), nT, data["leftbups"], data["rightbups"], nL, nR, rng)
 
 end
 
