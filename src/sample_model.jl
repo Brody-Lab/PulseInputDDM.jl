@@ -1,6 +1,7 @@
 """
 """
-function sample_clicks(ntrials::Int; rng::Int=1)
+function sample_clicks(ntrials::Int; rng::Int=1,
+    tmin::Float64=0.2, tmax::Float64=1.0, clicktot::Int=40)
 
     data = Dict()
 
