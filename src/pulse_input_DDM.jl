@@ -13,6 +13,7 @@ using Discretizers
 import StatsFuns: logistic, logit, softplus, xlogy
 using ImageFiltering
 using ForwardDiff: value
+using TransformVariables
 
 include("base_model.jl")
 include("analysis_functions.jl")
