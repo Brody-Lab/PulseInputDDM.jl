@@ -1,4 +1,7 @@
 using Test, pulse_input_DDM, LinearAlgebra
 
-@test round(compute_LL(;ntrials=10, rng=1), digits=2) ≈ -0.86
-@test round(norm(compute_gradient(;ntrials=10, rng=1)), digits=2) ≈ 239830.39
+θ, data = synthetic_data(;ntrials=10,rng=1)
+model = choiceDDM(θ, data)
+
+@test round(loglikelihood(model), digits=2) ≈ -2.3
+@test round(norm(gradient(model), digits=2) ≈ 3.94

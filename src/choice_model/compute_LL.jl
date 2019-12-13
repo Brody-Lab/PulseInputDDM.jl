@@ -1,79 +1,8 @@
 """
-    bounded_mass_all_trials(pz, pd, data; n=53)
-
-Computes the mass in the absorbing bin at the end of the trial consistent with the animal's choice.
-
-### Examples
-```jldoctest
-julia> pz, pd, data = default_parameters_and_data(generative=true, ntrials=10, rng=1);
-
-julia> round.(bounded_mass_all_trials(pz["generative"], pd["generative"], data), digits=2)
-10-element Array{Float64,1}:
- 0.04
- 0.4
- 0.2
- 0.04
- 0.53
- 0.06
- 0.45
- 0.06
- 0.63
- 0.15
-```
 """
-function bounded_mass_all_trials(pz::Vector{TT}, pd::Vector{TT}, data::Dict; n::Int=53) where {TT}
+function loglikelihood(θ, data; n::Int=53)
 
-    bias, lapse = pd
-    σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ = pz
-    L, R, nT, nL, nR, choice = data["leftbups"], data["rightbups"], data["nT"], data["binned_leftbups"],
-        data["binned_rightbups"], data["pokedR"]
-    dt = data["dt"]
-
-    P,M,xc,dx = initialize_latent_model(σ2_i, B, λ, σ2_a, n, dt, L_lapse=lapse/2, R_lapse=lapse/2)
-
-    P = pmap((L,R,nT,nL,nR) -> P_single_trial!(λ, σ2_a, σ2_s, ϕ, τ_ϕ,
-        P, M, dx, xc, L, R, nT, nL, nR, n, dt), L, R, nT, nL, nR)
-
-    return map((P,choice)-> (choice ? P[n] : P[1]), P, choice)
-
-end
-
-
-"""
-    LL_all_trials(choiceDDM; n=53)
-
-Computes the log likelihood for a set of trials consistent with the animal's choice on each trial.
-
-### Examples
-
-```jldoctest
-julia> pz, pd, data = default_parameters_and_data(generative=true, ntrials=10, rng=1);
-
-julia> round.(LL_all_trials(pz["generative"], pd["generative"], data), digits=2)
-10-element Array{Float64,1}:
- -0.23
- -0.04
- -0.04
- -0.15
- -0.03
- -0.14
- -0.04
- -0.03
- -0.03
- -0.15
-```
-"""
-function loglikelihood(model::choiceDDM; n::Int=53) where {TT <: Any}
-
-    @unpack θ, binned_clicks, choices = model
-    loglikelihood(θ, binned_clicks, choices; n=n)
-
-end
-
-
-
-function loglikelihood(θ, binned_clicks, choices; n::Int=53) where {TT <: Any}
-
+    @unpack binned_clicks, choices = data
     @unpack clicks, nT, nL, nR, dt = binned_clicks
     @unpack θz, bias, lapse = θ
     @unpack σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ = θz
@@ -238,5 +167,46 @@ choice_null(choices) = sum(choices .== true)*log(sum(choices .== true)/length(ch
         post[:,t] .*= P
 
     end
+
+    """
+        bounded_mass_all_trials(pz, pd, data; n=53)
+
+    Computes the mass in the absorbing bin at the end of the trial consistent with the animal's choice.
+
+    ### Examples
+    ```jldoctest
+    julia> pz, pd, data = default_parameters_and_data(generative=true, ntrials=10, rng=1);
+
+    julia> round.(bounded_mass_all_trials(pz["generative"], pd["generative"], data), digits=2)
+    10-element Array{Float64,1}:
+     0.04
+     0.4
+     0.2
+     0.04
+     0.53
+     0.06
+     0.45
+     0.06
+     0.63
+     0.15
+    ```
+    """
+    function bounded_mass_all_trials(pz::Vector{TT}, pd::Vector{TT}, data::Dict; n::Int=53) where {TT}
+
+        bias, lapse = pd
+        σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ = pz
+        L, R, nT, nL, nR, choice = data["leftbups"], data["rightbups"], data["nT"], data["binned_leftbups"],
+            data["binned_rightbups"], data["pokedR"]
+        dt = data["dt"]
+
+        P,M,xc,dx = initialize_latent_model(σ2_i, B, λ, σ2_a, n, dt, L_lapse=lapse/2, R_lapse=lapse/2)
+
+        P = pmap((L,R,nT,nL,nR) -> P_single_trial!(λ, σ2_a, σ2_s, ϕ, τ_ϕ,
+            P, M, dx, xc, L, R, nT, nL, nR, n, dt), L, R, nT, nL, nR)
+
+        return map((P,choice)-> (choice ? P[n] : P[1]), P, choice)
+
+    end
+
 
 =#

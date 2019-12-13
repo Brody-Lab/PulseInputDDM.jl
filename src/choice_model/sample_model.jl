@@ -1,8 +1,22 @@
 """
+    synthetic_data(;ntrials=2000, rng=1)
+Returns default parameters and some simulated data
+"""
+function synthetic_data(; θ::θchoice=θchoice(), ntrials::Int=2000, rng::Int=1, dt::Float64=1e-2, centered::Bool=false)
+
+    clicks, choices = rand(θ, ntrials; rng=rng)
+    binned_clicks = bin_clicks(clicks, centered=centered, dt=dt)
+
+    return θ, choicedata(binned_clicks, choices)
+
+end
+
+
+"""
 """
 function rand(θ::θchoice, ntrials::Int; dt::Float64=1e-4, rng::Int = 1, centered::Bool=false)
 
-    clicks = make_clicks(ntrials; rng=rng)
+    clicks = synthetic_clicks(ntrials; rng=rng)
     binned_clicks = bin_clicks(clicks,centered=centered,dt=dt)
     choices = rand(θ, binned_clicks; rng=rng)
 

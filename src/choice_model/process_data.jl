@@ -10,7 +10,7 @@ function load(path::String, file::String;
     choices = process_choice_data(data)
     binned_clicks = bin_clicks(clicks; centered=centered, dt=dt)
 
-    return binned_clicks, choices
+    return choicedata(binned_clicks, choices)
 
 end
 
@@ -25,7 +25,7 @@ function process_choice_data(data)
         corrects = vec(convert(BitArray, data[collect(keys(data))[occursin.("correct", collect(keys(data)))][1]]))
     end
 
-    return choices,corrects
+    return choices, corrects
 
 end
 
@@ -39,7 +39,7 @@ function process_click_input_data(data)
     R = map(x-> vec(collect(x)), data[collect(keys(data))[occursin.("right", collect(keys(data)))][1]])
     ntrials = length(t)
 
-    clicks(L, R, T, ntrials)
+    return clicks(L, R, T, ntrials)
 
 end
 

@@ -6,19 +6,19 @@ using pulse_input_DDM
 # ### Geneerate some data
 # Blah blah blah
 
-pz, pd, data = default_parameters_and_data(ntrials=1000)
+θ_syn, data = synthetic_data(;ntrials=1000)
 
 # ### Optimize stuff
 # Blah blah blah
 
-pz, pd, = optimize_model(pz, pd, data)
+model, options = optimize(data)
 
 # ### Compute Hessian
 # Blah blah blah
 
-H = compute_Hessian(pz, pd, data; state="final")
+H = Hessian(model)
 
 # ### Get the CIs from the Hessian
 # Blah blah blah
 
-pz, pd = compute_CIs!(pz, pd, H)
+CI = CIs(model, H)

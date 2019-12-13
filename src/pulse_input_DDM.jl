@@ -17,15 +17,13 @@ using Parameters, TransformVariables
 import Base.rand
 
 export dimz
-export loglikelihood, default_model
-export compute_CIs!, optimize, Hessian, gradient
-export bin_clicks!, load, bounded_mass_all_trials
-export reload, save
+export loglikelihood, synthetic_data
+export CIs, optimize, Hessian, gradient
+export load, reload, save
 
 export mean_exp_rate_per_trial, mean_exp_rate_per_cond
 
-export choiceDDM, opt
-export θchoice, θz, θd, binned_clicks, clicks, choicedata
+export choiceDDM, opt, θchoice, choicedata
 
 #=
 
@@ -61,8 +59,8 @@ end
 """
 @with_kw struct θchoice{T1, T<:Real}
     θz::T1 = θz()
-    bias::T = 1.
-    lapse::T = 0.05
+    bias::T = 0.
+    lapse::T = 0.01
 end
 
 
@@ -90,15 +88,6 @@ end
 
 """
 """
-@with_kw struct choiceDDM{T,U} <: ContinuousUnivariateDistribution
-    θ::T = θchoice()
-    binned_clicks::U
-    choices::Vector{Bool}
-end
-
-
-"""
-"""
 @with_kw struct choicedata{T}
     binned_clicks::T
     choices::Vector{Bool}
@@ -107,8 +96,16 @@ end
 
 """
 """
+@with_kw struct choiceDDM{T,U} <: ContinuousUnivariateDistribution
+    θ::T = θchoice()
+    data::U
+end
+
+
+"""
+"""
 @with_kw struct opt
-    fit::Vector{Bool} = vcat(falses(2), trues(2), falses(5))
+    fit::Vector{Bool} = vcat(trues(9))
     lb::Vector{Float64} = vcat([0., 8., -5., 0., 0., 0.01, 0.005], [-30, 0.])
     ub::Vector{Float64} = vcat([2., 30., 5., 100., 2.5, 1.2, 1.], [30, 1.])
     x0::Vector{Float64} = vcat([0.1, 15., -0.1, 20., 0.5, 0.8, 0.008], [0.,0.01])
