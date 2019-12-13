@@ -129,27 +129,15 @@ end
 """
 function CIs(model::choiceDDM, H::Array{Float64,2})
 
-    println("computing confidence intervals \n")
-
     @unpack θ = model
-    @unpack fit = options
+    HPSD = Matrix(cholesky(Positive, H, Val{false}))
 
-    x = unpack(θ)
-
-    CI = fill!(Vector{Float64}(undef,size(H,1)),1e8)
-
-    try
-        gooddims = 1:size(H,1)
-        evs = findall(eigvals(H) .<= 0)
-        otherbad = vcat(map(i-> findall(abs.(eigvecs(H)[:,evs[i]]) .> 0.5), 1:length(evs))...)
-        gooddims = setdiff(gooddims,otherbad)
-        CI[gooddims] = 2*sqrt.(diag(inv(H[gooddims,gooddims])))
-    catch
-        @warn "CI computation failed."
+    if !isapprox(HPSD,H)
+        @warn "Hessian is not positive definite. Approximated by closest PSD matrix."
     end
 
-    return CI
-
+    CI = 2*sqrt.(diag(inv(HPSD)))
+    
 end
 
 

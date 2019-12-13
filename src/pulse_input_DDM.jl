@@ -13,6 +13,7 @@ using Discretizers
 import StatsFuns: logistic, logit, softplus, xlogy
 using ImageFiltering
 using ForwardDiff: value
+using PositiveFactorizations
 using Parameters, TransformVariables
 import Base.rand
 
