@@ -109,14 +109,17 @@ function optimize(model_wdata_wopt::choiceDDM_wdata_wopt; n::Int=53,
     @unpack opt, model_wdata = model_wdata_wopt
     @unpack model = model_wdata
     @unpack fit, lb, ub, x0 = opt
-    c, x0 = x0[.!fit], x0[fit]
+
     F = as(Tuple(as.(Real, lb, ub)))
+
+    x0 = collect(inverse(F, Tuple(x0)))
+    c, x0 = x0[.!fit], x0[fit]
     x_c(x) = x_c(x,c,fit)
     ℓℓ(y) = -loglikelihood(collect(y), model_wdata; n=n)
     Fℓℓ(x) = ℓℓ(F(x_c(x)))
     #Fℓℓ(x) = transform_logdensity(F, ℓℓ, x_c(x))
 
-    output = opt_func(x0, ℓℓ; g_tol=g_tol, x_tol=x_tol,
+    output = opt_func(x0, Fℓℓ; g_tol=g_tol, x_tol=x_tol,
         f_tol=f_tol, iterations=iterations, show_trace=show_trace)
 
     x, converged = Optim.minimizer(output), Optim.converged(output)
