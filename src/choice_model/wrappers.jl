@@ -113,7 +113,8 @@ function optimize(model_wdata_wopt::choiceDDM_wdata_wopt; n::Int=53,
     F = as(Tuple(as.(Real, lb, ub)))
     x_c(x) = x_c(x,c,fit)
     ℓℓ(y) = -loglikelihood(collect(y), model_wdata; n=n)
-    Fℓℓ(x) = transform_logdensity(F, ℓℓ, x_c(x))
+    Fℓℓ(x) = ℓℓ(F(x_c(x)))
+    #Fℓℓ(x) = transform_logdensity(F, ℓℓ, x_c(x))
 
     output = opt_func(x0, ℓℓ; g_tol=g_tol, x_tol=x_tol,
         f_tol=f_tol, iterations=iterations, show_trace=show_trace)
@@ -139,7 +140,11 @@ in optimization, Hessian and gradient computation.
 """
 function loglikelihood(x::Vector{TT}, model::choiceDDM_wdata; n::Int=53) where {TT <: Real}
 
-    model = pack!(x, model)
+    σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ, bias, lapse = x
+    model = choiceDDM_wdata(choiceDDM(θchoice(θz(σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ), bias,lapse),
+        model.model.binned_clicks), model.choices)
+
+    #model = pack!(x, model)
     sum(loglikelihood(model; n=n))
 
 end
@@ -358,8 +363,11 @@ true
 function pack!(x::Vector{TT}, model) where {TT <: Real}
 
     σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ, bias, lapse = x
-    @pack! model.model.θ.θz = σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ
-    @pack! model.model.θ = bias, lapse
+    #@pack! model.model.θ.θz = σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ
+    model.model.θ.θz = θz(σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ)
+    #@pack! model.model.θ = bias, lapse
+    model.model.θ.bias = bias
+    model.model.θ.lapse = lapse
 
     return model
 
