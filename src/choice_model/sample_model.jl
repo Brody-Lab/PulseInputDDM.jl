@@ -4,8 +4,7 @@ function rand(θ::θchoice, ntrials::Int; dt::Float64=1e-4, rng::Int = 1, center
 
     clicks = make_clicks(ntrials; rng=rng)
     binned_clicks = bin_clicks(clicks,centered=centered,dt=dt)
-    model = choiceDDM(θ, binned_clicks)
-    choices = rand(model; rng=rng)
+    choices = rand(θ, binned_clicks; rng=rng)
 
     return clicks, choices
 
@@ -14,9 +13,8 @@ end
 
 """
 """
-function rand(model::choiceDDM; rng::Int = 1)
+function rand(θ::θchoice, binned_clicks; rng::Int = 1)
 
-    @unpack binned_clicks, θ = model
     @unpack clicks, nT, nL, nR, dt, centered = binned_clicks
     @unpack L,R,ntrials = clicks
 

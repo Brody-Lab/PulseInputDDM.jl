@@ -24,8 +24,8 @@ export reload, save
 
 export mean_exp_rate_per_trial, mean_exp_rate_per_cond
 
-export choiceDDM, clicks, θchoice, choiceDDM_wdata, opt, choiceDDM_wdata_wopt
-export θz, θd, binned_clicks
+export choiceDDM, opt
+export θchoice, θz, θd, binned_clicks, clicks, choicedata
 
 #=
 
@@ -46,7 +46,7 @@ export filter_data_by_cell!
 =#
 """
 """
-@with_kw mutable struct θz{T<:Real} @deftype T
+@with_kw struct θz{T<:Real} @deftype T
     σ2_i = 0.1
     B = 18.
     λ = -0.5; @assert λ != 0.
@@ -59,7 +59,7 @@ end
 
 """
 """
-@with_kw mutable struct θchoice{T1, T<:Real}
+@with_kw struct θchoice{T1, T<:Real}
     θz::T1 = θz()
     bias::T = 1.
     lapse::T = 0.05
@@ -90,34 +90,28 @@ end
 
 """
 """
-@with_kw mutable struct choiceDDM{T,U} <: ContinuousUnivariateDistribution
+@with_kw struct choiceDDM{T,U} <: ContinuousUnivariateDistribution
     θ::T = θchoice()
     binned_clicks::U
-end
-
-
-"""
-"""
-@with_kw mutable struct choiceDDM_wdata{T}
-    model::T
     choices::Vector{Bool}
 end
+
+
+"""
+"""
+@with_kw struct choicedata{T}
+    binned_clicks::T
+    choices::Vector{Bool}
+end
+
 
 """
 """
 @with_kw struct opt
-    fit::Vector{Bool} = vcat(trues(7), trues(2))
+    fit::Vector{Bool} = vcat(falses(1), trues(6), trues(2))
     lb::Vector{Float64} = vcat([0., 8., -5., 0., 0., 0.01, 0.005], [-30, 0.])
     ub::Vector{Float64} = vcat([2., 30., 5., 100., 2.5, 1.2, 1.], [30, 1.])
     x0::Vector{Float64} = vcat([0.1, 15., -0.1, 20., 0.5, 0.8, 0.008], [0.,0.01])
-end
-
-
-"""
-"""
-@with_kw mutable struct choiceDDM_wdata_wopt{T,U}
-    model_wdata::T
-    opt::U = opt()
 end
 
 

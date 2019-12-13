@@ -12,7 +12,8 @@ function default_model(; ntrials::Int=2000, rng::Int=1, dt::Float64=1e-2, center
     θ = θchoice()
     clicks, choices = rand(θ, ntrials; rng=rng)
     binned_clicks = bin_clicks(clicks, centered=centered, dt=dt)
-    choiceDDM_wdata(choiceDDM(θ, binned_clicks), choices)
+
+    return θ, choicedata(binned_clicks, choices)
 
 end
 
@@ -99,37 +100,37 @@ and specification of which parameters to fit.
 BACK IN THE DAY TOLS WERE: x_tol::Float64=1e-4, f_tol::Float64=1e-9, g_tol::Float64=1e-2
 
 """
-function optimize(model_wdata_wopt::choiceDDM_wdata_wopt; n::Int=53,
+function optimize(data::choicedata, options::opt; n::Int=53,
         x_tol::Float64=1e-10, f_tol::Float64=1e-6, g_tol::Float64=1e-3,
         iterations::Int=Int(2e3), show_trace::Bool=true,
         outer_iterations::Int=Int(1e1))
 
     println("optimize! \n")
 
-    @unpack opt, model_wdata = model_wdata_wopt
-    @unpack model = model_wdata
-    @unpack fit, lb, ub, x0 = opt
+    @unpack binned_clicks, choices = data
+    @unpack fit, lb, ub, x0 = options
 
     F = as(Tuple(as.(Real, lb, ub)))
 
     x0 = collect(inverse(F, Tuple(x0)))
     c, x0 = x0[.!fit], x0[fit]
-    x_c(x) = x_c(x,c,fit)
-    ℓℓ(y) = -loglikelihood(collect(y), model_wdata; n=n)
-    Fℓℓ(x) = ℓℓ(F(x_c(x)))
+    #x_c(x) = x_c(x,c,fit)
+    ℓℓ(y) = -loglikelihood(y, binned_clicks, choices; n=n)
+    Fℓℓ(x) = ℓℓ(collect(transform(F, x_c(x,c,fit))))
     #Fℓℓ(x) = transform_logdensity(F, ℓℓ, x_c(x))
 
     output = opt_func(x0, Fℓℓ; g_tol=g_tol, x_tol=x_tol,
         f_tol=f_tol, iterations=iterations, show_trace=show_trace)
 
     x, converged = Optim.minimizer(output), Optim.converged(output)
-    x = collect(transform(F, x_c(x)))
+    x = collect(transform(F, x_c(x,c,fit)))
 
-    model_wdata = pack!(x, model_wdata)
+    θ = pack!(x)
+    model = choiceDDM(θ, binned_clicks, choices)
 
     println("optimization complete. converged: $converged \n")
 
-    return model_wdata_wopt, converged
+    return model, converged
 
 end
 
@@ -141,14 +142,10 @@ A wrapper function that accepts a vector of mixed parameters, splits the vector
 into two vectors based on the parameter mapping function provided as an input. Used
 in optimization, Hessian and gradient computation.
 """
-function loglikelihood(x::Vector{TT}, model::choiceDDM_wdata; n::Int=53) where {TT <: Real}
+function loglikelihood(x::Vector{TT}, binned_clicks, choices; n::Int=53) where {TT <: Real}
 
-    σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ, bias, lapse = x
-    model = choiceDDM_wdata(choiceDDM(θchoice(θz(σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ), bias,lapse),
-        model.model.binned_clicks), model.choices)
-
-    #model = pack!(x, model)
-    sum(loglikelihood(model; n=n))
+    θ = pack!(x)
+    sum(loglikelihood(θ, binned_clicks, choices; n=n))
 
 end
 
@@ -363,15 +360,9 @@ julia> pulse_input_DDM.split_latent_and_observation(p) == (pz["initial"], pd["in
 true
 ```
 """
-function pack!(x::Vector{TT}, model) where {TT <: Real}
+function pack!(x::Vector{TT}) where {TT <: Real}
 
     σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ, bias, lapse = x
-    #@pack! model.model.θ.θz = σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ
-    model.model.θ.θz = θz(σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ)
-    #@pack! model.model.θ = bias, lapse
-    model.model.θ.bias = bias
-    model.model.θ.lapse = lapse
-
-    return model
+    θ = θchoice(θz(σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ), bias,lapse)
 
 end

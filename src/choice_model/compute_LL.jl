@@ -63,10 +63,17 @@ julia> round.(LL_all_trials(pz["generative"], pd["generative"], data), digits=2)
  -0.15
 ```
 """
-function loglikelihood(model_wdata::choiceDDM_wdata; n::Int=53) where {TT <: Any}
+function loglikelihood(model::choiceDDM; n::Int=53) where {TT <: Any}
 
-    @unpack model, choices = model_wdata
-    @unpack θ, binned_clicks = model
+    @unpack θ, binned_clicks, choices = model
+    loglikelihood(θ, binned_clicks, choices; n=n)
+
+end
+
+
+
+function loglikelihood(θ, binned_clicks, choices; n::Int=53) where {TT <: Any}
+
     @unpack clicks, nT, nL, nR, dt = binned_clicks
     @unpack θz, bias, lapse = θ
     @unpack σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ = θz
