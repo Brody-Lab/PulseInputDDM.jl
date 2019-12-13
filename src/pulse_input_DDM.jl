@@ -108,7 +108,7 @@ end
 """
 """
 @with_kw struct opt
-    fit::Vector{Bool} = vcat(falses(1), trues(6), trues(2))
+    fit::Vector{Bool} = vcat(falses(2), trues(2), falses(5))
     lb::Vector{Float64} = vcat([0., 8., -5., 0., 0., 0.01, 0.005], [-30, 0.])
     ub::Vector{Float64} = vcat([2., 30., 5., 100., 2.5, 1.2, 1.], [30, 1.])
     x0::Vector{Float64} = vcat([0.1, 15., -0.1, 20., 0.5, 0.8, 0.008], [0.,0.01])
