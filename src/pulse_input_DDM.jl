@@ -48,12 +48,12 @@ export filter_data_by_cell!
 """
 @with_kw struct θz{T<:Real} @deftype T
     σ2_i = 0.1
-    B = 18.
-    λ = -0.5; @assert λ != 0.
-    σ2_a = 5.
-    σ2_s = 1.5
-    ϕ = 0.4; @assert ϕ != 1.
-    τ_ϕ = 0.02
+    B = 15.
+    λ = -0.1; @assert λ != 0.
+    σ2_a = 60.
+    σ2_s = 0.5
+    ϕ = 0.8; @assert ϕ != 1.
+    τ_ϕ = 0.008
 end
 
 
