@@ -6,20 +6,22 @@ Returns two dictionaries of default model parameters.
 function default_parameters(;generative::Bool=false)
 
     pd = Dict("name" => vcat("bias","lapse"),
-              "fit" => vcat(true, true),
+              "fit" => vcat(false, false),
               "initial" => vcat(0.,0.01),
               "lb" => [-30, 0.],
               "ub" => [30, 1.])
 
     pz = Dict("name" => ["σ_i","B", "λ", "σ_a","σ_s","ϕ","τ_ϕ"],
-              "fit" => vcat(true, true, true, true, true, true, true),
-              "initial" => [0.1, 15., -0.1, 20., 0.5, 0.8, 0.008],
+              "fit" => vcat(false, false, true, true, false, false, false),
+              "initial" => [0.1, 15., -2., 20., 0.5, 0.8, 0.008],
               "lb" => [0., 8., -5., 0., 0., 0.01, 0.005],
               "ub" => [2., 30., 5., 100., 2.5, 1.2, 1.])
 
     if generative
-        pz["generative"] = [eps(), 18., -0.5, 5., 1.5, 0.4, 0.02]
-        pd["generative"] = [1.,0.05]
+        pz["generative"] = [0.1, 15., -0.1, 60., 0.5, 0.8, 0.008]
+        pd["generative"] = pd["initial"]
+        #pz["generative"] = [0.1, 18., -0.5, 5., 1.5, 0.4, 0.02]
+        #pd["generative"] = [1.,0.05]
     end
 
     return pz, pd
@@ -136,26 +138,29 @@ function optimize_model(pz::Dict{}, pd::Dict{}, data::Dict{}; n::Int=53,
     check_pz(pz)
 
     fit = combine_latent_and_observation(pz["fit"], pd["fit"])
-    lb = combine_latent_and_observation(pz["lb"], pd["lb"])[fit]
-    ub = combine_latent_and_observation(pz["ub"], pd["ub"])[fit]
+    #lb = combine_latent_and_observation(pz["lb"], pd["lb"])[fit]
+    #ub = combine_latent_and_observation(pz["ub"], pd["ub"])[fit]
+    lb = combine_latent_and_observation(pz["lb"], pd["lb"])
+    ub = combine_latent_and_observation(pz["ub"], pd["ub"])
 
     F = as(Tuple(as.(Real, lb, ub)))
 
     y0 = combine_latent_and_observation(pz["state"], pd["state"])
-    x0 = collect(inverse(F,y0))
-
+    x0 = collect(inverse(F, Tuple(y0)))
     x0, c = split_variable_and_const(x0, fit)
-
     x_c(x) = combine_variable_and_const(x, c, fit)
+
     ℓℓ(y) = -compute_LL(collect(y), data, n=n)
-    Fℓℓ(x) = transform_logdensity(F, ℓℓ, x_c(x))
+
+    #Fℓℓ(x) = transform_logdensity(F, ℓℓ, x_c(x))
+    Fℓℓ(x) = ℓℓ(F(x_c(x)))
 
     output = opt_func(x0, Fℓℓ; g_tol=g_tol, x_tol=x_tol,
         f_tol=f_tol, iterations=iterations, show_trace=show_trace)
 
     x, converged = Optim.minimizer(output), Optim.converged(output)
     x = x_c(x)
-    x = collect(transform(F,x))
+    x = collect(transform(F, x))
 
     pz["state"], pd["state"] = split_latent_and_observation(x)
     pz["final"], pd["final"] = pz["state"], pd["state"]
@@ -201,8 +206,27 @@ function compute_Hessian(pz::Dict{}, pd::Dict{}, data::Dict{};
     n::Int=53, state::String="state") where {TT <: Any}
 
     println("computing Hessian! \n")
-    p_opt, ll, = split_opt_params_and_close(pz,pd,data; n=n,state=state)
-    ForwardDiff.hessian(ll, p_opt)
+    #p_opt, ll, = split_opt_params_and_close(pz,pd,data; n=n,state=state)
+    fit = combine_latent_and_observation(pz["fit"], pd["fit"])
+    #lb = combine_latent_and_observation(pz["lb"], pd["lb"])[fit]
+    #ub = combine_latent_and_observation(pz["ub"], pd["ub"])[fit]
+    #lb = combine_latent_and_observation(pz["lb"], pd["lb"])
+    #ub = combine_latent_and_observation(pz["ub"], pd["ub"])
+
+    #F = as(Tuple(as.(Real, lb, ub)))
+
+    x0 = combine_latent_and_observation(pz["state"], pd["state"])
+    #x0 = collect(inverse(F, Tuple(y0)))
+    x0, c = split_variable_and_const(x0, fit)
+    x_c(x) = combine_variable_and_const(x, c, fit)
+
+    ℓℓ(y) = -compute_LL(collect(y), data, n=n)
+
+    Fℓℓ(x) = ℓℓ(x_c(x))
+    #Fℓℓ(x) = transform_logdensity(F, ℓℓ, x_c(x))
+    #Fℓℓ(x) = ℓℓ(F(x_c(x)))
+
+    ForwardDiff.hessian(Fℓℓ, x0)
 
 end
 
