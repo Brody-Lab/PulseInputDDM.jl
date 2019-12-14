@@ -8,7 +8,7 @@ Wrapper for executing an unconstrained optimization based on the objective funct
 """
 function optimize(x::Vector{TT}, ll, lb, ub;
         g_tol::Float64=1e-12, x_tol::Float64=1e-16, f_tol::Float64=1e-16,
-        iterations::Int=Int(5e3), outer_iterations::Int=Int(1e1)
+        iterations::Int=Int(5e3), outer_iterations::Int=Int(1e1), 
         show_trace::Bool=true, extended_trace::Bool=false) where TT <: Real
 
     obj = OnceDifferentiable(ll, x; autodiff=:forward)
