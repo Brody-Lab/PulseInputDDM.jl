@@ -24,7 +24,7 @@ export load, reload, save
 
 export mean_exp_rate_per_trial, mean_exp_rate_per_cond
 
-export choiceDDM, opt, θchoice, choicedata
+export choiceDDM, opt, θchoice, θz, choicedata
 
 #=
 

@@ -46,9 +46,9 @@ function optimize(data::choicedata; options::opt=opt(), n::Int=53,
 
     x0 = collect(inverse(F, Tuple(x0)))
     x0,c = unstack(x0, fit)
-    ℓℓ(x) = -loglikelihood(x, data; n=n)
+    ℓℓ(x) = -loglikelihood(collect(x), data; n=n)
     Fℓℓ(x) = ℓℓ(collect(transform(F, stack(x,c,fit))))
-    #Fℓℓ(x) = transform_logdensity(F, ℓℓ, stack(x))
+    #Fℓℓ(x) = transform_logdensity(F, ℓℓ, stack(x,c,fit))
 
     output = optimize(x0, Fℓℓ; g_tol=g_tol, x_tol=x_tol,
         f_tol=f_tol, iterations=iterations, show_trace=show_trace)
@@ -99,11 +99,18 @@ end
 """
     gradient(model; options, n=53)
 """
-function gradient(model::choiceDDM; n::Int=53)
+function gradient(model::choiceDDM, options; n::Int=53)
 
     @unpack θ, data = model
+    @unpack lb, ub = options
+
+    F = as(Tuple(as.(Real, lb, ub)))
     x = unpack(θ)
-    ℓℓ(x) = -loglikelihood(x, data; n=n)
+    
+    #y = collect(inverse(F, Tuple(x)))
+    ℓℓ(x) = -loglikelihood(collect(x), data; n=n)
+    #Fℓℓ(x) = ℓℓ(collect(transform(F, x)))
+    #Fℓℓ(x) = transform_logdensity(F, ℓℓ, x)
 
     ForwardDiff.gradient(ℓℓ, x)
 
