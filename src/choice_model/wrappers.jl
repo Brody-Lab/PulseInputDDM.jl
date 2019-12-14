@@ -42,15 +42,10 @@ function optimize(data::choicedata; options::opt=opt(), n::Int=53,
 
     @unpack fit, lb, ub, x0 = options
 
-    F = as(Tuple(as.(Real, lb, ub)))
-
-    x0 = collect(inverse(F, Tuple(x0)))
     x0,c = unstack(x0, fit)
-    ℓℓ(x) = -loglikelihood(x, data; n=n)
-    Fℓℓ(x) = ℓℓ(collect(transform(F, stack(x,c,fit))))
-    #Fℓℓ(x) = transform_logdensity(F, ℓℓ, stack(x))
+    ℓℓ(x) = -loglikelihood(stack(x,c,fit), data; n=n)
 
-    output = optimize(x0, Fℓℓ; g_tol=g_tol, x_tol=x_tol,
+    output = optimize(x0, ℓℓ; g_tol=g_tol, x_tol=x_tol,
         f_tol=f_tol, iterations=iterations, show_trace=show_trace)
 
     x = Optim.minimizer(output)
@@ -137,7 +132,7 @@ function CIs(model::choiceDDM, H::Array{Float64,2})
     end
 
     CI = 2*sqrt.(diag(inv(HPSD)))
-    
+
 end
 
 
