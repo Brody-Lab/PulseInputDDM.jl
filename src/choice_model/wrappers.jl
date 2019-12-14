@@ -45,7 +45,7 @@ function optimize(data::choicedata; options::opt=opt(), n::Int=53,
     x0,c = unstack(x0, fit)
     ℓℓ(x) = -loglikelihood(stack(x,c,fit), data; n=n)
 
-    output = optimize(x0, ℓℓ; g_tol=g_tol, x_tol=x_tol,
+    output = optimize(x0, ℓℓ, lb, ub; g_tol=g_tol, x_tol=x_tol,
         f_tol=f_tol, iterations=iterations, show_trace=show_trace)
 
     x = Optim.minimizer(output)

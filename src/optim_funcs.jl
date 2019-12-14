@@ -6,9 +6,9 @@
 
 Wrapper for executing an unconstrained optimization based on the objective function ll. x is the initial starting point.
 """
-function optimize(x::Vector{TT}, ll;
+function optimize(x::Vector{TT}, ll, lb, ub;
         g_tol::Float64=1e-12, x_tol::Float64=1e-16, f_tol::Float64=1e-16,
-        iterations::Int=Int(5e3),
+        iterations::Int=Int(5e3), outer_iterations::Int=Int(1e1)
         show_trace::Bool=true, extended_trace::Bool=false) where TT <: Real
 
     obj = OnceDifferentiable(ll, x; autodiff=:forward)
@@ -17,9 +17,10 @@ function optimize(x::Vector{TT}, ll;
     options = Optim.Options(g_tol=g_tol, x_tol=x_tol, f_tol=f_tol,
         iterations= iterations, allow_f_increases=true,
         store_trace = true, show_trace = show_trace, extended_trace=extended_trace,
-        allow_outer_f_increases=true)
+        outer_g_tol=g_tol, outer_x_tol=x_tol, outer_f_tol=f_tol,
+        outer_iterations= outer_iterations, allow_outer_f_increases=true)
 
-    output = Optim.optimize(obj, x, m, options)
+    output = Optim.optimize(obj, lb, ub, x, Fminbox(m), options)
 
     return output
 
