@@ -35,7 +35,7 @@ function rand(θ::θchoice, binned_clicks; rng::Int = 1)
     Random.seed!(rng)
     #nT,nL,nR = bin_clicks(data["T"],data["leftbups"],data["rightbups"]; dt=dtMC, use_bin_center=use_bin_center)
     #choices = pmap((nT,L,R,nL,nR,rng) -> sample_choice_single_trial(nT,L,R,nL,nR,pz,pd;
-            use_bin_center=use_bin_center, rng=rng), nT, data["leftbups"], data["rightbups"], nL, nR, shuffle(1:length(data["T"])))
+    #        use_bin_center=use_bin_center, rng=rng), nT, data["leftbups"], data["rightbups"], nL, nR, shuffle(1:length(data["T"])))
 
     #rng = sample(Random.seed!(rng), 1:ntrials, ntrials; replace=false)
     pmap((nT,L,R,nL,nR,rng) -> rand(θ,nT,L,R,nL,nR;
