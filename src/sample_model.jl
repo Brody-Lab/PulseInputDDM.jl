@@ -5,7 +5,7 @@ function synthetic_clicks(ntrials::Int; rng::Int=1,
 
     Random.seed!(rng)
 
-    T = tmin .+ (tmax.-tmin).*rand(ntrials)
+    T = tmin .+ (tmax-tmin).*rand(ntrials)
     T = ceil.(T, digits=2)
 
     ratetot = clicktot./T
