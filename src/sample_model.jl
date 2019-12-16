@@ -1,50 +1,11 @@
 """
 """
-function synthetic_clicks(ntrials::Int; rng::Int=1)
-
-    Random.seed!(rng)
-
-    output = map(generate_stimulus,1:ntrials)
-
-    L = map(i->output[i][3],1:ntrials)
-    R = map(i->output[i][2],1:ntrials)
-    T = map(i->output[i][1],1:ntrials)
-
-    clicks(L, R, T, ntrials)
-
-end
-
-
-"""
-"""
-function generate_stimulus(i::Int; tmin::Float64=0.2,tmax::Float64=1.0,clicktot::Int=40)
-
-    T = tmin + (tmax-tmin)*rand()
-
-    ratetot = clicktot/T
-    Rbar = ratetot*rand()
-    Lbar = ratetot - Rbar
-
-    R = cumsum(rand(Exponential(1/Rbar),clicktot))
-    L = cumsum(rand(Exponential(1/Lbar),clicktot))
-    R = vcat(0,R[R .<= T])
-    L = vcat(0,L[L .<= T])
-
-    T = ceil.(T, digits=2)
-
-    return T,R,L
-
-end
-
-#=
-"""
-"""
 function synthetic_clicks(ntrials::Int; rng::Int=1,
     tmin::Float64=0.2, tmax::Float64=1.0, clicktot::Int=40)
 
     Random.seed!(rng)
 
-    T = tmin .+ (tmax.-tmin).*rand(ntrials)
+    T = tmin .+ (tmax-tmin).*rand(ntrials)
     T = ceil.(T, digits=2)
 
     ratetot = clicktot./T
@@ -60,7 +21,6 @@ function synthetic_clicks(ntrials::Int; rng::Int=1,
     clicks(L, R, T, ntrials)
 
 end
-=#
 
 
 """
