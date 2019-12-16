@@ -10,10 +10,6 @@ using ForwardDiff, Distributed, LinearAlgebra
 using Optim, DSP
 using SpecialFunctions, MAT, Random
 using Discretizers
-<<<<<<< HEAD
-using DSP
-=======
->>>>>>> constrained_newAPI
 import StatsFuns: logistic, logit, softplus, xlogy
 using ImageFiltering
 using ForwardDiff: value
