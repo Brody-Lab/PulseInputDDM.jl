@@ -46,13 +46,13 @@ export filter_data_by_cell!
 """
 """
 @with_kw struct θz{T<:Real} @deftype T
-    σ2_i = 0.1
-    B = 15.
-    λ = -0.1; @assert λ != 0.
-    σ2_a = 60.
-    σ2_s = 0.5
-    ϕ = 0.8; @assert ϕ != 1.
-    τ_ϕ = 0.008
+    σ2_i = eps()
+    B = 18.
+    λ = -0.5; @assert λ != 0.
+    σ2_a = 5.
+    σ2_s = 1.5
+    ϕ = 0.4; @assert ϕ != 1.
+    τ_ϕ = 0.02
 end
 
 
@@ -60,8 +60,8 @@ end
 """
 @with_kw struct θchoice{T1, T<:Real}
     θz::T1 = θz()
-    bias::T = 0.
-    lapse::T = 0.01
+    bias::T = 1.
+    lapse::T = 0.05
 end
 
 
