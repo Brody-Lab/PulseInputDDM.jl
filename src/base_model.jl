@@ -2,14 +2,14 @@
 const dimz = 7
 
 """
-    initialize_latent_model(σ2_i, B, λ, σ2_a, dx, dt; L_lapse=0., R_lapse=0.)
+    initialize_latent_model(σ2_i, B, λ, σ2_a, n, dt; L_lapse=0., R_lapse=0.)
 
 """
 function initialize_latent_model(σ2_i::TT, B::TT, λ::TT, σ2_a::TT,
-     dx::Float64, dt::Float64; L_lapse::UU=0., R_lapse::UU=0.) where {TT,UU <: Any}
+     n::Int, dt::Float64; L_lapse::UU=0., R_lapse::UU=0.) where {TT,UU <: Any}
 
     #bin centers and number of bins
-    xc,n = bins(B,dx)
+    xc,dx = bins(B,n)
 
     # make initial latent distribution
     P = P0(σ2_i,n,dx,xc,dt; L_lapse=L_lapse, R_lapse=R_lapse)
@@ -17,7 +17,7 @@ function initialize_latent_model(σ2_i::TT, B::TT, λ::TT, σ2_a::TT,
     # build state transition matrix for times when there are no click inputs
     M = transition_M(σ2_a*dt,λ,zero(TT),dx,xc,n,dt)
 
-    return P, M, xc, n
+    return P, M, xc, dx
 
 end
 
@@ -26,8 +26,8 @@ end
     P0(σ2_i, n dx, xc, dt; L_lapse=0., R_lapse=0.)
 
 """
-function P0(σ2_i::TT, n::Int, dx::Float64, xc::Vector{TT}, dt::Float64;
-        L_lapse::UU=0., R_lapse::UU=0.) where {TT,UU <: Any}
+function P0(σ2_i::TT, n::Int, dx::VV, xc::Vector{TT}, dt::Float64;
+        L_lapse::UU=0., R_lapse::UU=0.) where {TT,UU,VV <: Any}
 
     P = zeros(TT,n)
     # make initial delta function
@@ -46,7 +46,7 @@ end
 function latent_one_step!(P::Vector{TT}, F::Array{TT,2}, λ::TT, σ2_a::TT, σ2_s::TT,
         t::Int, nL::Vector{Int}, nR::Vector{Int},
         La::Vector{TT}, Ra::Vector{TT}, M::Array{TT,2},
-        dx::Float64, xc::Vector{TT}, n::Int, dt::Float64; backwards::Bool=false) where {TT <: Any}
+        dx::UU, xc::Vector{TT}, n::Int, dt::Float64; backwards::Bool=false) where {TT,UU <: Any}
 
     any(t .== nL) ? sL = sum(La[t .== nL]) : sL = zero(TT)
     any(t .== nR) ? sR = sum(Ra[t .== nR]) : sR = zero(TT)
@@ -74,30 +74,24 @@ end
 
 
 """
-    bins(B,dx)
+    bins(B,n)
 
-Computes the bin center locations and number of bins, given the boundary and desired (average) bin spacing.
+Computes the bin center locations and bin spacing, given the boundary and number of bins.
 
 ### Examples
 ```jldoctest
-julia> xc,n = pulse_input_DDM.bins(10.,0.25)
-([-10.25, -9.75, -9.5, -9.25, -9.0, -8.75, -8.5, -8.25, -8.0, -7.75  …  7.75, 8.0, 8.25, 8.5, 8.75, 9.0, 9.25, 9.5, 9.75, 10.25], 81)
+julia> xc,dx = pulse_input_DDM.bins(25.5,53)
+([-26.0, -25.0, -24.0, -23.0, -22.0, -21.0, -20.0, -19.0, -18.0, -17.0  …  17.0, 18.0, 19.0, 20.0, 21.0, 22.0, 23.0, 24.0, 25.0, 26.0], 1.0)
 ```
 """
-function bins(B::TT,dx::Float64) where {TT <: Any}
+function bins(B::TT, n::Int) where {TT}
 
-    xc = collect(0.:dx:floor(value(B)/dx)*dx)
+    dx = 2. *B/(n-2)
 
-    if xc[end] == B
-        xc = vcat(xc[1:end-1], B + dx)
-    else
-        xc = vcat(xc, 2*B - xc[end])
-    end
+    xc = vcat(collect(range(-(B+dx/2.),stop=-dx,length=Int((n-1)/2.))),0.,
+        collect(range(dx,stop=(B+dx/2.),length=Int((n-1)/2))))
 
-    xc = vcat(-xc[end:-1:2], xc)
-    n = length(xc)
-
-    return xc, n
+    return xc, dx
 
 end
 
@@ -123,18 +117,18 @@ See also: [`transition_M!`](@ref)
 
 ### Examples
 ```jldoctest
-julia> dt, dx, B, σ2, λ, μ = 0.1, 0.25, 10., 10., -0.5, 1.;
+julia> dt, n, B, σ2, λ, μ = 0.1, 53, 10., 10., -0.5, 1.;
 
-julia> xc,n = pulse_input_DDM.bins(B, dx);
+julia> xc,dx = pulse_input_DDM.bins(B, n);
 
 julia> M = pulse_input_DDM.transition_M(σ2, λ, μ, dx, xc, n, dt);
 
 julia> size(M)
-(81, 81)
+(53, 53)
 ```
 """
-function transition_M(σ2::TT, λ::TT, μ::TT, dx::Float64,
-        xc::Vector{TT}, n::Int, dt::Float64) where {TT <: Any}
+function transition_M(σ2::TT, λ::TT, μ::TT, dx::UU,
+        xc::Vector{TT}, n::Int, dt::Float64) where {TT,UU <: Any}
 
     M = zeros(TT,n,n)
     transition_M!(M,σ2,λ,μ,dx,xc,n,dt)
@@ -149,8 +143,8 @@ end
         xc::Vector{TT}, n::Int, dt::Float64) where {TT <: Any}
 
 """
-function transition_M!(F::Array{TT,2}, σ2::TT, λ::TT, μ::TT, dx::Float64,
-        xc::Vector{TT}, n::Int, dt::Float64) where {TT <: Any}
+function transition_M!(F::Array{TT,2}, σ2::TT, λ::TT, μ::TT, dx::UU,
+        xc::Vector{TT}, n::Int, dt::Float64) where {TT,UU <: Any}
 
     F[1,1] = one(TT); F[n,n] = one(TT); F[:,2:n-1] = zeros(TT,n,n-2)
 
@@ -220,10 +214,10 @@ end
 
 
 """
-    make_adapted_clicks(ϕ, τ_ϕ, L, R)
+    adapted_clicks(ϕ, τ_ϕ, L, R)
 
 """
-function make_adapted_clicks(ϕ::TT, τ_ϕ::TT, L::Vector{Float64}, R::Vector{Float64}) where {TT}
+function adapt_clicks(ϕ::TT, τ_ϕ::TT, L::Vector{Float64}, R::Vector{Float64}) where {TT}
 
     La, Ra = ones(TT,length(L)), ones(TT,length(R))
 
@@ -236,8 +230,8 @@ function make_adapted_clicks(ϕ::TT, τ_ϕ::TT, L::Vector{Float64}, R::Vector{Fl
     #    La[1], Ra[1] = eps(), eps()
     #end
 
-    (length(L) > 1 && ϕ != 1.) ? adapt_clicks!(La, L, ϕ, τ_ϕ) : nothing
-    (length(R) > 1 && ϕ != 1.) ? adapt_clicks!(Ra, R, ϕ, τ_ϕ) : nothing
+    (length(L) > 1 && ϕ != 1.) ? adapt_clicks!(ϕ, τ_ϕ, La, L) : nothing
+    (length(R) > 1 && ϕ != 1.) ? adapt_clicks!(ϕ, τ_ϕ, Ra, R) : nothing
 
     return La, Ra
 
@@ -248,7 +242,7 @@ end
     adapt_clicks!(Ca, C, ϕ, τ_ϕ)
 
 """
-function adapt_clicks!(Ca::Vector{TT}, C::Vector{Float64}, ϕ::TT, τ_ϕ::TT) where {TT}
+function adapt_clicks!(ϕ::TT, τ_ϕ::TT, Ca::Vector{TT}, C::Vector{Float64}) where {TT}
 
     ici = diff(C)
 

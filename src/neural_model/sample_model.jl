@@ -1,4 +1,45 @@
 """
+    mean_exp_rate_per_trial(pz, py, data, f_str; use_bin_center=false, dt=1e-2, num_samples=100)
+Given parameters and model inputs returns the average expected firing rate of the model computed over num_samples number of samples.
+"""
+function mean_exp_rate_per_trial(pz, py, data, f_str::String; use_bin_center::Bool=false, dt::Float64=1e-2, 
+        num_trials::Int=100)
+    
+    output = map(i-> sample_expected_rates_multiple_sessions(pz, py, data, f_str, use_bin_center, dt; rng=i), 1:num_samples)
+    mean(map(k-> output[k][1], 1:length(output)))
+        
+end
+
+
+
+"""
+    mean_exp_rate_per_cond(pz, py, data, f_str; use_bin_center=false, dt=1e-2, num_samples=100)
+
+"""
+function mean_exp_rate_per_cond(pz, py, data, f_str::String; use_bin_center::Bool=false, dt::Float64=1e-2,
+        num_trials::Int=100)
+    
+    μ_rate = mean_exp_rate_per_trial(pz, py, data, f_str; use_bin_center=use_bin_center, dt=dt, num_samples=num_samples)
+    
+    map(i-> condition_mean_varying_duration_trials(μ_rate[i], data[i]["conds"], 
+            data[i]["nconds"], data[i]["N"], data[i]["nT"]), 1:length(data))   
+    
+end
+
+
+"""
+"""
+function condition_mean_varying_duration_trials(μ_rate, conds, nconds, N, nT)
+    
+    map(n-> map(c-> [mean([μ_rate[conds .== c][k][n][t] 
+        for k in findall(nT[conds .== c] .>= t)]) 
+        for t in 1:(maximum(nT[conds .== c]))], 
+                1:nconds), 1:N)
+    
+end
+
+
+"""
 """
 function boot_LL(pz,py,data,f_str,i,n)
     dcopy = deepcopy(data)
@@ -71,6 +112,9 @@ function sample_spikes_multiple_sessions(pz::Vector{Float64}, py::Vector{Vector{
     
 end
 
+
+"""
+"""
 function sample_expected_rates_multiple_sessions(pz::Vector{Float64}, py::Vector{Vector{Vector{Float64}}}, 
         data, f_str::String, use_bin_center::Bool, dt::Float64; rng::Int=1)
     
@@ -86,6 +130,9 @@ function sample_expected_rates_multiple_sessions(pz::Vector{Float64}, py::Vector
     
 end
 
+
+"""
+"""
 function sample_expected_rates_single_session(data::Dict, pz::Vector{Float64}, py::Vector{Vector{Float64}}, 
         f_str::String, use_bin_center::Bool, dt::Float64; rng::Int=1)
     
@@ -104,6 +151,9 @@ function sample_expected_rates_single_session(data::Dict, pz::Vector{Float64}, p
     
 end
 
+
+"""
+"""
 function sample_expected_rates_single_trial(pz::Vector{Float64}, py::Vector{Vector{Float64}}, λ0::Vector{Vector{Float64}}, 
         nT::Int, L::Vector{Float64}, R::Vector{Float64}, nL::Vector{Int}, nR::Vector{Int},
         f_str::String, use_bin_center::Bool, dt::Float64; rng::Int=1)
@@ -116,50 +166,7 @@ function sample_expected_rates_single_trial(pz::Vector{Float64}, py::Vector{Vect
     
 end
 
+
+"""
+"""
 poisson_noise!(lambda,dt) = Int(rand(Poisson(lambda*dt)))
-
-
-"""
-"""
-function sample_per_trial_expected_rates_multiple_sessions(pz, py, data, f_str::String)
-    
-    output = map(i-> sample_expected_rates_multiple_sessions(pz, py, data, f_str; rng=i), 1:100)
-    μ_rate = mean(map(k-> output[k][1], 1:length(output)))
-    
-    return μ_rate
-    
-end
-
-
-"""
-"""
-function sample_average_expected_rates_multiple_sessions(pz, py, data, f_str::String)
-    
-    output = map(i-> sample_expected_rates_multiple_sessions(pz, py, data, f_str; rng=i), 1:100)
-    μ_rate = mean(map(k-> output[k][1], 1:length(output)))
-    
-    #μ_hat_ct = map(i-> map(n-> map(c-> [mean([μ_rate[i][data[i]["conds"] .== c][k][n][t] 
-    #    for k in findall(data[i]["nT"][data[i]["conds"] .== c] .>= t)]) 
-    #    for t in 1:(maximum(data[i]["nT"][data[i]["conds"] .== c]))], 
-    #            1:data[i]["nconds"]), 
-    #                1:data[i]["N"]), 
-    #                    1:length(data))
-    
-    μ_hat_ct = map(i-> condition_mean_varying_duration_trials(μ_rate[i], data[i]["conds"], 
-            data[i]["nconds"], data[i]["N"], data[i]["nT"]), 1:length(data))
-    
-    return μ_hat_ct
-    
-end
-
-
-"""
-"""
-function condition_mean_varying_duration_trials(μ_rate, conds, nconds, N, nT)
-    
-    map(n-> map(c-> [mean([μ_rate[conds .== c][k][n][t] 
-        for k in findall(nT[conds .== c] .>= t)]) 
-        for t in 1:(maximum(nT[conds .== c]))], 
-                1:nconds), 1:N)
-    
-end
