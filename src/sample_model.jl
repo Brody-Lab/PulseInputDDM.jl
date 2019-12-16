@@ -4,8 +4,6 @@ function synthetic_clicks(ntrials::Int; rng::Int=1)
 
     Random.seed!(rng)
 
-    data = Dict()
-
     output = map(generate_stimulus,1:ntrials)
 
     L = map(i->output[i][3],1:ntrials)
@@ -13,8 +11,6 @@ function synthetic_clicks(ntrials::Int; rng::Int=1)
     T = map(i->output[i][1],1:ntrials)
 
     clicks(L, R, T, ntrials)
-
-    return data
 
 end
 
