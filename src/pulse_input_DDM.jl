@@ -46,13 +46,13 @@ export filter_data_by_cell!
 """
 """
 @with_kw struct θz{T<:Real} @deftype T
-    σ2_i = eps()
-    B = 18.
+    σ2_i = 0.5
+    B = 15.
     λ = -0.5; @assert λ != 0.
-    σ2_a = 5.
+    σ2_a = 50.
     σ2_s = 1.5
-    ϕ = 0.4; @assert ϕ != 1.
-    τ_ϕ = 0.02
+    ϕ = 0.8; @assert ϕ != 1.
+    τ_ϕ = 0.05
 end
 
 
