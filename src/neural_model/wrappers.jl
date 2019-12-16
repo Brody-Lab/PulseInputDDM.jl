@@ -3,19 +3,19 @@
 
 Returns two dictionaries of default model parameters.
 """
-function default_parameters(f_str::String, cells_per_session::Vector{Int}, 
+function default_parameters(f_str::String, cells_per_session::Vector{Int},
         num_sessions::Int; generative::Bool=false)
-    
+
     pz::Dict = Dict("name" => ["σ_i","B", "λ", "σ_a","σ_s","ϕ","τ_ϕ"],
         "fit" => vcat(trues(4),falses(3)),
         "initial" => vcat(0.1, 11., -0.1, 20., 0.1, 0.8, 0.01),
         "lb" => [eps(), 8., -5., eps(), eps(), 0.01, 0.005],
         "ub" => [100., 100., 5., 100., 2.5, 1.2, 1.5])
-    
+
     if f_str == "softplus"
-        
+
         dimy = 3
-                
+
         py = Dict("dimy"=> dimy,
             "cells_per_session"=> cells_per_session,
             "num_sessions"=> num_sessions,
@@ -23,11 +23,11 @@ function default_parameters(f_str::String, cells_per_session::Vector{Int},
             "initial" => [[Vector{Float64}(undef,dimy) for n in 1:N] for N in cells_per_session],
             "lb" => [[[eps(),-10.,-10.] for n in 1:N] for N in cells_per_session],
             "ub" => [[[100.,10.,10.] for n in 1:N] for N in cells_per_session])
-        
+
     elseif f_str == "sig"
-        
+
         dimy = 4
-                
+
         py = Dict("dimy"=> dimy,
             "cells_per_session"=> cells_per_session,
             "num_sessions"=> num_sessions,
@@ -35,13 +35,13 @@ function default_parameters(f_str::String, cells_per_session::Vector{Int},
             "initial" => [[Vector{Float64}(undef,dimy) for n in 1:N] for N in cells_per_session],
             "lb" => [[[-100.,0.,-10.,-10.] for n in 1:N] for N in cells_per_session],
             "ub" => [[[100.,100.,10.,10.] for n in 1:N] for N in cells_per_session])
-    end  
+    end
 
     if generative
-        
+
         pz["generative"] = [0.5, 15., -0.5, 10., 1.2, 0.6, 0.02]
         pz["initial"][.!pz["fit"]] = pz["generative"][.!pz["fit"]]
-        
+
         if f_str == "softplus"
             py["generative"] = [[[10., 5.0*sign(randn()), 0.] for n in 1:N] for N in cells_per_session]
         elseif f_str == "sig"
@@ -57,10 +57,10 @@ end
 """
     default_parameters(data, f_str; generative=false)
 
-Returns two dictionaries of default model parameters, using the data to initialize py. 
+Returns two dictionaries of default model parameters, using the data to initialize py.
 """
 function default_parameters(data, f_str::String; generative::Bool=false, show_trace::Bool=false)
-    
+
     num_sessions, cells_per_session = length(data), [data["N"] for data in data]
     pz, py = default_parameters(f_str, cells_per_session, num_sessions; generative=false)
     py = initialize_py!(pz, py, data, f_str; show_trace=show_trace)
@@ -71,18 +71,18 @@ end
 
 
 """
-    default_parameters_and_data(f_str, num_sessions, num_trials_per_session, 
+    default_parameters_and_data(f_str, num_sessions, num_trials_per_session,
         cells_per_session; generative=false, rng=1, dt=1e-2, use_bin_center=true)
 Returns default parameters and some simulated data
 """
-function default_parameters_and_data(f_str::String, num_sessions::Int, 
-        num_trials_per_session::Vector{Int}, 
-        cells_per_session::Vector{Int}; 
-        generative::Bool=true, 
+function default_parameters_and_data(f_str::String, num_sessions::Int,
+        num_trials_per_session::Vector{Int},
+        cells_per_session::Vector{Int};
+        generative::Bool=true,
         rng::Int=1, dt::Float64=1e-2, use_bin_center::Bool=true)
-    
+
     pz, py = default_parameters(f_str, cells_per_session, num_sessions; generative=true)
-    data = sample_clicks_and_spikes(pz["generative"], py["generative"], 
+    data = sample_clicks_and_spikes(pz["generative"], py["generative"],
         f_str, num_sessions, num_trials_per_session; rng=rng, use_bin_center=false)
     data = map(x->bin_clicks_and_spikes_and_compute_λ0!(x; use_bin_center=true, dt=dt), data)
 
@@ -94,7 +94,7 @@ end
 """
 """
 function initialize_py!(pz, py, data, f_str; show_trace::Bool=false)
-    
+
     pztemp = deepcopy(pz)
     pztemp["fit"] = falses(dimz)
     pztemp["initial"][[1,4,5]] .= 2*eps()
@@ -102,14 +102,14 @@ function initialize_py!(pz, py, data, f_str; show_trace::Bool=false)
     py["initial"] = map(data-> regress_init(data, f_str), data)
     pztemp, py = optimize_model_deterministic(pztemp, py, data, f_str, show_trace=show_trace)
     delete!(py,"final")
-        
+
     return py
-    
+
 end
 
 
 """
-    optimize_model(f_str; num_sessions, num_trials_per_session, cells_per_session; 
+    optimize_model(f_str; num_sessions, num_trials_per_session, cells_per_session;
         n=53, x_tol=1e-10,
         f_tol=1e-6, g_tol=1e-3,iterations=Int(2e3), show_trace=true,
         outer_iterations=Int(2e3), outer_iterations=Int(2e1),
@@ -117,22 +117,22 @@ end
 
 Generate parameters and data and thn Optimize model parameters. pz and py are dictionaries that contains initial values, boundaries, and specification of which parameters to fit.
 """
-function optimize_model(f_str::String, num_sessions::Int, 
-        num_trials_per_session::Vector{Int}, 
+function optimize_model(f_str::String, num_sessions::Int,
+        num_trials_per_session::Vector{Int},
         cells_per_session::Vector{Int};
         n::Int=53, x_tol::Float64=1e-10, f_tol::Float64=1e-6, g_tol::Float64=1e-3,
         iterations::Int=Int(2e3), show_trace::Bool=true,
-        outer_iterations::Int=Int(2e1), generative::Bool=true, 
+        outer_iterations::Int=Int(2e1), generative::Bool=true,
         rng::Int=1, dt::Float64=1e-2, use_bin_center::Bool=true)
-    
-    pz, py, data = default_parameters_and_data(f_str, num_sessions, num_trials_per_session, 
+
+    pz, py, data = default_parameters_and_data(f_str, num_sessions, num_trials_per_session,
         cells_per_session; generative=true, rng=rng, dt=dt, use_bin_center=true)
-        
+
     py = initialize_py!(pz, py, data, f_str; show_trace=false)
-    
+
     pz, py, converged, opt_output = optimize_model(pz, py, data, f_str;
         n=n, x_tol=x_tol, f_tol=f_tol, g_tol=g_tol,
-        iterations=iterations, show_trace=show_trace, 
+        iterations=iterations, show_trace=show_trace,
         outer_iterations=outer_iterations)
 
     return pz, py, data, converged, opt_output
@@ -154,12 +154,12 @@ function optimize_model(data::Vector{Dict{Any,Any}}, f_str::String;
         n::Int=53, x_tol::Float64=1e-10, f_tol::Float64=1e-6, g_tol::Float64=1e-3,
         iterations::Int=Int(2e3), show_trace::Bool=true,
         outer_iterations::Int=Int(2e1))
-        
+
     pz, py = default_parameters(data, f_str; show_trace=false, generative=false)
-    
+
     pz, py, converged, opt_output = optimize_model(pz, py, data, f_str;
         n=n, x_tol=x_tol, f_tol=f_tol, g_tol=g_tol,
-        iterations=iterations, show_trace=show_trace, 
+        iterations=iterations, show_trace=show_trace,
         outer_iterations=outer_iterations)
 
     return pz, py, converged, opt_output
@@ -190,9 +190,9 @@ function optimize_model(pz::Dict{}, py::Dict{}, data::Vector{Dict{Any,Any}}, f_s
     fit_vec = combine_latent_and_observation(pz["fit"], py["fit"])
     lb = combine_latent_and_observation(pz["lb"], py["lb"])[fit_vec]
     ub = combine_latent_and_observation(pz["ub"], py["ub"])[fit_vec]
-    
+
     p_opt, ll, parameter_map_f = split_opt_params_and_close(pz,py,data,f_str,n; state="state")
-    
+
     p_opt[p_opt .< lb] .= lb[p_opt .< lb]
     p_opt[p_opt .> ub] .= ub[p_opt .> ub]
 
@@ -202,7 +202,7 @@ function optimize_model(pz::Dict{}, py::Dict{}, data::Vector{Dict{Any,Any}}, f_s
 
     pz["state"], py["state"] = parameter_map_f(p_opt)
     pz["final"], py["final"] = pz["state"], py["state"]
-    
+
     println("optimization complete \n")
     println("converged: $converged \n")
 
@@ -267,18 +267,18 @@ end
 
 """
 """
-function split_opt_params_and_close(pz::Dict{}, py::Dict{}, data::Vector{Dict{Any,Any}}, f_str::String, 
+function split_opt_params_and_close(pz::Dict{}, py::Dict{}, data::Vector{Dict{Any,Any}}, f_str::String,
         n::Int; state::String="state")
-    
+
     fit_vec = combine_latent_and_observation(pz["fit"], py["fit"])
-    
+
     p_opt, p_const = split_variable_and_const(combine_latent_and_observation(pz[state], py[state]), fit_vec)
 
-    parameter_map_f(x) = split_latent_and_observation(combine_variable_and_const(x, p_const, fit_vec), 
+    parameter_map_f(x) = split_latent_and_observation(combine_variable_and_const(x, p_const, fit_vec),
         py["cells_per_session"], py["dimy"])
 
     ll(x) = ll_wrapper(x, data, parameter_map_f, f_str, n)
-    
+
     return p_opt, ll, parameter_map_f
 
 end
@@ -292,9 +292,9 @@ compute LL for your model. returns a scalar
 function compute_CIs!(pz::Dict{}, py::Dict{}, H, f_str::String; n::Int=53)
 
     println("computing confidence intervals \n")
-    
+
     CI = fill!(Vector{Float64}(undef,size(H,1)),1e8)
-    
+
     try
         gooddims = 1:size(H,1)
         evs = findall(eigvals(H[gooddims,gooddims]) .<= 0)
@@ -304,7 +304,7 @@ function compute_CIs!(pz::Dict{}, py::Dict{}, H, f_str::String; n::Int=53)
     catch
         @warn "CI computation failed."
     end
-    
+
     p_opt, ll, parameter_map_f = split_opt_params_and_close(pz,py,[Dict()],f_str,n; state="final")
 
     pz["CI_plus_hessian"], py["CI_plus_hessian"] = parameter_map_f(p_opt + CI)
@@ -334,7 +334,7 @@ end
 """
 function compute_gradient(pz::Dict{}, py::Dict{}, data::Vector{Dict{Any,Any}}, f_str::String;
         n::Int=53, state::String="state")
-    
+
     println("computing gradient \n")
     p_opt, ll, = split_opt_params_and_close(pz,py,data,f_str,n; state=state)
     ForwardDiff.gradient(ll, p_opt)
@@ -357,7 +357,7 @@ julia> pulse_input_DDM.split_latent_and_observation(p) == (pz["initial"], py["in
 true
 ```
 """
-combine_latent_and_observation(pz::Union{Vector{TT},BitArray{1}}, 
+combine_latent_and_observation(pz::Union{Vector{TT},BitArray{1}},
     py::Union{Vector{Vector{Vector{TT}}}, Vector{Vector{BitArray{1}}}}) where {TT <: Any} = vcat(pz,vcat(vcat(py...)...))
 
 
@@ -378,7 +378,7 @@ true
 ```
 """
 function split_latent_and_observation(p::Vector{T}, N::Vector{Int}, dimy::Int) where {T <: Any}
-                
+
     pz = p[1:dimz]
     #linear index that defines the beginning of a session
     iter = cumsum(vcat(0,N))*dimy
@@ -388,7 +388,7 @@ function split_latent_and_observation(p::Vector{T}, N::Vector{Int}, dimy::Int) w
     py = map(i-> map(j-> py[i][:,j], 1:N[i]), 1:length(N))
 
     return pz, py
-    
+
 end
 
 
@@ -397,22 +397,22 @@ end
 
 """
 function LL_across_range(pz::Dict, py::Dict, data, f_str, lb, ub, i; n::Int=53, state::String="final")
-    
+
     fit_vec = combine_latent_and_observation(pz["fit"], py["fit"])
-    
+
     lb_vec = combine_latent_and_observation(lb[1], lb[2])
     ub_vec = combine_latent_and_observation(ub[1], ub[2])
-        
-    ll_θ = compute_LL(pz[state], py[state], data, f_str, n) 
+
+    ll_θ = compute_LL(pz[state], py[state], data, f_str, n)
 
     fit_vec2 = falses(length(fit_vec))
     fit_vec2[i] = true
 
     p_opt, p_const = split_variable_and_const(combine_latent_and_observation(pz[state], py[state]), fit_vec2)
 
-    parameter_map_f(x) = split_latent_and_observation(combine_variable_and_const(x, p_const, fit_vec2), 
-        py["cells_per_session"], py["dimy"])    
-    
+    parameter_map_f(x) = split_latent_and_observation(combine_variable_and_const(x, p_const, fit_vec2),
+        py["cells_per_session"], py["dimy"])
+
     ll(x) = -ll_wrapper([x], data, parameter_map_f, f_str, n) - (ll_θ - 1.92)
 
     xs = range(lb_vec[i], stop=ub_vec[i], length=50)

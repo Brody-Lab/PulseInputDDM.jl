@@ -25,6 +25,7 @@ export load, reload, save
 export mean_exp_rate_per_trial, mean_exp_rate_per_cond
 
 export choiceDDM, opt, θchoice, choicedata, θz
+export θneural, neuralDDM, neuraldata, θy
 
 #=
 
@@ -62,6 +63,27 @@ end
     θz::T1 = θz()
     bias::T = 1.
     lapse::T = 0.05
+end
+
+
+"""
+"""
+@with_kw struct θneural{T1, T2}
+    θz::T1 = θz()
+    θy::T2 = θy()
+end
+
+
+"""
+"""
+@with_kw struct θy{T<:Real} @deftype T
+    σ2_i = 0.5
+    B = 15.
+    λ = -0.5; @assert λ != 0.
+    σ2_a = 50.
+    σ2_s = 1.5
+    ϕ = 0.8; @assert ϕ != 1.
+    τ_ϕ = 0.05
 end
 
 
