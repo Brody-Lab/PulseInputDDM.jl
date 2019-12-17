@@ -2,7 +2,35 @@
 const dimz = 7
 
 """
-    loglikelihood(DDM; n=53)
+    gradient(model; n=53)
+"""
+function gradient(model::T; n::Int=53) where T <: DDM
+
+    @unpack θ, data = model
+    x = unpack(θ)
+    ℓℓ(x) = -loglikelihood(x, data; n=n)
+
+    ForwardDiff.gradient(ℓℓ, x)
+
+end
+
+
+"""
+    Hessian(model; n=53)
+"""
+function Hessian(model::T; n::Int=53) where T <: DDM
+
+    @unpack θ, data = model
+    x = unpack(θ)
+    ℓℓ(x) = -loglikelihood(x, data; n=n)
+
+    ForwardDiff.hessian(ℓℓ, x)
+
+end
+
+
+"""
+    loglikelihood(model; n=53)
 
 Computes the log likelihood for a set of trials consistent with the animal's choice on each trial.
 ```

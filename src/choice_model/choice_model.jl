@@ -104,34 +104,6 @@ end
 
 
 """
-    gradient(model; options, n=53)
-"""
-function gradient(model::choiceDDM; n::Int=53)
-
-    @unpack θ, data = model
-    x = unpack(θ)
-    ℓℓ(x) = -loglikelihood(x, data; n=n)
-
-    ForwardDiff.gradient(ℓℓ, x)
-
-end
-
-
-"""
-    Hessian(model; options, n=53)
-"""
-function Hessian(model::choiceDDM; n::Int=53)
-
-    @unpack θ, data = model
-    x = unpack(θ)
-    ℓℓ(x) = -loglikelihood(x, data; n=n)
-
-    ForwardDiff.hessian(ℓℓ, x)
-
-end
-
-
-"""
     CIs(H)
 """
 function CIs(model::choiceDDM, H::Array{Float64,2})
