@@ -82,9 +82,12 @@ function default_parameters_and_data(f_str::String, num_sessions::Int,
         rng::Int=1, dt::Float64=1e-2, use_bin_center::Bool=true)
 
     pz, py = default_parameters(f_str, cells_per_session, num_sessions; generative=true)
-    data = sample_clicks_and_spikes(pz["generative"], py["generative"],
-        f_str, num_sessions, num_trials_per_session; rng=rng, use_bin_center=false)
-    data = map(x->bin_clicks_and_spikes_and_compute_λ0!(x; use_bin_center=true, dt=dt), data)
+    θblah=θz(σ2_i = pz["generative"][1], B = pz["generative"][2],
+        λ = pz["generative"][3], σ2_a = pz["generative"][4], σ2_s = pz["generative"][5],
+        ϕ = pz["generative"][6], τ_ϕ = pz["generative"][7])
+    data = sample_clicks_and_spikes(θblah, py["generative"],
+        f_str, num_sessions, num_trials_per_session; rng=rng, centered=false)
+    data = map(x->bin_clicks_and_spikes_and_compute_λ0!(x; centered=true, dt=dt), data)
 
     return pz, py, data
 

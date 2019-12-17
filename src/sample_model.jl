@@ -18,7 +18,15 @@ function synthetic_clicks(ntrials::Int; rng::Int=1,
     R = map((T,R)-> vcat(0,R[R .<= T]), T,R)
     L = map((T,L)-> vcat(0,L[L .<= T]), T,L)
 
-    clicks(L, R, T, ntrials)
+    #clicks(L, R, T, ntrials)
+
+    data = Dict()
+    data["leftbups"] = L
+    data["rightbups"] = R
+    data["T"] = T
+    data["ntrials"] = ntrials
+
+    return data
 
 end
 

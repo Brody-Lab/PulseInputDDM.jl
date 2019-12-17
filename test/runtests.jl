@@ -9,4 +9,5 @@ model = choiceDDM(θ, data)
 
 @test round(loglikelihood(model), digits=2) ≈ -3.76
 
-pz, py, data = pulse_input_DDM.default_parameters_and_data("sig", 2, [100,200], [2,3])
+pz, py, data = default_parameters_and_data("sig", 2, [100,200], [2,3])
+round(compute_LL(pz["generative"], py["generative"], data, "sig", 53), digits=2) ≈ -21343.94

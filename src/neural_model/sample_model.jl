@@ -65,15 +65,15 @@ end
 
 """
 """
-function sample_clicks_and_spikes(pz::Vector{Float64}, py::Vector{Vector{Vector{Float64}}},
-        f_str::String, num_sessions::Int, num_trials_per_session::Vector{Int}; use_bin_center::Bool=false,
+function sample_clicks_and_spikes(θz::θz, py::Vector{Vector{Vector{Float64}}},
+        f_str::String, num_sessions::Int, num_trials_per_session::Vector{Int}; centered::Bool=false,
         dtMC::Float64=1e-4, rng::Int=0)
 
-    data = map((ntrials,rng)-> synthetic_clicks(ntrials; rng=rng), num_trials_per_session, (1:num_sessions) .+ rng) 
+    data = map((ntrials,rng)-> synthetic_clicks(ntrials; rng=rng), num_trials_per_session, (1:num_sessions) .+ rng)
 
     map((data,py) -> data=sample_λ0!(data, py; dtMC=dtMC), data, py)
 
-    Y = sample_spikes_multiple_sessions(pz, py, data, f_str, use_bin_center, dtMC; rng=rng)
+    Y = sample_spikes_multiple_sessions(θz, py, data, f_str, centered, dtMC; rng=rng)
     map((data,Y)-> data["spike_counts"] = Y, data, Y)
 
     return data
@@ -96,10 +96,10 @@ end
 
 """
 """
-function sample_spikes_multiple_sessions(pz::Vector{Float64}, py::Vector{Vector{Vector{Float64}}},
-        data, f_str::String, use_bin_center::Bool, dt::Float64; rng::Int=1)
+function sample_spikes_multiple_sessions(θz::θz, py::Vector{Vector{Vector{Float64}}},
+        data, f_str::String, centered::Bool, dt::Float64; rng::Int=1)
 
-    λ, = sample_expected_rates_multiple_sessions(pz, py, data, f_str, use_bin_center, dt; rng=rng)
+    λ, = sample_expected_rates_multiple_sessions(θz, py, data, f_str, centered, dt; rng=rng)
     Y = map((λ,data)-> map(λ-> map(λ-> poisson_noise!.(λ, dt), λ), λ), λ, data)
     #Y = map((py,λ0)-> poisson_noise!.(map((a, λ0)-> f_py!(a, λ0, py, f_str), a, λ0), dt), py, λ0)
 
@@ -115,12 +115,12 @@ end
 
 """
 """
-function sample_expected_rates_multiple_sessions(pz::Vector{Float64}, py::Vector{Vector{Vector{Float64}}},
-        data, f_str::String, use_bin_center::Bool, dt::Float64; rng::Int=1)
+function sample_expected_rates_multiple_sessions(θz::θz, py::Vector{Vector{Vector{Float64}}},
+        data, f_str::String, centered::Bool, dt::Float64; rng::Int=1)
 
     nsessions = length(data)
 
-    output = map((data, py)-> sample_expected_rates_single_session(data, pz, py, f_str, use_bin_center, dt; rng=rng),
+    output = map((data, py)-> sample_expected_rates_single_session(data, θz, py, f_str, centered, dt; rng=rng),
         data, py)
 
     λ = map(x-> x[1], output)
@@ -133,16 +133,18 @@ end
 
 """
 """
-function sample_expected_rates_single_session(data::Dict, pz::Vector{Float64}, py::Vector{Vector{Float64}},
-        f_str::String, use_bin_center::Bool, dt::Float64; rng::Int=1)
+function sample_expected_rates_single_session(data::Dict, θz::θz, py::Vector{Vector{Float64}},
+        f_str::String, centered::Bool, dt::Float64; rng::Int=1)
 
     Random.seed!(rng)
 
     T, L, R, λ0 = data["T"], data["leftbups"], data["rightbups"], data["λ0"]
-    nT, nL, nR = bin_clicks(T,L,R;dt=dt, use_bin_center=use_bin_center)
 
-    output = pmap((λ0,nT,L,R,nL,nR,rng) -> sample_expected_rates_single_trial(pz,py,λ0,nT,L,R,nL,nR,
-        f_str,use_bin_center,dt; rng=rng), λ0, nT, L, R, nL, nR, shuffle(1:length(T)))
+    binned_clicks = bin_clicks(clicks(L, R, T, data["ntrials"]), centered=centered, dt=dt)
+    @unpack nT, nL, nR = binned_clicks
+
+    output = pmap((λ0,nT,L,R,nL,nR,rng) -> sample_expected_rates_single_trial(θz,py,λ0,nT,L,R,nL,nR,
+        f_str,centered,dt; rng=rng), λ0, nT, L, R, nL, nR, shuffle(1:length(T)))
 
     λ = map(x-> x[1], output)
     a = map(x-> x[2], output)
@@ -154,12 +156,12 @@ end
 
 """
 """
-function sample_expected_rates_single_trial(pz::Vector{Float64}, py::Vector{Vector{Float64}}, λ0::Vector{Vector{Float64}},
+function sample_expected_rates_single_trial(θz::θz, py::Vector{Vector{Float64}}, λ0::Vector{Vector{Float64}},
         nT::Int, L::Vector{Float64}, R::Vector{Float64}, nL::Vector{Int}, nR::Vector{Int},
-        f_str::String, use_bin_center::Bool, dt::Float64; rng::Int=1)
+        f_str::String, centered::Bool, dt::Float64; rng::Int=1)
 
     Random.seed!(rng)
-    a = sample_latent(nT,L,R,nL,nR,pz,use_bin_center;dt=dt)
+    a = rand(θz,nT,L,R,nL,nR; centered=centered, dt=dt)
     λ = map((py,λ0)-> map((a, λ0)-> f_py!(a, λ0, py, f_str), a, λ0), py, λ0)
 
     return λ, a

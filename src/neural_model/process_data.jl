@@ -73,10 +73,18 @@ end
 
 """
 """
-function bin_clicks_and_spikes_and_compute_λ0!(data::Dict; use_bin_center::Bool=true,
+function bin_clicks_and_spikes_and_compute_λ0!(data::Dict; centered::Bool=true,
         dt::Float64=1e-2, delay::Float64=0., pad::Int=10, filtSD::Int=5)
 
-    data = bin_clicks!(data; use_bin_center=use_bin_center, dt=dt)
+    T, L, R = data["T"], data["leftbups"], data["rightbups"]
+    binned_clicks = bin_clicks(clicks(L, R, T, data["ntrials"]), centered=centered, dt=dt)
+    @unpack nT, nL, nR, dt, centered = binned_clicks
+    data["nT"] = nT
+    data["binned_leftbups"] = nL
+    data["binned_rightbups"] = nR
+    data["dt"] = dt
+    data["use_bin_center"] = centered
+
     data = bin_spikes!(data;delay=delay)
     data = pad_binned_spikes!(data; delay=delay, pad=pad)
     data = compute_filtered_rate!(data; filtSD=filtSD)
