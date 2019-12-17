@@ -8,4 +8,5 @@ using Test, pulse_input_DDM, LinearAlgebra
 model = choiceDDM(θ, data)
 
 @test round(loglikelihood(model), digits=2) ≈ -3.76
-@test round(norm(gradient(model)), digits=2) ≈ 13.7
+
+pz, py, data = pulse_input_DDM.default_parameters_and_data("sig", 2, [100,200], [2,3])
