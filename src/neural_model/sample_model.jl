@@ -83,10 +83,12 @@ function sample_clicks_and_spikes(θz::θz, py::Vector{Vector{Vector{Float64}}},
 
     map((data,py) -> data=sample_λ0!(data, py; dtMC=dtMC), data, py)
 
-    Y = sample_spikes_multiple_sessions(θz, py, data, f_str, centered, dtMC; rng=rng)
+    λ0 = map(i-> data[i]["λ0"], 1:length(data))
+
+    Y = sample_spikes_multiple_sessions(θz, py, clicks, λ0, f_str, centered, dtMC; rng=rng)
     map((data,Y)-> data["spike_counts"] = Y, data, Y)
 
-    return data, Y, clicks
+    return data, Y, clicks, λ0
 
 end
 
@@ -107,18 +109,10 @@ end
 """
 """
 function sample_spikes_multiple_sessions(θz::θz, py::Vector{Vector{Vector{Float64}}},
-        data, f_str::String, centered::Bool, dt::Float64; rng::Int=1)
+        clicks, λ0, f_str::String, centered::Bool, dt::Float64; rng::Int=1)
 
-    λ, = sample_expected_rates_multiple_sessions(θz, py, data, f_str, centered, dt; rng=rng)
-    Y = map((λ,data)-> map(λ-> map(λ-> poisson_noise!.(λ, dt), λ), λ), λ, data)
-    #Y = map((py,λ0)-> poisson_noise!.(map((a, λ0)-> f_py!(a, λ0, py, f_str), a, λ0), dt), py, λ0)
-
-    #this assumes only one spike per bin, which should most often be true at 1e-4, but not guaranteed!
-    #findall(x-> x > 1, pulse_input_DDM.poisson_noise!.(10 * ones(100 * 10 * Int(1. /1e-4)),1e-4))
-    #Y = map((py,λ0)-> findall(x -> x != 0,
-    #        poisson_noise!.(map((a, λ0)-> f_py!(a, λ0, py, f_str=f_str), a, λ0), dt)) .* dt, py, λ0)
-
-    return Y
+    λ, = sample_expected_rates_multiple_sessions(θz, py, clicks, λ0, f_str, centered, dt; rng=rng)
+    Y = map(λ-> map(λ-> map(λ-> poisson_noise!.(λ, dt), λ), λ), λ)
 
 end
 
@@ -126,12 +120,12 @@ end
 """
 """
 function sample_expected_rates_multiple_sessions(θz::θz, py::Vector{Vector{Vector{Float64}}},
-        data, f_str::String, centered::Bool, dt::Float64; rng::Int=1)
+        clicks, λ0, f_str::String, centered::Bool, dt::Float64; rng::Int=1)
 
-    nsessions = length(data)
+    nsessions = length(clicks)
 
-    output = map((data, py)-> sample_expected_rates_single_session(data, θz, py, f_str, centered, dt; rng=rng),
-        data, py)
+    output = map((clicks, λ0, py)-> sample_expected_rates_single_session(clicks, λ0, θz, py, f_str, centered, dt; rng=rng),
+        clicks, λ0, py)
 
     λ = map(x-> x[1], output)
     a = map(x-> x[2], output)
@@ -143,14 +137,16 @@ end
 
 """
 """
-function sample_expected_rates_single_session(data::Dict, θz::θz, py::Vector{Vector{Float64}},
+function sample_expected_rates_single_session(clicks, λ0, θz::θz, py::Vector{Vector{Float64}},
         f_str::String, centered::Bool, dt::Float64; rng::Int=1)
 
     Random.seed!(rng)
 
-    T, L, R, λ0 = data["T"], data["leftbups"], data["rightbups"], data["λ0"]
+    #T, L, R, λ0 = data["T"], data["leftbups"], data["rightbups"], data["λ0"]
 
-    binned_clicks = bin_clicks(clicks(L, R, T, data["ntrials"]), centered=centered, dt=dt)
+    #binned_clicks = bin_clicks(clicks(L, R, T, data["ntrials"]), centered=centered, dt=dt)
+    binned_clicks = bin_clicks(clicks, centered=centered, dt=dt)
+    @unpack T,L,R = clicks
     @unpack nT, nL, nR = binned_clicks
 
     output = pmap((λ0,nT,L,R,nL,nR,rng) -> sample_expected_rates_single_trial(θz,py,λ0,nT,L,R,nL,nR,
