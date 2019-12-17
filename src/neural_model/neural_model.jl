@@ -20,6 +20,14 @@ end
 
 
 """
+"""
+@with_kw struct neural_inputdata{T1,T2}
+    clicks::T1
+    λ0::T2
+end
+
+
+"""
     default_parameters(f_str, cells_per_session, num_sessions;generative=false)
 
 Returns two dictionaries of default model parameters.
@@ -107,13 +115,16 @@ function default_parameters_and_data(f_str::String, num_sessions::Int,
         λ = pz["generative"][3], σ2_a = pz["generative"][4], σ2_s = pz["generative"][5],
         ϕ = pz["generative"][6], τ_ϕ = pz["generative"][7])
 
-    spikes, clicks, λ0 = sample_clicks_and_spikes(θblah, py["generative"],
+    spikes, inputs = sample_clicks_and_spikes(θblah, py["generative"],
         f_str, num_sessions, num_trials_per_session; rng=rng, centered=false)
 
     data = Vector{Any}(undef, num_sessions)
+    binned_clicks = Vector{Any}(undef, num_sessions)
     for i = 1:num_sessions
         data[i] = Dict()
-        @unpack L,R,T,ntrials = clicks[i]
+        @unpack clicks, λ0 = inputs[i]
+        binned_clicks[i] = bin_clicks(clicks, centered=centered, dt=dt)
+        @unpack L,R,T,ntrials = clicks
         data[i]["leftbups"] = L
         data[i]["rightbups"] = R
         data[i]["T"] = T
@@ -122,15 +133,13 @@ function default_parameters_and_data(f_str::String, num_sessions::Int,
         data[i]["synthetic"] = true
         data[i]["N"] = length(py["generative"][i])
         data[i]["spike_counts"] = spikes[i]
-        data[i]["λ0"] = λ0[i]
+        data[i]["λ0"] = λ0
     end
 
     #map((data,Y)-> data["spike_counts"] = Y, data, spikes)
     #λ0 = map(i-> data[i]["λ0"], 1:length(data))
 
     data = map(x->bin_clicks_and_spikes_and_compute_λ0!(x; centered=true, dt=dt), data)
-
-    binned_clicks = map(c-> bin_clicks(c, centered=centered, dt=dt), clicks)
 
     spikes = map(i-> data[i]["spike_counts"], 1:length(data))
     λ0 = map(i-> data[i]["λ0"], 1:length(data))
