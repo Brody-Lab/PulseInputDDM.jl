@@ -1,4 +1,7 @@
 """
+    synthetic_clicks(ntrials)
+
+Computes randomly timed left and right clicks for ntrials. Output is bundled into a struct.
 """
 function synthetic_clicks(ntrials::Int; rng::Int=1,
     tmin::Float64=0.2, tmax::Float64=1.0, clicktot::Int=40)
@@ -24,12 +27,16 @@ end
 
 
 """
+    rand(θz, nT, L, R, nL, nR)
+
+Generate a sample latent trajecgtory given parameters of the latent model and clicks for one trial.
 """
 function rand(θz::θz, nT::Int, L::Vector{Float64},R::Vector{Float64},
         nL::Vector{Int}, nR::Vector{Int};
         centered::Bool=false, dt::Float64=1e-4)
 
     @unpack σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ = θz
+    
     La, Ra = adapt_clicks(ϕ, τ_ϕ, L, R)
 
     A = Vector{Float64}(undef,nT)
@@ -53,6 +60,9 @@ end
 
 
 """
+    sample_one_step!(a, t, σ2_a, σ2_s, λ, nL, nR, La, Ra, dt)
+
+Move latent state one dt forward, given parameters defining the DDM.
 """
 function sample_one_step!(a::TT, t::Int, σ2_a::TT, σ2_s::TT, λ::TT,
         nL::Vector{Int}, nR::Vector{Int},

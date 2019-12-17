@@ -58,15 +58,6 @@ end
 
 """
 """
-@with_kw struct θchoice{T1, T<:Real}
-    θz::T1 = θz()
-    bias::T = 1.
-    lapse::T = 0.05
-end
-
-
-"""
-"""
 @with_kw struct clicks
     L::Vector{Vector{Float64}}
     R::Vector{Vector{Float64}}
@@ -89,22 +80,6 @@ end
 
 """
 """
-@with_kw struct choicedata{T}
-    binned_clicks::T
-    choices::Vector{Bool}
-end
-
-
-"""
-"""
-@with_kw struct choiceDDM{T,U} <: ContinuousUnivariateDistribution
-    θ::T = θchoice()
-    data::U
-end
-
-
-"""
-"""
 @with_kw struct opt
     fit::Vector{Bool} = vcat(trues(9))
     lb::Vector{Float64} = vcat([0., 8., -5., 0., 0., 0.01, 0.005], [-30, 0.])
@@ -119,7 +94,7 @@ include("optim_funcs.jl")
 include("sample_model.jl")
 
 include("choice_model/compute_LL.jl")
-include("choice_model/wrappers.jl")
+include("choice_model/choice_model.jl")
 include("choice_model/sample_model.jl")
 include("choice_model/process_data.jl")
 

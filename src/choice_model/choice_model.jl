@@ -1,5 +1,33 @@
 """
 """
+@with_kw struct choicedata{T}
+    binned_clicks::T
+    choices::Vector{Bool}
+end
+
+
+"""
+"""
+@with_kw struct θchoice{T1, T<:Real}
+    θz::T1 = θz()
+    bias::T = 1.
+    lapse::T = 0.05
+end
+
+
+"""
+"""
+@with_kw struct choiceDDM{T,U} <: ContinuousUnivariateDistribution
+    θ::T = θchoice()
+    data::U
+end
+
+
+"""
+    pack(x)
+
+Converts parameters for the choice DDM that are arrange in a vector (necessary for doing optimization) into a struct of the apprpropriate form.
+"""
 function pack(x::Vector{TT}) where {TT <: Real}
 
     σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ, bias, lapse = x
@@ -11,16 +39,17 @@ end
 """
     unpack(θ)
 
-Extract parameters related to the choice model from a struct and returns an ordered vector
+Extract parameters related to the choice model from a struct and returns an ordered vector (necessary for doing optimization).
+
+See also: [`pack`](@ref)
 ```
 """
 function unpack(θ::θchoice)
 
     @unpack θz, bias, lapse = θ
     @unpack σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ = θz
+    
     x = collect((σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ, bias, lapse))
-
-    return x
 
 end
 
@@ -66,9 +95,9 @@ end
 """
     loglikelihood(x, data; n=53)
 
-A wrapper function that accepts a vector of mixed parameters, splits the vector
-into two vectors based on the parameter mapping function provided as an input. Used
-in optimization, Hessian and gradient computation.
+Given a vector of parameters and a struct containing the data related to the choice DDM model, compute the LL.
+
+See also: [`loglikelihood`](@ref)
 """
 function loglikelihood(x::Vector{TT}, data; n::Int=53) where {TT <: Real}
 
@@ -94,7 +123,7 @@ end
 
 
 """
-    gradient(model; options, n=53)
+    gradient(model; n=53)
 """
 function gradient(model::choiceDDM; n::Int=53)
 
@@ -108,7 +137,7 @@ end
 
 
 """
-    Hessian(model; options, n=53)
+    Hessian(model; n=53)
 """
 function Hessian(model::choiceDDM; n::Int=53)
 
@@ -122,18 +151,20 @@ end
 
 
 """
-    CIs(H)
+    CIs(model, H)
 """
 function CIs(model::choiceDDM, H::Array{Float64,2})
 
     @unpack θ = model
-    HPSD = Matrix(cholesky(Positive, H, Val{false}))
+    HPSD = Matrix(cholesky(Positive, H, Val{true}))
 
-    if !isapprox(HPSD,H)
+    if !isapprox(HPSD, H)
         @warn "Hessian is not positive definite. Approximated by closest PSD matrix."
     end
 
     CI = 2*sqrt.(diag(inv(HPSD)))
+    
+    return CI, HPSD
 
 end
 

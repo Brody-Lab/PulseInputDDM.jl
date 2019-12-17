@@ -1,10 +1,9 @@
 """
 """
-function load(path::String, file::String;
-                centered::Bool=false, dt::Float64=1e-2)
+function load(file::String; centered::Bool=false, dt::Float64=1e-2)
 
     println("loading data \n")
-    data = read(matopen(path*file), "rawdata")
+    data = read(matopen(file), "rawdata")
 
     clicks = process_click_input_data(data)
     choices = process_choice_data(data)
