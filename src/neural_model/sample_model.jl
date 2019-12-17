@@ -69,7 +69,17 @@ function sample_clicks_and_spikes(θz::θz, py::Vector{Vector{Vector{Float64}}},
         f_str::String, num_sessions::Int, num_trials_per_session::Vector{Int}; centered::Bool=false,
         dtMC::Float64=1e-4, rng::Int=0)
 
-    data = map((ntrials,rng)-> synthetic_clicks(ntrials; rng=rng), num_trials_per_session, (1:num_sessions) .+ rng)
+    clicks = map((ntrials,rng)-> synthetic_clicks(ntrials; rng=rng), num_trials_per_session, (1:num_sessions) .+ rng)
+
+    data = Vector{Any}(undef, num_sessions)
+    for i = 1:num_sessions
+        data[i] = Dict()
+        @unpack L,R,T,ntrials = clicks[i]
+        data[i]["leftbups"] = L
+        data[i]["rightbups"] = R
+        data[i]["T"] = T
+        data[i]["ntrials"] = ntrials
+    end
 
     map((data,py) -> data=sample_λ0!(data, py; dtMC=dtMC), data, py)
 
