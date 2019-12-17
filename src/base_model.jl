@@ -2,6 +2,20 @@
 const dimz = 7
 
 """
+    loglikelihood(DDM; n=53)
+
+Computes the log likelihood for a set of trials consistent with the animal's choice on each trial.
+```
+"""
+function loglikelihood(model::T; n::Int=53) where T <: DDM
+
+    @unpack θ, data = model
+    loglikelihood(θ, data; n=n)
+
+end
+
+
+"""
     initialize_latent_model(σ2_i, B, λ, σ2_a, n, dt; L_lapse=0., R_lapse=0.)
 
 """

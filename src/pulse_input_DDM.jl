@@ -17,6 +17,9 @@ using PositiveFactorizations
 using Parameters, TransformVariables
 import Base.rand
 
+export choiceDDM, opt, θchoice, choicedata, θz
+export θneural, neuralDDM, neuraldata, θy, neuraldata
+
 export dimz
 export loglikelihood, synthetic_data
 export CIs, optimize, Hessian, gradient
@@ -25,9 +28,6 @@ export load, reload, save
 export default_parameters_and_data, compute_LL
 
 export mean_exp_rate_per_trial, mean_exp_rate_per_cond
-
-export choiceDDM, opt, θchoice, choicedata, θz
-export θneural, neuralDDM, neuraldata, θy, neuraldata
 
 #=
 
@@ -46,6 +46,9 @@ export diffLR
 export filter_data_by_cell!
 
 =#
+
+abstract type DDM end
+
 """
 """
 @with_kw struct θz{T<:Real} @deftype T
@@ -96,13 +99,13 @@ include("analysis_functions.jl")
 include("optim_funcs.jl")
 include("sample_model.jl")
 
-include("choice_model/compute_LL.jl")
 include("choice_model/choice_model.jl")
+include("choice_model/compute_LL.jl")
 include("choice_model/sample_model.jl")
 include("choice_model/process_data.jl")
 
-include("neural_model/compute_LL.jl")
 include("neural_model/neural_model.jl")
+include("neural_model/compute_LL.jl")
 include("neural_model/sample_model.jl")
 include("neural_model/process_data.jl")
 include("neural_model/deterministic_model.jl")

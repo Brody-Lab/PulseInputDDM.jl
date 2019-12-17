@@ -17,7 +17,7 @@ end
 
 """
 """
-@with_kw struct choiceDDM{T,U} <: ContinuousUnivariateDistribution
+@with_kw struct choiceDDM{T,U} <: DDM
     θ::T = θchoice()
     data::U
 end
@@ -98,21 +98,6 @@ in optimization, Hessian and gradient computation.
 function loglikelihood(x::Vector{TT}, data; n::Int=53) where {TT <: Real}
 
     θ = pack(x)
-    loglikelihood(θ, data; n=n)
-
-end
-
-
-
-"""
-    loglikelihood(choiceDDM; n=53)
-
-Computes the log likelihood for a set of trials consistent with the animal's choice on each trial.
-```
-"""
-function loglikelihood(model::choiceDDM; n::Int=53)
-
-    @unpack θ, data = model
     loglikelihood(θ, data; n=n)
 
 end

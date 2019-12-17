@@ -29,7 +29,7 @@ end
     spikes::T3
 end
 
-@with_kw struct neuralDDM{T,U} <: ContinuousUnivariateDistribution
+@with_kw struct neuralDDM{T,U} <: DDM
     θ::T = θneural()
     data::U
 end
@@ -292,43 +292,6 @@ function ll_wrapper(p_opt::Vector{TT}, data::Vector{Dict{Any,Any}}, parameter_ma
 
     pz, py = parameter_map_f(p_opt)
     -compute_LL(pz, py, data, f_str, n)
-
-end
-
-
-"""
-    compute_LL(pz, py, data, f_str, n; state=state)
-
-Computes the log likelihood of the neural activity given the model parameters contained within the Vectors pz and py.
-"""
-function compute_LL(pz::Dict{}, py::Dict{}, data::Vector{Dict{Any,Any}},
-        f_str::String, n::Int; state::String="state") where {T <: Any}
-
-    compute_LL(pz[state], py[state], data, f_str, n)
-
-end
-
-
-"""
-    compute_LL(pz, py, data, f_str, n)
-
-Computes the log likelihood of the neural activity given the model parameters contained within the Vectors pz and py.
-
-### Examples
-
-```jldoctest
-julia> f_str, num_sessions, cells_per_session, num_trials_per_session = "sig", 2, [2,1], [4,5];
-
-julia> pz, py, data = default_parameters_and_data(f_str, num_sessions, num_trials_per_session, cells_per_session; generative=true);
-
-julia> round(compute_LL(pz["generative"], py["generative"], data, f_str), digits=2)
--330.56
-```
-"""
-function loglikelihood(model::neuralDDM; n::Int=53)
-
-    @unpack θ, data = model
-    loglikelihood(θ, data; n=n)
 
 end
 
