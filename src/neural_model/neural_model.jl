@@ -325,9 +325,10 @@ julia> round(compute_LL(pz["generative"], py["generative"], data, f_str), digits
 -330.56
 ```
 """
-function loglikelihood(pz::Vector{T}, py::Vector{Vector{Vector{T}}}, data, f_str::String; n::Int=53) where {T <: Any}
+function loglikelihood(model::neuralDDM; n::Int=53)
 
-    sum(map((py,data)-> sum(LL_all_trials(pz, py, data, f_str; n=n)), py, data))
+    @unpack θ, data = model
+    loglikelihood(θ, data; n=n)
 
 end
 

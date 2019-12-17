@@ -26,7 +26,7 @@ function loglikelihood(θz, θ, data, P, M, xc, dx, f; n::Int=53) where {TT <: A
 
     sum(pmap((L,R,nT,nL,nR,spikes,λ0) -> loglikelihood(λ, σ2_a, σ2_s, ϕ, τ_ϕ,
             P, M, xc, L, R, nT, nL, nR, θ, spikes, dt, dx, λ0, f;
-            n=n, use_bin_center=centered),
+            n=n, centered=centered),
         L, R, nT, nL, nR, spikes, λ0, batch_size=1))
 
 end
@@ -40,7 +40,7 @@ function loglikelihood(λ::TT, σ2_a::TT, σ2_s::TT, ϕ::TT, τ_ϕ::TT,
         nL::Vector{Int}, nR::Vector{Int},
         py::Vector{Vector{TT}}, k::Vector{Vector{Int}}, dt::Float64, dx::VV,
         λ0::Vector{Vector{UU}},
-        f_str::String; use_bin_center::Bool=true, n::Int=53) where {TT,UU,VV <: Any}
+        f_str::String; centered::Bool=true, n::Int=53) where {TT,UU,VV <: Any}
 
     #adapt magnitude of the click inputs
     La, Ra = adapt_clicks(ϕ,τ_ϕ,L,R)
@@ -50,7 +50,7 @@ function loglikelihood(λ::TT, σ2_a::TT, σ2_s::TT, ϕ::TT, τ_ϕ::TT,
 
     @inbounds for t = 1:nT
 
-        if use_bin_center && t == 1
+        if centered && t == 1
             P,F = latent_one_step!(P,F,λ,σ2_a,σ2_s,t,nL,nR,La,Ra,M,dx,xc,n,dt/2)
         else
             P,F = latent_one_step!(P,F,λ,σ2_a,σ2_s,t,nL,nR,La,Ra,M,dx,xc,n,dt)

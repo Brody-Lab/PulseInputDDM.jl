@@ -11,4 +11,5 @@ model = choiceDDM(θ, data)
 @test round(norm(gradient(model)), digits=2) ≈ 13.7
 
 θ, data = default_parameters_and_data("sig", 2, [100,200], [2,3]);
-@test round(loglikelihood(θ, data), digits=2) ≈ -21343.94
+model = neuralDDM(θ, data)
+@test round(loglikelihood(model), digits=2) ≈ -21343.94
