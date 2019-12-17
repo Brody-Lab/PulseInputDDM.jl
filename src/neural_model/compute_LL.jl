@@ -3,27 +3,38 @@
 
 Computes the log likelihood for a set of trials consistent with the observed neural activity on each trial.
 """
-function LL_all_trials(pz::Vector{TT}, py::Vector{Vector{TT}}, data, f_str::String; n::Int=53) where {TT <: Any}
+function loglikelihood(θ, data; n::Int=53) where {TT <: Any}
 
+    @unpack θy, θz = θ
+    @unpack f, θ = θy
+    @unpack σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ = θz
+    @unpack dt = data[1].binned_clicks
+
+    P,M,xc,dx = initialize_latent_model(σ2_i, B, λ, σ2_a, n, dt)
+
+    sum(map((data, θ) -> loglikelihood(θz, θ, data, P, M, xc, dx, f; n=n), data, θ))
+
+end
+
+
+function loglikelihood(θz, θ, data, P, M, xc, dx, f; n::Int=53) where {TT <: Any}
+
+    @unpack σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ = θz
     @unpack binned_clicks, λ0, spikes = data
     @unpack clicks, nT, nL, nR, dt, centered = binned_clicks
     @unpack L, R = clicks
 
-    σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ = pz
-
-    P,M,xc,dx = initialize_latent_model(σ2_i, B, λ, σ2_a, n, dt)
-
-    pmap((L,R,nT,nL,nR,spikes,λ0) -> LL_single_trial(λ, σ2_a, σ2_s, ϕ, τ_ϕ,
-            P, M, xc, L, R, nT, nL, nR, py, spikes, dt, dx, λ0, f_str;
+    sum(pmap((L,R,nT,nL,nR,spikes,λ0) -> loglikelihood(λ, σ2_a, σ2_s, ϕ, τ_ϕ,
+            P, M, xc, L, R, nT, nL, nR, θ, spikes, dt, dx, λ0, f;
             n=n, use_bin_center=centered),
-        L, R, nT, nL, nR, spikes, λ0, batch_size=1)
+        L, R, nT, nL, nR, spikes, λ0, batch_size=1))
 
 end
 
 
 """
 """
-function LL_single_trial(λ::TT, σ2_a::TT, σ2_s::TT, ϕ::TT, τ_ϕ::TT,
+function loglikelihood(λ::TT, σ2_a::TT, σ2_s::TT, ϕ::TT, τ_ϕ::TT,
         P::Vector{TT}, M::Array{TT,2},
         xc::Vector{TT}, L::Vector{Float64}, R::Vector{Float64}, nT::Int,
         nL::Vector{Int}, nR::Vector{Int},

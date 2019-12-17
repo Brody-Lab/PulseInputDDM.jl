@@ -119,13 +119,13 @@ function default_parameters_and_data(f_str::String, num_sessions::Int,
         rng::Int=1, dt::Float64=1e-2, centered::Bool=true)
 
     pz, py = default_parameters(f_str, cells_per_session, num_sessions; generative=true)
-    θ=θz(σ2_i = pz["generative"][1], B = pz["generative"][2],
-        λ = pz["generative"][3], σ2_a = pz["generative"][4], σ2_s = pz["generative"][5],
-        ϕ = pz["generative"][6], τ_ϕ = pz["generative"][7])
 
-    Ψ = θneural(θz = θ, θy=θy(N=cells_per_session, f=f_str, θ=py["generative"]))
+    θ = θz(σ2_i = 0.5, B = 15., λ = -0.5, σ2_a = 10., σ2_s = 1.2,
+        ϕ = 0.6, τ_ϕ =  0.02)
 
-    clicks, λ0, spikes = sample_clicks_and_spikes(Ψ, num_sessions, num_trials_per_session; rng=rng, centered=false)
+    θ = θneural(θz = θ, θy=θy(N=cells_per_session, f=f_str, θ=py["generative"]))
+
+    clicks, λ0, spikes = sample_clicks_and_spikes(θ, num_sessions, num_trials_per_session; rng=rng)
 
     data = Vector{Any}(undef, num_sessions)
     binned_clicks = Vector{Any}(undef, num_sessions)
@@ -154,7 +154,7 @@ function default_parameters_and_data(f_str::String, num_sessions::Int,
 
     data = map((binned_clicks,λ0,spikes) -> neuraldata(binned_clicks,λ0,spikes), binned_clicks, λ0, spikes)
 
-    return pz, py, data
+    return θ, data
 
 end
 

@@ -10,5 +10,5 @@ model = choiceDDM(θ, data)
 @test round(loglikelihood(model), digits=2) ≈ -3.76
 @test round(norm(gradient(model)), digits=2) ≈ 13.7
 
-pz, py, data = default_parameters_and_data("sig", 2, [100,200], [2,3]);
-@test round(loglikelihood(pz["generative"], py["generative"], data, "sig"), digits=2) ≈ -21343.94
+θ, data = default_parameters_and_data("sig", 2, [100,200], [2,3]);
+@test round(loglikelihood(θ, data), digits=2) ≈ -21343.94
