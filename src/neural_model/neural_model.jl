@@ -85,11 +85,13 @@ function default_parameters_and_data(f_str::String, num_sessions::Int,
     θblah=θz(σ2_i = pz["generative"][1], B = pz["generative"][2],
         λ = pz["generative"][3], σ2_a = pz["generative"][4], σ2_s = pz["generative"][5],
         ϕ = pz["generative"][6], τ_ϕ = pz["generative"][7])
-    data = sample_clicks_and_spikes(θblah, py["generative"],
+    data, spikes = sample_clicks_and_spikes(θblah, py["generative"],
         f_str, num_sessions, num_trials_per_session; rng=rng, centered=false)
     data = map(x->bin_clicks_and_spikes_and_compute_λ0!(x; centered=true, dt=dt), data)
 
-    return pz, py, data
+    spikes = map(i-> data[i]["spike_counts"], 1:length(data))
+
+    return pz, py, data, spikes
 
 end
 
@@ -261,9 +263,9 @@ julia> round(compute_LL(pz["generative"], py["generative"], data, f_str), digits
 ```
 """
 function compute_LL(pz::Vector{T}, py::Vector{Vector{Vector{T}}}, data::Vector{Dict{Any,Any}},
-        f_str::String, n::Int) where {T <: Any}
+        spikes, f_str::String, n::Int) where {T <: Any}
 
-    sum(map((py,data)-> sum(LL_all_trials(pz, py, data, f_str, n)), py, data))
+    sum(map((py,data,spikes)-> sum(LL_all_trials(pz, py, data, spikes, f_str, n)), py, data, spikes))
 
 end
 

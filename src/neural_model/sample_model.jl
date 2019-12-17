@@ -86,7 +86,7 @@ function sample_clicks_and_spikes(θz::θz, py::Vector{Vector{Vector{Float64}}},
     Y = sample_spikes_multiple_sessions(θz, py, data, f_str, centered, dtMC; rng=rng)
     map((data,Y)-> data["spike_counts"] = Y, data, Y)
 
-    return data
+    return data, Y
 
 end
 

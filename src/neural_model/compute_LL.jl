@@ -3,13 +3,13 @@
 
 Computes the log likelihood for a set of trials consistent with the observed neural activity on each trial.
 """
-function LL_all_trials(pz::Vector{TT}, py::Vector{Vector{TT}}, data::Dict, f_str::String, n::Int) where {TT <: Any}
+function LL_all_trials(pz::Vector{TT}, py::Vector{Vector{TT}}, data::Dict, SC, f_str::String, n::Int) where {TT <: Any}
 
     dt = data["dt"]
     use_bin_center = data["use_bin_center"]
     #L, R, nT, nL, nR, SC, λ0 = [data[key] for key in ["left","right","nT","binned_left","binned_right","spike_counts", "λ0"]]
-    L, R, nT, nL, nR, SC, λ0 = [data[key] for key in ["leftbups","rightbups","nT","binned_leftbups",
-                "binned_rightbups","spike_counts", "λ0"]]
+    L, R, nT, nL, nR, λ0 = [data[key] for key in ["leftbups","rightbups","nT","binned_leftbups",
+                "binned_rightbups", "λ0"]]
     σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ = pz
 
     P,M,xc,dx = initialize_latent_model(σ2_i, B, λ, σ2_a, n, dt)
