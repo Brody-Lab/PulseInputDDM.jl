@@ -140,17 +140,15 @@ end
 function sample_expected_rates_single_session(clicks, λ0, θz::θz, py::Vector{Vector{Float64}},
         f_str::String, centered::Bool, dt::Float64; rng::Int=1)
 
+    @unpack T,L,R,ntrials = clicks
     Random.seed!(rng)
+    #rng = sample(Random.seed!(rng), 1:ntrials, ntrials; replace=false)
 
-    #T, L, R, λ0 = data["T"], data["leftbups"], data["rightbups"], data["λ0"]
-
-    #binned_clicks = bin_clicks(clicks(L, R, T, data["ntrials"]), centered=centered, dt=dt)
     binned_clicks = bin_clicks(clicks, centered=centered, dt=dt)
-    @unpack T,L,R = clicks
     @unpack nT, nL, nR = binned_clicks
 
     output = pmap((λ0,nT,L,R,nL,nR,rng) -> sample_expected_rates_single_trial(θz,py,λ0,nT,L,R,nL,nR,
-        f_str,centered,dt; rng=rng), λ0, nT, L, R, nL, nR, shuffle(1:length(T)))
+        f_str,centered,dt; rng=rng), λ0, nT, L, R, nL, nR, shuffle(1:ntrials))
 
     λ = map(x-> x[1], output)
     a = map(x-> x[2], output)

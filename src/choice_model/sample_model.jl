@@ -32,8 +32,6 @@ function rand(θ::θchoice, binned_clicks; rng::Int = 1)
     @unpack clicks, nT, nL, nR, dt, centered = binned_clicks
     @unpack L,R,ntrials = clicks
 
-    Random.seed!(rng)
-
     rng = sample(Random.seed!(rng), 1:ntrials, ntrials; replace=false)
     pmap((nT,L,R,nL,nR,rng) -> rand(θ,nT,L,R,nL,nR;
             centered=centered, rng=rng, dt=dt), nT, L, R, nL, nR, rng)
