@@ -65,14 +65,17 @@ end
 
 """
 """
-function sample_clicks_and_spikes(θz::θz, py::Vector{Vector{Vector{Float64}}},
-        f_str::String, num_sessions::Int, num_trials_per_session::Vector{Int}; centered::Bool=false,
+function sample_clicks_and_spikes(Ψ,
+        num_sessions::Int, num_trials_per_session::Vector{Int}; centered::Bool=false,
         dt::Float64=1e-4, rng::Int=0)
 
-    clicks = map((ntrials,rng)-> synthetic_clicks(ntrials; rng=rng), num_trials_per_session, (1:num_sessions) .+ rng)
-    λ0 = map((clicks,py) -> sample_λ0(clicks.T, py; dt=dt), clicks, py)
+    @unpack θy,θz = Ψ
+    @unpack θ,f = θy
 
-    Y = sample_spikes_multiple_sessions(θz, py, clicks, λ0, f_str, centered, dt; rng=rng)
+    clicks = map((ntrials,rng)-> synthetic_clicks(ntrials; rng=rng), num_trials_per_session, (1:num_sessions) .+ rng)
+    λ0 = map((clicks,θ) -> sample_λ0(clicks.T, θ; dt=dt), clicks, θ)
+
+    Y = sample_spikes_multiple_sessions(θz, θ, clicks, λ0, f, centered, dt; rng=rng)
 
     return clicks, λ0, Y
 

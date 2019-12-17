@@ -8,14 +8,10 @@ end
 
 """
 """
-@with_kw struct θy{T<:Real} @deftype T
-    σ2_i = 0.5
-    B = 15.
-    λ = -0.5; @assert λ != 0.
-    σ2_a = 50.
-    σ2_s = 1.5
-    ϕ = 0.8; @assert ϕ != 1.
-    τ_ϕ = 0.05
+@with_kw struct θy{T1}
+    f::String = "softplus"
+    N::Vector{Int} = [1]
+    θ::T1 = [[[10., 5.0*rand([-1,1]), 0.] for n in 1:N] for N in N]
 end
 
 
@@ -31,6 +27,11 @@ end
     binned_clicks::T1
     λ0::T2
     spikes::T3
+end
+
+@with_kw struct neuralDDM{T,U} <: ContinuousUnivariateDistribution
+    θ::T = θneural()
+    data::U
 end
 
 
@@ -122,8 +123,9 @@ function default_parameters_and_data(f_str::String, num_sessions::Int,
         λ = pz["generative"][3], σ2_a = pz["generative"][4], σ2_s = pz["generative"][5],
         ϕ = pz["generative"][6], τ_ϕ = pz["generative"][7])
 
-    clicks, λ0, spikes = sample_clicks_and_spikes(θ, py["generative"],
-        f_str, num_sessions, num_trials_per_session; rng=rng, centered=false)
+    Ψ = θneural(θz = θ, θy=θy(N=cells_per_session, f=f_str, θ=py["generative"]))
+
+    clicks, λ0, spikes = sample_clicks_and_spikes(Ψ, num_sessions, num_trials_per_session; rng=rng, centered=false)
 
     data = Vector{Any}(undef, num_sessions)
     binned_clicks = Vector{Any}(undef, num_sessions)
@@ -323,10 +325,9 @@ julia> round(compute_LL(pz["generative"], py["generative"], data, f_str), digits
 -330.56
 ```
 """
-function compute_LL(pz::Vector{T}, py::Vector{Vector{Vector{T}}}, data, f_str::String; n::Int=53) where {T <: Any}
+function loglikelihood(pz::Vector{T}, py::Vector{Vector{Vector{T}}}, data, f_str::String; n::Int=53) where {T <: Any}
 
-    sum(map((py,data)-> sum(LL_all_trials(pz, py, data, f_str; n=n)),
-        py, data))
+    sum(map((py,data)-> sum(LL_all_trials(pz, py, data, f_str; n=n)), py, data))
 
 end
 
