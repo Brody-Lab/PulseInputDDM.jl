@@ -3,8 +3,9 @@
 
 Computes the log likelihood for a set of trials consistent with the observed neural activity on each trial.
 """
-function LL_all_trials(pz::Vector{TT}, py::Vector{Vector{TT}}, binned_clicks, SC, λ0, f_str::String, n::Int) where {TT <: Any}
+function LL_all_trials(pz::Vector{TT}, py::Vector{Vector{TT}}, data, f_str::String, n::Int) where {TT <: Any}
 
+    @unpack binned_clicks, λ0, spikes = data
     @unpack clicks, nT, nL, nR, dt, centered = binned_clicks
     @unpack L, R = clicks
 
@@ -12,10 +13,10 @@ function LL_all_trials(pz::Vector{TT}, py::Vector{Vector{TT}}, binned_clicks, SC
 
     P,M,xc,dx = initialize_latent_model(σ2_i, B, λ, σ2_a, n, dt)
 
-    pmap((L,R,nT,nL,nR,SC,λ0) -> LL_single_trial(λ, σ2_a, σ2_s, ϕ, τ_ϕ,
-            P, M, xc, L, R, nT, nL, nR, py, SC, dt, dx, λ0, f_str;
+    pmap((L,R,nT,nL,nR,spikes,λ0) -> LL_single_trial(λ, σ2_a, σ2_s, ϕ, τ_ϕ,
+            P, M, xc, L, R, nT, nL, nR, py, spikes, dt, dx, λ0, f_str;
             n=n, use_bin_center=centered),
-        L, R, nT, nL, nR, SC, λ0, batch_size=1)
+        L, R, nT, nL, nR, spikes, λ0, batch_size=1)
 
 end
 

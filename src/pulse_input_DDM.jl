@@ -27,7 +27,7 @@ export default_parameters_and_data, compute_LL
 export mean_exp_rate_per_trial, mean_exp_rate_per_cond
 
 export choiceDDM, opt, θchoice, choicedata, θz
-export θneural, neuralDDM, neuraldata, θy
+export θneural, neuralDDM, neuraldata, θy, neuraldata
 
 #=
 

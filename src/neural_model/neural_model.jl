@@ -22,8 +22,15 @@ end
 """
 """
 @with_kw struct neural_inputdata{T1,T2}
-    clicks::T1
+    binned_clicks::T1
     λ0::T2
+end
+
+
+@with_kw struct neuraldata{T1,T2,T3}
+    binned_clicks::T1
+    λ0::T2
+    spikes::T3
 end
 
 
@@ -111,20 +118,19 @@ function default_parameters_and_data(f_str::String, num_sessions::Int,
         rng::Int=1, dt::Float64=1e-2, centered::Bool=true)
 
     pz, py = default_parameters(f_str, cells_per_session, num_sessions; generative=true)
-    θblah=θz(σ2_i = pz["generative"][1], B = pz["generative"][2],
+    θ=θz(σ2_i = pz["generative"][1], B = pz["generative"][2],
         λ = pz["generative"][3], σ2_a = pz["generative"][4], σ2_s = pz["generative"][5],
         ϕ = pz["generative"][6], τ_ϕ = pz["generative"][7])
 
-    spikes, inputs = sample_clicks_and_spikes(θblah, py["generative"],
+    clicks, λ0, spikes = sample_clicks_and_spikes(θ, py["generative"],
         f_str, num_sessions, num_trials_per_session; rng=rng, centered=false)
 
     data = Vector{Any}(undef, num_sessions)
     binned_clicks = Vector{Any}(undef, num_sessions)
     for i = 1:num_sessions
         data[i] = Dict()
-        @unpack clicks, λ0 = inputs[i]
-        binned_clicks[i] = bin_clicks(clicks, centered=centered, dt=dt)
-        @unpack L,R,T,ntrials = clicks
+        binned_clicks[i] = bin_clicks(clicks[i], centered=centered, dt=dt)
+        @unpack L,R,T,ntrials = clicks[i]
         data[i]["leftbups"] = L
         data[i]["rightbups"] = R
         data[i]["T"] = T
@@ -133,7 +139,7 @@ function default_parameters_and_data(f_str::String, num_sessions::Int,
         data[i]["synthetic"] = true
         data[i]["N"] = length(py["generative"][i])
         data[i]["spike_counts"] = spikes[i]
-        data[i]["λ0"] = λ0
+        data[i]["λ0"] = λ0[i]
     end
 
     #map((data,Y)-> data["spike_counts"] = Y, data, spikes)
@@ -144,7 +150,9 @@ function default_parameters_and_data(f_str::String, num_sessions::Int,
     spikes = map(i-> data[i]["spike_counts"], 1:length(data))
     λ0 = map(i-> data[i]["λ0"], 1:length(data))
 
-    return pz, py, binned_clicks, spikes, λ0
+    data = map((binned_clicks,λ0,spikes) -> neuraldata(binned_clicks,λ0,spikes), binned_clicks, λ0, spikes)
+
+    return pz, py, data
 
 end
 
@@ -315,11 +323,10 @@ julia> round(compute_LL(pz["generative"], py["generative"], data, f_str), digits
 -330.56
 ```
 """
-function compute_LL(pz::Vector{T}, py::Vector{Vector{Vector{T}}}, binned_clicks,
-        spikes,λ0, f_str::String, n::Int) where {T <: Any}
+function compute_LL(pz::Vector{T}, py::Vector{Vector{Vector{T}}}, data, f_str::String, n::Int) where {T <: Any}
 
-    sum(map((py,binned_clicks,spikes,λ0)-> sum(LL_all_trials(pz, py, binned_clicks, spikes,λ0, f_str, n)),
-        py, binned_clicks, spikes,λ0))
+    sum(map((py,data)-> sum(LL_all_trials(pz, py, data, f_str, n)),
+        py, data))
 
 end
 

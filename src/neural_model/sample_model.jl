@@ -72,11 +72,9 @@ function sample_clicks_and_spikes(θz::θz, py::Vector{Vector{Vector{Float64}}},
     clicks = map((ntrials,rng)-> synthetic_clicks(ntrials; rng=rng), num_trials_per_session, (1:num_sessions) .+ rng)
     λ0 = map((clicks,py) -> sample_λ0(clicks.T, py; dt=dt), clicks, py)
 
-    inputs = map((clicks,λ0) -> neural_inputdata(clicks,λ0), clicks, λ0)
+    Y = sample_spikes_multiple_sessions(θz, py, clicks, λ0, f_str, centered, dt; rng=rng)
 
-    Y = sample_spikes_multiple_sessions(θz, py, inputs, f_str, centered, dt; rng=rng)
-
-    return Y, inputs
+    return clicks, λ0, Y
 
 end
 
@@ -95,9 +93,9 @@ end
 """
 """
 function sample_spikes_multiple_sessions(θz::θz, py::Vector{Vector{Vector{Float64}}},
-        inputs, f_str::String, centered::Bool, dt::Float64; rng::Int=1)
+        clicks, λ0, f_str::String, centered::Bool, dt::Float64; rng::Int=1)
 
-    λ, = sample_expected_rates_multiple_sessions(θz, py, inputs, f_str, centered, dt; rng=rng)
+    λ, = sample_expected_rates_multiple_sessions(θz, py, clicks, λ0, f_str, centered, dt; rng=rng)
     Y = map(λ-> map(λ-> map(λ-> poisson_noise!.(λ, dt), λ), λ), λ)
 
 end
@@ -106,12 +104,12 @@ end
 """
 """
 function sample_expected_rates_multiple_sessions(θz::θz, py::Vector{Vector{Vector{Float64}}},
-        inputs, f_str::String, centered::Bool, dt::Float64; rng::Int=1)
+        clicks, λ0, f_str::String, centered::Bool, dt::Float64; rng::Int=1)
 
-    nsessions = length(inputs)
+    nsessions = length(clicks)
 
-    output = map((inputs, py)-> sample_expected_rates_single_session(inputs, θz, py, f_str, centered, dt; rng=rng),
-        inputs, py)
+    output = map((clicks, λ0, py)-> sample_expected_rates_single_session(clicks, λ0, θz, py, f_str, centered, dt; rng=rng),
+        clicks, λ0, py)
 
     λ = map(x-> x[1], output)
     a = map(x-> x[2], output)
@@ -123,10 +121,10 @@ end
 
 """
 """
-function sample_expected_rates_single_session(inputs, θz::θz, py::Vector{Vector{Float64}},
+function sample_expected_rates_single_session(clicks, λ0, θz::θz, py::Vector{Vector{Float64}},
         f_str::String, centered::Bool, dt::Float64; rng::Int=1)
 
-    @unpack clicks, λ0 = inputs
+    #@unpack clicks, λ0 = inputs
     @unpack T,L,R,ntrials = clicks
     Random.seed!(rng)
     #rng = sample(Random.seed!(rng), 1:ntrials, ntrials; replace=false)
