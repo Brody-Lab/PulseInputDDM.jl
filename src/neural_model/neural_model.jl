@@ -1,4 +1,25 @@
 """
+"""
+@with_kw struct θneural{T1, T2}
+    θz::T1 = θz()
+    θy::T2 = θy()
+end
+
+
+"""
+"""
+@with_kw struct θy{T<:Real} @deftype T
+    σ2_i = 0.5
+    B = 15.
+    λ = -0.5; @assert λ != 0.
+    σ2_a = 50.
+    σ2_s = 1.5
+    ϕ = 0.8; @assert ϕ != 1.
+    τ_ϕ = 0.05
+end
+
+
+"""
     default_parameters(f_str, cells_per_session, num_sessions;generative=false)
 
 Returns two dictionaries of default model parameters.

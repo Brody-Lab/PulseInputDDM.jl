@@ -1,5 +1,30 @@
 """
 """
+@with_kw struct θchoice{T1, T<:Real}
+    θz::T1 = θz()
+    bias::T = 1.
+    lapse::T = 0.05
+end
+
+
+"""
+"""
+@with_kw struct choicedata{T}
+    binned_clicks::T
+    choices::Vector{Bool}
+end
+
+
+"""
+"""
+@with_kw struct choiceDDM{T,U} <: ContinuousUnivariateDistribution
+    θ::T = θchoice()
+    data::U
+end
+
+
+"""
+"""
 function pack(x::Vector{TT}) where {TT <: Real}
 
     σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ, bias, lapse = x

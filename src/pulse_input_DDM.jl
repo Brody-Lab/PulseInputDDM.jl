@@ -61,36 +61,6 @@ end
 
 """
 """
-@with_kw struct θchoice{T1, T<:Real}
-    θz::T1 = θz()
-    bias::T = 1.
-    lapse::T = 0.05
-end
-
-
-"""
-"""
-@with_kw struct θneural{T1, T2}
-    θz::T1 = θz()
-    θy::T2 = θy()
-end
-
-
-"""
-"""
-@with_kw struct θy{T<:Real} @deftype T
-    σ2_i = 0.5
-    B = 15.
-    λ = -0.5; @assert λ != 0.
-    σ2_a = 50.
-    σ2_s = 1.5
-    ϕ = 0.8; @assert ϕ != 1.
-    τ_ϕ = 0.05
-end
-
-
-"""
-"""
 @with_kw struct clicks
     L::Vector{Vector{Float64}}
     R::Vector{Vector{Float64}}
@@ -108,22 +78,6 @@ end
     nR::Vector{Vector{Int}}
     dt::Float64
     centered::Bool
-end
-
-
-"""
-"""
-@with_kw struct choicedata{T}
-    binned_clicks::T
-    choices::Vector{Bool}
-end
-
-
-"""
-"""
-@with_kw struct choiceDDM{T,U} <: ContinuousUnivariateDistribution
-    θ::T = θchoice()
-    data::U
 end
 
 
