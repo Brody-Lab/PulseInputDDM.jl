@@ -90,8 +90,9 @@ function default_parameters_and_data(f_str::String, num_sessions::Int,
     data = map(x->bin_clicks_and_spikes_and_compute_λ0!(x; centered=true, dt=dt), data)
 
     spikes = map(i-> data[i]["spike_counts"], 1:length(data))
+    λ0 = map(i-> data[i]["λ0"], 1:length(data))
 
-    return pz, py, data, spikes
+    return pz, py, data, spikes, λ0
 
 end
 
@@ -263,9 +264,9 @@ julia> round(compute_LL(pz["generative"], py["generative"], data, f_str), digits
 ```
 """
 function compute_LL(pz::Vector{T}, py::Vector{Vector{Vector{T}}}, data::Vector{Dict{Any,Any}},
-        spikes, f_str::String, n::Int) where {T <: Any}
+        spikes,λ0, f_str::String, n::Int) where {T <: Any}
 
-    sum(map((py,data,spikes)-> sum(LL_all_trials(pz, py, data, spikes, f_str, n)), py, data, spikes))
+    sum(map((py,data,spikes,λ0)-> sum(LL_all_trials(pz, py, data, spikes,λ0, f_str, n)), py, data, spikes,λ0))
 
 end
 

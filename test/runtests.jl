@@ -10,5 +10,5 @@ model = choiceDDM(θ, data)
 @test round(loglikelihood(model), digits=2) ≈ -3.76
 @test round(norm(gradient(model)), digits=2) ≈ 13.7
 
-pz, py, data, spikes = default_parameters_and_data("sig", 2, [100,200], [2,3])
-@test round(compute_LL(pz["generative"], py["generative"], data, spikes, "sig", 53), digits=2) ≈ -21343.94
+pz, py, data, spikes,λ0 = default_parameters_and_data("sig", 2, [100,200], [2,3])
+@test round(compute_LL(pz["generative"], py["generative"], data, spikes,λ0, "sig", 53), digits=2) ≈ -21343.94
