@@ -71,37 +71,21 @@ function sample_clicks_and_spikes(θz::θz, py::Vector{Vector{Vector{Float64}}},
 
     clicks = map((ntrials,rng)-> synthetic_clicks(ntrials; rng=rng), num_trials_per_session, (1:num_sessions) .+ rng)
 
-    data = Vector{Any}(undef, num_sessions)
-    for i = 1:num_sessions
-        data[i] = Dict()
-        @unpack L,R,T,ntrials = clicks[i]
-        data[i]["leftbups"] = L
-        data[i]["rightbups"] = R
-        data[i]["T"] = T
-        data[i]["ntrials"] = ntrials
-    end
-
-    map((data,py) -> data=sample_λ0!(data, py; dtMC=dtMC), data, py)
-
-    λ0 = map(i-> data[i]["λ0"], 1:length(data))
-
+    λ0 = map((clicks,py) -> sample_λ0(clicks.T, py; dtMC=dtMC), clicks, py)
     Y = sample_spikes_multiple_sessions(θz, py, clicks, λ0, f_str, centered, dtMC; rng=rng)
-    map((data,Y)-> data["spike_counts"] = Y, data, Y)
 
-    return data, Y, clicks, λ0
+    return Y, clicks, λ0
 
 end
 
-function sample_λ0!(data, py::Vector{Vector{Float64}}; dtMC::Float64=1e-4, rng::Int=1)
+function sample_λ0(T, py::Vector{Vector{Float64}}; dtMC::Float64=1e-4, rng::Int=1)
 
-    data["dt_synthetic"], data["synthetic"], data["N"] = dtMC, true, length(py)
+    #data["dt_synthetic"], data["synthetic"], data["N"] = dtMC, true, length(py)
 
     #Random.seed!(rng)
     #data["λ0"] = [repeat([collect(range(10. *rand(),stop=10. * rand(),
     #                    length=Int(ceil(T./dt))))], outer=length(py)) for T in data["T"]]
-    data["λ0"] = [repeat([zeros(Int(ceil(T./dtMC)))], outer=length(py)) for T in data["T"]]
-
-    return data
+    λ0 = [repeat([zeros(Int(ceil(T./dtMC)))], outer=length(py)) for T in T]
 
 end
 
