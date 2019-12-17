@@ -3,20 +3,24 @@
 
 Computes the log likelihood for a set of trials consistent with the observed neural activity on each trial.
 """
-function LL_all_trials(pz::Vector{TT}, py::Vector{Vector{TT}}, data::Dict, SC, λ0, f_str::String, n::Int) where {TT <: Any}
+function LL_all_trials(pz::Vector{TT}, py::Vector{Vector{TT}}, binned_clicks, SC, λ0, f_str::String, n::Int) where {TT <: Any}
 
-    dt = data["dt"]
-    use_bin_center = data["use_bin_center"]
+    @unpack clicks, nT, nL, nR, dt, centered = binned_clicks
+    @unpack L, R = clicks
+
+    #dt = data["dt"]
+    #use_bin_center = data["use_bin_center"]
     #L, R, nT, nL, nR, SC, λ0 = [data[key] for key in ["left","right","nT","binned_left","binned_right","spike_counts", "λ0"]]
-    L, R, nT, nL, nR = [data[key] for key in ["leftbups","rightbups","nT","binned_leftbups",
-                "binned_rightbups"]]
+    #L, R, nT, nL, nR = [data[key] for key in ["leftbups","rightbups","nT","binned_leftbups",
+    #            "binned_rightbups"]]
+
     σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ = pz
 
     P,M,xc,dx = initialize_latent_model(σ2_i, B, λ, σ2_a, n, dt)
 
     pmap((L,R,nT,nL,nR,SC,λ0) -> LL_single_trial(λ, σ2_a, σ2_s, ϕ, τ_ϕ,
             P, M, xc, L, R, nT, nL, nR, py, SC, dt, dx, λ0, f_str;
-            n=n, use_bin_center=use_bin_center),
+            n=n, use_bin_center=centered),
         L, R, nT, nL, nR, SC, λ0, batch_size=1)
 
 end
