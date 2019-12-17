@@ -323,9 +323,9 @@ julia> round(compute_LL(pz["generative"], py["generative"], data, f_str), digits
 -330.56
 ```
 """
-function compute_LL(pz::Vector{T}, py::Vector{Vector{Vector{T}}}, data, f_str::String, n::Int) where {T <: Any}
+function compute_LL(pz::Vector{T}, py::Vector{Vector{Vector{T}}}, data, f_str::String; n::Int=53) where {T <: Any}
 
-    sum(map((py,data)-> sum(LL_all_trials(pz, py, data, f_str, n)),
+    sum(map((py,data)-> sum(LL_all_trials(pz, py, data, f_str; n=n)),
         py, data))
 
 end

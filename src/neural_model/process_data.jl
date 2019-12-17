@@ -86,8 +86,8 @@ function bin_clicks_and_spikes_and_compute_λ0!(data::Dict; centered::Bool=true,
     data["use_bin_center"] = centered
 
     data = bin_spikes!(data;delay=delay)
-    data = pad_binned_spikes!(data; delay=delay, pad=pad)
-    data = compute_filtered_rate!(data; filtSD=filtSD)
+    #data = pad_binned_spikes!(data; delay=delay, pad=pad)
+    #data = compute_filtered_rate!(data; filtSD=filtSD)
     data = compute_λ0!(data)
 
     return data

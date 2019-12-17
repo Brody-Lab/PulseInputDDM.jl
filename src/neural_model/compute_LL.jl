@@ -3,7 +3,7 @@
 
 Computes the log likelihood for a set of trials consistent with the observed neural activity on each trial.
 """
-function LL_all_trials(pz::Vector{TT}, py::Vector{Vector{TT}}, data, f_str::String, n::Int) where {TT <: Any}
+function LL_all_trials(pz::Vector{TT}, py::Vector{Vector{TT}}, data, f_str::String; n::Int=53) where {TT <: Any}
 
     @unpack binned_clicks, λ0, spikes = data
     @unpack clicks, nT, nL, nR, dt, centered = binned_clicks
