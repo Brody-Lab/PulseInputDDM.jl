@@ -24,6 +24,6 @@ f, Ns, trials, sess = "sig", [2,3], [100,200], 2
 model = neuralDDM(θ, data)
 @test round(loglikelihood(model), digits=2) ≈ -21343.94
 
-x = flatten(model.θ)
+x = pulse_input_DDM.flatten(model.θ)
 @test round(loglikelihood(x, data, Ns, f), digits=2) ≈ -21343.94
 round(norm(gradient(model)), digits=2)

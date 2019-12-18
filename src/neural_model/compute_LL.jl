@@ -55,7 +55,7 @@ function loglikelihood(λ::TT, σ2_a::TT, σ2_s::TT, ϕ::TT, τ_ϕ::TT,
             P,F = latent_one_step!(P,F,λ,σ2_a,σ2_s,t,nL,nR,La,Ra,M,dx,xc,n,dt)
         end
 
-        P .*= vcat(map(xc-> exp(sum(map((k,py,λ0)-> logpdf(Poisson(f_py(xc,λ0[t],py,f_str) * dt),
+        P .*= vcat(map(xc-> exp(sum(map((k,py,λ0)-> Distributions.logpdf(Poisson(f_py(xc,λ0[t],py,f_str) * dt),
                                 k[t]), k, py, λ0))), xc)...)
 
         c[t] = sum(P)
