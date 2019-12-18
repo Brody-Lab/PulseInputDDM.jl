@@ -20,10 +20,11 @@ model, = optimize(data; options=options, iterations=5, outer_iterations=1);
 
 ## Neural model
 f, Ns, trials, sess = "sig", [2,3], [100,200], 2
-θ, data = default_parameters_and_data(f, sess, trials, Ns);
+θ, data, data_orig, pz, py = default_parameters_and_data(f, sess, trials, Ns);
+@test round(pulse_input_DDM.compute_LL(θ.θz, py["generative"], data_orig, f), digits=2) ≈ -21492.01
 model = neuralDDM(θ, data)
 @test round(loglikelihood(model), digits=2) ≈ -21343.94
 
 x = pulse_input_DDM.flatten(model.θ)
 @test round(loglikelihood(x, data, Ns, f), digits=2) ≈ -21343.94
-round(norm(gradient(model)), digits=2)
+@test round(norm(gradient(model)), digits=2) ≈ 292.11

@@ -212,10 +212,11 @@ function default_parameters_and_data(f_str::String, num_sessions::Int,
 
     spikes = map(i-> data[i]["spike_counts"], 1:length(data))
     λ0 = map(i-> data[i]["λ0"], 1:length(data))
+    data_orig = data
 
     data = map((binned_clicks,λ0,spikes,N) -> neuraldata(binned_clicks,λ0,spikes,N), binned_clicks, λ0, spikes, cells_per_session)
 
-    return θ, data
+    return θ, data, data_orig, pz, py
 
 end
 
