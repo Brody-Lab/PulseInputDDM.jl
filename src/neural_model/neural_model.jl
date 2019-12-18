@@ -23,7 +23,7 @@ end
 end
 
 
-@with_kw struct neuraldata{T1,T2,T3}
+@with_kw struct neuraldata{T1,T2,T3} <: DDMdata
     binned_clicks::T1
     λ0::T2
     spikes::T3
@@ -32,6 +32,34 @@ end
 @with_kw struct neuralDDM{T,U} <: DDM
     θ::T = θneural()
     data::U
+end
+
+
+"""
+"""
+function pack(x::Vector{T1}, θ::neuralDDM) where {T1 <: Real}
+
+    σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ, bias, lapse = x
+    θ = θneural(θz = θ, θy=θy(N=cells_per_session, f=f_str, θ=py["generative"]))
+
+end
+
+
+"""
+    unpack(θ)
+
+Extract parameters related to the choice model from a struct and returns an ordered vector
+```
+"""
+function unpack(θ::θneural)
+
+    @unpack θy, θz = θ
+    @unpack θ = θy
+    @unpack σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ = θz
+    x = collect((σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ, vcat(vcat(θ...)...)))
+
+    return x
+
 end
 
 

@@ -9,7 +9,7 @@ end
 
 """
 """
-@with_kw struct choicedata{T}
+@with_kw struct choicedata{T} <: DDMdata
     binned_clicks::T
     choices::Vector{Bool}
 end
@@ -95,7 +95,7 @@ A wrapper function that accepts a vector of mixed parameters, splits the vector
 into two vectors based on the parameter mapping function provided as an input. Used
 in optimization, Hessian and gradient computation.
 """
-function loglikelihood(x::Vector{TT}, data; n::Int=53) where {TT <: Real}
+function loglikelihood(x::Vector{T1}, data::T2; n::Int=53) where {T1 <: Real, T2 <: DDMdata}
 
     θ = pack(x)
     loglikelihood(θ, data; n=n)

@@ -48,6 +48,7 @@ export filter_data_by_cell!
 =#
 
 abstract type DDM end
+abstract type DDMdata end
 
 """
 """
