@@ -1,17 +1,28 @@
 """
 """
-@with_kw struct θneural{T1, T2} <: DDMθ
-    θz::T1 = θz()
-    θy::T2 = θy()
+@flattenable @with_kw struct θneural{T1, T2} <: DDMθ
+    θz::T1 = θz() | true
+    θy::T2 | true
+    f::String | false
+    N::Vector{Int} | false
+end
+
+
+"""
+"""
+@with_kw struct Sigmoid
+    θ::Vector{Real} = [10., 5.0*rand([-1,1]), 0.]
+end
+
+@with_kw struct Softplus
+    θ::Vector{Real} = [10., 5.0*rand([-1,1]), 0.]
 end
 
 
 """
 """
 @with_kw struct θy{T1}
-    f::String = "softplus"
-    N::Vector{Int} = [1]
-    θ::T1 = [[[10., 5.0*rand([-1,1]), 0.] for n in 1:N] for N in N]
+    θ::T1
 end
 
 
@@ -30,11 +41,11 @@ end
 
 """
 """
-function pack(x::Vector{T}, dims::Vector{Int}, f::String) where {T <: Real}
+function unflatten(x::Vector{T}, dims::Vector{Int}, f::String) where {T <: Real}
 
     dims2 = vcat(0,cumsum(dims))
-    θ = map(idx-> collect(partition(x[dimz+1:end], 4))[idx], [dims2[i]+1:dims2[i+1] for i in 1:length(dims2)-1])
-    θneural(θz(Tuple(x[1:dimz])...), θy(N=dims, f=f, θ=θ))
+    θy = map(idx-> collect(partition(x[dimz+1:end], 4))[idx], [dims2[i]+1:dims2[i+1] for i in 1:length(dims2)-1])
+    θneural(θz(Tuple(x[1:dimz])...), θy, f, dims)
 
 end
 
@@ -48,24 +59,39 @@ in optimization, Hessian and gradient computation.
 """
 function loglikelihood(x::Vector{T}, data, dims::Vector{Int}, f::String; n::Int=53) where {T <: Real}
 
-    θ = pack(x,dims,f)
+    θ = unflatten(x,dims,f)
     loglikelihood(θ, data; n=n)
 
 end
 
 
 """
-    unpack(θ)
+    gradient(model; n=53)
+"""
+function gradient(model::neuralDDM; n::Int=53)
+
+    @unpack θ, data = model
+    @unpack N, f = θ
+    x = flatten(θ)
+    #x = [flatten(θ)...]
+    ℓℓ(x) = -loglikelihood(x, data, N, f; n=n)
+
+    ForwardDiff.gradient(ℓℓ, x)
+
+end
+
+
+"""
+    flatten(θ)
 
 Extract parameters related to the choice model from a struct and returns an ordered vector
 ```
 """
-function unpack(θ::θneural)
+function flatten(θ::θneural)
 
     @unpack θy, θz = θ
-    @unpack θ = θy
     @unpack σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ = θz
-    vcat(σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ, vcat(vcat(θ...)...))
+    vcat(σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ, vcat(vcat(θy...)...))
 
 end
 
@@ -158,7 +184,7 @@ function default_parameters_and_data(f_str::String, num_sessions::Int,
     θ = θz(σ2_i = 0.5, B = 15., λ = -0.5, σ2_a = 10., σ2_s = 1.2,
         ϕ = 0.6, τ_ϕ =  0.02)
 
-    θ = θneural(θz = θ, θy=θy(N=cells_per_session, f=f_str, θ=py["generative"]))
+    θ = θneural(θz = θ, θy=py["generative"], N=cells_per_session, f=f_str)
 
     clicks, λ0, spikes = sample_clicks_and_spikes(θ, num_sessions, num_trials_per_session; rng=rng)
 
@@ -296,10 +322,7 @@ function optimize_model(pz::Dict{}, py::Dict{}, data::Vector{Dict{Any,Any}}, f_s
 
     p_opt, ll, parameter_map_f = split_opt_params_and_close(pz,py,data,f_str,n; state="state")
 
-    p_opt[p_opt .< lb] .= lb[p_opt .< lb]
-    p_opt[p_opt .> ub] .= ub[p_opt .> ub]
-
-    opt_output = opt_func_fminbox(p_opt, ll, lb, ub; g_tol=g_tol, x_tol=x_tol, f_tol=f_tol,
+    opt_output = opt_func(p_opt, ll, lb, ub; g_tol=g_tol, x_tol=x_tol, f_tol=f_tol,
         iterations=iterations, show_trace=show_trace, outer_iterations=outer_iterations);
     p_opt, converged = Optim.minimizer(opt_output), Optim.converged(opt_output)
 

@@ -25,24 +25,9 @@ end
 
 """
 """
-function pack(x::Vector{TT}) where {TT <: Real}
+function pack(θ, x::Vector{TT}) where {TT <: Real}
 
     θ = θchoice(θz(Tuple(x[1:dimz])...), Tuple(x[dimz+1:end])...)
-
-end
-
-
-"""
-    unpack(θ)
-
-Extract parameters related to the choice model from a struct and returns an ordered vector
-```
-"""
-function unpack(θ::θchoice)
-
-    @unpack θz, bias, lapse = θ
-    @unpack σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ = θz
-    vcat(σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ, bias, lapse)
 
 end
 
@@ -75,7 +60,7 @@ function optimize(data::choicedata; options::opt=opt(), n::Int=53,
 
     x = Optim.minimizer(output)
     x = stack(x,c,fit)
-    θ = pack(x)
+    θ = Flatten.reconstruct(θchoice(), x)
     model = choiceDDM(θ, data)
     converged = Optim.converged(output)
 
@@ -95,7 +80,7 @@ in optimization, Hessian and gradient computation.
 """
 function loglikelihood(x::Vector{T1}, data::choicedata; n::Int=53) where {T1 <: Real}
 
-    θ = pack(x)
+    θ = Flatten.reconstruct(θchoice(), x)
     loglikelihood(θ, data; n=n)
 
 end

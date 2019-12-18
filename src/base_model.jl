@@ -7,7 +7,7 @@ const dimz = 7
 function gradient(model::T; n::Int=53) where T <: DDM
 
     @unpack θ, data = model
-    x = unpack(θ)
+    x = [flatten(θ)...]
     ℓℓ(x) = -loglikelihood(x, data; n=n)
 
     ForwardDiff.gradient(ℓℓ, x)
@@ -21,7 +21,7 @@ end
 function Hessian(model::T; n::Int=53) where T <: DDM
 
     @unpack θ, data = model
-    x = unpack(θ)
+    x = [flatten(θ)...]
     ℓℓ(x) = -loglikelihood(x, data; n=n)
 
     ForwardDiff.hessian(ℓℓ, x)

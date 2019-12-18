@@ -5,14 +5,13 @@ Computes the log likelihood for a set of trials consistent with the observed neu
 """
 function loglikelihood(θ::θneural, data; n::Int=53) where N
 
-    @unpack θy, θz = θ
-    @unpack f, θ = θy
+    @unpack θy, θz, f = θ
     @unpack σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ = θz
     @unpack dt = data[1].binned_clicks
 
     P,M,xc,dx = initialize_latent_model(σ2_i, B, λ, σ2_a, n, dt)
 
-    sum(map((data, θ) -> loglikelihood(θz, θ, data, P, M, xc, dx, f; n=n), data, θ))
+    sum(map((data, θy) -> loglikelihood(θz, θy, data, P, M, xc, dx, f; n=n), data, θy))
 
 end
 

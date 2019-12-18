@@ -17,14 +17,17 @@ using PositiveFactorizations
 using Parameters, TransformVariables
 import Base.rand
 import Base.Iterators: partition
+using StaticArrays, Flatten
+import Flatten: flattenable
 
 export choiceDDM, opt, θchoice, choicedata, θz
 export θneural, neuralDDM, neuraldata, θy, neuraldata
+export Sigmoid, Softplus
 
 export dimz
 export loglikelihood, synthetic_data
 export CIs, optimize, Hessian, gradient
-export load, reload, save, unpack, pack
+export load, reload, save, flatten
 
 export default_parameters_and_data, compute_LL
 

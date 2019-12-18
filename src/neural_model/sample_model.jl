@@ -69,13 +69,12 @@ function sample_clicks_and_spikes(Ψ,
         num_sessions::Int, num_trials_per_session::Vector{Int}; centered::Bool=false,
         dt::Float64=1e-4, rng::Int=0)
 
-    @unpack θy,θz = Ψ
-    @unpack θ,f = θy
+    @unpack θy,θz,f = Ψ
 
     clicks = map((ntrials,rng)-> synthetic_clicks(ntrials; rng=rng), num_trials_per_session, (1:num_sessions) .+ rng)
-    λ0 = map((clicks,θ) -> sample_λ0(clicks.T, θ; dt=dt), clicks, θ)
+    λ0 = map((clicks,θy) -> sample_λ0(clicks.T, θy; dt=dt), clicks, θy)
 
-    Y = sample_spikes_multiple_sessions(θz, θ, clicks, λ0, f, centered, dt; rng=rng)
+    Y = sample_spikes_multiple_sessions(θz, θy, clicks, λ0, f, centered, dt; rng=rng)
 
     return clicks, λ0, Y
 

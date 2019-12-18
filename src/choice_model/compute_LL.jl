@@ -17,6 +17,24 @@ end
 
 
 """
+"""
+function (θ::θchoice)(data::choicedata; n::Int=53)
+
+    @unpack binned_clicks, choices = data
+    @unpack clicks, nT, nL, nR, dt = binned_clicks
+    @unpack θz, bias, lapse = θ
+    @unpack σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ = θz
+    @unpack L, R = clicks
+
+    P,M,xc,dx = initialize_latent_model(σ2_i, B, λ, σ2_a, n, dt, L_lapse=lapse/2, R_lapse=lapse/2)
+
+    sum(pmap((L,R,nT,nL,nR,choice) -> loglikelihood!(λ, σ2_a, σ2_s, ϕ, τ_ϕ,
+        P, M, dx, xc, L, R, nT, nL, nR, choice, bias, n, dt), L, R, nT, nL, nR, choices))
+
+end
+
+
+"""
     loglikelihood!(λ, σ2_a, σ2_s, ϕ, τ_ϕ,
         P, M, dx, xc, L, R, nT, nL, nR, pokedR bias, n, dt)
 """
