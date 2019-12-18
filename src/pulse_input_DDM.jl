@@ -16,6 +16,7 @@ using ForwardDiff: value
 using PositiveFactorizations
 using Parameters, TransformVariables
 import Base.rand
+import Base.Iterators: partition
 
 export choiceDDM, opt, θchoice, choicedata, θz
 export θneural, neuralDDM, neuraldata, θy, neuraldata
@@ -23,7 +24,7 @@ export θneural, neuralDDM, neuraldata, θy, neuraldata
 export dimz
 export loglikelihood, synthetic_data
 export CIs, optimize, Hessian, gradient
-export load, reload, save
+export load, reload, save, unpack, pack
 
 export default_parameters_and_data, compute_LL
 
@@ -49,6 +50,7 @@ export filter_data_by_cell!
 
 abstract type DDM end
 abstract type DDMdata end
+abstract type DDMθ end
 
 """
 """

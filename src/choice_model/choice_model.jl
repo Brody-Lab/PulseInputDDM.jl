@@ -1,6 +1,6 @@
 """
 """
-@with_kw struct θchoice{T1, T<:Real}
+@with_kw struct θchoice{T1, T<:Real} <: DDMθ
     θz::T1 = θz()
     bias::T = 1.
     lapse::T = 0.05
@@ -27,8 +27,7 @@ end
 """
 function pack(x::Vector{TT}) where {TT <: Real}
 
-    σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ, bias, lapse = x
-    θ = θchoice(θz(σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ), bias,lapse)
+    θ = θchoice(θz(Tuple(x[1:dimz])...), Tuple(x[dimz+1:end])...)
 
 end
 
@@ -43,9 +42,7 @@ function unpack(θ::θchoice)
 
     @unpack θz, bias, lapse = θ
     @unpack σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ = θz
-    x = collect((σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ, bias, lapse))
-
-    return x
+    vcat(σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ, bias, lapse)
 
 end
 
@@ -73,7 +70,8 @@ function optimize(data::choicedata; options::opt=opt(), n::Int=53,
     ℓℓ(x) = -loglikelihood(stack(x,c,fit), data; n=n)
 
     output = optimize(x0, ℓℓ, lb, ub; g_tol=g_tol, x_tol=x_tol,
-        f_tol=f_tol, iterations=iterations, show_trace=show_trace)
+        f_tol=f_tol, iterations=iterations, show_trace=show_trace,
+        outer_iterations=outer_iterations)
 
     x = Optim.minimizer(output)
     x = stack(x,c,fit)
@@ -95,7 +93,7 @@ A wrapper function that accepts a vector of mixed parameters, splits the vector
 into two vectors based on the parameter mapping function provided as an input. Used
 in optimization, Hessian and gradient computation.
 """
-function loglikelihood(x::Vector{T1}, data::T2; n::Int=53) where {T1 <: Real, T2 <: DDMdata}
+function loglikelihood(x::Vector{T1}, data::choicedata; n::Int=53) where {T1 <: Real}
 
     θ = pack(x)
     loglikelihood(θ, data; n=n)

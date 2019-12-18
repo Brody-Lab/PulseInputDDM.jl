@@ -1,6 +1,6 @@
 """
 """
-@with_kw struct θneural{T1, T2}
+@with_kw struct θneural{T1, T2} <: DDMθ
     θz::T1 = θz()
     θy::T2 = θy()
 end
@@ -15,18 +15,11 @@ end
 end
 
 
-"""
-"""
-@with_kw struct neural_inputdata{T1,T2}
-    binned_clicks::T1
-    λ0::T2
-end
-
-
-@with_kw struct neuraldata{T1,T2,T3} <: DDMdata
+@with_kw struct neuraldata{T1,T2,T3,T4} <: DDMdata
     binned_clicks::T1
     λ0::T2
     spikes::T3
+    N::T4
 end
 
 @with_kw struct neuralDDM{T,U} <: DDM
@@ -37,10 +30,26 @@ end
 
 """
 """
-function pack(x::Vector{T1}, θ::neuralDDM) where {T1 <: Real}
+function pack(x::Vector{T}, dims::Vector{Int}, f::String) where {T <: Real}
 
-    σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ, bias, lapse = x
-    θ = θneural(θz = θ, θy=θy(N=cells_per_session, f=f_str, θ=py["generative"]))
+    dims2 = vcat(0,cumsum(dims))
+    θ = map(idx-> collect(partition(x[dimz+1:end], 4))[idx], [dims2[i]+1:dims2[i+1] for i in 1:length(dims2)-1])
+    θneural(θz(Tuple(x[1:dimz])...), θy(N=dims, f=f, θ=θ))
+
+end
+
+
+"""
+    loglikelihood(x, data; n=53)
+
+A wrapper function that accepts a vector of mixed parameters, splits the vector
+into two vectors based on the parameter mapping function provided as an input. Used
+in optimization, Hessian and gradient computation.
+"""
+function loglikelihood(x::Vector{T}, data, dims::Vector{Int}, f::String; n::Int=53) where {T <: Real}
+
+    θ = pack(x,dims,f)
+    loglikelihood(θ, data; n=n)
 
 end
 
@@ -56,9 +65,7 @@ function unpack(θ::θneural)
     @unpack θy, θz = θ
     @unpack θ = θy
     @unpack σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ = θz
-    x = collect((σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ, vcat(vcat(θ...)...)))
-
-    return x
+    vcat(σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ, vcat(vcat(θ...)...))
 
 end
 
@@ -180,7 +187,7 @@ function default_parameters_and_data(f_str::String, num_sessions::Int,
     spikes = map(i-> data[i]["spike_counts"], 1:length(data))
     λ0 = map(i-> data[i]["λ0"], 1:length(data))
 
-    data = map((binned_clicks,λ0,spikes) -> neuraldata(binned_clicks,λ0,spikes), binned_clicks, λ0, spikes)
+    data = map((binned_clicks,λ0,spikes,N) -> neuraldata(binned_clicks,λ0,spikes,N), binned_clicks, λ0, spikes, cells_per_session)
 
     return θ, data
 

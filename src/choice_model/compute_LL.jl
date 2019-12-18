@@ -1,6 +1,6 @@
 """
 """
-function loglikelihood(θ::θchoice, data::T1; n::Int=53) where T1 <: DDMdata
+function loglikelihood(θ::θchoice, data::choicedata; n::Int=53)
 
     @unpack binned_clicks, choices = data
     @unpack clicks, nT, nL, nR, dt = binned_clicks
