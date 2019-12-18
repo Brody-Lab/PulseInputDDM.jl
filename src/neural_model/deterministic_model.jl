@@ -58,43 +58,31 @@ end
 
 """
 """
-function compute_LL(pz::Dict{}, py::Dict{}, data::Vector{Dict{Any,Any}}, f_str::String;
-        state="state") where {T <: Any}
+function compute_LL(θ, data)
 
-    compute_LL(pz[state], py[state], data, f_str)
-
-end
-
-
-"""
-"""
-function compute_LL(θz, py::Vector{Vector{Vector{T}}}, data::Vector{Dict{Any,Any}}, f_str::String) where {T <: Any}
-
-    sum(map((py,data)-> sum(LL_all_trials(θz, py, data, f_str)), py, data))
+    @unpack θy, θz, f = θ
+    sum(map((θy,data)-> sum(loglikelihood(θz, θy, data, f)), θy, data))
 
 end
 
 
 """
 """
-function LL_all_trials(θz, py::Vector{Vector{TT}}, data::Dict,
-        f_str::String) where {TT <: Any}
+function loglikelihood(θz, θy, data, f) where {TT <: Any}
 
-    dt = data["dt"]
-    centered = data["use_bin_center"]
+    @unpack binned_clicks, λ0, spikes = data
+    @unpack clicks, nT, nL, nR, dt, centered = binned_clicks
+    @unpack L, R, ntrials = clicks
 
-    sum(pmap((L,R,nT,nL,nR,k,λ0)-> LL_single_trial(θz,py,L,R,nT,nL,nR,k,λ0,dt,f_str,centered),
-        data["leftbups"], data["rightbups"], data["nT"],
-            data["binned_leftbups"],
-        data["binned_rightbups"], data["spike_counts"],
-            data["λ0"], batch_size=data["ntrials"]))
+    sum(pmap((L,R,nT,nL,nR,spikes,λ0)-> loglikelihood(θz,θy,L,R,nT,nL,nR,spikes,λ0,dt,f,centered),
+        L, R, nT, nL, nR, spikes, λ0, batch_size=ntrials))
 
 end
 
 
 """
 """
-function LL_single_trial(θz, py::Vector{Vector{TT}},
+function loglikelihood(θz, θy::Vector{Vector{TT}},
         L::Vector{Float64}, R::Vector{Float64}, nT::Int,
         nL::Vector{Int}, nR::Vector{Int},
         k::Vector{Vector{Int}}, λ0::Vector{Vector{Float64}}, dt::Float64,
@@ -102,8 +90,8 @@ function LL_single_trial(θz, py::Vector{Vector{TT}},
 
 
     a = rand(θz,nT,L,R,nL,nR; centered=centered, dt=dt)
-    sum(map((py,k,λ0)-> sum(logpdf.(Poisson.(map((a, λ0)-> f_py!(a, λ0, py, f_str), a, λ0) * dt), k)),
-            py, k, λ0))
+    sum(map((θy,k,λ0)-> sum(logpdf.(Poisson.(map((a, λ0)-> f_py!(a, λ0, θy, f_str), a, λ0) * dt), k)),
+            θy, k, λ0))
 
 end
 

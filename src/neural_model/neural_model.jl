@@ -186,7 +186,7 @@ function default_parameters_and_data(f_str::String, num_sessions::Int,
 
     θ = θneural(θz = θ, θy=py["generative"], N=cells_per_session, f=f_str)
 
-    clicks, λ0, spikes = sample_clicks_and_spikes(θ, num_sessions, num_trials_per_session; rng=rng)
+    clicks, λ0, spikes = sample_clicks_and_spikes(θ, num_sessions, num_trials_per_session, cells_per_session; rng=rng)
 
     data = Vector{Any}(undef, num_sessions)
     binned_clicks = Vector{Any}(undef, num_sessions)

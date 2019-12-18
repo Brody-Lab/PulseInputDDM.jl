@@ -65,39 +65,36 @@ end
 
 """
 """
-function sample_clicks_and_spikes(Ψ,
-        num_sessions::Int, num_trials_per_session::Vector{Int}; centered::Bool=false,
+function sample_clicks_and_spikes(θ,
+        num_sessions::Int, num_trials_per_session::Vector{Int}, cells_per_session; centered::Bool=false,
         dt::Float64=1e-4, rng::Int=0)
 
-    @unpack θy,θz,f = Ψ
-
     clicks = map((ntrials,rng)-> synthetic_clicks(ntrials; rng=rng), num_trials_per_session, (1:num_sessions) .+ rng)
-    λ0 = map((clicks,θy) -> sample_λ0(clicks.T, θy; dt=dt), clicks, θy)
+    λ0 = map((clicks,N) -> sample_λ0(clicks.T, N; dt=dt), clicks, cells_per_session)
 
-    Y = sample_spikes_multiple_sessions(θz, θy, clicks, λ0, f, centered, dt; rng=rng)
+    Y = sample_spikes_multiple_sessions(θ, clicks, λ0, centered, dt; rng=rng)
 
     return clicks, λ0, Y
 
 end
 
-function sample_λ0(T, py::Vector{Vector{Float64}}; dt::Float64=1e-4, rng::Int=1)
+function sample_λ0(T, N; dt::Float64=1e-4, rng::Int=1)
 
     #data["dt_synthetic"], data["synthetic"], data["N"] = dtMC, true, length(py)
 
     #Random.seed!(rng)
     #data["λ0"] = [repeat([collect(range(10. *rand(),stop=10. * rand(),
     #                    length=Int(ceil(T./dt))))], outer=length(py)) for T in data["T"]]
-    λ0 = [repeat([zeros(Int(ceil(T./dt)))], outer=length(py)) for T in T]
+    λ0 = [repeat([zeros(Int(ceil(T./dt)))], outer=N) for T in T]
 
 end
 
 
 """
 """
-function sample_spikes_multiple_sessions(θz::θz, py::Vector{Vector{Vector{Float64}}},
-        clicks, λ0, f_str::String, centered::Bool, dt::Float64; rng::Int=1)
+function sample_spikes_multiple_sessions(θ, clicks, λ0, centered::Bool, dt::Float64; rng::Int=1)
 
-    λ, = sample_expected_rates_multiple_sessions(θz, py, clicks, λ0, f_str, centered, dt; rng=rng)
+    λ, = sample_expected_rates_multiple_sessions(θ, clicks, λ0, centered, dt; rng=rng)
     Y = map(λ-> map(λ-> map(λ-> poisson_noise!.(λ, dt), λ), λ), λ)
 
 end
@@ -105,13 +102,14 @@ end
 
 """
 """
-function sample_expected_rates_multiple_sessions(θz::θz, py::Vector{Vector{Vector{Float64}}},
-        clicks, λ0, f_str::String, centered::Bool, dt::Float64; rng::Int=1)
+function sample_expected_rates_multiple_sessions(θ,
+        clicks, λ0, centered::Bool, dt::Float64; rng::Int=1)
 
     nsessions = length(clicks)
+    @unpack θy,θz,f = θ
 
-    output = map((clicks, λ0, py)-> sample_expected_rates_single_session(clicks, λ0, θz, py, f_str, centered, dt; rng=rng),
-        clicks, λ0, py)
+    output = map((clicks, λ0, θy)-> sample_expected_rates_single_session(clicks, λ0, θz, θy, f, centered, dt; rng=rng),
+        clicks, λ0, θy)
 
     λ = map(x-> x[1], output)
     a = map(x-> x[2], output)
@@ -123,7 +121,7 @@ end
 
 """
 """
-function sample_expected_rates_single_session(clicks, λ0, θz::θz, py::Vector{Vector{Float64}},
+function sample_expected_rates_single_session(clicks, λ0, θz::θz, θy::Vector{Vector{Float64}},
         f_str::String, centered::Bool, dt::Float64; rng::Int=1)
 
     #@unpack clicks, λ0 = inputs
@@ -134,7 +132,7 @@ function sample_expected_rates_single_session(clicks, λ0, θz::θz, py::Vector{
     binned_clicks = bin_clicks(clicks, centered=centered, dt=dt)
     @unpack nT, nL, nR = binned_clicks
 
-    output = pmap((λ0,nT,L,R,nL,nR,rng) -> sample_expected_rates_single_trial(θz,py,λ0,nT,L,R,nL,nR,
+    output = pmap((λ0,nT,L,R,nL,nR,rng) -> sample_expected_rates_single_trial(θz,θy,λ0,nT,L,R,nL,nR,
         f_str,centered,dt; rng=rng), λ0, nT, L, R, nL, nR, shuffle(1:ntrials))
 
     λ = map(x-> x[1], output)
@@ -147,13 +145,13 @@ end
 
 """
 """
-function sample_expected_rates_single_trial(θz::θz, py::Vector{Vector{Float64}}, λ0::Vector{Vector{Float64}},
+function sample_expected_rates_single_trial(θz::θz, θy::Vector{Vector{Float64}}, λ0::Vector{Vector{Float64}},
         nT::Int, L::Vector{Float64}, R::Vector{Float64}, nL::Vector{Int}, nR::Vector{Int},
         f_str::String, centered::Bool, dt::Float64; rng::Int=1)
 
     Random.seed!(rng)
     a = rand(θz,nT,L,R,nL,nR; centered=centered, dt=dt)
-    λ = map((py,λ0)-> map((a, λ0)-> f_py!(a, λ0, py, f_str), a, λ0), py, λ0)
+    λ = map((θy,λ0)-> map((a, λ0)-> f_py!(a, λ0, θy, f_str), a, λ0), θy, λ0)
 
     return λ, a
 
