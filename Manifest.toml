@@ -135,12 +135,10 @@ uuid = "dc8bdbbb-1ca9-579f-8c36-e416f6a65cce"
 version = "0.2.0"
 
 [[DSP]]
-deps = ["Compat", "FFTW", "LinearAlgebra", "Polynomials", "Random", "Reexport", "SpecialFunctions", "Statistics"]
-git-tree-sha1 = "5e0df2b7d87803872d3cea8ed452b556c427c220"
-repo-rev = "f19453a4dad4ec4bdfa28fd4af221e493af50b77"
-repo-url = "https://github.com/JuliaDSP/DSP.jl.git"
+deps = ["FFTW", "LinearAlgebra", "Polynomials", "Random", "Reexport", "SpecialFunctions", "Statistics"]
+git-tree-sha1 = "fa9564dc41fb91716c2e3353fe447f268a08f14d"
 uuid = "717857b8-e6f2-59f4-9121-6e50c889abd2"
-version = "0.5.2"
+version = "0.6.2"
 
 [[DataAPI]]
 git-tree-sha1 = "674b67f344687a88310213ddfa8a2b3c76cc4252"
