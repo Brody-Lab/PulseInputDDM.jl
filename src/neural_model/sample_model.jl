@@ -66,49 +66,59 @@ end
 """
 """
 function synthetic_data(θ::θneural,
-        num_sessions::Int, num_trials_per_session::Vector{Int}, cells_per_session; centered::Bool=false,
-        dt::Float64=1e-4, rng::Int=0)
+        nsess::Int, ntrials::Vector{Int}, ncells; centered::Bool=true,
+        dt::Float64=1e-2, rng::Int=0, dt_synthetic=1e-4)
 
-    clicks = map((ntrials,rng)-> synthetic_clicks(ntrials; rng=rng), num_trials_per_session, (1:num_sessions) .+ rng)
-    λ0 = map((clicks,N) -> synthetic_λ0(clicks.T, N; dt=dt), clicks, cells_per_session)
+    spikes,clicks,λ0 = rand(θ, nsess, ntrials, ncells; rng=rng)
 
-    Y, = rand(θ, clicks, λ0, centered, dt; rng=rng)
+    spikes = map(y-> bin_spikes(y, dt; dt_synthetic=dt_synthetic, synthetic=true), spikes)
+    λ0 = map(λ0-> bin_λ0(λ0, dt; synthetic=true), λ0)
+    binned_clicks = map(clicks-> bin_clicks.(clicks, centered=centered, dt=dt), clicks)
 
-    Y = map(y-> bin_spikes(y, 1e-2; dt_synthetic=dt, synthetic=true), Y)
-    λ0 = map(λ0-> bin_λ0(λ0, 1e-2; synthetic=true), λ0)
+    input_data = map((clicks, binned_clicks, λ0)-> neuralinputs.(clicks, binned_clicks, λ0, dt, centered),
+        clicks, binned_clicks, λ0)
 
-    binned_clicks = map(clicks-> bin_clicks(clicks, centered=true, dt=1e-2), clicks)
-
-    map((binned_clicks,λ0,spikes,N) -> neuraldata(binned_clicks,λ0,spikes,N), binned_clicks, λ0, Y, cells_per_session)
+    map((input_data,spikes,ncells) -> neuraldata.(input_data,spikes,ncells),
+        input_data, spikes, ncells)
 
 end
 
-function synthetic_λ0(T, N; dt::Float64=1e-4, rng::Int=1)
+function synthetic_λ0(clicks, N; dt::Float64=1e-4, rng::Int=1)
 
+    @unpack T = clicks
     #data["dt_synthetic"], data["synthetic"], data["N"] = dtMC, true, length(py)
 
     #Random.seed!(rng)
     #data["λ0"] = [repeat([collect(range(10. *rand(),stop=10. * rand(),
     #                    length=Int(ceil(T./dt))))], outer=length(py)) for T in data["T"]]
-    λ0 = [repeat([zeros(Int(ceil(T./dt)))], outer=N) for T in T]
+    #λ0 = [repeat([zeros(Int(ceil(T./dt)))], outer=N) for T in T]
+    λ0 = repeat([zeros(Int(ceil(T/dt)))], outer=N)
 
 end
 
 
 """
 """
-function rand(θ::θneural, clicks, λ0, centered::Bool, dt::Float64; rng::Int=1)
+function rand(θ::θneural, nsess, ntrials, ncells; centered::Bool=false, dt::Float64=1e-4, rng::Int=1)
 
     @unpack θy,θz,f = θ
 
-    output = map((clicks, λ0, θy)-> rand(θz, θy, f, clicks, λ0, centered, dt; rng=rng),
-        clicks, λ0, θy)
+    clicks = synthetic_clicks.(ntrials, collect((1:nsess) .+ rng))
+    binned_clicks = map(clicks-> bin_clicks.(clicks, centered=centered, dt=dt), clicks)
+
+    λ0 = map((clicks,ncells) -> synthetic_λ0.(clicks, ncells; dt=dt), clicks, ncells)
+
+    input_data = map((clicks, binned_clicks, λ0)-> neuralinputs.(clicks, binned_clicks, λ0, dt, centered),
+        clicks, binned_clicks, λ0)
+
+    output = map((input_data, θy)-> rand(θz, θy, f, input_data; rng=rng),
+        input_data, θy)
 
     λ = map(x-> x[1], output)
     a = map(x-> x[2], output)
     Y = map(λ-> map(λ-> map(λ-> poisson_noise!.(λ, dt), λ), λ), λ)
 
-    return Y, λ, a
+    return Y, clicks, λ0
 
 end
 
@@ -116,18 +126,19 @@ end
 """
 """
 function rand(θz::θz, θy::Vector{Vector{Float64}},
-        f_str::String, clicks, λ0, centered::Bool, dt::Float64; rng::Int=1)
+        f_str::String, input_data; rng::Int=1)
 
-    @unpack T,L,R,ntrials = clicks
+    #@unpack T,L,R,ntrials = clicks
+    ntrials = length(input_data)
     Random.seed!(rng)
     #rng = sample(Random.seed!(rng), 1:ntrials, ntrials; replace=false)
 
-    binned_clicks = bin_clicks(clicks, centered=centered, dt=dt)
-    @unpack nT, nL, nR = binned_clicks
+    #binned_clicks = bin_clicks(clicks, centered=centered, dt=dt)
+    #@unpack nT, nL, nR = binned_clicks
 
     #should all of these be organized by trial? so they can be bundled and iterated over?
-    output = pmap((λ0,nT,L,R,nL,nR,rng) -> rand(θz,θy,λ0,nT,L,R,nL,nR,
-        f_str,centered,dt; rng=rng), λ0, nT, L, R, nL, nR, shuffle(1:ntrials))
+    output = pmap((input_data,rng) -> rand(θz,θy,input_data,
+        f_str; rng=rng), input_data, shuffle(1:ntrials))
 
     λ = map(x-> x[1], output)
     a = map(x-> x[2], output)
@@ -139,12 +150,13 @@ end
 
 """
 """
-function rand(θz::θz, θy::Vector{Vector{Float64}}, λ0::Vector{Vector{Float64}},
-        nT::Int, L::Vector{Float64}, R::Vector{Float64}, nL::Vector{Int}, nR::Vector{Int},
-        f_str::String, centered::Bool, dt::Float64; rng::Int=1)
+function rand(θz::θz, θy::Vector{Vector{Float64}},
+        input_data, f_str::String; rng::Int=1)
+
+    @unpack λ0 = input_data
 
     Random.seed!(rng)
-    a = rand(θz,nT,L,R,nL,nR; centered=centered, dt=dt)
+    a = rand(θz,input_data)
     λ = map((θy,λ0)-> map((a, λ0)-> f_py!(a, λ0, θy, f_str), a, λ0), θy, λ0)
 
     return λ, a
