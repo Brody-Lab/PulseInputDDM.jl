@@ -1,6 +1,6 @@
 """
 """
-function synthetic_clicks(ntrials::Int; rng::Int=1,
+function synthetic_clicks(ntrials::Int, rng::Int;
     tmin::Float64=0.2, tmax::Float64=1.0, clicktot::Int=40)
 
     Random.seed!(rng)
@@ -25,10 +25,10 @@ end
 
 """
 """
-function rand(θz::θz, click_data)
+function rand(θz::θz, inputs)
 
     @unpack σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ = θz
-    @unpack clicks, binned_clicks, centered, dt = click_data
+    @unpack clicks, binned_clicks, centered, dt = inputs
     @unpack nT, nL, nR = binned_clicks
     @unpack L,R = clicks
 

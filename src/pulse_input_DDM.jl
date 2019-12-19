@@ -97,9 +97,20 @@ end
 
 """
 """
-@with_kw struct click_data{T1,T2}
+@with_kw struct choiceinputs{T1,T2}
     clicks::T1
     binned_clicks::T2
+    dt::Float64
+    centered::Bool
+end
+
+
+"""
+"""
+@with_kw struct neuralinputs{T1,T2,T3}
+    clicks::T1
+    binned_clicks::T2
+    λ0::T3
     dt::Float64
     centered::Bool
 end
