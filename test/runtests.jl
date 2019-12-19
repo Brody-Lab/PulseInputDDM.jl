@@ -34,9 +34,12 @@ model = neuralDDM(θ, data)
 @test round(loglikelihood(model), digits=2) ≈ -21343.94
 
 #want to fold this into sampling, determ model
+#test is broken
 @test round(pulse_input_DDM.loglikelihood_det(model), digits=2) ≈ -21492.01
 
+#not working need uppack func
 x = pulse_input_DDM.flatten(model.θ)
 @test round(loglikelihood(x, data, ncells), digits=2) ≈ -21343.94
 
+#need unpack func
 @test round(norm(gradient(model)), digits=2) ≈ 292.11
