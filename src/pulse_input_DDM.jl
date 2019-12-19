@@ -107,14 +107,16 @@ end
 
 """
 """
-@with_kw struct neuralinputs{T1,T2,T3}
+@with_kw struct neuralinputs{T1,T2}
     clicks::T1
     binned_clicks::T2
-    λ0::T3
+    λ0::Vector{Vector{Float64}}
     dt::Float64
     centered::Bool
 end
 
+neuralinputs(clicks, binned_clicks, λ0::Vector{Vector{Vector{Float64}}}, dt::Float64, centered::Bool) =
+    neuralinputs.(clicks, binned_clicks, λ0, dt, centered)
 
 """
 """
