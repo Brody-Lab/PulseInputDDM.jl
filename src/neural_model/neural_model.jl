@@ -3,19 +3,42 @@
 @flattenable @with_kw struct θneural{T1, T2} <: DDMθ
     θz::T1 = θz() | true
     θy::T2 | true
-    f::String | false
     N::Vector{Int} | false
 end
 
 
 """
 """
-@with_kw struct Sigmoid
-    θ::Vector{Real} = [10., 5.0*rand([-1,1]), 0.]
+@with_kw struct Sigmoid{T1}
+    a::T1=10.
+    b::T1=10.
+    c::T1=1.
+    d::T1=0.
 end
 
-@with_kw struct Softplus
-    θ::Vector{Real} = [10., 5.0*rand([-1,1]), 0.]
+function (θ::Sigmoid)(x::Union{U,Vector{U}}, λ0::Union{Float64,Vector{Float64}}) where U <: Real
+
+    @unpack a,b,c,d = θ
+
+    y = c * x + d
+    y = a + b * logistic!(y)
+    y = softplus(y + λ0)
+
+end
+
+@with_kw struct Softplus{T1}
+    a::T = 10.
+    c::T = 5.0*rand([-1,1])
+    d::T = 0
+end
+
+function (θ::Softplus)(x::Union{U,Vector{U}}, λ0::Union{Float64,Vector{Float64}}) where U <: Real
+
+    @unpack a,c,d = θ
+
+    y = a + softplus(c*x + d)
+    y = max(eps(),y + λ0)
+
 end
 
 

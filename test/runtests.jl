@@ -20,16 +20,19 @@ model, = optimize(data; options=options, iterations=5, outer_iterations=1);
 @test round(norm(flatten(model.θ)), digits=2) ≈ 25.05
 
 ## Neural model
-f, Ns, trials, sess = "sig", [2,3], [100,200], 2
+f, ncells, ntrials, nsess = "sig", [2,3], [100,200], 2
 
-_, py = pulse_input_DDM.default_parameters(f, Ns, sess; generative=true)
+#_, py = pulse_input_DDM.default_parameters(f, ncells, nsess; generative=true)
 
 θ = θz(σ2_i = 0.5, B = 15., λ = -0.5, σ2_a = 10., σ2_s = 1.2,
     ϕ = 0.6, τ_ϕ =  0.02)
 
-θ = θneural(θz = θ, θy=py["generative"], N=Ns, f=f)
+blah = [[Sigmoid() for n in 1:N] for N in ncells]
 
-data = synthetic_data(θ, sess, trials, Ns; rng=1)
+#θ = θneural(θz = θ, θy=py["generative"], N=ncells, f=f)
+θ = θneural(θz = θ, θy=blah, N=ncells)
+
+data = synthetic_data(θ, nsess, ntrials, ncells; rng=1)
 
 #want to fold this into sampling
 @test round(pulse_input_DDM.compute_LL(θ, data, f), digits=2) ≈ -21492.01

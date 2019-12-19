@@ -1,34 +1,33 @@
 """
-    LL_all_trials(pz, py, data, f_str; n=53)
+    LL_all_trials(pz, py, data; n=53)
 
 Computes the log likelihood for a set of trials consistent with the observed neural activity on each trial.
 """
 function loglikelihood(θ::θneural, data; n::Int=53) where N
 
-    @unpack θy, θz, f = θ
+    @unpack θy, θz = θ
     @unpack σ2_i, B, λ, σ2_a = θz
     @unpack dt = data[1][1].input_data
 
     P,M,xc,dx = initialize_latent_model(σ2_i, B, λ, σ2_a, n, dt)
 
-    sum(map((data, θy) -> loglikelihood(θz, θy, data, P, M, xc, dx, f; n=n), data, θy))
+    sum(map((data, θy) -> loglikelihood(θz, θy, data, P, M, xc, dx; n=n), data, θy))
 
 end
 
 
-function loglikelihood(θz, θy, data, P, M, xc, dx, f; n::Int=53) where {TT <: Any}
+function loglikelihood(θz, θy, data, P, M, xc, dx; n::Int=53) where {TT <: Any}
 
-    sum(pmap(data -> loglikelihood(θz,θy,data,P, M, xc, dx, f, n), data, batch_size=1))
+    sum(pmap(data -> loglikelihood(θz,θy,data,P, M, xc, dx, n), data, batch_size=1))
 
 end
 
 
 """
 """
-function loglikelihood(θz,py::Vector{Vector{TT}},data,
+function loglikelihood(θz,θy,data,
         P::Vector{TT}, M::Array{TT,2},
-        xc::Vector{TT}, dx::VV,
-        f_str::String, n::Int) where {TT,UU,VV <: Any}
+        xc::Vector{TT}, dx::VV, n::Int) where {TT,UU,VV <: Any}
 
     @unpack λ, σ2_a, σ2_s, ϕ, τ_ϕ = θz
     @unpack spikes, input_data = data
@@ -50,8 +49,8 @@ function loglikelihood(θz,py::Vector{Vector{TT}},data,
             P,F = latent_one_step!(P,F,λ,σ2_a,σ2_s,t,nL,nR,La,Ra,M,dx,xc,n,dt)
         end
 
-        P .*= vcat(map(xc-> exp(sum(map((k,py,λ0)-> logpdf(Poisson(f_py(xc,λ0[t],py,f_str) * dt),
-                                k[t]), spikes, py, λ0))), xc)...)
+        P .*= vcat(map(xc-> exp(sum(map((k,θy,λ0)-> logpdf(Poisson(θy(xc,λ0[t]) * dt),
+                                k[t]), spikes, θy, λ0))), xc)...)
 
         c[t] = sum(P)
         P /= c[t]
@@ -59,54 +58,6 @@ function loglikelihood(θz,py::Vector{Vector{TT}},data,
     end
 
     return sum(log.(c))
-
-end
-
-
-"""
-"""
-function f_py(x::U, c::Float64, p::Vector{T}, f_str::String) where {T,U <: Any}
-
-    if f_str == "sig"
-
-        y = p[3] * x + p[4]
-        y = p[1] + p[2] * logistic!(y)
-
-        y = softplus(y + c)
-        #y = max(eps(),y+c)
-
-    elseif f_str == "softplus"
-
-        y = p[1] + softplus(p[2]*x + p[3])
-        y = max(eps(),y+c)
-
-    end
-
-    return y
-
-end
-
-
-"""
-"""
-function f_py!(x::U, c::Float64, p::Vector{T}, f_str::String) where {T,U <: Any}
-
-    if f_str == "sig"
-
-        x = p[3] * x + p[4]
-        x = p[1] + p[2] * logistic!(x)
-
-        x = softplus(x + c)
-        #x = max(eps(),x+c)
-
-    elseif f_str == "softplus"
-
-        x = p[1] + softplus(p[2]*x + p[3])
-        x = max(eps(),x+c)
-
-    end
-
-    return x
 
 end
 

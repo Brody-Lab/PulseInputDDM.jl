@@ -83,6 +83,8 @@ function synthetic_data(θ::θneural,
 
 end
 
+#want to get this like detminsistic so can use the same, and want to make f for softplus etc.
+
 function synthetic_λ0(clicks, N; dt::Float64=1e-4, rng::Int=1)
 
     @unpack T = clicks
@@ -101,7 +103,7 @@ end
 """
 function rand(θ::θneural, nsess, ntrials, ncells; centered::Bool=false, dt::Float64=1e-4, rng::Int=1)
 
-    @unpack θy,θz,f = θ
+    @unpack θy,θz = θ
 
     clicks = synthetic_clicks.(ntrials, collect((1:nsess) .+ rng))
     binned_clicks = map(clicks-> bin_clicks.(clicks, centered=centered, dt=dt), clicks)
@@ -111,7 +113,7 @@ function rand(θ::θneural, nsess, ntrials, ncells; centered::Bool=false, dt::Fl
     input_data = map((clicks, binned_clicks, λ0)-> neuralinputs.(clicks, binned_clicks, λ0, dt, centered),
         clicks, binned_clicks, λ0)
 
-    output = map((input_data, θy)-> rand(θz, θy, f, input_data; rng=rng),
+    output = map((input_data, θy)-> rand(θz, θy, input_data; rng=rng),
         input_data, θy)
 
     λ = map(x-> x[1], output)
@@ -125,8 +127,7 @@ end
 
 """
 """
-function rand(θz::θz, θy::Vector{Vector{Float64}},
-        f_str::String, input_data; rng::Int=1)
+function rand(θz::θz, θy, input_data; rng::Int=1)
 
     #@unpack T,L,R,ntrials = clicks
     ntrials = length(input_data)
@@ -137,8 +138,7 @@ function rand(θz::θz, θy::Vector{Vector{Float64}},
     #@unpack nT, nL, nR = binned_clicks
 
     #should all of these be organized by trial? so they can be bundled and iterated over?
-    output = pmap((input_data,rng) -> rand(θz,θy,input_data,
-        f_str; rng=rng), input_data, shuffle(1:ntrials))
+    output = pmap((input_data,rng) -> rand(θz,θy,input_data; rng=rng), input_data, shuffle(1:ntrials))
 
     λ = map(x-> x[1], output)
     a = map(x-> x[2], output)
@@ -150,14 +150,14 @@ end
 
 """
 """
-function rand(θz::θz, θy::Vector{Vector{Float64}},
-        input_data, f_str::String; rng::Int=1)
+function rand(θz::θz, θy, input_data::neuralinputs; rng::Int=1)
 
     @unpack λ0 = input_data
 
     Random.seed!(rng)
     a = rand(θz,input_data)
-    λ = map((θy,λ0)-> map((a, λ0)-> f_py!(a, λ0, θy, f_str), a, λ0), θy, λ0)
+    #λ = map((θy,λ0)-> map((a, λ0)-> f_py!(a, λ0, θy, f_str), a, λ0), θy, λ0)
+    λ = map((θy,λ0)-> θy.(a, λ0), θy, λ0)
 
     return λ, a
 
