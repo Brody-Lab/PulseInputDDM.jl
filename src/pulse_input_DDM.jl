@@ -71,20 +71,27 @@ end
 """
 """
 @with_kw struct clicks
-    L::Vector{Vector{Float64}}
-    R::Vector{Vector{Float64}}
-    T::Vector{Float64}
-    ntrials::Int
+    L::Vector{Float64}
+    R::Vector{Float64}
+    T::Float64
 end
 
 
 """
 """
-@with_kw struct binned_clicks{T}
-    clicks::T
-    nT::Vector{Int}
-    nL::Vector{Vector{Int}}
-    nR::Vector{Vector{Int}}
+@with_kw struct binned_clicks
+    #clicks::T
+    nT::Int
+    nL::Vector{Int}
+    nR::Vector{Int}
+end
+
+
+"""
+"""
+@with_kw struct click_data{T1,T2}
+    clicks::T1
+    binned_clicks::T2
     dt::Float64
     centered::Bool
 end

@@ -9,9 +9,9 @@ end
 
 """
 """
-@with_kw struct choicedata{T} <: DDMdata
-    binned_clicks::T
-    choices::Vector{Bool}
+@with_kw struct choicedata{T1} <: DDMdata
+    click_data::T1
+    choice::Bool
 end
 
 

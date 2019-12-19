@@ -18,18 +18,20 @@ function synthetic_clicks(ntrials::Int; rng::Int=1,
     R = map((T,R)-> vcat(0,R[R .<= T]), T,R)
     L = map((T,L)-> vcat(0,L[L .<= T]), T,L)
 
-    clicks(L, R, T, ntrials)
+    clicks.(L, R, T)
 
 end
 
 
 """
 """
-function rand(θz::θz, nT::Int, L::Vector{Float64},R::Vector{Float64},
-        nL::Vector{Int}, nR::Vector{Int};
-        centered::Bool=false, dt::Float64=1e-4)
+function rand(θz::θz, click_data)
 
     @unpack σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ = θz
+    @unpack clicks, binned_clicks, centered, dt = click_data
+    @unpack nT, nL, nR = binned_clicks
+    @unpack L,R = clicks
+
     La, Ra = adapt_clicks(ϕ, τ_ϕ, L, R)
 
     A = Vector{Float64}(undef,nT)

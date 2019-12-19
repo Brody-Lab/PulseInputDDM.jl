@@ -50,23 +50,28 @@ end
 function bin_clicks(clicks; dt::Float64=1e-2, centered::Bool=false)
 
     @unpack T,L,R = clicks
-    nT = ceil.(Int, round.((T/dt), digits=10))
+    nT = ceil(Int, round((T/dt), digits=10))
     #added on 6/11/19, to avoid problem, such as 0.28/1e-2 = 28.0000000004, etc.
 
     if centered
 
         #so that a(t) is computed to middle of bin
-        nL =  map((x,y)-> map(z-> searchsortedlast((0. -dt/2):dt:(x -dt/2)*dt,z), y), nT, L)
-        nR = map((x,y)-> map(z-> searchsortedlast((0. -dt/2):dt:(x -dt/2)*dt,z), y), nT, R)
+        #nL =  map((x,y)-> map(z-> searchsortedlast((0. -dt/2):dt:(x -dt/2)*dt,z), y), nT, L)
+        #nR = map((x,y)-> map(z-> searchsortedlast((0. -dt/2):dt:(x -dt/2)*dt,z), y), nT, R)
+        nL =  map(z-> searchsortedlast((0. -dt/2):dt:(nT -dt/2)*dt,z), L)
+        nR = map(z-> searchsortedlast((0. -dt/2):dt:(nT -dt/2)*dt,z), R)
 
     else
 
-        nL =  map((x,y)-> map(z-> searchsortedlast(0.:dt:x*dt,z), y), nT, L)
-        nR = map((x,y)-> map(z-> searchsortedlast(0.:dt:x*dt,z), y), nT, R)
+        #nL =  map((x,y)-> map(z-> searchsortedlast(0.:dt:x*dt,z), y), nT, L)
+        #nR = map((x,y)-> map(z-> searchsortedlast(0.:dt:x*dt,z), y), nT, R)
+        nL =  map(z-> searchsortedlast(0.:dt:nT*dt,z), L)
+        nR = map(z-> searchsortedlast(0.:dt:nT*dt,z), R)
 
     end
 
-    binned_clicks(clicks=clicks, nT=nT, nL=nL, nR=nR, dt=dt, centered=centered)
+    #binned_clicks(clicks=clicks, nT=nT, nL=nL, nR=nR, dt=dt, centered=centered)
+    binned_clicks(nT, nL, nR)
 
     #data["ΔLRT"] = map((nT,L,R)-> diffLR(nT,L,R,data["dt"])[end], data["nT"], data["leftbups"], data["rightbups"])
     #data["ΔLR"] = map((nT,L,R)-> diffLR(nT,L,R,data["dt"]), data["nT"], data["leftbups"], data["rightbups"])

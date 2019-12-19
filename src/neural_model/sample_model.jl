@@ -65,20 +65,25 @@ end
 
 """
 """
-function sample_clicks_and_spikes(θ,
+function synthetic_data(θ::θneural,
         num_sessions::Int, num_trials_per_session::Vector{Int}, cells_per_session; centered::Bool=false,
         dt::Float64=1e-4, rng::Int=0)
 
     clicks = map((ntrials,rng)-> synthetic_clicks(ntrials; rng=rng), num_trials_per_session, (1:num_sessions) .+ rng)
-    λ0 = map((clicks,N) -> sample_λ0(clicks.T, N; dt=dt), clicks, cells_per_session)
+    λ0 = map((clicks,N) -> synthetic_λ0(clicks.T, N; dt=dt), clicks, cells_per_session)
 
-    Y = sample_spikes_multiple_sessions(θ, clicks, λ0, centered, dt; rng=rng)
+    Y, = rand(θ, clicks, λ0, centered, dt; rng=rng)
 
-    return clicks, λ0, Y
+    Y = map(y-> bin_spikes(y, 1e-2; dt_synthetic=dt, synthetic=true), Y)
+    λ0 = map(λ0-> bin_λ0(λ0, 1e-2; synthetic=true), λ0)
+
+    binned_clicks = map(clicks-> bin_clicks(clicks, centered=true, dt=1e-2), clicks)
+
+    map((binned_clicks,λ0,spikes,N) -> neuraldata(binned_clicks,λ0,spikes,N), binned_clicks, λ0, Y, cells_per_session)
 
 end
 
-function sample_λ0(T, N; dt::Float64=1e-4, rng::Int=1)
+function synthetic_λ0(T, N; dt::Float64=1e-4, rng::Int=1)
 
     #data["dt_synthetic"], data["synthetic"], data["N"] = dtMC, true, length(py)
 
@@ -92,39 +97,27 @@ end
 
 """
 """
-function sample_spikes_multiple_sessions(θ, clicks, λ0, centered::Bool, dt::Float64; rng::Int=1)
+function rand(θ::θneural, clicks, λ0, centered::Bool, dt::Float64; rng::Int=1)
 
-    λ, = sample_expected_rates_multiple_sessions(θ, clicks, λ0, centered, dt; rng=rng)
-    Y = map(λ-> map(λ-> map(λ-> poisson_noise!.(λ, dt), λ), λ), λ)
-
-end
-
-
-"""
-"""
-function sample_expected_rates_multiple_sessions(θ,
-        clicks, λ0, centered::Bool, dt::Float64; rng::Int=1)
-
-    nsessions = length(clicks)
     @unpack θy,θz,f = θ
 
-    output = map((clicks, λ0, θy)-> sample_expected_rates_single_session(clicks, λ0, θz, θy, f, centered, dt; rng=rng),
+    output = map((clicks, λ0, θy)-> rand(θz, θy, f, clicks, λ0, centered, dt; rng=rng),
         clicks, λ0, θy)
 
     λ = map(x-> x[1], output)
     a = map(x-> x[2], output)
+    Y = map(λ-> map(λ-> map(λ-> poisson_noise!.(λ, dt), λ), λ), λ)
 
-    return λ, a
+    return Y, λ, a
 
 end
 
 
 """
 """
-function sample_expected_rates_single_session(clicks, λ0, θz::θz, θy::Vector{Vector{Float64}},
-        f_str::String, centered::Bool, dt::Float64; rng::Int=1)
+function rand(θz::θz, θy::Vector{Vector{Float64}},
+        f_str::String, clicks, λ0, centered::Bool, dt::Float64; rng::Int=1)
 
-    #@unpack clicks, λ0 = inputs
     @unpack T,L,R,ntrials = clicks
     Random.seed!(rng)
     #rng = sample(Random.seed!(rng), 1:ntrials, ntrials; replace=false)
@@ -132,7 +125,8 @@ function sample_expected_rates_single_session(clicks, λ0, θz::θz, θy::Vector
     binned_clicks = bin_clicks(clicks, centered=centered, dt=dt)
     @unpack nT, nL, nR = binned_clicks
 
-    output = pmap((λ0,nT,L,R,nL,nR,rng) -> sample_expected_rates_single_trial(θz,θy,λ0,nT,L,R,nL,nR,
+    #should all of these be organized by trial? so they can be bundled and iterated over?
+    output = pmap((λ0,nT,L,R,nL,nR,rng) -> rand(θz,θy,λ0,nT,L,R,nL,nR,
         f_str,centered,dt; rng=rng), λ0, nT, L, R, nL, nR, shuffle(1:ntrials))
 
     λ = map(x-> x[1], output)
@@ -145,7 +139,7 @@ end
 
 """
 """
-function sample_expected_rates_single_trial(θz::θz, θy::Vector{Vector{Float64}}, λ0::Vector{Vector{Float64}},
+function rand(θz::θz, θy::Vector{Vector{Float64}}, λ0::Vector{Vector{Float64}},
         nT::Int, L::Vector{Float64}, R::Vector{Float64}, nL::Vector{Int}, nR::Vector{Int},
         f_str::String, centered::Bool, dt::Float64; rng::Int=1)
 

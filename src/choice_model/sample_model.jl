@@ -5,9 +5,10 @@ Returns default parameters and some simulated data
 function synthetic_data(; θ::θchoice=θchoice(), ntrials::Int=2000, rng::Int=1, dt::Float64=1e-2, centered::Bool=false)
 
     clicks, choices = rand(θ, ntrials; rng=rng)
-    binned_clicks = bin_clicks(clicks, centered=centered, dt=dt)
+    binned_clicks = bin_clicks.(clicks, centered=centered, dt=dt)
+    inputs = click_data.(clicks, binned_clicks, dt, centered)
 
-    return θ, choicedata(binned_clicks, choices)
+    return θ, choicedata.(inputs, choices)
 
 end
 
@@ -17,8 +18,9 @@ end
 function rand(θ::θchoice, ntrials::Int; dt::Float64=1e-4, rng::Int = 1, centered::Bool=false)
 
     clicks = synthetic_clicks(ntrials; rng=rng)
-    binned_clicks = bin_clicks(clicks,centered=centered,dt=dt)
-    choices = rand(θ, binned_clicks; rng=rng)
+    binned_clicks = bin_clicks.(clicks,centered=centered,dt=dt)
+    inputs = click_data.(clicks, binned_clicks, dt, centered)
+    choices = rand(θ, inputs; rng=rng)
 
     return clicks, choices
 
@@ -27,27 +29,24 @@ end
 
 """
 """
-function rand(θ::θchoice, binned_clicks; rng::Int = 1)
+function rand(θ::θchoice, click_data; rng::Int = 1)
 
-    @unpack clicks, nT, nL, nR, dt, centered = binned_clicks
-    @unpack L,R,ntrials = clicks
+    ntrials = length(click_data)
 
     rng = sample(Random.seed!(rng), 1:ntrials, ntrials; replace=false)
-    pmap((nT,L,R,nL,nR,rng) -> rand(θ,nT,L,R,nL,nR;
-            centered=centered, rng=rng, dt=dt), nT, L, R, nL, nR, rng)
+    pmap((click_data, rng) -> rand(θ,click_data; rng=rng), click_data, rng)
 
 end
 
 
 """
 """
-function rand(θ::θchoice, nT::Int, L::Vector{Float64}, R::Vector{Float64},
-        nL::Vector{Int}, nR::Vector{Int}; centered::Bool=false, dt::Float64=1e-4, rng::Int=1)
+function rand(θ::θchoice, click_data::click_data; rng::Int=1)
 
     Random.seed!(rng)
     @unpack θz, bias,lapse = θ
 
-    a = rand(θz,nT,L,R,nL,nR;centered=centered, dt=dt)
+    a = rand(θz,click_data)
     rand() > lapse ? choice = a[end] >= bias : choice = Bool(round(rand()))
 
 end

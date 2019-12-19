@@ -85,10 +85,11 @@ function bin_clicks_and_spikes_and_compute_λ0!(data::Dict; centered::Bool=true,
     data["dt"] = dt
     data["use_bin_center"] = centered
 
-    data = bin_spikes!(data;delay=delay)
+    data["spike_counts"] = bin_spikes(data["spike_counts"], dt; delay=delay, synthetic=true)
     #data = pad_binned_spikes!(data; delay=delay, pad=pad)
     #data = compute_filtered_rate!(data; filtSD=filtSD)
-    data = compute_λ0!(data)
+    data["λ0"] = compute_λ0(data["λ0"], dt; synthetic=true)
+    #data = compute_λ0!(data)
 
     return data
 
@@ -97,21 +98,16 @@ end
 
 """
 """
-function compute_λ0!(data)
+function bin_λ0(λ0, dt; synthetic=false, dt_synthetic=1e-4)
 
-    if data["synthetic"]
-
-        if data["dt"] != data["dt_synthetic"]
-            data["λ0"] = map(x-> map(z-> decimate(x[z], Int(data["dt"]/data["dt_synthetic"])), 1:length(x)), data["λ0"])
-        end
+    if synthetic
+        map(x-> map(z-> decimate(x[z], Int(dt/dt_synthetic)), 1:length(x)), λ0)
 
     else
 
-        data["λ0"] = map(i-> map(n-> data["μ_t"][n][1:data["nT"][i]], 1:data["N"]), 1:data["ntrials"])
+        map(i-> map(n-> data["μ_t"][n][1:data["nT"][i]], 1:data["N"]), 1:data["ntrials"])
 
     end
-
-    return data
 
 end
 
@@ -147,15 +143,12 @@ end
 
 """
 """
-function bin_spikes!(data;delay::Float64=0.)
+function bin_spikes(spikes, dt ;delay::Float64=0., dt_synthetic=1e-4, synthetic=false)
 
-    if data["synthetic"]
-
-        if data["dt_synthetic"] != data["dt"]
-            data["spike_counts"] =  map(SC-> map(SCn->
-                map(sum,collect(Iterators.partition(SCn, Int(data["dt"]/data["dt_synthetic"])))), SC),
-                data["spike_counts"])
-        end
+    if synthetic
+        map(SC-> map(SCn->
+            map(sum,collect(Iterators.partition(SCn, Int(dt/dt_synthetic)))), SC),
+            spikes)
 
     else
 
@@ -164,8 +157,6 @@ function bin_spikes!(data;delay::Float64=0.)
                 closed=:left).weights, 1:data["N"]), data["nT"], data["spike_times"])
 
     end
-
-    return data
 
 end
 
