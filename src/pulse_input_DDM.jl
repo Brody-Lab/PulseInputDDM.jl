@@ -87,6 +87,14 @@ end
 end
 
 
+@with_kw struct bins
+    #clicks::T
+    xc::Vector{Real}
+    dx::Real
+    n::Int
+end
+
+
 """
 """
 @with_kw struct click_data{T1,T2}
