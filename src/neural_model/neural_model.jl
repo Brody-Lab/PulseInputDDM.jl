@@ -69,11 +69,15 @@ neuraldata(input_data, spikes::Vector{Vector{Vector{Int}}}, ncells::Int) =  neur
 
 """
 """
-function unflatten(x::Vector{T}, dims::Vector{Int}, f::String) where {T <: Real}
+function unflatten(x::Vector{T}, ncells::Vector{Int}) where {T <: Real}
 
-    dims2 = vcat(0,cumsum(dims))
-    θy = map(idx-> collect(partition(x[dimz+1:end], 4))[idx], [dims2[i]+1:dims2[i+1] for i in 1:length(dims2)-1])
-    θneural(θz(Tuple(x[1:dimz])...), θy, f, dims)
+    #this is hardcoded for sig
+    #not very good, has to be a better way to split into 2 and 3
+    dims2 = vcat(0,cumsum(ncells))
+    blah = Tuple.(collect(partition(x[dimz+1:end], 4)))
+    blah2 = map(x-> Sigmoid(x...),blah)
+    θy = map(idx-> blah2[idx], [dims2[i]+1:dims2[i+1] for i in 1:length(dims2)-1])
+    θneural(θz(Tuple(x[1:dimz])...), θy, ncells)
 
 end
 
@@ -85,9 +89,9 @@ A wrapper function that accepts a vector of mixed parameters, splits the vector
 into two vectors based on the parameter mapping function provided as an input. Used
 in optimization, Hessian and gradient computation.
 """
-function loglikelihood(x::Vector{T}, data, dims::Vector{Int}; n::Int=53) where {T <: Real}
+function loglikelihood(x::Vector{T}, data, ncells::Vector{Int}; n::Int=53) where {T <: Real}
 
-    θ = unflatten(x,dims,f)
+    θ = unflatten(x,ncells)
     loglikelihood(θ, data; n=n)
 
 end
@@ -119,7 +123,7 @@ function flatten(θ::θneural)
 
     @unpack θy, θz = θ
     @unpack σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ = θz
-    vcat(σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ, vcat(vcat(θy...)...))
+    vcat(σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ, vcat(collect.(Flatten.flatten.(vcat(θ.θy...)))...))
 
 end
 
