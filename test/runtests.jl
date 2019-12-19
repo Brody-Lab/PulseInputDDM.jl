@@ -8,6 +8,7 @@ using Test, pulse_input_DDM, LinearAlgebra, Flatten
 model = choiceDDM(θ, data)
 
 @test round(loglikelihood(model), digits=2) ≈ -3.76
+@time loglikelihood(model)
 @test round(θ(data), digits=2) ≈ -3.76
 @test round(norm(gradient(model)), digits=2) ≈ 13.7
 
@@ -20,7 +21,15 @@ model, = optimize(data; options=options, iterations=5, outer_iterations=1);
 
 ## Neural model
 f, Ns, trials, sess = "sig", [2,3], [100,200], 2
-θ, data = default_parameters_and_data(f, sess, trials, Ns);
+
+_, py = pulse_input_DDM.default_parameters(f, Ns, sess; generative=true)
+
+θ = θz(σ2_i = 0.5, B = 15., λ = -0.5, σ2_a = 10., σ2_s = 1.2,
+    ϕ = 0.6, τ_ϕ =  0.02)
+
+θ = θneural(θz = θ, θy=py["generative"], N=Ns, f=f)
+
+data = synthetic_data(θ, sess, trials, Ns; rng=1)
 
 #want to fold this into sampling
 @test round(pulse_input_DDM.compute_LL(θ, data, f), digits=2) ≈ -21492.01

@@ -6,7 +6,7 @@ function synthetic_data(; θ::θchoice=θchoice(), ntrials::Int=2000, rng::Int=1
 
     clicks, choices = rand(θ, ntrials; rng=rng)
     binned_clicks = bin_clicks.(clicks, centered=centered, dt=dt)
-    inputs = click_data.(clicks, binned_clicks, dt, centered)
+    inputs = choiceinputs.(clicks, binned_clicks, dt, centered)
 
     return θ, choicedata.(inputs, choices)
 
@@ -17,9 +17,9 @@ end
 """
 function rand(θ::θchoice, ntrials::Int; dt::Float64=1e-4, rng::Int = 1, centered::Bool=false)
 
-    clicks = synthetic_clicks(ntrials; rng=rng)
+    clicks = synthetic_clicks(ntrials, rng)
     binned_clicks = bin_clicks.(clicks,centered=centered,dt=dt)
-    inputs = click_data.(clicks, binned_clicks, dt, centered)
+    inputs = choiceinputs.(clicks, binned_clicks, dt, centered)
 
     ntrials = length(inputs)
     rng = sample(Random.seed!(rng), 1:ntrials, ntrials; replace=false)
@@ -47,12 +47,12 @@ end
 
 """
 """
-function rand(θ::θchoice, click_data::click_data, rng::Int)
+function rand(θ::θchoice, inputs::choiceinputs, rng::Int)
 
     Random.seed!(rng)
     @unpack θz, bias, lapse = θ
 
-    a = rand(θz,click_data)
+    a = rand(θz,inputs)
     rand() > lapse ? choice = a[end] >= bias : choice = Bool(round(rand()))
 
 end
