@@ -15,7 +15,7 @@ end
 
 """
 """
-(θ::θchoice)(data::Vector{choicedata}; n::Int=53) = loglikelihood(θ, data; n=n)
+(θ::θchoice)(data; n::Int=53) = loglikelihood(θ, data; n=n)
 
 
 """

@@ -43,7 +43,7 @@ and specification of which parameters to fit.
 BACK IN THE DAY TOLS WERE: x_tol::Float64=1e-4, f_tol::Float64=1e-9, g_tol::Float64=1e-2
 
 """
-function optimize(data::choicedata; options::opt=opt(), n::Int=53,
+function optimize(data; options::opt=opt(), n::Int=53,
         x_tol::Float64=1e-10, f_tol::Float64=1e-6, g_tol::Float64=1e-3,
         iterations::Int=Int(2e3), show_trace::Bool=true, outer_iterations::Int=Int(1e1))
 
@@ -78,7 +78,7 @@ A wrapper function that accepts a vector of mixed parameters, splits the vector
 into two vectors based on the parameter mapping function provided as an input. Used
 in optimization, Hessian and gradient computation.
 """
-function loglikelihood(x::Vector{T1}, data::choicedata; n::Int=53) where {T1 <: Real}
+function loglikelihood(x::Vector{T1}, data; n::Int=53) where {T1 <: Real}
 
     θ = Flatten.reconstruct(θchoice(), x)
     loglikelihood(θ, data; n=n)

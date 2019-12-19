@@ -17,7 +17,7 @@ options = opt(fit = vcat(trues(9)),
     ub = vcat([2., 30., 5., 100., 2.5, 1.2, 1.], [30, 1.]),
     x0 = vcat([0.1, 15., -0.1, 20., 0.5, 0.8, 0.008], [0.,0.01]))
 model, = optimize(data; options=options, iterations=5, outer_iterations=1);
-@test round(norm(flatten(model.θ)), digits=2) ≈ 25.05
+@test round(norm(Flatten.flatten(model.θ)), digits=2) ≈ 25.05
 
 ## Neural model
 #_, py = pulse_input_DDM.default_parameters(f, ncells, nsess; generative=true)
