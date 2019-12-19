@@ -43,11 +43,14 @@ function process_click_input_data(data)
 
 end
 
-
+"""
+"""
+bin_clicks(clicks::Vector{T}; dt::Float64=1e-2, centered::Bool=false) where T <: Any =
+    bin_clicks.(clicks; dt=dt, centered=centered)
 
 """
 """
-function bin_clicks(clicks; dt::Float64=1e-2, centered::Bool=false)
+function bin_clicks(clicks::clicks; dt::Float64=1e-2, centered::Bool=false)
 
     @unpack T,L,R = clicks
     nT = ceil(Int, round((T/dt), digits=10))
@@ -58,15 +61,19 @@ function bin_clicks(clicks; dt::Float64=1e-2, centered::Bool=false)
         #so that a(t) is computed to middle of bin
         #nL =  map((x,y)-> map(z-> searchsortedlast((0. -dt/2):dt:(x -dt/2)*dt,z), y), nT, L)
         #nR = map((x,y)-> map(z-> searchsortedlast((0. -dt/2):dt:(x -dt/2)*dt,z), y), nT, R)
-        nL =  map(z-> searchsortedlast((0. -dt/2):dt:(nT -dt/2)*dt,z), L)
-        nR = map(z-> searchsortedlast((0. -dt/2):dt:(nT -dt/2)*dt,z), R)
+        #nL =  map(z-> searchsortedlast((0. -dt/2):dt:(nT -dt/2)*dt,z), L)
+        #nR = map(z-> searchsortedlast((0. -dt/2):dt:(nT -dt/2)*dt,z), R)
+        nL =  searchsortedlast.(Ref((0. -dt/2):dt:(nT -dt/2)*dt), L)
+        nR = searchsortedlast.(Ref((0. -dt/2):dt:(nT -dt/2)*dt), R)
 
     else
 
         #nL =  map((x,y)-> map(z-> searchsortedlast(0.:dt:x*dt,z), y), nT, L)
         #nR = map((x,y)-> map(z-> searchsortedlast(0.:dt:x*dt,z), y), nT, R)
-        nL =  map(z-> searchsortedlast(0.:dt:nT*dt,z), L)
-        nR = map(z-> searchsortedlast(0.:dt:nT*dt,z), R)
+        #nL =  map(z-> searchsortedlast(0.:dt:nT*dt,z), L)
+        #nR = map(z-> searchsortedlast(0.:dt:nT*dt,z), R)
+        nL =  searchsortedlast.(Ref(0.:dt:nT*dt), L)
+        nR = searchsortedlast.(Ref(0.:dt:nT*dt), R)
 
     end
 

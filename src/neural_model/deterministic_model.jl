@@ -55,43 +55,27 @@ function split_opt_params_and_close(pz::Dict{}, py::Dict{}, data::Vector{Dict{An
 
 end
 
+function loglikelihood_det(model::neuralDDM)
 
-"""
-"""
-function compute_LL(θ, data)
+    @unpack θ, data = model
+    @unpack θz, θy = θ
 
-    @unpack θy, θz, f = θ
-    sum(map((θy,data)-> sum(loglikelihood(θz, θy, data, f)), θy, data))
-
-end
-
-
-"""
-"""
-function loglikelihood(θz, θy, data, f) where {TT <: Any}
-
-    @unpack binned_clicks, λ0, spikes = data
-    @unpack clicks, nT, nL, nR, dt, centered = binned_clicks
-    @unpack L, R, ntrials = clicks
-
-    sum(pmap((L,R,nT,nL,nR,spikes,λ0)-> loglikelihood(θz,θy,L,R,nT,nL,nR,spikes,λ0,dt,f,centered),
-        L, R, nT, nL, nR, spikes, λ0, batch_size=ntrials))
+    sum(map((θy, data) -> sum(pmap(data-> loglikelihood(θz, θy, data), data,
+        batch_size=length(data))), θy, data))
 
 end
 
 
 """
 """
-function loglikelihood(θz, θy::Vector{Vector{TT}},
-        L::Vector{Float64}, R::Vector{Float64}, nT::Int,
-        nL::Vector{Int}, nR::Vector{Int},
-        k::Vector{Vector{Int}}, λ0::Vector{Vector{Float64}}, dt::Float64,
-        f_str::String,centered::Bool) where {TT <: Any}
+function loglikelihood(θz, θy, data::neuraldata)
 
+    @unpack spikes, input_data = data
+    @unpack dt, λ0 = input_data
+    a = rand(θz,θy,input_data)[2]
+    #sum(logpdf.(Poisson.(vcat(λ...)*dt), vcat(spikes...)))
 
-    a = rand(θz,nT,L,R,nL,nR; centered=centered, dt=dt)
-    sum(map((θy,k,λ0)-> sum(logpdf.(Poisson.(map((a, λ0)-> f_py!(a, λ0, θy, f_str), a, λ0) * dt), k)),
-            θy, k, λ0))
+    sum(map((θy,spikes,λ0)-> sum(logpdf.(Poisson.(map((a, λ0)-> θy(a, λ0), a, λ0) * dt), spikes)), θy, spikes, λ0))
 
 end
 

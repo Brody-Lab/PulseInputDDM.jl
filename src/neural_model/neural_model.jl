@@ -16,7 +16,10 @@ end
     d::T1=0.
 end
 
-function (θ::Sigmoid)(x::Union{U,Vector{U}}, λ0::Union{Float64,Vector{Float64}}) where U <: Real
+(θ::Sigmoid)(x::Vector{U}, λ0::Vector{Float64}) where U <: Real =
+    (θ::Sigmoid).(x, λ0)
+
+function (θ::Sigmoid)(x::U, λ0::Float64) where U <: Real
 
     @unpack a,b,c,d = θ
 
@@ -27,9 +30,9 @@ function (θ::Sigmoid)(x::Union{U,Vector{U}}, λ0::Union{Float64,Vector{Float64}
 end
 
 @with_kw struct Softplus{T1}
-    a::T = 10.
-    c::T = 5.0*rand([-1,1])
-    d::T = 0
+    a::T1 = 10.
+    c::T1 = 5.0*rand([-1,1])
+    d::T1 = 0
 end
 
 function (θ::Softplus)(x::Union{U,Vector{U}}, λ0::Union{Float64,Vector{Float64}}) where U <: Real
@@ -49,10 +52,10 @@ end
 end
 
 
-@with_kw struct neuraldata{T1,T2,T3} <: DDMdata
-    input_data::T1
-    spikes::T2
-    N::T3
+@with_kw struct neuraldata <: DDMdata
+    input_data::neuralinputs
+    spikes::Vector{Vector{Int}}
+    N::Int
 end
 
 @with_kw struct neuralDDM{T,U} <: DDM
@@ -60,6 +63,9 @@ end
     data::U
 end
 
+"""
+"""
+neuraldata(input_data, spikes::Vector{Vector{Vector{Int}}}, ncells::Int) =  neuraldata.(input_data,spikes,ncells)
 
 """
 """
@@ -79,7 +85,7 @@ A wrapper function that accepts a vector of mixed parameters, splits the vector
 into two vectors based on the parameter mapping function provided as an input. Used
 in optimization, Hessian and gradient computation.
 """
-function loglikelihood(x::Vector{T}, data, dims::Vector{Int}, f::String; n::Int=53) where {T <: Real}
+function loglikelihood(x::Vector{T}, data, dims::Vector{Int}; n::Int=53) where {T <: Real}
 
     θ = unflatten(x,dims,f)
     loglikelihood(θ, data; n=n)
@@ -93,10 +99,10 @@ end
 function gradient(model::neuralDDM; n::Int=53)
 
     @unpack θ, data = model
-    @unpack N, f = θ
+    @unpack N = θ
     x = flatten(θ)
     #x = [flatten(θ)...]
-    ℓℓ(x) = -loglikelihood(x, data, N, f; n=n)
+    ℓℓ(x) = -loglikelihood(x, data, N; n=n)
 
     ForwardDiff.gradient(ℓℓ, x)
 
