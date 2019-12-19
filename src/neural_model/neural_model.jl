@@ -26,11 +26,10 @@ end
 end
 
 
-@with_kw struct neuraldata{T1,T2,T3,T4} <: DDMdata
-    binned_clicks::T1
-    λ0::T2
-    spikes::T3
-    N::T4
+@with_kw struct neuraldata{T1,T2,T3} <: DDMdata
+    input_data::T1
+    spikes::T2
+    N::T3
 end
 
 @with_kw struct neuralDDM{T,U} <: DDM
@@ -167,57 +166,6 @@ function default_parameters(data, f_str::String; generative::Bool=false, show_tr
 
 end
 
-
-"""
-    default_parameters_and_data(f_str, num_sessions, num_trials_per_session,
-        cells_per_session; generative=false, rng=1, dt=1e-2, use_bin_center=true)
-Returns default parameters and some simulated data
-"""
-function default_parameters_and_data(f_str::String, num_sessions::Int,
-        num_trials_per_session::Vector{Int},
-        cells_per_session::Vector{Int};
-        generative::Bool=true,
-        rng::Int=1, dt::Float64=1e-2, centered::Bool=true)
-
-    pz, py = default_parameters(f_str, cells_per_session, num_sessions; generative=true)
-
-    θ = θz(σ2_i = 0.5, B = 15., λ = -0.5, σ2_a = 10., σ2_s = 1.2,
-        ϕ = 0.6, τ_ϕ =  0.02)
-
-    θ = θneural(θz = θ, θy=py["generative"], N=cells_per_session, f=f_str)
-
-    data = synthetic_data(θ, num_sessions, num_trials_per_session, cells_per_session; rng=rng)
-
-#=
-    data_orig = Vector{Any}(undef, num_sessions)
-    for i = 1:num_sessions
-        data_orig[i] = Dict()
-        @unpack L,R,T,ntrials = clicks[i]
-        data_orig[i]["leftbups"] = L
-        data_orig[i]["rightbups"] = R
-        data_orig[i]["T"] = T
-        data_orig[i]["ntrials"] = ntrials
-        data_orig[i]["dt_synthetic"] = 1e-4
-        data_orig[i]["synthetic"] = true
-        data_orig[i]["N"] = length(py["generative"][i])
-        data_orig[i]["spike_counts"] = spikes[i]
-        data_orig[i]["λ0"] = λ0[i]
-    end
-    =#
-
-    #map((data,Y)-> data["spike_counts"] = Y, data, spikes)
-    #λ0 = map(i-> data[i]["λ0"], 1:length(data))
-
-    #data_orig = map(x->bin_clicks_and_spikes_and_compute_λ0!(x; centered=true, dt=dt), data_orig)
-
-    #spikes = map(i-> data_orig[i]["spike_counts"], 1:length(data_orig))
-    #λ0 = map(i-> data_orig[i]["λ0"], 1:length(data_orig))
-
-    #data = map((binned_clicks,λ0,spikes,N) -> neuraldata(binned_clicks,λ0,spikes,N), binned_clicks, λ0, spikes, cells_per_session)
-
-    return θ, data
-
-end
 
 
 """

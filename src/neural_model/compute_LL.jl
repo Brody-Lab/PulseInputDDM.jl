@@ -6,8 +6,8 @@ Computes the log likelihood for a set of trials consistent with the observed neu
 function loglikelihood(θ::θneural, data; n::Int=53) where N
 
     @unpack θy, θz, f = θ
-    @unpack σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ = θz
-    @unpack dt = data[1].binned_clicks
+    @unpack σ2_i, B, λ, σ2_a = θz
+    @unpack dt = data[1][1].input_data
 
     P,M,xc,dx = initialize_latent_model(σ2_i, B, λ, σ2_a, n, dt)
 
@@ -16,30 +16,25 @@ function loglikelihood(θ::θneural, data; n::Int=53) where N
 end
 
 
-function loglikelihood(θz, θ, data, P, M, xc, dx, f; n::Int=53) where {TT <: Any}
+function loglikelihood(θz, θy, data, P, M, xc, dx, f; n::Int=53) where {TT <: Any}
 
-    @unpack σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ = θz
-    @unpack binned_clicks, λ0, spikes = data
-    @unpack clicks, nT, nL, nR, dt, centered = binned_clicks
-    @unpack L, R = clicks
-
-    sum(pmap((L,R,nT,nL,nR,spikes,λ0) -> loglikelihood(λ, σ2_a, σ2_s, ϕ, τ_ϕ,
-            P, M, xc, L, R, nT, nL, nR, θ, spikes, dt, dx, λ0, f;
-            n=n, centered=centered),
-        L, R, nT, nL, nR, spikes, λ0, batch_size=1))
+    sum(pmap(data -> loglikelihood(θz,θy,data,P, M, xc, dx, f, n), data, batch_size=1))
 
 end
 
 
 """
 """
-function loglikelihood(λ::TT, σ2_a::TT, σ2_s::TT, ϕ::TT, τ_ϕ::TT,
+function loglikelihood(θz,py::Vector{Vector{TT}},data,
         P::Vector{TT}, M::Array{TT,2},
-        xc::Vector{TT}, L::Vector{Float64}, R::Vector{Float64}, nT::Int,
-        nL::Vector{Int}, nR::Vector{Int},
-        py::Vector{Vector{TT}}, k::Vector{Vector{Int}}, dt::Float64, dx::VV,
-        λ0::Vector{Vector{UU}},
-        f_str::String; centered::Bool=true, n::Int=53) where {TT,UU,VV <: Any}
+        xc::Vector{TT}, dx::VV,
+        f_str::String, n::Int) where {TT,UU,VV <: Any}
+
+    @unpack λ, σ2_a, σ2_s, ϕ, τ_ϕ = θz
+    @unpack spikes, input_data = data
+    @unpack binned_clicks, clicks, dt, λ0, centered = input_data
+    @unpack nT, nL, nR = binned_clicks
+    @unpack L, R = clicks
 
     #adapt magnitude of the click inputs
     La, Ra = adapt_clicks(ϕ,τ_ϕ,L,R)
@@ -56,7 +51,7 @@ function loglikelihood(λ::TT, σ2_a::TT, σ2_s::TT, ϕ::TT, τ_ϕ::TT,
         end
 
         P .*= vcat(map(xc-> exp(sum(map((k,py,λ0)-> logpdf(Poisson(f_py(xc,λ0[t],py,f_str) * dt),
-                                k[t]), k, py, λ0))), xc)...)
+                                k[t]), spikes, py, λ0))), xc)...)
 
         c[t] = sum(P)
         P /= c[t]
