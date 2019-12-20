@@ -67,9 +67,10 @@ end
 """
 function synthetic_data(θ::θneural,
         nsess::Int, ntrials::Vector{Int}, ncells; centered::Bool=true,
-        dt::Float64=1e-2, rng::Int=0, dt_synthetic::Float64=1e-4)
+        dt::Float64=1e-2, rng::Int=1, dt_synthetic::Float64=1e-4)
 
-    spikes,clicks,λ0 = rand(θ, nsess, ntrials, ncells; rng=rng)
+    rngs = collect((1:nsess) .+ rng)
+    spikes,clicks,λ0 = rand(θ, ntrials, ncells, rngs)
 
     output = bin_clicks_spikes_λ0.(spikes, λ0, clicks;
         centered=centered, dt=dt, dt_synthetic=dt_synthetic, synthetic=true)
@@ -82,20 +83,13 @@ function synthetic_data(θ::θneural,
 
     neuraldata.(input_data,spikes,ncells)
 
-    #spikes = bin_spikes.(spikes, dt; dt_synthetic=dt_synthetic, synthetic=true)
-    #λ0 = bin_λ0.(λ0, dt; synthetic=true)
-    #binned_clicks = bin_clicks.(clicks, centered=centered, dt=dt)
-    #input_data = neuralinputs.(clicks, binned_clicks, λ0, dt, centered)
-
-    #neuraldata.(input_data,spikes,ncells)
-
 end
 
-#want to get this like detminsistic so can use the same, and want to make f for softplus etc.
 
 """
 """
 synthetic_λ0(clicks, N::Int; dt::Float64=1e-4, rng::Int=1) = synthetic_λ0.(clicks, N; dt=dt, rng=rng)
+
 
 """
 """
@@ -113,17 +107,17 @@ end
 
 """
 """
-function rand(θ::θneural, nsess, ntrials, ncells; centered::Bool=false, dt::Float64=1e-4, rng::Int=1)
+function rand(θ::θneural, ntrials, ncells, rngs; centered::Bool=false, dt::Float64=1e-4)
 
     @unpack θy,θz = θ
 
-    clicks = synthetic_clicks.(ntrials, collect((1:nsess) .+ rng))
+    clicks = synthetic_clicks.(ntrials, rngs)
     λ0 = synthetic_λ0.(clicks, ncells; dt=dt)
 
     binned_clicks = bin_clicks.(clicks, centered=centered, dt=dt)
     input_data = neuralinputs.(clicks, binned_clicks, λ0, dt, centered)
 
-    output = rand.(Ref(θz), θy, input_data; rng=rng)
+    output = rand.(Ref(θz), θy, input_data)
 
     λ = map(x-> map(x-> x[1], x), output)
     Y = map(λ-> map(λ-> map(λ-> rand.(Poisson.(λ*dt)), λ), λ), λ)

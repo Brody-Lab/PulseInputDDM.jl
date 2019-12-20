@@ -63,6 +63,7 @@ end
     data::U
 end
 
+
 """
 """
 neuraldata(input_data, spikes::Vector{Vector{Vector{Int}}}, ncells::Int) =  neuraldata.(input_data,spikes,ncells)

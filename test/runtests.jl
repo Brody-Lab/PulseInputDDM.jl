@@ -28,7 +28,7 @@ f, ncells, ntrials, nsess = "sig", [2,3], [100,200], 2
     ϕ = 0.6, τ_ϕ =  0.02),
     θy=[[Sigmoid() for n in 1:N] for N in ncells], N=ncells)
 
-data = synthetic_data(θ, nsess, ntrials, ncells; rng=1)
+data = synthetic_data(θ, nsess, ntrials, ncells)
 model = neuralDDM(θ, data)
 
 @test round(loglikelihood(model), digits=2) ≈ -21343.94
