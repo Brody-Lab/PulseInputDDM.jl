@@ -31,11 +31,11 @@ f, ncells, ntrials, nsess = "sig", [2,3], [100,200], 2
 data = synthetic_data(θ, nsess, ntrials, ncells)
 model = neuralDDM(θ, data)
 
-@test round(loglikelihood(model), digits=2) ≈ -21312.64
+@test round(loglikelihood(model), digits=2) ≈ -21133.68
 
-@test round(pulse_input_DDM.loglikelihood_det(model), digits=2) ≈ -21396.53
+@test round(pulse_input_DDM.loglikelihood_det(model), digits=2) ≈ -21233.28
 
 x = pulse_input_DDM.flatten(model.θ)
-@test round(loglikelihood(x, data, ncells), digits=2) ≈ -21312.64
+@test round(loglikelihood(x, data, ncells), digits=2) ≈ -21133.68
 
-@test round(norm(gradient(model)), digits=2) ≈ 187.21
+@test round(norm(gradient(model)), digits=2) ≈ 350.34

@@ -69,8 +69,14 @@ function synthetic_data(θ::θneural,
         nsess::Int, ntrials::Vector{Int}, ncells; centered::Bool=true,
         dt::Float64=1e-2, rng::Int=1, dt_synthetic::Float64=1e-4)
 
-    rngs = collect((1:nsess) .+ rng)
-    spikes,clicks,λ0 = rand(θ, ntrials, ncells, rngs)
+    rng = sample(Random.seed!(rng), 1:nsess, nsess; replace=false)
+    @unpack θz,θy = θ
+
+    output = rand.(Ref(θz), θy, ntrials, ncells, rng)
+
+    spikes = map(x-> x[1], output)
+    λ0 = map(x-> x[2], output)
+    clicks = map(x-> x[3], output)
 
     output = bin_clicks_spikes_λ0.(spikes, λ0, clicks;
         centered=centered, dt=dt, dt_synthetic=dt_synthetic, synthetic=true)
@@ -81,7 +87,7 @@ function synthetic_data(θ::θneural,
 
     input_data = neuralinputs.(clicks, binned_clicks, λ0, dt, centered)
 
-    neuraldata.(input_data,spikes,ncells)
+    neuraldata.(input_data, spikes, ncells)
 
 end
 
@@ -107,34 +113,22 @@ end
 
 """
 """
-function rand(θ::θneural, ntrials, ncells, rngs; centered::Bool=false, dt::Float64=1e-4)
+function rand(θz, θy, ntrials, ncells, rng; centered::Bool=false, dt::Float64=1e-4)
 
-    @unpack θy,θz = θ
-
-    clicks = synthetic_clicks.(ntrials, rngs)
+    clicks = synthetic_clicks.(ntrials, rng)
     λ0 = synthetic_λ0.(clicks, ncells; dt=dt)
 
     binned_clicks = bin_clicks.(clicks, centered=centered, dt=dt)
     input_data = neuralinputs.(clicks, binned_clicks, λ0, dt, centered)
 
-    output = rand.(Ref(θz), θy, input_data)
-
-    λ = map(x-> map(x-> x[1], x), output)
-    Y = map(λ-> map(λ-> map(λ-> rand.(Poisson.(λ*dt)), λ), λ), λ)
-
-    return Y, clicks, λ0
-
-end
-
-
-"""
-"""
-function rand(θz::θz, θy, input_data; rng::Int=1)
-
     ntrials = length(input_data)
     rng = sample(Random.seed!(rng), 1:ntrials, ntrials; replace=false)
+    output = pmap((input_data,rng) -> rand(θz,θy,input_data; rng=rng), input_data, rng)
 
-    pmap((input_data,rng) -> rand(θz,θy,input_data; rng=rng), input_data, rng)
+    λ = map(x-> x[1], output)
+    spikes = map(λ-> map(λ-> rand.(Poisson.(λ*dt)), λ), λ)
+
+    return spikes, λ0, clicks
 
 end
 
