@@ -121,7 +121,7 @@ neuralinputs(clicks, binned_clicks, λ0::Vector{Vector{Vector{Float64}}}, dt::Fl
 """
 """
 @with_kw struct choiceoptions
-    fit::Vector{Bool} = vcat(trues(9))
+    fit::Vector{Bool} = vcat(trues(dimz+2))
     lb::Vector{Float64} = vcat([0., 8., -5., 0., 0., 0.01, 0.005], [-30, 0.])
     ub::Vector{Float64} = vcat([2., 30., 5., 100., 2.5, 1.2, 1.], [30, 1.])
     x0::Vector{Float64} = vcat([0.1, 15., -0.1, 20., 0.5, 0.8, 0.008], [0.,0.01])
@@ -131,10 +131,21 @@ end
 """
 """
 @with_kw struct neuraloptions
-    fit::Vector{Bool} = vcat(trues(9))
-    lb::Vector{Float64} = vcat([0., 8., -5., 0., 0., 0.01, 0.005], [-30, 0.])
-    ub::Vector{Float64} = vcat([2., 30., 5., 100., 2.5, 1.2, 1.], [30, 1.])
-    x0::Vector{Float64} = vcat([0.1, 15., -0.1, 20., 0.5, 0.8, 0.008], [0.,0.01])
+    ncells::Vector{Int}
+    nparams::Int = 4
+    f::String = "Sigmoid"
+    fit::Vector{Bool} = vcat(trues(dimz+sum(ncells)*nparams))
+    #if f == "Softplus"
+    #    lb::Vector{Float64} = vcat([0., 8., -5., 0., 0., 0.01, 0.005], repeat([eps(),-10.,-10.], sum(ncells)))
+    #    ub::Vector{Float64} = vcat([2., 30., 5., 100., 2.5, 1.2, 1.], repeat([100.,10.,10.], sum(ncells)))
+    #elseif f == "Sigmoid"
+        lb::Vector{Float64} = vcat([0., 8., -5., 0., 0., 0.01, 0.005], repeat([-100.,0.,-10.,-10.], sum(ncells)))
+        ub::Vector{Float64} = vcat([2., 30., 5., 100., 2.5, 1.2, 1.], repeat([100.,100.,10.,10.], sum(ncells)))
+    #end
+    #x0::Vector{Float64} = vcat([0.1, 15., -0.1, 20., 0.5, 0.8, 0.008],
+    #    repeat(Vector{Float64}(undef,nparams), sum(ncells)))
+    x0::Vector{Float64} = vcat([0.1, 15., -0.1, 20., 0.5, 0.8, 0.008],
+        repeat([10.,10.,1.,0.], sum(ncells)))
 end
 
 

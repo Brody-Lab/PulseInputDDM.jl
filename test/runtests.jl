@@ -19,13 +19,13 @@ options = choiceoptions(fit = vcat(trues(9)),
     ub = vcat([2., 30., 5., 100., 2.5, 1.2, 1.], [30, 1.]),
     x0 = vcat([0.1, 15., -0.1, 20., 0.5, 0.8, 0.008], [0.,0.01]))
 
-model, = optimize(data, options; iterations=5, outer_iterations=1);
+model, = optimize(data, options, n; iterations=5, outer_iterations=1);
 @test round(norm(Flatten.flatten(model.θ)), digits=2) ≈ 25.05
 
 ## Neural model
 #_, py = pulse_input_DDM.default_parameters(f, ncells, nsess; generative=true)
 
-f, ncells, ntrials = "sig", [2,3], [100,200]
+f, ncells, ntrials = "Sigmoid", [2,3], [100,200]
 
 θ = θneural(θz = θz(σ2_i = 0.5, B = 15., λ = -0.5, σ2_a = 10., σ2_s = 1.2,
     ϕ = 0.6, τ_ϕ =  0.02),
@@ -45,3 +45,22 @@ x = pulse_input_DDM.flatten(model.θ)
 θ2 = unflatten(x, ncells)
 
 @test round(norm(gradient(model, n)), digits=2) ≈ 350.34
+
+options = neuraloptions(ncells=ncells)
+
+using Parameters
+using pulse_input_DDM: stack, unstack
+
+@unpack fit, lb, ub, x0, ncells, f, nparams = options
+
+lb, = unstack(lb, fit)
+ub, = unstack(ub, fit)
+x0,c = unstack(x0, fit)
+ℓℓ(x) = -loglikelihood(stack(x,c,fit), data, ncells, nparams, f)
+@test round(ℓℓ(x0), digits=2) ≈ 36977.21
+
+#this not working
+model, = optimize(data, options; iterations=5, outer_iterations=1)
+
+model, = optimize(data, options, n; iterations=5, outer_iterations=1)
+@test round(norm(pulse_input_DDM.flatten(model.θ)), digits=2) ≈ 40.97
