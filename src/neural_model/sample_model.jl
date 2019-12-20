@@ -66,10 +66,12 @@ end
 """
 """
 function synthetic_data(θ::θneural,
-        nsess::Int, ntrials::Vector{Int}, ncells; centered::Bool=true,
+        ntrials::Vector{Int}, ncells::Vector{Int}; centered::Bool=true,
         dt::Float64=1e-2, rng::Int=1, dt_synthetic::Float64=1e-4)
 
+    nsess = length(ntrials)
     rng = sample(Random.seed!(rng), 1:nsess, nsess; replace=false)
+
     @unpack θz,θy = θ
 
     output = rand.(Ref(θz), θy, ntrials, ncells, rng)
@@ -116,16 +118,13 @@ end
 function rand(θz, θy, ntrials, ncells, rng; centered::Bool=false, dt::Float64=1e-4)
 
     clicks = synthetic_clicks.(ntrials, rng)
-    λ0 = synthetic_λ0.(clicks, ncells; dt=dt)
-
     binned_clicks = bin_clicks.(clicks, centered=centered, dt=dt)
+    λ0 = synthetic_λ0.(clicks, ncells; dt=dt)
     input_data = neuralinputs.(clicks, binned_clicks, λ0, dt, centered)
 
-    ntrials = length(input_data)
     rng = sample(Random.seed!(rng), 1:ntrials, ntrials; replace=false)
-    output = pmap((input_data,rng) -> rand(θz,θy,input_data; rng=rng), input_data, rng)
+    λ = pmap((input_data,rng) -> rand(θz,θy,input_data; rng=rng)[1], input_data, rng)
 
-    λ = map(x-> x[1], output)
     spikes = map(λ-> map(λ-> rand.(Poisson.(λ*dt)), λ), λ)
 
     return spikes, λ0, clicks

@@ -22,13 +22,13 @@ model, = optimize(data; options=options, iterations=5, outer_iterations=1);
 ## Neural model
 #_, py = pulse_input_DDM.default_parameters(f, ncells, nsess; generative=true)
 
-f, ncells, ntrials, nsess = "sig", [2,3], [100,200], 2
+f, ncells, ntrials = "sig", [2,3], [100,200], 2
 
 θ = θneural(θz = θz(σ2_i = 0.5, B = 15., λ = -0.5, σ2_a = 10., σ2_s = 1.2,
     ϕ = 0.6, τ_ϕ =  0.02),
     θy=[[Sigmoid() for n in 1:N] for N in ncells], N=ncells)
 
-data = synthetic_data(θ, nsess, ntrials, ncells)
+data = synthetic_data(θ, ntrials, ncells)
 model = neuralDDM(θ, data)
 
 @test round(loglikelihood(model), digits=2) ≈ -21133.68
