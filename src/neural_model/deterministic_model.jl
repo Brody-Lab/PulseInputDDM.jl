@@ -45,6 +45,22 @@ end
 
 
 """
+    gradient(model)
+"""
+function gradient(model::neuralDDM)
+
+    @unpack θ, data = model
+    @unpack ncells, nparams, f = θ
+    x = flatten(θ)
+    #x = [flatten(θ)...]
+    ℓℓ(x) = -loglikelihood(x, data, ncells, nparams, f)
+
+    ForwardDiff.gradient(ℓℓ, x)
+
+end
+
+
+"""
 """
 function loglikelihood(θ, data)
 

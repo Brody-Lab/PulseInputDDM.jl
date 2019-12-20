@@ -4,6 +4,8 @@
     θz::T1 = θz() | true
     θy::T2 | true
     ncells::Vector{Int} | false
+    nparams::Int
+    f::String
 end
 
 
@@ -98,7 +100,7 @@ function unflatten(x::Vector{T}, ncells::Vector{Int}, nparams::Int, f::String) w
         blah2 = map(x-> Softplus(x...), blah)
     end
     θy = map(idx-> blah2[idx], [dims2[i]+1:dims2[i+1] for i in 1:length(dims2)-1])
-    θneural(θz(Tuple(x[1:dimz])...), θy, ncells)
+    θneural(θz(Tuple(x[1:dimz])...), θy, ncells, nparams, f)
 
 end
 
@@ -124,7 +126,7 @@ end
 function gradient(model::neuralDDM, n::Int)
 
     @unpack θ, data = model
-    @unpack ncells = θ
+    @unpack ncells, nparams, f = θ
     x = flatten(θ)
     #x = [flatten(θ)...]
     ℓℓ(x) = -loglikelihood(x, data, ncells, nparams, f, n)

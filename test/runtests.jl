@@ -1,7 +1,9 @@
 using Test, pulse_input_DDM, LinearAlgebra, Flatten
+using Parameters
 
 n = 53
 
+## Choice model
 θ = θchoice(θz=θz(σ2_i = 0.5, B = 15., λ = -0.5, σ2_a = 50., σ2_s = 1.5,
     ϕ = 0.8, τ_ϕ = 0.05),
     bias=1., lapse=0.05)
@@ -23,13 +25,12 @@ model, = optimize(data, options, n; iterations=5, outer_iterations=1);
 @test round(norm(Flatten.flatten(model.θ)), digits=2) ≈ 25.05
 
 ## Neural model
-#_, py = pulse_input_DDM.default_parameters(f, ncells, nsess; generative=true)
-
 f, ncells, ntrials = "Sigmoid", [2,3], [100,200]
 
 θ = θneural(θz = θz(σ2_i = 0.5, B = 15., λ = -0.5, σ2_a = 10., σ2_s = 1.2,
     ϕ = 0.6, τ_ϕ =  0.02),
-    θy=[[Sigmoid() for n in 1:N] for N in ncells], ncells=ncells)
+    θy=[[Sigmoid() for n in 1:N] for N in ncells], ncells=ncells,
+    nparams=4, f=f)
 
 data = synthetic_data(θ, ntrials)
 model = neuralDDM(θ, data)
@@ -38,29 +39,19 @@ model = neuralDDM(θ, data)
 
 @test round(loglikelihood(model), digits=2) ≈ -21233.28
 
-x = pulse_input_DDM.flatten(model.θ)
-@test round(loglikelihood(x, data, ncells), digits=2) ≈ -21233.28
-@test round(loglikelihood(x, data, ncells, n), digits=2) ≈ -21133.68
+x = pulse_input_DDM.flatten(θ)
+@unpack ncells, nparams, f = θ
+@test round(loglikelihood(x, data, ncells, nparams, f), digits=2) ≈ -21233.28
+@test round(loglikelihood(x, data, ncells, nparams, f, n), digits=2) ≈ -21133.68
 
-θ2 = unflatten(x, ncells)
-
+θ2 = unflatten(x, ncells, nparams, f)
 @test round(norm(gradient(model, n)), digits=2) ≈ 350.34
+@test round(norm(gradient(model)), digits=2) ≈ 609.35
 
 options = neuraloptions(ncells=ncells)
 
-using Parameters
-using pulse_input_DDM: stack, unstack
-
-@unpack fit, lb, ub, x0, ncells, f, nparams = options
-
-lb, = unstack(lb, fit)
-ub, = unstack(ub, fit)
-x0,c = unstack(x0, fit)
-ℓℓ(x) = -loglikelihood(stack(x,c,fit), data, ncells, nparams, f)
-@test round(ℓℓ(x0), digits=2) ≈ 36977.21
-
-#this not working
 model, = optimize(data, options; iterations=5, outer_iterations=1)
+@test round(norm(pulse_input_DDM.flatten(model.θ)), digits=2) ≈ 40.73
 
 model, = optimize(data, options, n; iterations=5, outer_iterations=1)
 @test round(norm(pulse_input_DDM.flatten(model.θ)), digits=2) ≈ 40.97

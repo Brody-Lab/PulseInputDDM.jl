@@ -25,16 +25,16 @@ end
 
 """
 """
-function rand(θz::θz, inputs)
+function rand(θz::θz{T}, inputs) where T <: Real
 
     @unpack σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ = θz
     @unpack clicks, binned_clicks, centered, dt = inputs
     @unpack nT, nL, nR = binned_clicks
-    @unpack L,R = clicks
+    @unpack L, R = clicks
 
     La, Ra = adapt_clicks(ϕ, τ_ϕ, L, R)
 
-    A = Vector{Float64}(undef,nT)
+    A = Vector{T}(undef,nT)
     a = sqrt(σ2_i)*randn()
 
     for t = 1:nT
