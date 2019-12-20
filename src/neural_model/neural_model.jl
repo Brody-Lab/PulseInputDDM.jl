@@ -93,7 +93,7 @@ in optimization, Hessian and gradient computation.
 function loglikelihood(x::Vector{T}, data, ncells::Vector{Int}, n::Int) where {T <: Real}
 
     θ = unflatten(x,ncells)
-    loglikelihood(θ, data; n=n)
+    loglikelihood(θ, data, n)
 
 end
 

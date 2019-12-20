@@ -76,16 +76,16 @@ function synthetic_data(θ::θneural,
 
     output = rand.(Ref(θz), θy, ntrials, ncells, rng)
 
-    spikes = map(x-> x[1], output)
-    λ0 = map(x-> x[2], output)
-    clicks = map(x-> x[3], output)
+    spikes = getindex.(output, 1)
+    λ0 = getindex.(output, 2)
+    clicks = getindex.(output, 3)
 
     output = bin_clicks_spikes_λ0.(spikes, λ0, clicks;
         centered=centered, dt=dt, dt_synthetic=dt_synthetic, synthetic=true)
 
-    spikes = map(x-> x[1], output)
-    λ0 = map(x-> x[2], output)
-    binned_clicks = map(x-> x[3], output)
+    spikes = getindex.(output, 1)
+    λ0 = getindex.(output, 2)
+    binned_clicks = getindex.(output, 3)
 
     input_data = neuralinputs.(clicks, binned_clicks, λ0, dt, centered)
 

@@ -1,6 +1,6 @@
 """
 """
-function loglikelihood(θ::θchoice, data; n::Int=53)
+function loglikelihood(θ::θchoice, data, n::Int)
 
     @unpack θz, lapse = θ
     @unpack σ2_i, B, λ, σ2_a = θz
@@ -15,7 +15,7 @@ end
 
 """
 """
-(θ::θchoice)(data; n::Int=53) = loglikelihood(θ, data; n=n)
+(θ::θchoice)(data; n::Int=53) = loglikelihood(θ, data, n)
 
 
 """

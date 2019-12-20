@@ -81,7 +81,7 @@ in optimization, Hessian and gradient computation.
 function loglikelihood(x::Vector{T1}, data, n::Int) where {T1 <: Real}
 
     θ = Flatten.reconstruct(θchoice(), x)
-    loglikelihood(θ, data; n=n)
+    loglikelihood(θ, data, n)
 
 end
 

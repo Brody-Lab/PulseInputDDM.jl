@@ -3,7 +3,7 @@
 
 Computes the log likelihood for a set of trials consistent with the observed neural activity on each trial.
 """
-function loglikelihood(θ::θneural, data; n::Int=53) where N
+function loglikelihood(θ::θneural, data, n::Int)
 
     @unpack θy, θz = θ
     @unpack σ2_i, B, λ, σ2_a = θz

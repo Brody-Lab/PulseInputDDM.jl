@@ -1,67 +1,67 @@
 """
 """
-function optimize_model_deterministic(pz::Dict{}, py::Dict{}, data::Vector{Dict{Any,Any}}, f_str::String;
+function optimize_model(data; options::opt=opt(),
         x_tol::Float64=1e-10, f_tol::Float64=1e-6, g_tol::Float64=1e-3,
         iterations::Int=Int(2e3), show_trace::Bool=true,
         outer_iterations::Int=Int(2e3))
 
-    haskey(pz,"state") ? nothing : pz["state"] = deepcopy(pz["initial"])
-    haskey(py,"state") ? nothing : py["state"] = deepcopy(py["initial"])
+    @unpack fit, lb, ub, x0 = options
 
-    #check_pz(pz)
+    lb, = unstack(lb, fit)
+    ub, = unstack(ub, fit)
+    x0,c = unstack(x0, fit)
+    ℓℓ(x) = -loglikelihood(stack(x,c,fit), data)
 
-    fit_vec = combine_latent_and_observation(pz["fit"], py["fit"])
-    lb = combine_latent_and_observation(pz["lb"], py["lb"])[fit_vec]
-    ub = combine_latent_and_observation(pz["ub"], py["ub"])[fit_vec]
+    output = optimize(x0, ℓℓ, lb, ub; g_tol=g_tol, x_tol=x_tol,
+        f_tol=f_tol, iterations=iterations, show_trace=show_trace,
+        outer_iterations=outer_iterations)
 
-    p_opt, ll, parameter_map_f = split_opt_params_and_close(pz,py,data,f_str; state="state")
+    x = Optim.minimizer(output)
+    x = stack(x,c,fit)
+    θ = Flatten.reconstruct(θchoice(), x)
+    model = neuralDDM(θ, data)
+    converged = Optim.converged(output)
 
-    opt_output = opt_func_fminbox(p_opt, ll, lb, ub; g_tol=g_tol, x_tol=x_tol, f_tol=f_tol,
-        iterations=iterations, show_trace=show_trace, outer_iterations=outer_iterations)
-    p_opt, converged = Optim.minimizer(opt_output), Optim.converged(opt_output)
+    println("optimization complete. converged: $converged \n")
 
-    pz["state"], py["state"] = parameter_map_f(p_opt)
-    pz["final"], py["final"] = pz["state"], py["state"]
+    return model, options
 
-    return pz, py, converged
+end
 
-    return pz, py
+
+"""
+    loglikelihood(x, data, n)
+
+A wrapper function that accepts a vector of mixed parameters, splits the vector
+into two vectors based on the parameter mapping function provided as an input. Used
+in optimization, Hessian and gradient computation.
+"""
+function loglikelihood(x::Vector{T1}, data) where {T1 <: Real}
+
+    θ = Flatten.reconstruct(θchoice(), x)
+    loglikelihood(θ, data)
 
 end
 
 
 """
 """
-function ll_wrapper(p_opt::Vector{TT}, data::Vector{Dict{Any,Any}}, parameter_map_f::Function, f_str::String) where {TT <: Any}
+function loglikelihood(θ, data)
 
-    pz, py = parameter_map_f(p_opt)
-    -compute_LL(pz, py, data, f_str)
-
-end
-
-
-"""
-"""
-function split_opt_params_and_close(pz::Dict{}, py::Dict{}, data::Vector{Dict{Any,Any}}, f_str::String;
-        state::String="state")
-
-    fit_vec = combine_latent_and_observation(pz["fit"], py["fit"])
-    p_opt, p_const = split_variable_and_const(combine_latent_and_observation(pz[state], py[state]), fit_vec)
-    parameter_map_f(x) = split_latent_and_observation(combine_variable_and_const(x, p_const, fit_vec),
-        py["cells_per_session"], py["dimy"])
-    ll(x) = ll_wrapper(x, data, parameter_map_f, f_str)
-
-    return p_opt, ll, parameter_map_f
-
-end
-
-function loglikelihood(model::neuralDDM)
-
-    @unpack θ, data = model
     @unpack θz, θy = θ
 
     sum(map((θy, data) -> sum(pmap(data-> loglikelihood(θz, θy, data), data,
         batch_size=length(data))), θy, data))
+
+end
+
+
+"""
+"""
+function loglikelihood(model::neuralDDM)
+
+    @unpack θ, data = model
+    loglikelihood(θ, data)
 
 end
 

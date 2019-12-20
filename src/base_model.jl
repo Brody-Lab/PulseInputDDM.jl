@@ -38,7 +38,7 @@ Computes the log likelihood for a set of trials consistent with the animal's cho
 function loglikelihood(model::T, n::Int) where T <: DDM
 
     @unpack θ, data = model
-    loglikelihood(θ, data; n=n)
+    loglikelihood(θ, data, n)
 
 end
 
