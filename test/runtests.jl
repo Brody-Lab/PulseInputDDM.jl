@@ -31,13 +31,11 @@ f, ncells, ntrials, nsess = "sig", [2,3], [100,200], 2
 data = synthetic_data(θ, nsess, ntrials, ncells)
 model = neuralDDM(θ, data)
 
-@test round(loglikelihood(model), digits=2) ≈ -21343.94
+@test round(loglikelihood(model), digits=2) ≈ -21312.64
 
-#want to fold this into sampling, determ model
-#test is broken, working if rng is in same order
-@test round(pulse_input_DDM.loglikelihood_det(model), digits=2) ≈ -21436.27
+@test round(pulse_input_DDM.loglikelihood_det(model), digits=2) ≈ -21396.53
 
 x = pulse_input_DDM.flatten(model.θ)
-@test round(loglikelihood(x, data, ncells), digits=2) ≈ -21343.94
+@test round(loglikelihood(x, data, ncells), digits=2) ≈ -21312.64
 
-@test round(norm(gradient(model)), digits=2) ≈ 292.11
+@test round(norm(gradient(model)), digits=2) ≈ 187.21

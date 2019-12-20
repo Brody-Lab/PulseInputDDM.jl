@@ -132,11 +132,9 @@ end
 function rand(θz::θz, θy, input_data; rng::Int=1)
 
     ntrials = length(input_data)
-    Random.seed!(rng)
-    #rng = sample(Random.seed!(rng), 1:ntrials, ntrials; replace=false)
+    rng = sample(Random.seed!(rng), 1:ntrials, ntrials; replace=false)
 
-    pmap((input_data,rng) -> rand(θz,θy,input_data; rng=rng), input_data, shuffle(1:ntrials))
-    #pmap((input_data,rng) -> rand(θz,θy,input_data; rng=rng), input_data, rng)
+    pmap((input_data,rng) -> rand(θz,θy,input_data; rng=rng), input_data, rng)
 
 end
 
