@@ -55,7 +55,7 @@ function split_opt_params_and_close(pz::Dict{}, py::Dict{}, data::Vector{Dict{An
 
 end
 
-function loglikelihood_det(model::neuralDDM)
+function loglikelihood(model::neuralDDM)
 
     @unpack θ, data = model
     @unpack θz, θy = θ

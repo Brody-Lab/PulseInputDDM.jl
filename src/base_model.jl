@@ -4,11 +4,11 @@ const dimz = 7
 """
     gradient(model; n=53)
 """
-function gradient(model::T; n::Int=53) where T <: DDM
+function gradient(model::T, n::Int) where T <: DDM
 
     @unpack θ, data = model
     x = [Flatten.flatten(θ)...]
-    ℓℓ(x) = -loglikelihood(x, data; n=n)
+    ℓℓ(x) = -loglikelihood(x, data, n)
 
     ForwardDiff.gradient(ℓℓ, x)
 
@@ -18,11 +18,11 @@ end
 """
     Hessian(model; n=53)
 """
-function Hessian(model::T; n::Int=53) where T <: DDM
+function Hessian(model::T, n::Int) where T <: DDM
 
     @unpack θ, data = model
     x = [flatten(θ)...]
-    ℓℓ(x) = -loglikelihood(x, data; n=n)
+    ℓℓ(x) = -loglikelihood(x, data, n)
 
     ForwardDiff.hessian(ℓℓ, x)
 
@@ -35,7 +35,7 @@ end
 Computes the log likelihood for a set of trials consistent with the animal's choice on each trial.
 ```
 """
-function loglikelihood(model::T; n::Int=53) where T <: DDM
+function loglikelihood(model::T, n::Int) where T <: DDM
 
     @unpack θ, data = model
     loglikelihood(θ, data; n=n)

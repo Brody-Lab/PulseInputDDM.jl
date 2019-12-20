@@ -1,5 +1,7 @@
 using Test, pulse_input_DDM, LinearAlgebra, Flatten
 
+n = 53
+
 θ = θchoice(θz=θz(σ2_i = 0.5, B = 15., λ = -0.5, σ2_a = 50., σ2_s = 1.5,
     ϕ = 0.8, τ_ϕ = 0.05),
     bias=1., lapse=0.05)
@@ -7,10 +9,10 @@ using Test, pulse_input_DDM, LinearAlgebra, Flatten
 θ, data = synthetic_data(;θ=θ, ntrials=10, rng=1)
 model = choiceDDM(θ, data)
 
-@test round(loglikelihood(model), digits=2) ≈ -3.76
-@time loglikelihood(model)
+@test round(loglikelihood(model, n), digits=2) ≈ -3.76
+@time loglikelihood(model, n)
 @test round(θ(data), digits=2) ≈ -3.76
-@test round(norm(gradient(model)), digits=2) ≈ 13.7
+@test round(norm(gradient(model, n)), digits=2) ≈ 13.7
 
 options = opt(fit = vcat(trues(9)),
     lb = vcat([0., 8., -5., 0., 0., 0.01, 0.005], [-30, 0.]),
@@ -22,7 +24,7 @@ model, = optimize(data; options=options, iterations=5, outer_iterations=1);
 ## Neural model
 #_, py = pulse_input_DDM.default_parameters(f, ncells, nsess; generative=true)
 
-f, ncells, ntrials = "sig", [2,3], [100,200], 2
+f, ncells, ntrials = "sig", [2,3], [100,200]
 
 θ = θneural(θz = θz(σ2_i = 0.5, B = 15., λ = -0.5, σ2_a = 10., σ2_s = 1.2,
     ϕ = 0.6, τ_ϕ =  0.02),
@@ -31,11 +33,11 @@ f, ncells, ntrials = "sig", [2,3], [100,200], 2
 data = synthetic_data(θ, ntrials, ncells)
 model = neuralDDM(θ, data)
 
-@test round(loglikelihood(model), digits=2) ≈ -21133.68
+@test round(loglikelihood(model, n), digits=2) ≈ -21133.68
 
-@test round(pulse_input_DDM.loglikelihood_det(model), digits=2) ≈ -21233.28
+@test round(loglikelihood(model), digits=2) ≈ -21233.28
 
 x = pulse_input_DDM.flatten(model.θ)
-@test round(loglikelihood(x, data, ncells), digits=2) ≈ -21133.68
+@test round(loglikelihood(x, data, ncells, n), digits=2) ≈ -21133.68
 
-@test round(norm(gradient(model)), digits=2) ≈ 350.34
+@test round(norm(gradient(model, n)), digits=2) ≈ 350.34

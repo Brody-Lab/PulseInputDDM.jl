@@ -90,7 +90,7 @@ A wrapper function that accepts a vector of mixed parameters, splits the vector
 into two vectors based on the parameter mapping function provided as an input. Used
 in optimization, Hessian and gradient computation.
 """
-function loglikelihood(x::Vector{T}, data, ncells::Vector{Int}; n::Int=53) where {T <: Real}
+function loglikelihood(x::Vector{T}, data, ncells::Vector{Int}, n::Int) where {T <: Real}
 
     θ = unflatten(x,ncells)
     loglikelihood(θ, data; n=n)
@@ -101,13 +101,13 @@ end
 """
     gradient(model; n=53)
 """
-function gradient(model::neuralDDM; n::Int=53)
+function gradient(model::neuralDDM, n::Int)
 
     @unpack θ, data = model
     @unpack N = θ
     x = flatten(θ)
     #x = [flatten(θ)...]
-    ℓℓ(x) = -loglikelihood(x, data, N; n=n)
+    ℓℓ(x) = -loglikelihood(x, data, N, n)
 
     ForwardDiff.gradient(ℓℓ, x)
 

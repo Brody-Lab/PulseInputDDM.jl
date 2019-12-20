@@ -52,7 +52,7 @@ function optimize(data; options::opt=opt(), n::Int=53,
     lb, = unstack(lb, fit)
     ub, = unstack(ub, fit)
     x0,c = unstack(x0, fit)
-    ℓℓ(x) = -loglikelihood(stack(x,c,fit), data; n=n)
+    ℓℓ(x) = -loglikelihood(stack(x,c,fit), data, n)
 
     output = optimize(x0, ℓℓ, lb, ub; g_tol=g_tol, x_tol=x_tol,
         f_tol=f_tol, iterations=iterations, show_trace=show_trace,
@@ -72,13 +72,13 @@ end
 
 
 """
-    loglikelihood(x, data; n=53)
+    loglikelihood(x, data, n)
 
 A wrapper function that accepts a vector of mixed parameters, splits the vector
 into two vectors based on the parameter mapping function provided as an input. Used
 in optimization, Hessian and gradient computation.
 """
-function loglikelihood(x::Vector{T1}, data; n::Int=53) where {T1 <: Real}
+function loglikelihood(x::Vector{T1}, data, n::Int) where {T1 <: Real}
 
     θ = Flatten.reconstruct(θchoice(), x)
     loglikelihood(θ, data; n=n)
