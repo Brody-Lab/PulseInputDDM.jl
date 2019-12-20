@@ -66,13 +66,13 @@ end
 """
 """
 function synthetic_data(θ::θneural,
-        ntrials::Vector{Int}, ncells::Vector{Int}; centered::Bool=true,
+        ntrials::Vector{Int}; centered::Bool=true,
         dt::Float64=1e-2, rng::Int=1, dt_synthetic::Float64=1e-4)
 
     nsess = length(ntrials)
     rng = sample(Random.seed!(rng), 1:nsess, nsess; replace=false)
 
-    @unpack θz,θy = θ
+    @unpack θz,θy,ncells = θ
 
     output = rand.(Ref(θz), θy, ntrials, ncells, rng)
 

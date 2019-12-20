@@ -1,16 +1,16 @@
 """
 """
-function optimize_model(data; options::opt=opt(),
+function optimize(data, options::neuraloptions,
         x_tol::Float64=1e-10, f_tol::Float64=1e-6, g_tol::Float64=1e-3,
         iterations::Int=Int(2e3), show_trace::Bool=true,
-        outer_iterations::Int=Int(2e3))
+        outer_iterations::Int=Int(1e1))
 
     @unpack fit, lb, ub, x0 = options
 
     lb, = unstack(lb, fit)
     ub, = unstack(ub, fit)
     x0,c = unstack(x0, fit)
-    ℓℓ(x) = -loglikelihood(stack(x,c,fit), data)
+    ℓℓ(x) = -loglikelihood(stack(x,c,fit), data, ncells)
 
     output = optimize(x0, ℓℓ, lb, ub; g_tol=g_tol, x_tol=x_tol,
         f_tol=f_tol, iterations=iterations, show_trace=show_trace,
@@ -18,7 +18,7 @@ function optimize_model(data; options::opt=opt(),
 
     x = Optim.minimizer(output)
     x = stack(x,c,fit)
-    θ = Flatten.reconstruct(θchoice(), x)
+    θ = unflatten(x, ncells)
     model = neuralDDM(θ, data)
     converged = Optim.converged(output)
 
@@ -30,15 +30,15 @@ end
 
 
 """
-    loglikelihood(x, data, n)
+    loglikelihood(x, data, ncells)
 
 A wrapper function that accepts a vector of mixed parameters, splits the vector
 into two vectors based on the parameter mapping function provided as an input. Used
 in optimization, Hessian and gradient computation.
 """
-function loglikelihood(x::Vector{T1}, data) where {T1 <: Real}
+function loglikelihood(x::Vector{T1}, data, ncells) where {T1 <: Real}
 
-    θ = Flatten.reconstruct(θchoice(), x)
+    θ = unflatten(x, ncells)
     loglikelihood(θ, data)
 
 end

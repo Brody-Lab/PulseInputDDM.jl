@@ -3,7 +3,7 @@
 @flattenable @with_kw struct θneural{T1, T2} <: DDMθ
     θz::T1 = θz() | true
     θy::T2 | true
-    N::Vector{Int} | false
+    ncells::Vector{Int} | false
 end
 
 
@@ -16,6 +16,9 @@ end
     d::T1=0.
 end
 
+
+"""
+"""
 (θ::Sigmoid)(x::Vector{U}, λ0::Vector{Float64}) where U <: Real =
     (θ::Sigmoid).(x, λ0)
 
@@ -35,6 +38,9 @@ end
     d::T1 = 0
 end
 
+
+"""
+"""
 function (θ::Softplus)(x::Union{U,Vector{U}}, λ0::Union{Float64,Vector{Float64}}) where U <: Real
 
     @unpack a,c,d = θ
@@ -55,9 +61,12 @@ end
 @with_kw struct neuraldata <: DDMdata
     input_data::neuralinputs
     spikes::Vector{Vector{Int}}
-    N::Int
+    ncells::Int
 end
 
+
+"""
+"""
 @with_kw struct neuralDDM{T,U} <: DDM
     θ::T = θneural()
     data::U
@@ -67,6 +76,7 @@ end
 """
 """
 neuraldata(input_data, spikes::Vector{Vector{Vector{Int}}}, ncells::Int) =  neuraldata.(input_data,spikes,ncells)
+
 
 """
 """
@@ -92,7 +102,7 @@ in optimization, Hessian and gradient computation.
 """
 function loglikelihood(x::Vector{T}, data, ncells::Vector{Int}, n::Int) where {T <: Real}
 
-    θ = unflatten(x,ncells)
+    θ = unflatten(x, ncells)
     loglikelihood(θ, data, n)
 
 end
@@ -104,10 +114,10 @@ end
 function gradient(model::neuralDDM, n::Int)
 
     @unpack θ, data = model
-    @unpack N = θ
+    @unpack ncells = θ
     x = flatten(θ)
     #x = [flatten(θ)...]
-    ℓℓ(x) = -loglikelihood(x, data, N, n)
+    ℓℓ(x) = -loglikelihood(x, data, ncells, n)
 
     ForwardDiff.gradient(ℓℓ, x)
 

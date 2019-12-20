@@ -20,14 +20,14 @@ import Base.Iterators: partition
 using StaticArrays, Flatten
 import Flatten: flattenable
 
-export choiceDDM, opt, θchoice, choicedata, θz
+export choiceDDM, choiceoptions, θchoice, choicedata, θz
 export θneural, neuralDDM, neuraldata, θy, neuraldata
-export Sigmoid, Softplus
+export Sigmoid, Softplus, neuraloptions
 
 export dimz
 export loglikelihood, synthetic_data
 export CIs, optimize, Hessian, gradient
-export load, reload, save, flatten
+export load, reload, save, flatten, unflatten
 
 export default_parameters_and_data, compute_LL
 
@@ -120,7 +120,17 @@ neuralinputs(clicks, binned_clicks, λ0::Vector{Vector{Vector{Float64}}}, dt::Fl
 
 """
 """
-@with_kw struct opt
+@with_kw struct choiceoptions
+    fit::Vector{Bool} = vcat(trues(9))
+    lb::Vector{Float64} = vcat([0., 8., -5., 0., 0., 0.01, 0.005], [-30, 0.])
+    ub::Vector{Float64} = vcat([2., 30., 5., 100., 2.5, 1.2, 1.], [30, 1.])
+    x0::Vector{Float64} = vcat([0.1, 15., -0.1, 20., 0.5, 0.8, 0.008], [0.,0.01])
+end
+
+
+"""
+"""
+@with_kw struct neuraloptions
     fit::Vector{Bool} = vcat(trues(9))
     lb::Vector{Float64} = vcat([0., 8., -5., 0., 0., 0.01, 0.005], [-30, 0.])
     ub::Vector{Float64} = vcat([2., 30., 5., 100., 2.5, 1.2, 1.], [30, 1.])
