@@ -35,7 +35,7 @@ model = neuralDDM(θ, data)
 
 #want to fold this into sampling, determ model
 #test is broken, working if rng is in same order
-@test round(pulse_input_DDM.loglikelihood_det(model), digits=2) ≈ -21492.01
+@test round(pulse_input_DDM.loglikelihood_det(model), digits=2) ≈ -21436.27
 
 x = pulse_input_DDM.flatten(model.θ)
 @test round(loglikelihood(x, data, ncells), digits=2) ≈ -21343.94
