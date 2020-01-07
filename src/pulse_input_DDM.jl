@@ -29,6 +29,8 @@ export loglikelihood, synthetic_data
 export CIs, optimize, Hessian, gradient
 export load, reload, save, flatten, unflatten
 
+export initialize_θy
+
 export default_parameters_and_data, compute_LL
 
 export mean_exp_rate_per_trial, mean_exp_rate_per_cond

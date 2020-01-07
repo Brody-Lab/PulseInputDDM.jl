@@ -137,6 +137,22 @@ end
 
 
 """
+    Hessian(model; n=53)
+"""
+function Hessian(model::neuralDDM, n::Int)
+
+    @unpack θ, data = model
+    @unpack ncells, nparams, f = θ
+    x = flatten(θ)
+    #x = [flatten(θ)...]
+    ℓℓ(x) = -loglikelihood(x, data, ncells, nparams, f, n)
+
+    ForwardDiff.hessian(ℓℓ, x)
+
+end
+
+
+"""
     flatten(θ)
 
 Extract parameters related to the choice model from a struct and returns an ordered vector
@@ -202,6 +218,6 @@ function optimize(data, options::neuraloptions, n::Int;
 
     println("optimization complete. converged: $converged \n")
 
-    return model, options
+    return model
 
 end

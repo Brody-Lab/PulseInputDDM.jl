@@ -21,11 +21,17 @@ options = choiceoptions(fit = vcat(trues(9)),
     ub = vcat([2., 30., 5., 100., 2.5, 1.2, 1.], [30, 1.]),
     x0 = vcat([0.1, 15., -0.1, 20., 0.5, 0.8, 0.008], [0.,0.01]))
 
-model, = optimize(data, options, n; iterations=5, outer_iterations=1);
+model = optimize(data, options, n; iterations=5, outer_iterations=1);
 @test round(norm(Flatten.flatten(model.θ)), digits=2) ≈ 25.05
 
+H = Hessian(model, n)
+@test round(norm(H), digits=2) ≈ 40.64
+
+CI, HPSD = CIs(model, H)
+@test round(norm(CI), digits=2) ≈ 172.88
+
 ## Neural model
-f, ncells, ntrials = "Sigmoid", [2,3], [100,200]
+f, ncells, ntrials, nparams = "Sigmoid", [2,3], [100,200], 4
 
 θ = θneural(θz = θz(σ2_i = 0.5, B = 15., λ = -0.5, σ2_a = 10., σ2_s = 1.2,
     ϕ = 0.6, τ_ϕ =  0.02),
@@ -50,8 +56,15 @@ x = pulse_input_DDM.flatten(θ)
 
 options = neuraloptions(ncells=ncells)
 
-model, = optimize(data, options; iterations=5, outer_iterations=1)
+θy0 = vcat(vcat(initialize_θy.(data, f)...)...)
+options = neuraloptions(ncells=ncells,
+    fit=vcat(falses(dimz), trues(sum(ncells)*nparams)),
+    x0=vcat([0.1, 15., -0.1, 20., 0.5, 0.8, 0.008], θy0))
+
+model = optimize(data, options; iterations=5, outer_iterations=1)
 @test round(norm(pulse_input_DDM.flatten(model.θ)), digits=2) ≈ 40.73
 
-model, = optimize(data, options, n; iterations=5, outer_iterations=1)
+model = optimize(data, options, n; iterations=5, outer_iterations=1)
 @test round(norm(pulse_input_DDM.flatten(model.θ)), digits=2) ≈ 40.97
+
+#also need hessian test
