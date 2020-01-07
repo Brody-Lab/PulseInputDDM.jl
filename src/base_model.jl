@@ -1,8 +1,30 @@
 
 const dimz = 7
 
+
 """
-    gradient(model; n=53)
+    CIs(H)
+"""
+function CIs(model::T, H::Array{Float64,2}) where T <: DDM
+
+    @unpack θ = model
+    HPSD = Matrix(cholesky(Positive, H, Val{false}))
+
+    if !isapprox(HPSD,H)
+        norm_ϵ = norm(HPSD - H)/norm(H)
+        @warn "Hessian is not positive definite. Approximated by closest PSD matrix.
+            ||ϵ||/||H|| is $norm_ϵ"
+    end
+
+    CI = 2*sqrt.(diag(inv(HPSD)))
+
+    return CI, HPSD
+
+end
+
+
+"""
+    gradient(model, n)
 """
 function gradient(model::T, n::Int) where T <: DDM
 
@@ -16,12 +38,12 @@ end
 
 
 """
-    Hessian(model; n=53)
+    Hessian(model, n)
 """
 function Hessian(model::T, n::Int) where T <: DDM
 
     @unpack θ, data = model
-    x = [flatten(θ)...]
+    x = [Flatten.flatten(θ)...]
     ℓℓ(x) = -loglikelihood(x, data, n)
 
     ForwardDiff.hessian(ℓℓ, x)

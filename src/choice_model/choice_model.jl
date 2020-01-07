@@ -66,7 +66,7 @@ function optimize(data, options::choiceoptions, n::Int;
 
     println("optimization complete. converged: $converged \n")
 
-    return model, options
+    return model
 
 end
 
@@ -82,23 +82,6 @@ function loglikelihood(x::Vector{T1}, data, n::Int) where {T1 <: Real}
 
     θ = Flatten.reconstruct(θchoice(), x)
     loglikelihood(θ, data, n)
-
-end
-
-
-"""
-    CIs(H)
-"""
-function CIs(model::choiceDDM, H::Array{Float64,2})
-
-    @unpack θ = model
-    HPSD = Matrix(cholesky(Positive, H, Val{false}))
-
-    if !isapprox(HPSD,H)
-        @warn "Hessian is not positive definite. Approximated by closest PSD matrix."
-    end
-
-    CI = 2*sqrt.(diag(inv(HPSD)))
 
 end
 
