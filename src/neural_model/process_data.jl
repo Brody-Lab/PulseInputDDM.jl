@@ -261,7 +261,7 @@ function process_spike_data!(data;nconds::Int=4)
 
 end
 
-group_by_neuron(data,ntrials,N) = [[data[t][n] for t in 1:ntrials] for n in 1:N]
+group_by_neuron(data) = [[data[t].spikes[n] for t in 1:length(data)] for n in 1:data[1].ncells]
 
 function filter_data_by_dprime!(data,thresh)
 
