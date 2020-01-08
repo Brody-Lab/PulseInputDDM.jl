@@ -34,7 +34,7 @@ function bounded_mass_all_trials(pz::Vector{TT}, pd::Vector{TT}, data::Dict; n::
     P = pmap((L,R,nT,nL,nR) -> P_single_trial!(λ, σ2_a, σ2_s, ϕ, τ_ϕ,
         P, M, dx, xc, L, R, nT, nL, nR, n, dt), L, R, nT, nL, nR)
 
-    return map((P,choice)-> (choice ? P[n] : P[1]), P, choice)
+    return log(map((P,choice)-> (choice ? P[n] : P[1]), P, choice))
 
 end
 
@@ -65,16 +65,21 @@ julia> round.(LL_all_trials(pz["generative"], pd["generative"], data), digits=2)
 """
 function LL_all_trials(pz::Vector{TT}, pd::Vector{TT}, data::Dict; n::Int=53) where {TT <: Any}
 
-    bias, lapse = pd
-    σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ = pz
-    L, R, nT, nL, nR, choice = [data[key] for key in ["leftbups","rightbups","nT","binned_leftbups","binned_rightbups","pokedR"]]
-    dt = data["dt"]
+    if RTfit == true
+    
+        bounded_mass_all_trials(pz, pd, data; n=n)
+    
+    else
+        bias, lapse = pd
+        σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ = pz
+        L, R, nT, nL, nR, choice = [data[key] for key in ["leftbups","rightbups","nT","binned_leftbups","binned_rightbups","pokedR"]]
+        dt = data["dt"]
 
-    P,M,xc,dx = initialize_latent_model(σ2_i, B, λ, σ2_a, n, dt, L_lapse=lapse/2, R_lapse=lapse/2)
+        P,M,xc,dx = initialize_latent_model(σ2_i, B, λ, σ2_a, n, dt, L_lapse=lapse/2, R_lapse=lapse/2)
 
-    pmap((L,R,nT,nL,nR,choice) -> LL_single_trial!(λ, σ2_a, σ2_s, ϕ, τ_ϕ,
-        P, M, dx, xc, L, R, nT, nL, nR, choice, bias, n, dt), L, R, nT, nL, nR, choice)
-
+        pmap((L,R,nT,nL,nR,choice) -> LL_single_trial!(λ, σ2_a, σ2_s, ϕ, τ_ϕ,
+            P, M, dx, xc, L, R, nT, nL, nR, choice, bias, n, dt), L, R, nT, nL, nR, choice)
+    end
 end
 
 
@@ -83,14 +88,20 @@ end
 function LL_all_trials(σ2_i::TT, B::TT, λ::TT, σ2_a::TT, σ2_s::TT,
     ϕ::TT, τ_ϕ::TT, bias::TT, lapse::TT, data::Dict; n::Int=53) where {TT <: Any}
 
-    L, R, nT, nL, nR, choice = [data[key] for key in ["leftbups","rightbups","nT","binned_leftbups","binned_rightbups","pokedR"]]
-    dt = data["dt"]
+    if RTfit == true
+    
+        error('yet to be implemented, can not call with these arguments')
+    
+    else
 
-    P,M,xc,dx = initialize_latent_model(σ2_i, B, λ, σ2_a, n, dt, L_lapse=lapse/2, R_lapse=lapse/2)
+        L, R, nT, nL, nR, choice = [data[key] for key in ["leftbups","rightbups","nT","binned_leftbups","binned_rightbups","pokedR"]]
+        dt = data["dt"]
 
-    pmap((L,R,nT,nL,nR,choice) -> LL_single_trial!(λ, σ2_a, σ2_s, ϕ, τ_ϕ,
-        P, M, dx, xc, L, R, nT, nL, nR, choice, bias, n, dt), L, R, nT, nL, nR, choice)
+        P,M,xc,dx = initialize_latent_model(σ2_i, B, λ, σ2_a, n, dt, L_lapse=lapse/2, R_lapse=lapse/2)
 
+        pmap((L,R,nT,nL,nR,choice) -> LL_single_trial!(λ, σ2_a, σ2_s, ϕ, τ_ϕ,
+            P, M, dx, xc, L, R, nT, nL, nR, choice, bias, n, dt), L, R, nT, nL, nR, choice)
+    end
 end
 
 
@@ -105,10 +116,18 @@ function LL_single_trial!(λ::TT, σ2_a::TT, σ2_s::TT, ϕ::TT, τ_ϕ::TT,
         pokedR::Bool, bias::TT,
         n::Int, dt::Float64) where {TT,UU <: Any}
 
-    P = P_single_trial!(λ,σ2_a,σ2_s,ϕ,τ_ϕ,P,M,dx,xc,L,R,nT,nL,nR,n,dt)
-    P = choice_likelihood!(bias,xc,P,pokedR,n,dx)
+    if RTfit == true
 
-    return log(sum(P))
+        error('yet to be implemented, can not call with these arguments')
+    
+    else
+
+        P = P_single_trial!(λ,σ2_a,σ2_s,ϕ,τ_ϕ,P,M,dx,xc,L,R,nT,nL,nR,n,dt)
+        P = choice_likelihood!(bias,xc,P,pokedR,n,dx)
+
+        return log(sum(P))
+
+    end
 
 end
 

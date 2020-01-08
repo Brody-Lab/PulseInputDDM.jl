@@ -33,7 +33,7 @@ include("neural_model/deterministic_model.jl")
 #include("neural_model/load_and_optimize.jl")
 #include("neural_model/sample_model_functions_FP.jl")
 
-export dimz
+export dimz, RTfit
 export compute_CIs!, optimize_model, compute_LL, compute_Hessian, compute_gradient
 export default_parameters, LL_all_trials
 export bin_clicks!, load_choice_data, bounded_mass_all_trials

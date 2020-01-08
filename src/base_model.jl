@@ -1,5 +1,6 @@
 
 const dimz = 7
+const RTfit = true
 
 """
     initialize_latent_model(σ2_i, B, λ, σ2_a, n, dt; L_lapse=0., R_lapse=0.)
