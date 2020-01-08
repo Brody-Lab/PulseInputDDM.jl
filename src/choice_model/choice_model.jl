@@ -1,41 +1,10 @@
 """
 """
-<<<<<<< HEAD:src/choice_model/choice_model.jl
-@with_kw struct choicedata{T}
-    binned_clicks::T
-    choices::Vector{Bool}
-end
-
-
-"""
-"""
-@with_kw struct θchoice{T1, T<:Real}
-=======
 @with_kw struct θchoice{T1, T<:Real} <: DDMθ
->>>>>>> newAPI_neural:src/choice_model/choice_model.jl
     θz::T1 = θz()
     bias::T = 1.
     lapse::T = 0.05
 end
-<<<<<<< HEAD:src/choice_model/choice_model.jl
-
-
-"""
-"""
-@with_kw struct choiceDDM{T,U} <: ContinuousUnivariateDistribution
-    θ::T = θchoice()
-    data::U
-end
-
-
-"""
-    pack(x)
-
-Converts parameters for the choice DDM that are arrange in a vector (necessary for doing optimization) into a struct of the apprpropriate form.
-"""
-function pack(x::Vector{TT}) where {TT <: Real}
-=======
->>>>>>> newAPI_neural:src/choice_model/choice_model.jl
 
 
 """
@@ -47,15 +16,6 @@ end
 
 
 """
-<<<<<<< HEAD:src/choice_model/choice_model.jl
-    unpack(θ)
-
-Extract parameters related to the choice model from a struct and returns an ordered vector (necessary for doing optimization).
-
-See also: [`pack`](@ref)
-```
-=======
->>>>>>> newAPI_neural:src/choice_model/choice_model.jl
 """
 @with_kw struct choiceDDM{T,U} <: DDM
     θ::T = θchoice()
@@ -63,20 +23,12 @@ See also: [`pack`](@ref)
 end
 
 
-<<<<<<< HEAD:src/choice_model/choice_model.jl
-    @unpack θz, bias, lapse = θ
-    @unpack σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ = θz
-    
-    x = collect((σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ, bias, lapse))
-
-=======
 """
 """
 function pack(θ, x::Vector{TT}) where {TT <: Real}
 
     θ = θchoice(θz(Tuple(x[1:dimz])...), Tuple(x[dimz+1:end])...)
 
->>>>>>> newAPI_neural:src/choice_model/choice_model.jl
 end
 
 
@@ -135,11 +87,7 @@ end
 
 
 """
-<<<<<<< HEAD:src/choice_model/choice_model.jl
-    gradient(model; n=53)
-=======
     gradient(model, n)
->>>>>>> newAPI_neural:src/choice_model/choice_model.jl
 """
 function gradient(model::T, n::Int) where T <: DDM
 
@@ -153,11 +101,7 @@ end
 
 
 """
-<<<<<<< HEAD:src/choice_model/choice_model.jl
-    Hessian(model; n=53)
-=======
     Hessian(model, n)
->>>>>>> newAPI_neural:src/choice_model/choice_model.jl
 """
 function Hessian(model::T, n::Int) where T <: DDM
 
@@ -169,29 +113,6 @@ function Hessian(model::T, n::Int) where T <: DDM
 
 end
 
-
-<<<<<<< HEAD:src/choice_model/choice_model.jl
-"""
-    CIs(model, H)
-"""
-function CIs(model::choiceDDM, H::Array{Float64,2})
-
-    @unpack θ = model
-    HPSD = Matrix(cholesky(Positive, H, Val{true}))
-
-    if !isapprox(HPSD, H)
-        @warn "Hessian is not positive definite. Approximated by closest PSD matrix."
-    end
-
-    CI = 2*sqrt.(diag(inv(HPSD)))
-    
-    return CI, HPSD
-
-end
-
-
-=======
->>>>>>> newAPI_neural:src/choice_model/choice_model.jl
 #=
 """
     LL_across_range(pz, pd, data)

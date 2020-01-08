@@ -34,14 +34,10 @@ Generate a sample latent trajecgtory given parameters of the latent model and cl
 function rand(θz::θz{T}, inputs) where T <: Real
 
     @unpack σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ = θz
-<<<<<<< HEAD
-    
-=======
     @unpack clicks, binned_clicks, centered, dt = inputs
     @unpack nT, nL, nR = binned_clicks
     @unpack L, R = clicks
 
->>>>>>> newAPI_neural
     La, Ra = adapt_clicks(ϕ, τ_ϕ, L, R)
 
     A = Vector{T}(undef,nT)
