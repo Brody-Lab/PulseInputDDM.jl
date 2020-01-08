@@ -123,9 +123,8 @@ function rand(θz, θy, ntrials, ncells, rng; centered::Bool=false, dt::Float64=
     input_data = neuralinputs.(clicks, binned_clicks, λ0, dt, centered)
 
     rng = sample(Random.seed!(rng), 1:ntrials, ntrials; replace=false)
-    λ = pmap((input_data,rng) -> rand(θz,θy,input_data; rng=rng)[1], input_data, rng)
 
-    spikes = map(λ-> map(λ-> rand.(Poisson.(λ*dt)), λ), λ)
+    spikes = pmap((input_data,rng) -> rand(θz,θy,input_data; rng=rng)[3], input_data, rng)
 
     return spikes, λ0, clicks
 
@@ -136,12 +135,13 @@ end
 """
 function rand(θz::θz, θy, input_data::neuralinputs; rng::Int=1)
 
-    @unpack λ0 = input_data
+    @unpack λ0, dt = input_data
 
     Random.seed!(rng)
     a = rand(θz,input_data)
     λ = map((θy,λ0)-> θy(a, λ0), θy, λ0)
+    spikes = map(λ-> rand.(Poisson.(λ*dt)), λ)
 
-    return λ, a
+    return λ, a, spikes
 
 end
