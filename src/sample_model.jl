@@ -35,7 +35,12 @@ function rand(θz::θz{T}, inputs) where T <: Real
     La, Ra = adapt_clicks(ϕ, τ_ϕ, L, R)
 
     A = Vector{T}(undef,nT)
-    a = sqrt(σ2_i)*randn()
+
+    if σ2_i > 0.
+        a = sqrt(σ2_i)*randn()
+    else
+        a = zero(typeof(σ2_i))
+    end
 
     for t = 1:nT
 
@@ -64,7 +69,12 @@ function sample_one_step!(a::TT, t::Int, σ2_a::TT, σ2_s::TT, λ::TT,
     any(t .== nR) ? sR = sum(Ra[t .== nR]) : sR = zero(TT)
     σ2, μ = σ2_s * (sL + sR), -sL + sR
 
-    η = sqrt(σ2_a * dt + σ2) * randn()
+
+    if (σ2_a * dt + σ2) > 0.
+        η = sqrt(σ2_a * dt + σ2) * randn()
+    else
+        η = zero(typeof(σ2_a))
+    end
 
     if abs(λ) < 1e-150
         a += μ + η
