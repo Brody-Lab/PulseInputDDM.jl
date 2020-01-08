@@ -73,12 +73,6 @@ end
 """
 """
 @with_kw struct clicks
-<<<<<<< HEAD
-    L::Vector{Vector{Float64}}
-    R::Vector{Vector{Float64}}
-    T::Vector{Float64}
-    ntrials::Int
-=======
     L::Vector{Float64}
     R::Vector{Float64}
     T::Float64
@@ -100,7 +94,6 @@ end
     xc::Vector{Real}
     dx::Real
     n::Int
->>>>>>> newAPI_neural
 end
 
 
@@ -116,13 +109,6 @@ end
 
 """
 """
-<<<<<<< HEAD
-@with_kw struct opt
-    fit::Vector{Bool} = vcat(trues(9))
-    lb::Vector{Float64} = vcat([0., 8., -5., 0., 0., 0.01, 0.005], [-30, 0.])
-    ub::Vector{Float64} = vcat([2., 30., 5., 100., 2.5, 1.2, 1.], [30, 1.])
-    x0::Vector{Float64} = vcat([0.1, 15., -0.1, 20., 0.5, 0.8, 0.008], [0.,0.01])
-=======
 @with_kw struct neuralinputs{T1,T2}
     clicks::T1
     binned_clicks::T2
@@ -162,7 +148,6 @@ end
     #    repeat(Vector{Float64}(undef,nparams), sum(ncells)))
     x0::Vector{Float64} = vcat([0.1, 15., -0.1, 20., 0.5, 0.8, 0.008],
         repeat([10.,10.,1.,0.], sum(ncells)))
->>>>>>> newAPI_neural
 end
 
 
@@ -173,10 +158,6 @@ include("sample_model.jl")
 
 include("choice_model/choice_model.jl")
 include("choice_model/compute_LL.jl")
-<<<<<<< HEAD
-include("choice_model/choice_model.jl")
-=======
->>>>>>> newAPI_neural
 include("choice_model/sample_model.jl")
 include("choice_model/process_data.jl")
 
