@@ -14,10 +14,10 @@ import StatsFuns: logistic, logit, softplus, xlogy
 #using ImageFiltering
 using ForwardDiff: value
 using PositiveFactorizations
-using Parameters, TransformVariables
+using Parameters
 import Base.rand
 import Base.Iterators: partition
-using StaticArrays, Flatten
+using Flatten
 import Flatten: flattenable
 
 export choiceDDM, choiceoptions, θchoice, choicedata, θz
