@@ -39,4 +39,4 @@ H = Hessian(model, n)
 # ### Get the CIs from the Hessian
 # Blah blah blah
 
-CI = CIs(model, H)
+CI, HPSD = CIs(model, H)

@@ -54,7 +54,9 @@ x = pulse_input_DDM.flatten(θ)
 @test round(norm(gradient(model, n)), digits=2) ≈ 350.34
 @test round(norm(gradient(model)), digits=2) ≈ 609.35
 
-options = neuraloptions(ncells=ncells)
+#options = neuraloptions(ncells=ncells)
+#@test round(norm(pulse_input_DDM.flatten(model.θ)), digits=2) ≈ 40.73
+#@test round(norm(pulse_input_DDM.flatten(model.θ)), digits=2) ≈ 40.97
 
 θy0 = vcat(vcat(initialize_θy.(data, f)...)...)
 options = neuraloptions(ncells=ncells,
@@ -62,9 +64,13 @@ options = neuraloptions(ncells=ncells,
     x0=vcat([0.1, 15., -0.1, 20., 0.5, 0.8, 0.008], θy0))
 
 model = optimize(data, options; iterations=5, outer_iterations=1)
-@test round(norm(pulse_input_DDM.flatten(model.θ)), digits=2) ≈ 40.73
+@test round(norm(pulse_input_DDM.flatten(model.θ)), digits=2) ≈ 42.79 #new init
 
 model = optimize(data, options, n; iterations=5, outer_iterations=1)
-@test round(norm(pulse_input_DDM.flatten(model.θ)), digits=2) ≈ 40.97
+@test round(norm(pulse_input_DDM.flatten(model.θ)), digits=2) ≈ 42.68 #new init
 
-#also need hessian test
+H = Hessian(model, n)
+@test round(norm(H), digits=2) ≈
+
+CI, HPSD = CIs(model, H)
+@test round(norm(CI), digits=2) ≈
