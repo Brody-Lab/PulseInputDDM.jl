@@ -1,6 +1,42 @@
 
 const dimz = 7
 
+
+"""
+    CIs(H)
+"""
+function CIs(model::T, H::Array{Float64,2}) where T <: DDM
+
+    @unpack θ = model
+    HPSD = Matrix(cholesky(Positive, H, Val{false}))
+
+    if !isapprox(HPSD,H)
+        norm_ϵ = norm(HPSD - H)/norm(H)
+        @warn "Hessian is not positive definite. Approximated by closest PSD matrix.
+            ||ϵ||/||H|| is $norm_ϵ"
+    end
+
+    CI = 2*sqrt.(diag(inv(HPSD)))
+
+    return CI, HPSD
+
+end
+
+
+"""
+    loglikelihood(model; n=53)
+
+Computes the log likelihood for a set of trials consistent with the animal's choice on each trial.
+```
+"""
+function loglikelihood(model::T, n::Int) where T <: DDM
+
+    @unpack θ, data = model
+    loglikelihood(θ, data, n)
+
+end
+
+
 """
     initialize_latent_model(σ2_i, B, λ, σ2_a, n, dt; L_lapse=0., R_lapse=0.)
 

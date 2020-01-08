@@ -1,5 +1,6 @@
 """
 """
+<<<<<<< HEAD:src/choice_model/choice_model.jl
 @with_kw struct choicedata{T}
     binned_clicks::T
     choices::Vector{Bool}
@@ -9,10 +10,14 @@ end
 """
 """
 @with_kw struct θchoice{T1, T<:Real}
+=======
+@with_kw struct θchoice{T1, T<:Real} <: DDMθ
+>>>>>>> newAPI_neural:src/choice_model/choice_model.jl
     θz::T1 = θz()
     bias::T = 1.
     lapse::T = 0.05
 end
+<<<<<<< HEAD:src/choice_model/choice_model.jl
 
 
 """
@@ -29,28 +34,49 @@ end
 Converts parameters for the choice DDM that are arrange in a vector (necessary for doing optimization) into a struct of the apprpropriate form.
 """
 function pack(x::Vector{TT}) where {TT <: Real}
+=======
+>>>>>>> newAPI_neural:src/choice_model/choice_model.jl
 
-    σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ, bias, lapse = x
-    θ = θchoice(θz(σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ), bias,lapse)
 
+"""
+"""
+@with_kw struct choicedata{T1} <: DDMdata
+    click_data::T1
+    choice::Bool
 end
 
 
 """
+<<<<<<< HEAD:src/choice_model/choice_model.jl
     unpack(θ)
 
 Extract parameters related to the choice model from a struct and returns an ordered vector (necessary for doing optimization).
 
 See also: [`pack`](@ref)
 ```
+=======
+>>>>>>> newAPI_neural:src/choice_model/choice_model.jl
 """
-function unpack(θ::θchoice)
+@with_kw struct choiceDDM{T,U} <: DDM
+    θ::T = θchoice()
+    data::U
+end
 
+
+<<<<<<< HEAD:src/choice_model/choice_model.jl
     @unpack θz, bias, lapse = θ
     @unpack σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ = θz
     
     x = collect((σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ, bias, lapse))
 
+=======
+"""
+"""
+function pack(θ, x::Vector{TT}) where {TT <: Real}
+
+    θ = θchoice(θz(Tuple(x[1:dimz])...), Tuple(x[dimz+1:end])...)
+
+>>>>>>> newAPI_neural:src/choice_model/choice_model.jl
 end
 
 
@@ -65,7 +91,7 @@ and specification of which parameters to fit.
 BACK IN THE DAY TOLS WERE: x_tol::Float64=1e-4, f_tol::Float64=1e-9, g_tol::Float64=1e-2
 
 """
-function optimize(data::choicedata; options::opt=opt(), n::Int=53,
+function optimize(data, options::choiceoptions, n::Int;
         x_tol::Float64=1e-10, f_tol::Float64=1e-6, g_tol::Float64=1e-3,
         iterations::Int=Int(2e3), show_trace::Bool=true, outer_iterations::Int=Int(1e1))
 
@@ -74,62 +100,52 @@ function optimize(data::choicedata; options::opt=opt(), n::Int=53,
     lb, = unstack(lb, fit)
     ub, = unstack(ub, fit)
     x0,c = unstack(x0, fit)
-    ℓℓ(x) = -loglikelihood(stack(x,c,fit), data; n=n)
+    ℓℓ(x) = -loglikelihood(stack(x,c,fit), data, n)
 
     output = optimize(x0, ℓℓ, lb, ub; g_tol=g_tol, x_tol=x_tol,
-        f_tol=f_tol, iterations=iterations, show_trace=show_trace)
+        f_tol=f_tol, iterations=iterations, show_trace=show_trace,
+        outer_iterations=outer_iterations)
 
     x = Optim.minimizer(output)
     x = stack(x,c,fit)
-    θ = pack(x)
+    θ = Flatten.reconstruct(θchoice(), x)
     model = choiceDDM(θ, data)
     converged = Optim.converged(output)
 
     println("optimization complete. converged: $converged \n")
 
-    return model, options
+    return model
 
 end
 
 
 """
-    loglikelihood(x, data; n=53)
+    loglikelihood(x, data, n)
 
 Given a vector of parameters and a struct containing the data related to the choice DDM model, compute the LL.
 
 See also: [`loglikelihood`](@ref)
 """
-function loglikelihood(x::Vector{TT}, data; n::Int=53) where {TT <: Real}
+function loglikelihood(x::Vector{T1}, data, n::Int) where {T1 <: Real}
 
-    θ = pack(x)
-    loglikelihood(θ, data; n=n)
-
-end
-
-
-
-"""
-    loglikelihood(choiceDDM; n=53)
-
-Computes the log likelihood for a set of trials consistent with the animal's choice on each trial.
-```
-"""
-function loglikelihood(model::choiceDDM; n::Int=53)
-
-    @unpack θ, data = model
-    loglikelihood(θ, data; n=n)
+    θ = Flatten.reconstruct(θchoice(), x)
+    loglikelihood(θ, data, n)
 
 end
 
 
 """
+<<<<<<< HEAD:src/choice_model/choice_model.jl
     gradient(model; n=53)
+=======
+    gradient(model, n)
+>>>>>>> newAPI_neural:src/choice_model/choice_model.jl
 """
-function gradient(model::choiceDDM; n::Int=53)
+function gradient(model::T, n::Int) where T <: DDM
 
     @unpack θ, data = model
-    x = unpack(θ)
-    ℓℓ(x) = -loglikelihood(x, data; n=n)
+    x = [Flatten.flatten(θ)...]
+    ℓℓ(x) = -loglikelihood(x, data, n)
 
     ForwardDiff.gradient(ℓℓ, x)
 
@@ -137,19 +153,24 @@ end
 
 
 """
+<<<<<<< HEAD:src/choice_model/choice_model.jl
     Hessian(model; n=53)
+=======
+    Hessian(model, n)
+>>>>>>> newAPI_neural:src/choice_model/choice_model.jl
 """
-function Hessian(model::choiceDDM; n::Int=53)
+function Hessian(model::T, n::Int) where T <: DDM
 
     @unpack θ, data = model
-    x = unpack(θ)
-    ℓℓ(x) = -loglikelihood(x, data; n=n)
+    x = [Flatten.flatten(θ)...]
+    ℓℓ(x) = -loglikelihood(x, data, n)
 
     ForwardDiff.hessian(ℓℓ, x)
 
 end
 
 
+<<<<<<< HEAD:src/choice_model/choice_model.jl
 """
     CIs(model, H)
 """
@@ -169,6 +190,8 @@ function CIs(model::choiceDDM, H::Array{Float64,2})
 end
 
 
+=======
+>>>>>>> newAPI_neural:src/choice_model/choice_model.jl
 #=
 """
     LL_across_range(pz, pd, data)

@@ -1,36 +1,37 @@
 """
 """
-function loglikelihood(θ, data; n::Int=53)
+function loglikelihood(θ::θchoice, data, n::Int)
 
-    @unpack binned_clicks, choices = data
-    @unpack clicks, nT, nL, nR, dt = binned_clicks
-    @unpack θz, bias, lapse = θ
-    @unpack σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ = θz
-    @unpack L, R = clicks
+    @unpack θz, lapse = θ
+    @unpack σ2_i, B, λ, σ2_a = θz
+    @unpack dt = data[1].click_data
 
     P,M,xc,dx = initialize_latent_model(σ2_i, B, λ, σ2_a, n, dt, L_lapse=lapse/2, R_lapse=lapse/2)
 
-    sum(pmap((L,R,nT,nL,nR,choice) -> loglikelihood!(λ, σ2_a, σ2_s, ϕ, τ_ϕ,
-        P, M, dx, xc, L, R, nT, nL, nR, choice, bias, n, dt), L, R, nT, nL, nR, choices))
+    sum(pmap(data -> loglikelihood!(θ, P, M, dx, xc, data, n), data))
 
 end
+
+
+"""
+"""
+(θ::θchoice)(data; n::Int=53) = loglikelihood(θ, data, n)
 
 
 """
     loglikelihood!(λ, σ2_a, σ2_s, ϕ, τ_ϕ,
         P, M, dx, xc, L, R, nT, nL, nR, pokedR bias, n, dt)
 """
-function loglikelihood!(λ::TT, σ2_a::TT, σ2_s::TT, ϕ::TT, τ_ϕ::TT,
+function loglikelihood!(θ::θchoice,
         P::Vector{TT}, M::Array{TT,2}, dx::UU,
-        xc::Vector{TT}, L::Vector{Float64}, R::Vector{Float64}, nT::Int,
-        nL::Vector{Int}, nR::Vector{Int},
-        pokedR::Bool, bias::TT,
-        n::Int, dt::Float64) where {TT,UU <: Real}
+        xc::Vector{TT}, data::choicedata,
+        n::Int) where {TT,UU <: Real}
 
-    P = P_single_trial!(λ,σ2_a,σ2_s,ϕ,τ_ϕ,P,M,dx,xc,L,R,nT,nL,nR,n,dt)
-    P = choice_likelihood!(bias,xc,P,pokedR,n,dx)
+    @unpack θz, bias = θ
+    @unpack click_data, choice = data
 
-    return log(sum(P))
+    P = P_single_trial!(θz,P,M,dx,xc,click_data,n)
+    log(sum(choice_likelihood!(bias,xc,P,choice,n,dx)))
 
 end
 
@@ -40,11 +41,15 @@ end
         P, M, dx, xc, L, R, nT, nL, nR, n, dt)
 
 """
-function P_single_trial!(λ::TT, σ2_a::TT, σ2_s::TT, ϕ::TT, τ_ϕ::TT,
+function P_single_trial!(θz,
         P::Vector{TT}, M::Array{TT,2}, dx::UU,
-        xc::Vector{TT}, L::Vector{Float64}, R::Vector{Float64}, nT::Int,
-        nL::Vector{Int}, nR::Vector{Int},
-        n::Int, dt::Float64) where {TT,UU <: Real}
+        xc::Vector{TT}, click_data,
+        n::Int) where {TT,UU <: Real}
+
+    @unpack λ,σ2_a,σ2_s,ϕ,τ_ϕ = θz
+    @unpack binned_clicks, clicks, dt = click_data
+    @unpack nT, nL, nR = binned_clicks
+    @unpack L, R = clicks
 
     #adapt magnitude of the click inputs
     La, Ra = adapt_clicks(ϕ,τ_ϕ,L,R)
@@ -54,6 +59,7 @@ function P_single_trial!(λ::TT, σ2_a::TT, σ2_s::TT, ϕ::TT, τ_ϕ::TT,
 
     @inbounds for t = 1:nT
 
+        #maybe only pass one L,R,nT?
         P,F = latent_one_step!(P,F,λ,σ2_a,σ2_s,t,nL,nR,La,Ra,M,dx,xc,n,dt)
 
     end

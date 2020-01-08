@@ -73,14 +73,33 @@ end
 
 """
 """
-function bin_clicks_and_spikes_and_compute_λ0!(data::Dict; use_bin_center::Bool=true,
-        dt::Float64=1e-2, delay::Float64=0., pad::Int=10, filtSD::Int=5)
+#function bin_clicks_spikes_λ0(data::Dict; centered::Bool=true,
+#        dt::Float64=1e-2, delay::Float64=0., pad::Int=10, filtSD::Int=5)
 
-    data = bin_clicks!(data; use_bin_center=use_bin_center, dt=dt)
-    data = bin_spikes!(data;delay=delay)
-    data = pad_binned_spikes!(data; delay=delay, pad=pad)
-    data = compute_filtered_rate!(data; filtSD=filtSD)
-    data = compute_λ0!(data)
+function bin_clicks_spikes_λ0(spikes, λ0, clicks; centered::Bool=true,
+        dt::Float64=1e-2, delay::Float64=0., dt_synthetic::Float64=1e-4,
+        synthetic::Bool=false)
+
+    spikes = bin_spikes(spikes, dt; dt_synthetic=dt_synthetic, synthetic=synthetic)
+    λ0 = bin_λ0(λ0, dt; synthetic=synthetic)
+    binned_clicks = bin_clicks(clicks, centered=centered, dt=dt)
+
+    return spikes, λ0, binned_clicks
+
+    #T, L, R = data["T"], data["leftbups"], data["rightbups"]
+    #binned_clicks = bin_clicks(clicks(L, R, T, data["ntrials"]), centered=centered, dt=dt)
+    #@unpack nT, nL, nR, dt, centered = binned_clicks
+    #data["nT"] = nT
+    #data["binned_leftbups"] = nL
+    #data["binned_rightbups"] = nR
+    #data["dt"] = dt
+    #data["use_bin_center"] = centered
+
+    #data["spike_counts"] = bin_spikes(data["spike_counts"], dt; delay=delay, synthetic=true)
+    #data = pad_binned_spikes!(data; delay=delay, pad=pad)
+    #data = compute_filtered_rate!(data; filtSD=filtSD)
+    #data["λ0"] = compute_λ0(data["λ0"], dt; synthetic=true)
+    #data = compute_λ0!(data)
 
     return data
 
@@ -89,21 +108,22 @@ end
 
 """
 """
-function compute_λ0!(data)
+bin_λ0(λ0::Vector{Vector{Vector{Float64}}}, dt; synthetic=false, dt_synthetic=1e-4) =
+    bin_λ0.(λ0, dt; synthetic=synthetic, dt_synthetic=dt_synthetic)
 
-    if data["synthetic"]
 
-        if data["dt"] != data["dt_synthetic"]
-            data["λ0"] = map(x-> map(z-> decimate(x[z], Int(data["dt"]/data["dt_synthetic"])), 1:length(x)), data["λ0"])
-        end
+"""
+"""
+function bin_λ0(λ0::Vector{Vector{Float64}}, dt; synthetic=false, dt_synthetic=1e-4)
+
+    if synthetic
+        decimate.(λ0, Int(dt/dt_synthetic))
 
     else
 
-        data["λ0"] = map(i-> map(n-> data["μ_t"][n][1:data["nT"][i]], 1:data["N"]), 1:data["ntrials"])
+        map(i-> map(n-> data["μ_t"][n][1:data["nT"][i]], 1:data["N"]), 1:data["ntrials"])
 
     end
-
-    return data
 
 end
 
@@ -136,18 +156,16 @@ function pad_binned_spikes!(data; delay::Float64=0., pad::Int=10)
 
 end
 
+bin_spikes(spikes::Vector{Vector{Vector{Int}}}, dt; delay::Float64=0., dt_synthetic=1e-4, synthetic=false) =
+    bin_spikes.(spikes, dt; delay=delay, dt_synthetic=dt_synthetic, synthetic=synthetic)
+
 
 """
 """
-function bin_spikes!(data;delay::Float64=0.)
+function bin_spikes(spikes::Vector{Vector{Int}}, dt ;delay::Float64=0., dt_synthetic=1e-4, synthetic=false)
 
-    if data["synthetic"]
-
-        if data["dt_synthetic"] != data["dt"]
-            data["spike_counts"] =  map(SC-> map(SCn->
-                map(sum,collect(Iterators.partition(SCn, Int(data["dt"]/data["dt_synthetic"])))), SC),
-                data["spike_counts"])
-        end
+    if synthetic
+        map(SCn-> sum.(Iterators.partition(SCn, Int(dt/dt_synthetic))), spikes)
 
     else
 
@@ -156,8 +174,6 @@ function bin_spikes!(data;delay::Float64=0.)
                 closed=:left).weights, 1:data["N"]), data["nT"], data["spike_times"])
 
     end
-
-    return data
 
 end
 
@@ -245,7 +261,7 @@ function process_spike_data!(data;nconds::Int=4)
 
 end
 
-group_by_neuron(data,ntrials,N) = [[data[t][n] for t in 1:ntrials] for n in 1:N]
+group_by_neuron(data) = [[data[t].spikes[n] for t in 1:length(data)] for n in 1:data[1].ncells]
 
 function filter_data_by_dprime!(data,thresh)
 

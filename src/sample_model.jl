@@ -3,7 +3,7 @@
 
 Computes randomly timed left and right clicks for ntrials. Output is bundled into a struct.
 """
-function synthetic_clicks(ntrials::Int; rng::Int=1,
+function synthetic_clicks(ntrials::Int, rng::Int;
     tmin::Float64=0.2, tmax::Float64=1.0, clicktot::Int=40)
 
     Random.seed!(rng)
@@ -21,7 +21,7 @@ function synthetic_clicks(ntrials::Int; rng::Int=1,
     R = map((T,R)-> vcat(0,R[R .<= T]), T,R)
     L = map((T,L)-> vcat(0,L[L .<= T]), T,L)
 
-    clicks(L, R, T, ntrials)
+    clicks.(L, R, T)
 
 end
 
@@ -31,16 +31,26 @@ end
 
 Generate a sample latent trajecgtory given parameters of the latent model and clicks for one trial.
 """
-function rand(θz::θz, nT::Int, L::Vector{Float64},R::Vector{Float64},
-        nL::Vector{Int}, nR::Vector{Int};
-        centered::Bool=false, dt::Float64=1e-4)
+function rand(θz::θz{T}, inputs) where T <: Real
 
     @unpack σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ = θz
+<<<<<<< HEAD
     
+=======
+    @unpack clicks, binned_clicks, centered, dt = inputs
+    @unpack nT, nL, nR = binned_clicks
+    @unpack L, R = clicks
+
+>>>>>>> newAPI_neural
     La, Ra = adapt_clicks(ϕ, τ_ϕ, L, R)
 
-    A = Vector{Float64}(undef,nT)
-    a = sqrt(σ2_i)*randn()
+    A = Vector{T}(undef,nT)
+
+    if σ2_i > 0.
+        a = sqrt(σ2_i)*randn()
+    else
+        a = zero(typeof(σ2_i))
+    end
 
     for t = 1:nT
 
@@ -72,7 +82,12 @@ function sample_one_step!(a::TT, t::Int, σ2_a::TT, σ2_s::TT, λ::TT,
     any(t .== nR) ? sR = sum(Ra[t .== nR]) : sR = zero(TT)
     σ2, μ = σ2_s * (sL + sR), -sL + sR
 
-    η = sqrt(σ2_a * dt + σ2) * randn()
+
+    if (σ2_a * dt + σ2) > 0.
+        η = sqrt(σ2_a * dt + σ2) * randn()
+    else
+        η = zero(typeof(σ2_a))
+    end
 
     if abs(λ) < 1e-150
         a += μ + η

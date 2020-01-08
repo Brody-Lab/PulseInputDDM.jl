@@ -11,20 +11,29 @@ using Optim, DSP
 using SpecialFunctions, MAT, Random
 using Discretizers
 import StatsFuns: logistic, logit, softplus, xlogy
-using ImageFiltering
+#using ImageFiltering
 using ForwardDiff: value
 using PositiveFactorizations
 using Parameters, TransformVariables
 import Base.rand
+import Base.Iterators: partition
+using StaticArrays, Flatten
+import Flatten: flattenable
+
+export choiceDDM, choiceoptions, θchoice, choicedata, θz
+export θneural, neuralDDM, neuraldata, θy, neuraldata
+export Sigmoid, Softplus, neuraloptions
 
 export dimz
 export loglikelihood, synthetic_data
 export CIs, optimize, Hessian, gradient
-export load, reload, save
+export load, reload, save, flatten, unflatten
+
+export initialize_θy
+
+export default_parameters_and_data, compute_LL
 
 export mean_exp_rate_per_trial, mean_exp_rate_per_cond
-
-export choiceDDM, opt, θchoice, choicedata, θz
 
 #=
 
@@ -43,6 +52,11 @@ export diffLR
 export filter_data_by_cell!
 
 =#
+
+abstract type DDM end
+abstract type DDMdata end
+abstract type DDMθ end
+
 """
 """
 @with_kw struct θz{T<:Real} @deftype T
@@ -59,20 +73,42 @@ end
 """
 """
 @with_kw struct clicks
+<<<<<<< HEAD
     L::Vector{Vector{Float64}}
     R::Vector{Vector{Float64}}
     T::Vector{Float64}
     ntrials::Int
+=======
+    L::Vector{Float64}
+    R::Vector{Float64}
+    T::Float64
 end
 
 
 """
 """
-@with_kw struct binned_clicks{T}
-    clicks::T
-    nT::Vector{Int}
-    nL::Vector{Vector{Int}}
-    nR::Vector{Vector{Int}}
+@with_kw struct binned_clicks
+    #clicks::T
+    nT::Int
+    nL::Vector{Int}
+    nR::Vector{Int}
+end
+
+
+@with_kw struct bins
+    #clicks::T
+    xc::Vector{Real}
+    dx::Real
+    n::Int
+>>>>>>> newAPI_neural
+end
+
+
+"""
+"""
+@with_kw struct choiceinputs{T1,T2}
+    clicks::T1
+    binned_clicks::T2
     dt::Float64
     centered::Bool
 end
@@ -80,11 +116,53 @@ end
 
 """
 """
+<<<<<<< HEAD
 @with_kw struct opt
     fit::Vector{Bool} = vcat(trues(9))
     lb::Vector{Float64} = vcat([0., 8., -5., 0., 0., 0.01, 0.005], [-30, 0.])
     ub::Vector{Float64} = vcat([2., 30., 5., 100., 2.5, 1.2, 1.], [30, 1.])
     x0::Vector{Float64} = vcat([0.1, 15., -0.1, 20., 0.5, 0.8, 0.008], [0.,0.01])
+=======
+@with_kw struct neuralinputs{T1,T2}
+    clicks::T1
+    binned_clicks::T2
+    λ0::Vector{Vector{Float64}}
+    dt::Float64
+    centered::Bool
+end
+
+neuralinputs(clicks, binned_clicks, λ0::Vector{Vector{Vector{Float64}}}, dt::Float64, centered::Bool) =
+    neuralinputs.(clicks, binned_clicks, λ0, dt, centered)
+
+"""
+"""
+@with_kw struct choiceoptions
+    fit::Vector{Bool} = vcat(trues(dimz+2))
+    lb::Vector{Float64} = vcat([0., 8., -5., 0., 0., 0.01, 0.005], [-30, 0.])
+    ub::Vector{Float64} = vcat([2., 30., 5., 100., 2.5, 1.2, 1.], [30, 1.])
+    x0::Vector{Float64} = vcat([0.1, 15., -0.1, 20., 0.5, 0.8, 0.008], [0.,0.01])
+end
+
+
+"""
+"""
+@with_kw struct neuraloptions
+    ncells::Vector{Int}
+    nparams::Int = 4
+    f::String = "Sigmoid"
+    fit::Vector{Bool} = vcat(trues(dimz+sum(ncells)*nparams))
+    #if f == "Softplus"
+    #    lb::Vector{Float64} = vcat([0., 8., -5., 0., 0., 0.01, 0.005], repeat([eps(),-10.,-10.], sum(ncells)))
+    #    ub::Vector{Float64} = vcat([2., 30., 5., 100., 2.5, 1.2, 1.], repeat([100.,10.,10.], sum(ncells)))
+    #elseif f == "Sigmoid"
+        lb::Vector{Float64} = vcat([0., 8., -5., 0., 0., 0.01, 0.005], repeat([-100.,0.,-10.,-10.], sum(ncells)))
+        ub::Vector{Float64} = vcat([2., 30., 5., 100., 2.5, 1.2, 1.], repeat([100.,100.,10.,10.], sum(ncells)))
+    #end
+    #x0::Vector{Float64} = vcat([0.1, 15., -0.1, 20., 0.5, 0.8, 0.008],
+    #    repeat(Vector{Float64}(undef,nparams), sum(ncells)))
+    x0::Vector{Float64} = vcat([0.1, 15., -0.1, 20., 0.5, 0.8, 0.008],
+        repeat([10.,10.,1.,0.], sum(ncells)))
+>>>>>>> newAPI_neural
 end
 
 
@@ -93,13 +171,17 @@ include("analysis_functions.jl")
 include("optim_funcs.jl")
 include("sample_model.jl")
 
-include("choice_model/compute_LL.jl")
 include("choice_model/choice_model.jl")
+include("choice_model/compute_LL.jl")
+<<<<<<< HEAD
+include("choice_model/choice_model.jl")
+=======
+>>>>>>> newAPI_neural
 include("choice_model/sample_model.jl")
 include("choice_model/process_data.jl")
 
+include("neural_model/neural_model.jl")
 include("neural_model/compute_LL.jl")
-include("neural_model/wrappers.jl")
 include("neural_model/sample_model.jl")
 include("neural_model/process_data.jl")
 include("neural_model/deterministic_model.jl")
