@@ -69,11 +69,6 @@ model = optimize(data, options0; iterations=5, outer_iterations=1)
 
 @test round(norm(gradient(model)), digits=2) ≈ 21.3
 
-#optimize full model
-#options = neuraloptions(ncells=ncells,
-#    fit=vcat(falses(dimz), trues(sum(ncells)*nparams)),
-#    x0=vcat([0.1, 15., -0.1, 20., 0.5, 0.8, 0.008], θy0))
-
 options = neuraloptions(ncells=ncells,
     x0=pulse_input_DDM.flatten(model.θ))
 
