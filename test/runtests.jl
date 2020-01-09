@@ -30,28 +30,27 @@ CI, HPSD = CIs(model, H)
 @test round(norm(CI), digits=2) ≈ 172.88
 
 ## Neural model
-f, ncells, ntrials, nparams = "Sigmoid", [2,3], [100,200], 4
+f, ncells, ntrials, nparams = "Sigmoid", [1,2], [10,5], 4
 
 θ = θneural(θz = θz(σ2_i = 0.5, B = 15., λ = -0.5, σ2_a = 10., σ2_s = 1.2,
     ϕ = 0.6, τ_ϕ =  0.02),
     θy=[[Sigmoid() for n in 1:N] for N in ncells], ncells=ncells,
-    nparams=4, f=f)
+    nparams=nparams, f=f);
 
-data = synthetic_data(θ, ntrials)
-model_gen = neuralDDM(θ, data)
+data = synthetic_data(θ, ntrials);
+model_gen = neuralDDM(θ, data);
 
-@test round(loglikelihood(model_gen, n), digits=2) ≈ -20334.09
-@test round(norm(gradient(model_gen, n)), digits=2) ≈ 270.6
+@test round(loglikelihood(model_gen, n), digits=2) ≈ -519.57
+@test round(norm(gradient(model_gen, n)), digits=2) ≈ 63.56
 
 x = pulse_input_DDM.flatten(θ)
 @unpack ncells, nparams, f = θ
-@test round(loglikelihood(x, data, ncells, nparams, f, n), digits=2) ≈ -20334.09
+@test round(loglikelihood(x, data, ncells, nparams, f, n), digits=2) ≈ -519.57
 
 θy0 = vcat(vcat(initialize_θy.(data, f)...)...)
-@test round(norm(θy0), digits=2) ≈ 34.52
+@test round(norm(θy0), digits=2) ≈ 53.56
 
 #deterministic model
-
 options0 = neuraloptions(ncells=ncells,
     fit=vcat(falses(dimz), trues(sum(ncells)*nparams)),
     x0=vcat([0., 30., 0. + eps(), 0., 0., 1. - eps(), 0.008], θy0))
@@ -59,25 +58,23 @@ options0 = neuraloptions(ncells=ncells,
 θ0 = unflatten(options0.x0, ncells, nparams, f)
 model0 = neuralDDM(θ0, data)
 
-@test round(loglikelihood(model0), digits=2) ≈ -20578.17
+@test round(loglikelihood(model0), digits=2) ≈ -533.09
 x0 = pulse_input_DDM.flatten(θ0)
 @unpack ncells, nparams, f = θ0
-@test round(loglikelihood(x0, data, ncells, nparams, f), digits=2) ≈ -20578.17
+@test round(loglikelihood(x0, data, ncells, nparams, f), digits=2) ≈ -533.09
 
-model = optimize(data, options0; iterations=5, outer_iterations=1)
-@test round(norm(pulse_input_DDM.flatten(model.θ)), digits=2) ≈ 45.38 #new init
+model = optimize(data, options0; iterations=2, outer_iterations=1)
+@test round(norm(pulse_input_DDM.flatten(model.θ)), digits=2) ≈ 61.36 #new init
 
-@test round(norm(gradient(model)), digits=2) ≈ 21.3
+@test round(norm(gradient(model)), digits=2) ≈ 7.0
 
-options = neuraloptions(ncells=ncells,
-    x0=pulse_input_DDM.flatten(model.θ))
+options = neuraloptions(ncells=ncells, x0=pulse_input_DDM.flatten(model.θ))
 
-model = optimize(data, options, n; iterations=5, outer_iterations=1)
-@test round(norm(pulse_input_DDM.flatten(model.θ)), digits=2) ≈ 45.17 #new init
+model = optimize(data, options, n; iterations=2, outer_iterations=1)
+@test round(norm(pulse_input_DDM.flatten(model.θ)), digits=2) ≈ 61.26 #new init
 
-#removed for travis, should reduce trials and neurons to make it feasible.
-#H = Hessian(model, n)
-#@test round(norm(H), digits=2) ≈ 1618.35
+H = Hessian(model, n, chuck_size=4)
+@test round(norm(H), digits=2) ≈ 2449.29
 
-#CI, HPSD = CIs(model, H)
-#@test round(norm(CI), digits=2) ≈ 21.3
+CI, HPSD = CIs(model, H)
+@test round(norm(CI), digits=2) ≈ 967.12

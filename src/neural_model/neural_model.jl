@@ -131,7 +131,7 @@ function gradient(model::neuralDDM, n::Int)
     #x = [flatten(θ)...]
     ℓℓ(x) = -loglikelihood(x, data, ncells, nparams, f, n)
 
-    ForwardDiff.gradient(ℓℓ, x)
+    ForwardDiff.gradient(ℓℓ, x)::Vector{Float64}
 
 end
 
@@ -139,7 +139,7 @@ end
 """
     Hessian(model; n=53)
 """
-function Hessian(model::neuralDDM, n::Int)
+function Hessian(model::neuralDDM, n::Int; chuck_size::Int=4)
 
     @unpack θ, data = model
     @unpack ncells, nparams, f = θ
@@ -147,7 +147,8 @@ function Hessian(model::neuralDDM, n::Int)
     #x = [flatten(θ)...]
     ℓℓ(x) = -loglikelihood(x, data, ncells, nparams, f, n)
 
-    ForwardDiff.hessian(ℓℓ, x)
+    cfg = ForwardDiff.HessianConfig(ℓℓ, x, ForwardDiff.Chunk{chuck_size}())
+    ForwardDiff.hessian(ℓℓ, x, cfg)
 
 end
 

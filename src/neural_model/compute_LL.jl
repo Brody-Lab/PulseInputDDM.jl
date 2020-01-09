@@ -12,13 +12,16 @@ function loglikelihood(θ::θneural, data, n::Int)
     P,M,xc,dx = initialize_latent_model(σ2_i, B, λ, σ2_a, n, dt)
 
     sum(map((data, θy) -> loglikelihood(θz, θy, data, P, M, xc, dx; n=n), data, θy))
+    #sum(pmap((data, θy) -> loglikelihood(θz,θy,data,P, M, xc, dx, n),
+    #    vcat(data...), vcat(map((x,y)-> repeat([x],y), θy, length.(data))...)))
 
 end
 
 
 function loglikelihood(θz, θy, data, P, M, xc, dx; n::Int=53) where {TT <: Any}
 
-    sum(pmap(data -> loglikelihood(θz,θy,data,P, M, xc, dx, n), data, batch_size=1))
+    #sum(pmap(data -> loglikelihood(θz,θy,data,P, M, xc, dx, n), data, batch_size=1))
+    sum(pmap(data -> loglikelihood(θz,θy,data,P, M, xc, dx, n), data))
 
 end
 
