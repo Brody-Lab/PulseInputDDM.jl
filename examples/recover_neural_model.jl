@@ -1,4 +1,4 @@
-# # Fitting a choice model
+# # Fitting a neural model
 # Blah blah blah
 
 using pulse_input_DDM

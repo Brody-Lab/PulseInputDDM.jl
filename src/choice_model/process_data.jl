@@ -2,45 +2,21 @@
 """
 function load(file::String; centered::Bool=false, dt::Float64=1e-2)
 
-    println("loading data \n")
     data = read(matopen(file), "rawdata")
-
-    clicks = process_click_input_data(data)
-    choices = process_choice_data(data)
-    binned_clicks = bin_clicks(clicks; centered=centered, dt=dt)
-
-    return choicedata(binned_clicks, choices)
-
-end
-
-
-"""
-"""
-function process_choice_data(data)
-
-    choices = vec(convert(BitArray, data["pokedR"]))
-
-    if !isempty(occursin.("correct", collect(keys(data))))
-        corrects = vec(convert(BitArray, data[collect(keys(data))[occursin.("correct", collect(keys(data)))][1]]))
-    end
-
-    return choices, corrects
-
-end
-
-
-"""
-"""
-function process_click_input_data(data)
 
     T = vec(data["T"])
     L = map(x-> vec(collect(x)), data[collect(keys(data))[occursin.("left", collect(keys(data)))][1]])
     R = map(x-> vec(collect(x)), data[collect(keys(data))[occursin.("right", collect(keys(data)))][1]])
-    ntrials = length(t)
+    choices = vec(convert(BitArray, data["pokedR"]))
 
-    return clicks(L, R, T, ntrials)
+    click_times = clicks.(L, R, T)
+    binned_clicks = bin_clicks.(click_times, centered=centered, dt=dt)
+    inputs = choiceinputs.(click_times, binned_clicks, dt, centered)
+
+    choicedata.(inputs, choices)
 
 end
+
 
 """
 """
@@ -89,52 +65,37 @@ end
     save_optimization_parameters(path, file, pz, pd; H=[])
 Given a path and dictionaries produced by optimize_model(), save the results of the optimization to a .MAT file
 """
-function save(path, file, pz, pd; H=[])
+function save(file, model, options, CI)
 
-    println("done. saving ML parameters! \n")
-    dict = Dict("ML_params"=> vcat(pz["final"], pd["final"]),
-        "name" => vcat(pz["name"], pd["name"]),
-        "lb"=> vcat(pz["lb"], pd["lb"]),
-        "ub"=> vcat(pz["ub"], pd["ub"]),
-        "fit"=> vcat(pz["fit"], pd["fit"]))
+    @unpack lb, ub, fit = options
+    @unpack θ = model
 
-    if haskey(pz,"CI_plus_LRtest")
+    dict = Dict("ML_params"=> collect(Flatten.flatten(θ)),
+        "name" => ["σ2_i", "B", "λ", "σ2_a", "σ2_s", "ϕ", "τ_ϕ", "bias", "lapse"],
+        "lb"=> lb, "ub"=> ub, "fit"=> fit,
+        "CI" => CI)
 
-        dict["CI_plus_LRtest"] = vcat(pz["CI_plus_LRtest"], pd["CI_plus_LRtest"])
-        dict["CI_minus_LRtest"] = vcat(pz["CI_minus_LRtest"], pd["CI_minus_LRtest"])
+    matwrite(file, dict)
 
-    end
-
-    if haskey(pz,"CI_plus_hessian")
-
-        dict["CI_plus_hessian"] = vcat(pz["CI_plus_hessian"], pd["CI_plus_hessian"])
-        dict["CI_minus_hessian"] = vcat(pz["CI_minus_hessian"], pd["CI_minus_hessian"])
-
-    end
-
+    #=
     if !isempty(H)
         #dict["H"] = H
         hfile = matopen(path*"hessian_"*file, "w")
         write(hfile, "H", H)
         close(hfile)
     end
-
-    matwrite(path*file, dict)
+    =#
 
 end
 
 
 """
-    reload_optimization_parameters(path, file, pz, pd)
+    reload_optimization_parameters(file)
 Given a path and dictionaries, reload the results of a previous optimization saved as a .MAT file and
 place them in the "state" key of the dictionaires that optimize_model() expects.
 """
-function reload(path, file, pz, pd)
+function reload(file)
 
-    println("reloading saved ML params \n")
-    pz["state"] = read(matopen(path*file),"ML_params")[1:dimz]
-    pd["state"] = read(matopen(path*file),"ML_params")[dimz+1:dimz+2]
-
-    return pz, pd
+    read(matopen(file), "ML_params")
 
 end

@@ -1,38 +1,44 @@
-#use the resources of the package
+# # Fitting a choice model to loaded data
+# Blah blah blah
+
 using pulse_input_DDM
 
-println("using ", nprocs(), " cores")
+# ### Load some data
+# Blah blah blah
 
-#define useful paths to the data and to a directory to save results
-data_file = "../data/dmFC_muscimol/file.mat"
-tail = ""
+data = load("./examples/example_matfile.mat")
 
-#load your data
-data = load_choice_data(data_file)
+# ### Set options for optimization
+# Blah blah blah
 
-save_path = "../results/dmFC_muscimol/"
+n = 53
 
-#if the directory that you are saving to doesn't exist, make it
-if !isdir(save_path)
-    mkpath(save_path)
-end
+options = choiceoptions(fit = vcat(trues(9)),
+    lb = vcat([0., 8., -5., 0., 0., 0.01, 0.005], [-30, 0.]),
+    ub = vcat([2., 30., 5., 100., 2.5, 1.2, 1.], [30, 1.]),
+    x0 = vcat([0.1, 15., -0.1, 20., 0.5, 0.8, 0.008], [0.,0.01]))
+
+# ### Load some data
+# Blah blah blah
+save_file = "./examples/example_results.mat"
 
 #if you've already ran the optimization once and want to restart from where you stoped, this will reload those parameters
-if isfile(save_path*tail)
-    pz, pd = reload_optimization_parameters(save_path, tail, pz, pd)
+if isfile(save_file)
+    options.x0 = reload(save_file)
 end
 
-#generate default parameters for initializing the optimization
-options = opt(x0=vcat([0.1, 15., -0.1, 20., 0.5, 0.8, 0.008], [0.,0.01]))
+# ### Optimize stuff
+# Blah blah blah
 
-#run the optimization
-model, options = optimize(data; options=options)
+model = optimize(data, options, n; iterations=5, outer_iterations=1)
 
-#compute the Hessian around the ML solution, for confidence intervals
-H = Hessian(model)
+# ### Compute Hessian and the confidence interavls
+# Blah blah blah
 
-#compute confidence intervals
-CI = CIs(model, H)
+H = Hessian(model, n)
+CI, HPSD = CIs(model, H);
 
-#save results
-#save_optimization_parameters(save_path,tail,pz,pd)
+# ### Save results
+# Blah blah blah
+
+save(save_file, model, options, CI)
