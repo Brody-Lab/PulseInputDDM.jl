@@ -1,17 +1,17 @@
 # Fitting the model to choices
 
-## How to save your data so it can be loaded correctly 
+## How to save your data so it can be loaded correctly
 
 The package expects your data to live in a single .mat file which should contain a struct called `rawdata`. Each element of `rawdata` should have data for one behavioral trial and `rawdata` should contain the following fields with the specified structure:
 
 - `rawdata.leftbups`: row-vector containing the relative timing, in seconds, of left clicks on an individual trial. 0 seconds is the start of the click stimulus.
-- `rawdata.rightbups`: row-vector containing the relative timing in seconds (origin at 0 sec) of right clicks on an individual trial. 0 seconds is the start of the click stimulus. 
+- `rawdata.rightbups`: row-vector containing the relative timing in seconds (origin at 0 sec) of right clicks on an individual trial. 0 seconds is the start of the click stimulus.
 - `rawdata.T`: the duration of the trial, in seconds. The beginning of a trial is defined as the start of the click stimulus. The end of a trial is defined based on the behavioral event “cpoke_end”. This was the Hanks convention.
 - `rawdata.pokedR`: `Bool` representing the animal choice (1 = right).
 
 ## Fitting the model
 
-Once your data is corretly formatted and you have the package added in julia, you are ready to fit the model. You need to write a slurm script to use spock's resources and a .jl file to load the data and fit the model. See examples of each below. These files are also located in the package in the `demos` directory.
+Once your data is correctly formatted and you have the package added in julia, you are ready to fit the model. You need to write a slurm script to use spock's resources and a .jl file to load the data and fit the model. See examples of each below. These files are also located in the package in the `examples` directory.
 
 ### Example slurm script
 
@@ -28,7 +28,7 @@ This will start a job called `fit_choice_model`. Output will be written to a log
 #SBATCH -c 44
 
 module load julia/1.0.0
-julia -p 44 ../scripts/fit_choice_model.jl
+julia -p 44 ./fit_choice_model.jl
 ```
 
 ### Example .jl file

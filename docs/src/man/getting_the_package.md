@@ -1,16 +1,16 @@
-#  Getting started
+#  Downloading the package
 
 You need to add the pulse\_input\_DDM package from github. Startup julia by loading the julia module on scotty or spock:
 
 ```
-    >> module load julia/1.0.0
+    >> module load julia/1.2.0
     >> julia
 ```
 
 Next add the package in julia by entering the packagae management mode by typing `]`.
 
 ```julia
-    (v1.0) pkg > add https://github.com/Brody-Lab/pulse_input_DDM/
+    (v1.2) pkg > add https://github.com/Brody-Lab/pulse_input_DDM/
 ```
 
 Another way to add the package (without typing `]`) is to do the following, in the normal julia mode:
