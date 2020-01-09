@@ -1,12 +1,12 @@
-# ### Fitting a choice model
+# # Fitting a choice model
 # Blah blah blah
 
 using pulse_input_DDM
 
-# ### Geneerate some data
+# ### Generate some data
 # Blah blah blah
 
-θ_syn, data = synthetic_data(;ntrials=10)
+θ_syn, data = synthetic_data(;ntrials=10);
 
 # ### Optimize stuff
 # Blah blah blah
@@ -20,12 +20,8 @@ options = choiceoptions(fit = vcat(trues(9)),
 
 model = optimize(data, options, n; iterations=5, outer_iterations=1)
 
-# ### Compute Hessian
+# ### Compute Hessian and the confidence interavls
 # Blah blah blah
 
 H = Hessian(model, n)
-
-# ### Get the CIs from the Hessian
-# Blah blah blah
-
-CI, HPSD = CIs(model, H)
+CI, HPSD = CIs(model, H);
