@@ -38,7 +38,7 @@ using pulse_input_DDM
 # ### Load some data
 # Blah blah blah
 
-data = load("./examples/example_matfile.mat")
+data = load("../examples/example_matfile.mat")
 
 # ### Set options for optimization
 # Blah blah blah
@@ -52,7 +52,7 @@ options = choiceoptions(fit = vcat(trues(9)),
 
 # ### Load some data
 # Blah blah blah
-save_file = "./examples/example_results.mat"
+save_file = "../examples/example_results.mat"
 
 #if you've already ran the optimization once and want to restart from where you stoped, this will reload those parameters
 if isfile(save_file)
