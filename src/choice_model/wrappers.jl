@@ -7,19 +7,19 @@ function default_parameters(;generative::Bool=false)
 
     pd = Dict("name" => vcat("bias","lapse"),
               "fit" => vcat(true, true),
-              "initial" => vcat(0.,0.01),
+              "initial" => vcat(0.,0.),
               "lb" => [-30, 0.],
               "ub" => [30, 1.])
 
     pz = Dict("name" => ["σ_i","B", "λ", "σ_a","σ_s","ϕ","τ_ϕ"],
               "fit" => vcat(true, true, true, true, true, true, true),
-              "initial" => [0.1, 15., -0.1, 20., 0.5, 0.8, 0.008],
-              "lb" => [0., 8., -5., 0., 0., 0.01, 0.005],
-              "ub" => [2., 30., 5., 100., 2.5, 1.2, 1.])
+              "initial" => [0.1, 3., -0.1, 20., 0.5, 0.8, 0.008],
+              "lb" => [0., 1., -5., 0., 0., 0.01, 0.005],
+              "ub" => [2., 15., 5., 100., 2.5, 1.2, 1.])
 
     if generative
-        pz["generative"] = [eps(), 18., -0.5, 5., 1.5, 0.4, 0.02]
-        pd["generative"] = [1.,0.05]
+        pz["generative"] = [eps(), 6., -0.5, 5., 1.5, 0.4, 0.02]
+        pd["generative"] = [0.,0.0]
     end
 
     return pz, pd

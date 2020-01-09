@@ -20,7 +20,7 @@ end
 
 """
 """
-function generate_stimulus(i::Int; tmin::Float64=0.2,tmax::Float64=1.0,clicktot::Int=40)
+function generate_stimulus(i::Int; tmin::Float64=2.0,tmax::Float64=2.0,clicktot::Int=40)
     
     T = tmin + (tmax-tmin)*rand()
     
@@ -51,6 +51,8 @@ function sample_latent(nT::Int, L::Vector{Float64},R::Vector{Float64},
     La, Ra = make_adapted_clicks(ϕ, τ_ϕ, L, R)
 
     A = Vector{TT}(undef,nT)
+    RT = 0 
+
     a = sqrt(σ2_i)*randn()
 
     for t = 1:nT
@@ -61,11 +63,11 @@ function sample_latent(nT::Int, L::Vector{Float64},R::Vector{Float64},
             a = sample_one_step!(a, t, σ2_a, σ2_s, λ, nL, nR, La, Ra, dt)
         end
 
-        abs(a) > B ? (a = B * sign(a); A[t:nT] .= a; break) : A[t] = a
+        abs(a) > B ? (a = B * sign(a); A[t:nT] .= a; RT = t; break) : A[t] = a
 
     end               
     
-    return A
+    return A, RT
     
 end
 
