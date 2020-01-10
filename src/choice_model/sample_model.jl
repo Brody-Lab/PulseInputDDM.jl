@@ -28,7 +28,8 @@ function rand(θ::θchoice, ntrials::Int; dt::Float64=1e-4, rng::Int = 1, center
     ntrials = length(inputs)
     rng = sample(Random.seed!(rng), 1:ntrials, ntrials; replace=false)
 
-    choices = rand.(Ref(θ), inputs, rng)
+    #choices = rand.(Ref(θ), inputs, rng)
+    choices = pmap((inputs, rng) -> rand(θ, inputs, rng), inputs, rng)
 
     return clicks, choices
 
