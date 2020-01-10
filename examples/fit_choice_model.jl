@@ -1,5 +1,4 @@
 # # Loading data and fitting a choice model
-# ## How to save your data so it can be loaded correctly
 
 # The package expects your data to live in a single .mat file which should contain a struct called `rawdata`. Each element of `rawdata` should have data for one behavioral trial and `rawdata` should contain the following fields with the specified structure:
 

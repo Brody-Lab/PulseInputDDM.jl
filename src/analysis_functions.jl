@@ -86,32 +86,6 @@ function dprime(FR,choice)
         sqrt(0.5 * (var(FR[choice .== false])^2 + var(FR[choice .== true])^2))
 end
 
-#function padded_λ_array(nspikes,dt,filtSD)
-
-#    nT = length.(nspikes)
-#    λ = fill!(Array{Float64,2}(undef, length(nspikes), maximum(nT)),NaN)
-
-#    kern = reflect(KernelFactors.gaussian(filtSD,8*filtSD+1));
-#    for i = 1:length(nspikes)
-#        λ[i,1:nT[i]] = (1/dt) * imfilter(nspikes[i], kern)
-#    end
-
-#    return λ
-
-#end
-
-function rate_mat_func_filt(nspikes,dt,filtSD)
-
-    nT = map(length,nspikes)
-    λ = fill!(Array{Float64,2}(undef,length(nspikes),maximum(nT)),NaN);
-
-    for i = 1:length(nspikes)
-        λ[i,1:nT[i]] = vec(FilterSpikes((1/dt)*nspikes[i],filtSD,pad="zeros"))
-    end
-
-    return λ
-
-end
 
 function FilterSpikes(x,SD;pad::String="zeros")
 
@@ -241,13 +215,3 @@ function cheby1(n, r, wp)
     coefb(tf), coefa(tf)
 
 end
-
-#function downsample_spiketrain(x;dtMC::Float64=1e-4,dt::Float64=2e-2)
-#
-#    nbins = Int(dt/dtMC)
-#    x = vcat(x, mean(x[end-rem(length(x),nbins)+1:end]) * ones(eltype(x),mod(nbins - rem(length(x),nbins),nbins)))
-#    x = squeeze(mean(reshape(x,nbins,:),1),1)
-#
-#    return x
-#
-#end
