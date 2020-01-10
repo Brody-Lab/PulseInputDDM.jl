@@ -1,6 +1,7 @@
 """
-    synthetic_data(;ntrials=2000, rng=1)
-Returns default parameters and some simulated data
+    synthetic_data(; θ=θchoice(), ntrials=2000, rng=1)
+
+Returns default parameters and ntrials of synthetic data (clicks and choices) organized into a choicedata type.
 """
 function synthetic_data(; θ::θchoice=θchoice(), ntrials::Int=2000, rng::Int=1, dt::Float64=1e-2, centered::Bool=false)
 
@@ -14,6 +15,9 @@ end
 
 
 """
+    rand(θ, ntrials)
+
+Produces synthetic clicks and choices for n trials using model parameters θ.
 """
 function rand(θ::θchoice, ntrials::Int; dt::Float64=1e-4, rng::Int = 1, centered::Bool=false)
 
@@ -31,21 +35,10 @@ function rand(θ::θchoice, ntrials::Int; dt::Float64=1e-4, rng::Int = 1, center
 end
 
 
-#=
 """
-"""
-function rand(θ::θchoice, click_data; rng::Int = 1)
+    rand(θ, inputs, rng)
 
-    ntrials = length(click_data)
-
-    rng = sample(Random.seed!(rng), 1:ntrials, ntrials; replace=false)
-    pmap((click_data, rng) -> rand(θ,click_data; rng=rng), click_data, rng)
-
-end
-=#
-
-
-"""
+Produces L/R choice for one trial, given model parameters and inputs.
 """
 function rand(θ::θchoice, inputs::choiceinputs, rng::Int)
 

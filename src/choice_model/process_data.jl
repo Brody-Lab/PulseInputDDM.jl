@@ -23,6 +23,7 @@ end
 bin_clicks(clicks::Vector{T}; dt::Float64=1e-2, centered::Bool=false) where T <: Any =
     bin_clicks.(clicks; dt=dt, centered=centered)
 
+
 """
 """
 function bin_clicks(clicks::clicks; dt::Float64=1e-2, centered::Bool=false)
@@ -62,8 +63,9 @@ end
 
 
 """
-    save_optimization_parameters(path, file, pz, pd; H=[])
-Given a path and dictionaries produced by optimize_model(), save the results of the optimization to a .MAT file
+    save_optimization_parameters(file, model, options, CI)
+
+Given a file, model produced by optimize and options, save the results of the optimization to a .MAT file
 """
 function save(file, model, options, CI)
 

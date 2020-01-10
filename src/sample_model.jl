@@ -1,7 +1,9 @@
 """
-    synthetic_clicks(ntrials)
+    synthetic_clicks(ntrials, rng)
 
-Computes randomly timed left and right clicks for ntrials. Output is bundled into a struct.
+Computes randomly timed left and right clicks for ntrials.
+rng sets the random seed so that clicks can be consistently produced.
+Output is bundled into an array of 'click' types.
 """
 function synthetic_clicks(ntrials::Int, rng::Int;
     tmin::Float64=0.2, tmax::Float64=1.0, clicktot::Int=40)
@@ -27,9 +29,11 @@ end
 
 
 """
-    rand(θz, nT, L, R, nL, nR)
+    rand(θz, inputs)
 
-Generate a sample latent trajecgtory given parameters of the latent model and clicks for one trial.
+Generate a sample latent trajecgtory,
+given parameters of the latent model θz and clicks for one trial, contained
+within inputs.
 """
 function rand(θz::θz{T}, inputs) where T <: Real
 

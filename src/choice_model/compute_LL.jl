@@ -1,4 +1,7 @@
 """
+    loglikelihood(θ, data, n)
+
+Given parameters θ and data (inputs and choices) computes the LL for all trials
 """
 function loglikelihood(θ::θchoice, data, n::Int)
 
@@ -14,13 +17,17 @@ end
 
 
 """
+    (θ::θchoice)(data)
+
+Given parameters θ and data (inputs and choices) computes the LL for all trials
 """
 (θ::θchoice)(data; n::Int=53) = loglikelihood(θ, data, n)
 
 
 """
-    loglikelihood!(λ, σ2_a, σ2_s, ϕ, τ_ϕ,
-        P, M, dx, xc, L, R, nT, nL, nR, pokedR bias, n, dt)
+    loglikelihood!(θ, P, M, dx, xc, data, n)
+
+Given parameters θ and data (inputs and choices) computes the LL for one trial
 """
 function loglikelihood!(θ::θchoice,
         P::Vector{TT}, M::Array{TT,2}, dx::UU,
@@ -37,9 +44,9 @@ end
 
 
 """
-    P_single_trial!(λ, σ2_a, σ2_s, ϕ, τ_ϕ,
-        P, M, dx, xc, L, R, nT, nL, nR, n, dt)
+    P_single_trial!(θz, P, M, dx, xc, click_data, n)
 
+Given parameters θz progagates P for one trial
 """
 function P_single_trial!(θz,
         P::Vector{TT}, M::Array{TT,2}, dx::UU,
@@ -150,69 +157,61 @@ end
 choice_null(choices) = sum(choices .== true)*log(sum(choices .== true)/length(choices)) +
     sum(choices .== false)*log(sum(choices .== false)/length(choices))
 
+
+"""
+    bounded_mass(θ, data, n)
+"""
+function bounded_mass(θ::θchoice, data, n::Int)
+
+    @unpack θz, lapse = θ
+    @unpack σ2_i, B, λ, σ2_a = θz
+    @unpack dt = data[1].click_data
+
+    P,M,xc,dx = initialize_latent_model(σ2_i, B, λ, σ2_a, n, dt, L_lapse=lapse/2, R_lapse=lapse/2)
+
+    pmap(data -> bounded_mass!(θ, P, M, dx, xc, data, n), data)
+
+end
+
+
+"""
+    bounded_mass!(θ, P, M, dx, xc, data, n)
+"""
+function bounded_mass!(θ::θchoice,
+        P::Vector{TT}, M::Array{TT,2}, dx::UU,
+        xc::Vector{TT}, data::choicedata,
+        n::Int) where {TT,UU <: Real}
+
+    @unpack θz, bias = θ
+    @unpack click_data, choice = data
+
+    P = P_single_trial!(θz,P,M,dx,xc,click_data,n)
+    choice ? P[n] : P[1]
+
+end
+
+
 #=
 
-    @inbounds for t = 1:T
+@inbounds for t = 1:T
 
-        P,F = latent_one_step!(P,F,pz,t,hereL,hereR,La,Ra,M,dx,xc,n,dt)
-        (t == T) && (P .*=  Pd)
-        c[t] = sum(P)
-        P /= c[t]
-        comp_posterior ? post[:,t] = P : nothing
+    P,F = latent_one_step!(P,F,pz,t,hereL,hereR,La,Ra,M,dx,xc,n,dt)
+    (t == T) && (P .*=  Pd)
+    c[t] = sum(P)
+    P /= c[t]
+    comp_posterior ? post[:,t] = P : nothing
 
-    end
+end
 
-    P = ones(Float64,n); #initialze backward pass with all 1's
-    post[:,T] .*= P;
+P = ones(Float64,n); #initialze backward pass with all 1's
+post[:,T] .*= P;
 
-    @inbounds for t = T-1:-1:1
+@inbounds for t = T-1:-1:1
 
-        (t + 1 == T) && (P .*=  Pd)
-        P,F = latent_one_step!(P,F,pz,t+1,hereL,hereR,La,Ra,M,dx,xc,n,dt;backwards=true)
-        P /= c[t+1]
-        post[:,t] .*= P
+    (t + 1 == T) && (P .*=  Pd)
+    P,F = latent_one_step!(P,F,pz,t+1,hereL,hereR,La,Ra,M,dx,xc,n,dt;backwards=true)
+    P /= c[t+1]
+    post[:,t] .*= P
 
-    end
-
-    """
-        bounded_mass_all_trials(pz, pd, data; n=53)
-
-    Computes the mass in the absorbing bin at the end of the trial consistent with the animal's choice.
-
-    ### Examples
-    ```jldoctest
-    julia> pz, pd, data = default_parameters_and_data(generative=true, ntrials=10, rng=1);
-
-    julia> round.(bounded_mass_all_trials(pz["generative"], pd["generative"], data), digits=2)
-    10-element Array{Float64,1}:
-     0.04
-     0.4
-     0.2
-     0.04
-     0.53
-     0.06
-     0.45
-     0.06
-     0.63
-     0.15
-    ```
-    """
-    function bounded_mass_all_trials(pz::Vector{TT}, pd::Vector{TT}, data::Dict; n::Int=53) where {TT}
-
-        bias, lapse = pd
-        σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ = pz
-        L, R, nT, nL, nR, choice = data["leftbups"], data["rightbups"], data["nT"], data["binned_leftbups"],
-            data["binned_rightbups"], data["pokedR"]
-        dt = data["dt"]
-
-        P,M,xc,dx = initialize_latent_model(σ2_i, B, λ, σ2_a, n, dt, L_lapse=lapse/2, R_lapse=lapse/2)
-
-        P = pmap((L,R,nT,nL,nR) -> P_single_trial!(λ, σ2_a, σ2_s, ϕ, τ_ϕ,
-            P, M, dx, xc, L, R, nT, nL, nR, n, dt), L, R, nT, nL, nR)
-
-        return map((P,choice)-> (choice ? P[n] : P[1]), P, choice)
-
-    end
-
-
+end
 =#

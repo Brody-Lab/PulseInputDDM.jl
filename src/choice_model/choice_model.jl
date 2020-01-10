@@ -1,4 +1,18 @@
 """
+    θchoice{T1, T<:Real} <: DDMθ
+
+Fields:
+
+- `θz` is a type that contains the parameters related to the latent variable model.
+- `bias` is the choice bias parameter.
+- `lapse` is the lapse parameter.
+
+Example:
+
+```julia
+θchoice(θz=θz(σ2_i = 0.5, B = 15., λ = -0.5, σ2_a = 50., σ2_s = 1.5,
+    ϕ = 0.8, τ_ϕ = 0.05), bias=1., lapse=0.05)
+```
 """
 @with_kw struct θchoice{T1, T<:Real} <: DDMθ
     θz::T1 = θz()
@@ -8,6 +22,23 @@ end
 
 
 """
+    choicedata{T1} <: DDMdata
+
+Fields:
+
+- `click_data` is a type that contains all of the parameters related to click input.
+- `choice` is the choice data for a single trial.
+
+Example:
+
+```julia
+ntrials, dt, centered = 1, 1e-2, false
+θ = θchoice()
+clicks, choices = rand(θ, ntrials)
+binned_clicks = bin_clicks(clicks, centered=centered, dt=dt)
+inputs = choiceinputs(clicks, binned_clicks, dt, centered)
+choicedata(inputs, choices)
+```
 """
 @with_kw struct choicedata{T1} <: DDMdata
     click_data::T1
@@ -16,6 +47,24 @@ end
 
 
 """
+    choiceDDM{T,U} <: DDM
+
+Fields:
+
+- `θ` is a type that contains all of the model parameters.
+- `data` is a type that contains all of the data (inputs and choices).
+
+Example:
+
+```julia
+ntrials, dt, centered = 1, 1e-2, false
+θ = θchoice()
+clicks, choices = rand(θ, ntrials)
+binned_clicks = bin_clicks(clicks, centered=centered, dt=dt)
+inputs = choiceinputs(clicks, binned_clicks, dt, centered)
+data = choicedata(inputs, choices)
+choiceDDM(θ, data)
+```
 """
 @with_kw struct choiceDDM{T,U} <: DDM
     θ::T = θchoice()
@@ -24,20 +73,11 @@ end
 
 
 """
-"""
-function pack(θ, x::Vector{TT}) where {TT <: Real}
-
-    θ = θchoice(θz(Tuple(x[1:dimz])...), Tuple(x[dimz+1:end])...)
-
-end
-
-
-"""
-    optimize_model(data; options=opt(), n=53, x_tol=1e-10, f_tol=1e-6, g_tol=1e-3,
+    optimize_model(data, options, n; x_tol=1e-10, f_tol=1e-6, g_tol=1e-3,
         iterations=Int(2e3), show_trace=true)
 
-Optimize model parameters. data is a struct that contains the binned clicks and the choices.
-options is a struct that containts the initial values, boundaries,
+Optimize model parameters. data is a type that contains the click data and the choices.
+options is a type that contains the initial values, boundaries,
 and specification of which parameters to fit.
 
 BACK IN THE DAY TOLS WERE: x_tol::Float64=1e-4, f_tol::Float64=1e-9, g_tol::Float64=1e-2
@@ -74,7 +114,7 @@ end
 """
     loglikelihood(x, data, n)
 
-Given a vector of parameters and a struct containing the data related to the choice DDM model, compute the LL.
+Given a vector of parameters and a type containing the data related to the choice DDM model, compute the LL.
 
 See also: [`loglikelihood`](@ref)
 """
@@ -88,6 +128,8 @@ end
 
 """
     gradient(model, n)
+
+Given a DDM model (parameters and data), compute the gradient.
 """
 function gradient(model::T, n::Int) where T <: DDM
 
@@ -102,6 +144,8 @@ end
 
 """
     Hessian(model, n)
+
+Given a DDM model (parameters and data), compute the Hessian.
 """
 function Hessian(model::T, n::Int) where T <: DDM
 
@@ -112,43 +156,3 @@ function Hessian(model::T, n::Int) where T <: DDM
     ForwardDiff.hessian(ℓℓ, x)
 
 end
-
-#=
-"""
-    LL_across_range(pz, pd, data)
-
-"""
-function LL_across_range(pz::Dict, pd::Dict, data::Dict, lb, ub; n::Int=53, state::String="final")
-
-    fit_vec = combine_latent_and_observation(pz["fit"], pd["fit"])
-
-    lb_vec = combine_latent_and_observation(lb[1], lb[2])
-    ub_vec = combine_latent_and_observation(ub[1], ub[2])
-
-    LLs = Vector{Vector{Float64}}(undef,length(fit_vec))
-    xs = Vector{Vector{Float64}}(undef,length(fit_vec))
-
-    ll_θ = compute_LL(pz[state], pd[state], data; n=n)
-
-    for i = 1:length(fit_vec)
-
-        println(i)
-
-        fit_vec2 = falses(length(fit_vec))
-        fit_vec2[i] = true
-
-        p_opt, p_const = split_variable_and_const(combine_latent_and_observation(pz[state], pd[state]), fit_vec2)
-
-        parameter_map_f(x) = split_latent_and_observation(combine_variable_and_const(x, p_const, fit_vec2))
-        ll(x) = compute_LL([x], data, parameter_map_f) - (ll_θ - 1.92)
-
-        xs[i] = range(lb_vec[i], stop=ub_vec[i], length=50)
-        LLs[i] = map(x->ll(x), xs[i])
-
-    end
-
-    return LLs, xs
-
-end
-
-=#
