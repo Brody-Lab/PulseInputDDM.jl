@@ -9,7 +9,7 @@ function loglikelihood(θ::θchoice, data, n::Int)
     @unpack σ2_i, B, λ, σ2_a = θz
     @unpack dt = data[1].click_data
 
-    P,M,xc,dx = initialize_latent_model(σ2_i, B, λ, σ2_a, n, dt, L_lapse=lapse/2, R_lapse=lapse/2)
+    P,M,xc,dx = initialize_latent_model(σ2_i, B, λ, σ2_a, n, dt, lapse=lapse)
 
     sum(pmap(data -> loglikelihood!(θ, P, M, dx, xc, data, n), data))
 
@@ -167,7 +167,7 @@ function bounded_mass(θ::θchoice, data, n::Int)
     @unpack σ2_i, B, λ, σ2_a = θz
     @unpack dt = data[1].click_data
 
-    P,M,xc,dx = initialize_latent_model(σ2_i, B, λ, σ2_a, n, dt, L_lapse=lapse/2, R_lapse=lapse/2)
+    P,M,xc,dx = initialize_latent_model(σ2_i, B, λ, σ2_a, n, dt, lapse=lapse)
 
     pmap(data -> bounded_mass!(θ, P, M, dx, xc, data, n), data)
 
