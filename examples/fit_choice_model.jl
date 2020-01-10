@@ -67,7 +67,7 @@ model = optimize(data, options, n; iterations=5, outer_iterations=1)
 # Blah blah blah
 
 H = Hessian(model, n)
-CI, HPSD = CIs(model, H);
+CI, HPSD = CIs(H);
 
 # ### Save results
 # Blah blah blah

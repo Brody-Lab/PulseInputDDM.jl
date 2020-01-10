@@ -26,7 +26,7 @@ model = optimize(data, options, n; iterations=5, outer_iterations=1);
 H = Hessian(model, n)
 @test round(norm(H), digits=2) ≈ 40.64
 
-CI, HPSD = CIs(model, H)
+CI, HPSD = CIs(H)
 @test round(norm(CI), digits=2) ≈ 172.88
 
 ## Neural model
@@ -76,5 +76,5 @@ model = optimize(data, options, n; iterations=2, outer_iterations=1)
 H = Hessian(model, n, chuck_size=4)
 @test round(norm(H), digits=2) ≈ 2449.29
 
-CI, HPSD = CIs(model, H)
+CI, HPSD = CIs(H)
 @test round(norm(CI), digits=2) ≈ 967.12

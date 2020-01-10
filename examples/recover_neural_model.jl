@@ -34,4 +34,4 @@ model = optimize(data, options, n; iterations=2, outer_iterations=1)
 # Blah blah blah
 
 H = Hessian(model, n, chuck_size=4)
-CI, HPSD = CIs(model, H);
+CI, HPSD = CIs(H);
