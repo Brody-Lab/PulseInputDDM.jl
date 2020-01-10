@@ -1,4 +1,8 @@
 """
+    load(file)
+
+Given a path to a .mat file containing data (properly formatted), loads data into
+an acceptable format to use with pulse_input_DDM.
 """
 function load(file::String; centered::Bool=false, dt::Float64=1e-2)
 
@@ -19,51 +23,7 @@ end
 
 
 """
-"""
-bin_clicks(clicks::Vector{T}; dt::Float64=1e-2, centered::Bool=false) where T <: Any =
-    bin_clicks.(clicks; dt=dt, centered=centered)
-
-
-"""
-"""
-function bin_clicks(clicks::clicks; dt::Float64=1e-2, centered::Bool=false)
-
-    @unpack T,L,R = clicks
-    nT = ceil(Int, round((T/dt), digits=10))
-    #added on 6/11/19, to avoid problem, such as 0.28/1e-2 = 28.0000000004, etc.
-
-    if centered
-
-        #so that a(t) is computed to middle of bin
-        #nL =  map((x,y)-> map(z-> searchsortedlast((0. -dt/2):dt:(x -dt/2)*dt,z), y), nT, L)
-        #nR = map((x,y)-> map(z-> searchsortedlast((0. -dt/2):dt:(x -dt/2)*dt,z), y), nT, R)
-        #nL =  map(z-> searchsortedlast((0. -dt/2):dt:(nT -dt/2)*dt,z), L)
-        #nR = map(z-> searchsortedlast((0. -dt/2):dt:(nT -dt/2)*dt,z), R)
-        nL =  searchsortedlast.(Ref((0. -dt/2):dt:(nT -dt/2)*dt), L)
-        nR = searchsortedlast.(Ref((0. -dt/2):dt:(nT -dt/2)*dt), R)
-
-    else
-
-        #nL =  map((x,y)-> map(z-> searchsortedlast(0.:dt:x*dt,z), y), nT, L)
-        #nR = map((x,y)-> map(z-> searchsortedlast(0.:dt:x*dt,z), y), nT, R)
-        #nL =  map(z-> searchsortedlast(0.:dt:nT*dt,z), L)
-        #nR = map(z-> searchsortedlast(0.:dt:nT*dt,z), R)
-        nL =  searchsortedlast.(Ref(0.:dt:nT*dt), L)
-        nR = searchsortedlast.(Ref(0.:dt:nT*dt), R)
-
-    end
-
-    #binned_clicks(clicks=clicks, nT=nT, nL=nL, nR=nR, dt=dt, centered=centered)
-    binned_clicks(nT, nL, nR)
-
-    #data["ΔLRT"] = map((nT,L,R)-> diffLR(nT,L,R,data["dt"])[end], data["nT"], data["leftbups"], data["rightbups"])
-    #data["ΔLR"] = map((nT,L,R)-> diffLR(nT,L,R,data["dt"]), data["nT"], data["leftbups"], data["rightbups"])
-
-end
-
-
-"""
-    save_optimization_parameters(file, model, options, CI)
+    save(file, model, options, CI)
 
 Given a file, model produced by optimize and options, save the results of the optimization to a .MAT file
 """
@@ -92,12 +52,50 @@ end
 
 
 """
-    reload_optimization_parameters(file)
+    reload(file)
+    
 Given a path and dictionaries, reload the results of a previous optimization saved as a .MAT file and
 place them in the "state" key of the dictionaires that optimize_model() expects.
 """
 function reload(file)
 
     read(matopen(file), "ML_params")
+
+end
+
+
+"""
+    bin_clicks(clicks::Vector{T})
+
+Wrapper to broadcast bin_clicks across a vector of clicks.
+"""
+bin_clicks(clicks::Vector{T}; dt::Float64=1e-2, centered::Bool=false) where T <: Any =
+    bin_clicks.(clicks; dt=dt, centered=centered)
+
+
+"""
+    bin_clicks(clicks)
+
+Bins clicks, based on dt (defaults to 1e-2). 'centered' determines if the bin edges
+occur at 0 and dt (and then ever dt after that), or at -dt/2 and dt/2 (and then
+every dt after that). If the former, the bins align with the binning of spikes
+in the neural model. For choice model, the latter is fine.
+"""
+function bin_clicks(clicks::clicks; dt::Float64=1e-2, centered::Bool=false)
+
+    @unpack T,L,R = clicks
+    nT = ceil(Int, round((T/dt), digits=10))
+
+    if centered
+        nL = searchsortedlast.(Ref((0. -dt/2):dt:(nT -dt/2)*dt), L)
+        nR = searchsortedlast.(Ref((0. -dt/2):dt:(nT -dt/2)*dt), R)
+
+    else
+        nL = searchsortedlast.(Ref(0.:dt:nT*dt), L)
+        nR = searchsortedlast.(Ref(0.:dt:nT*dt), R)
+
+    end
+
+    binned_clicks(nT, nL, nR)
 
 end

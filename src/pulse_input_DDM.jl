@@ -1,23 +1,21 @@
 """
     pulse_input_DDM
 
-A julia module for fitting bounded accumlator models using behavioral and/or neural data from pulse-based evidence accumlation tasks.
+A julia module for fitting bounded accumlator models using behavioral
+and/or neural data from pulse-based evidence accumlation tasks.
 """
 module pulse_input_DDM
 
 using StatsBase, Distributions, LineSearches, JLD2
 using ForwardDiff, Distributed, LinearAlgebra
-using Optim, DSP
-using SpecialFunctions, MAT, Random
+using Optim, DSP, SpecialFunctions, MAT, Random
 using Discretizers
 import StatsFuns: logistic, logit, softplus, xlogy
 #using ImageFiltering
 using ForwardDiff: value
-using PositiveFactorizations
-using Parameters
+using PositiveFactorizations, Parameters, Flatten
 import Base.rand
 import Base.Iterators: partition
-using Flatten
 import Flatten: flattenable
 
 export choiceDDM, choiceoptions, θchoice, choicedata, θz
@@ -28,7 +26,6 @@ export dimz
 export loglikelihood, synthetic_data
 export CIs, optimize, Hessian, gradient
 export load, reload, save, flatten, unflatten
-
 export initialize_θy
 
 export default_parameters_and_data, compute_LL
@@ -117,6 +114,9 @@ end
     centered::Bool
 end
 
+
+"""
+"""
 neuralinputs(clicks, binned_clicks, λ0::Vector{Vector{Vector{Float64}}}, dt::Float64, centered::Bool) =
     neuralinputs.(clicks, binned_clicks, λ0, dt, centered)
 

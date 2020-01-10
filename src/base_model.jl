@@ -24,7 +24,7 @@ end
 
 
 """
-    loglikelihood(model; n=53)
+    loglikelihood(model, n)
 
 Computes the log likelihood for a set of trials consistent with the animal's choice on each trial.
 ```
