@@ -6,14 +6,14 @@ Returns two dictionaries of default model parameters.
 function default_parameters(;generative::Bool=false)
 
     pd = Dict("name" => vcat("bias","lapse"),
-              "fit" => vcat(true, true),
+              "fit" => vcat(false, false),
               "initial" => vcat(0.,0.),
               "lb" => [-30, 0.],
               "ub" => [30, 1.])
 
     pz = Dict("name" => ["σ_i","B", "λ", "σ_a","σ_s","ϕ","τ_ϕ"],
-              "fit" => vcat(true, true, true, true, true, true, true),
-              "initial" => [0.1, 3., 0.5, 20., 0.5, 0.8, 0.008],
+              "fit" => vcat(false, true, true, true, true, true, true),
+              "initial" => [1e-6, 3., 0.5, 20., 0.5, 0.8, 0.008],
               "lb" => [0., 1., -5., 0., 0., 0.01, 0.005],
               "ub" => [2., 15., 5., 100., 2.5, 1.2, 1.])
 
