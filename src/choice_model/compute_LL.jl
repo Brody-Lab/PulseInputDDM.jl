@@ -150,17 +150,17 @@ function P_single_trial!(λ::TT, σ2_a::TT, σ2_s::TT, ϕ::TT, τ_ϕ::TT,
     F = zeros(TT,n,n)
 
     @inbounds for t = 1:nT
-        
-        P,F = latent_one_step!(P,F,λ,σ2_a,σ2_s,t,nL,nR,La,Ra,M,dx,xc,n,dt)
+    
         if t == nT-1    
-            pt_1 = P
+            Pt_1, Ft_1 = latent_one_step!(P,F,λ,σ2_a,σ2_s,t,nL,nR,La,Ra,M,dx,xc,n,dt)
         end
 
+        P,F = latent_one_step!(P,F,λ,σ2_a,σ2_s,t,nL,nR,La,Ra,M,dx,xc,n,dt)
+    
     end
     
-
     if RTfit == true
-        return P - pt_1   # getting the mass that hits the bound at the very last time step
+        return P - Pt_1   # getting the mass that hits the bound at the very last time step
     else
         return P
     end
