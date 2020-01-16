@@ -1,7 +1,7 @@
 """
 """
 function load_choice_data(path::String, file::String;
-                use_bin_center::Bool=false, dt::Float64=1e-2)
+                use_bin_center::Bool=false, dt::Float64=1e-3)
 
     println("loading data \n")
     data = read(matopen(path*file), "rawdata")
@@ -21,9 +21,9 @@ function process_choice_data!(data)
 
     data["pokedR"] = vec(convert(BitArray, data["pokedR"]))
 
-    if !isempty(occursin.("correct", collect(keys(data))))
-        data["correct"] = vec(convert(BitArray, data[collect(keys(data))[occursin.("correct", collect(keys(data)))][1]]))
-    end
+#    if !isempty(occursin.("correct", collect(keys(data))))
+#        data["correct"] = vec(convert(BitArray, data[collect(keys(data))[occursin.("correct", collect(keys(data)))][1]]))
+#    end
 
     return data
 

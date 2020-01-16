@@ -13,7 +13,7 @@ function default_parameters(;generative::Bool=false)
 
     pz = Dict("name" => ["σ_i","B", "λ", "σ_a","σ_s","ϕ","τ_ϕ"],
               "fit" => vcat(true, true, true, true, true, true, true),
-              "initial" => [0.1, 3., -0.1, 20., 0.5, 0.8, 0.008],
+              "initial" => [0.1, 3., 0.5, 20., 0.5, 0.8, 0.008],
               "lb" => [0., 1., -5., 0., 0., 0.01, 0.005],
               "ub" => [2., 15., 5., 100., 2.5, 1.2, 1.])
 
@@ -125,7 +125,7 @@ BACK IN THE DAY TOLS WERE: x_tol::Float64=1e-4, f_tol::Float64=1e-9, g_tol::Floa
 
 """
 function optimize_model(pz::Dict{}, pd::Dict{}, data::Dict{}; n::Int=53,
-        x_tol::Float64=1e-10, f_tol::Float64=1e-6, g_tol::Float64=1e-3,
+        x_tol::Float64=1e-12, f_tol::Float64=1e-12, g_tol::Float64=1e-12,
         iterations::Int=Int(2e3), show_trace::Bool=true,
         outer_iterations::Int=Int(1e1))
 
