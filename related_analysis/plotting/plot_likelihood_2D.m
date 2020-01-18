@@ -95,8 +95,8 @@ end
 if ~isempty(P.figure_handle)
     P.figure_handle = figure(P.figure_handle);
 else
-    P.figure_handle = fig_subplot(n_params*P.axes_size(1), ...
-                                  n_params*P.axes_size(2));
+    P.figure_handle = figure('Position', [0,0, n_params*P.axes_size(1), ...
+                                               n_params*P.axes_size(2)]);
 end
 S2 = hessian^-1; % covariance matrix
 for i = 1:n_params
