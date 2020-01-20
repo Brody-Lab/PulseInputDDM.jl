@@ -20,7 +20,7 @@ end
 
 """
 """
-function generate_stimulus(i::Int; tmin::Float64=2.0,tmax::Float64=2.0,clicktot::Int=40)
+function generate_stimulus(i::Int; tmin::Float64=10.0,tmax::Float64=10.0,clicktot::Int=40)
     
     T = tmin + (tmax-tmin)*rand()
     
@@ -64,6 +64,11 @@ function sample_latent(nT::Int, L::Vector{Float64},R::Vector{Float64},
         end
 
         abs(a) > B ? (a = B * sign(a); A[t:nT] .= a; RT = t; break) : A[t] = a
+	
+	# this should be handles in a better way, but for now to prevent fatal errors
+	if t == nT
+	     RT = t
+	end 
 
     end               
     

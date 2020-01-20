@@ -1,7 +1,7 @@
 """
 """
 function load_choice_data(path::String, file::String;
-                use_bin_center::Bool=false, dt::Float64=1e-3)
+                use_bin_center::Bool=false, dt::Float64=1e-4)
 
     println("loading data \n")
     data = read(matopen(path*file), "rawdata")
@@ -45,10 +45,13 @@ end
 
 """
 """
-function bin_clicks!(data::Dict; use_bin_center::Bool=false, dt::Float64=1e-2)
+function bin_clicks!(data::Dict; use_bin_center::Bool=false, dt::Float64=1e-4)
 
     data["dt"] = dt
     data["use_bin_center"] = use_bin_center
+
+    data["leftbups"] = map((x,y) -> x[x.<y], data["leftbups"], data["T"])
+    data["rightbups"] = map((x,y) -> x[x.<y], data["rightbups"], data["T"])
 
     data["nT"], data["binned_leftbups"], data["binned_rightbups"] =
         bin_clicks(data["T"], data["leftbups"], data["rightbups"], dt=dt, use_bin_center=use_bin_center)

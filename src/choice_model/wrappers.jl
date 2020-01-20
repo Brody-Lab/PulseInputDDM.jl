@@ -13,12 +13,12 @@ function default_parameters(;generative::Bool=false)
 
     pz = Dict("name" => ["σ_i","B", "λ", "σ_a","σ_s","ϕ","τ_ϕ"],
               "fit" => vcat(false, true, true, true, true, true, true),
-              "initial" => [1e-6, 3., 0.5, 20., 0.5, 0.8, 0.008],
+              "initial" => [1e-16, 3., 0.5, 20., 0.5, 0.8, 0.008],
               "lb" => [0., 1., -5., 0., 0., 0.01, 0.005],
               "ub" => [2., 15., 5., 100., 2.5, 1.2, 1.])
 
     if generative
-        pz["generative"] = [eps(), 6., -0.5, 5., 1.5, 0.4, 0.02]
+        pz["generative"] = [eps(), 5.5, -0.1, 5., 1.5, 0.4, 0.02]
         pd["generative"] = [0.,0.0]
     end
 
@@ -32,7 +32,7 @@ end
 Returns default parameters and some simulated data
 """
 function default_parameters_and_data(;generative::Bool=true, ntrials::Int=2000, rng::Int=1,
-                                    dt::Float64=1e-2, use_bin_center::Bool=false)
+                                    dt::Float64=1e-4, use_bin_center::Bool=false)
     pz, pd = default_parameters(;generative=true)
     data = sample_clicks_and_choices(pz["generative"], pd["generative"], ntrials; rng=rng)
     data = bin_clicks!(data,use_bin_center=use_bin_center,dt=dt)

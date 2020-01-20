@@ -34,7 +34,7 @@ function bounded_mass_all_trials(pz::Vector{TT}, pd::Vector{TT}, data::Dict; n::
     P = pmap((L,R,nT,nL,nR) -> P_single_trial!(λ, σ2_a, σ2_s, ϕ, τ_ϕ,
         P, M, dx, xc, L, R, nT, nL, nR, n, dt), L, R, nT, nL, nR)
 
-    return (log.(map((P,choice)-> (choice ? P[n] : P[1]), P, choice)))./40000
+    return log.(eps().+(map((P,choice)-> (choice ? P[n] : P[1]), P, choice)))
 
 end
 

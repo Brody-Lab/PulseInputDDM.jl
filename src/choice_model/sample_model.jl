@@ -49,7 +49,7 @@ function sample_choice_single_trial(nT::Int, L::Vector{Float64}, R::Vector{Float
     if RTfit == true
         σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ = pz
         a, RT = sample_latent(nT,L,R,nL,nR,pz,use_bin_center;dt=dtMC)
-        abs(a[RT]) == B ? choice = sign(a[RT]) > 0 : warning("Bound was not reached code this up already!") 
+        choice = sign(a[RT]) > 0 
         return choice, RT*1e-4
     else
         a = sample_latent(nT,L,R,nL,nR,pz,use_bin_center;dt=dtMC)
