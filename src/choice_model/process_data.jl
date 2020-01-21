@@ -45,7 +45,7 @@ end
 
 """
 """
-function bin_clicks!(data::Dict; use_bin_center::Bool=false, dt::Float64=1e-4)
+function bin_clicks!(data::Dict; use_bin_center::Bool=false, dt::Float64=1e-3)
 
     data["dt"] = dt
     data["use_bin_center"] = use_bin_center

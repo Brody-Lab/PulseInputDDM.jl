@@ -50,7 +50,7 @@ function sample_choice_single_trial(nT::Int, L::Vector{Float64}, R::Vector{Float
         σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ = pz
         a, RT = sample_latent(nT,L,R,nL,nR,pz,use_bin_center;dt=dtMC)
         choice = sign(a[RT]) > 0 
-        return choice, RT*1e-4
+        return choice, RT*dtMC
     else
         a = sample_latent(nT,L,R,nL,nR,pz,use_bin_center;dt=dtMC)
         rand() > lapse ? choice = a[end] >= bias : choice = Bool(round(rand()))
