@@ -27,47 +27,53 @@ end
 
 Load neural data .MAT files and return a Dict.
 """
-function load_neural_data(path::String, files::Vector{String}; break_session::Bool=false, use_bin_center::Bool=true,
+function load(file::String; break_session::Bool=false, centered::Bool=true,
         dt::Float64=1e-2, delay::Float64=0., pad::Int=10, filtSD::Int=5)
 
-    data = Vector{Dict}(undef,0)
+    data = read(matopen(file), "rawdata")
 
-    for file in files
+    T = vec(data["T"])
+    L = vec(map(x-> vec(collect(x)), data[collect(keys(data))[occursin.("left", collect(keys(data)))][1]]))
+    R = vec(map(x-> vec(collect(x)), data[collect(keys(data))[occursin.("right", collect(keys(data)))][1]]))
 
-        rawdata = read(matopen(path*file), "rawdata")
-        rawdata = process_choice_data!(rawdata)
-        rawdata = process_click_input_data!(rawdata)
-        rawdata["ntrials"] = length(rawdata["T"])
-        rawdata["synthetic"] = false
-        N = size(rawdata["spike_times"][1],2)
+    click_times = clicks.(L, R, T)
+    binned_clicks = bin_clicks(click_times, centered=centered, dt=dt)
 
-        if break_session
+    ncells = size(data["spike_times"][1], 2)
 
-            rawdata["N"] = 1
+    if break_session
 
-            for n = 1:N
+        rawdata["N"] = 1
 
-                subdata = deepcopy(rawdata)
-                subdata["spike_times"] = vec(map(x-> vec(collect([x[n]])), rawdata["spike_times"]))
-                push!(data, subdata)
+        for n = 1:ncells
 
-            end
-
-        else
-
-            rawdata["N"] = N
-            rawdata["spike_times"] = vec(map(x-> vec(map(y-> vec(collect(y)), x)), rawdata["spike_times"]))
-            push!(data, rawdata)
+            subdata = deepcopy(rawdata)
+            subdata["spike_times"] = vec(map(x-> vec(collect([x[n]])), rawdata["spike_times"]))
+            push!(data, subdata)
 
         end
 
+    else
+
+        spikes = vec(map(x-> vec(vec.(collect.(x))), rawdata["spike_times"]))
+
     end
 
-    data = bin_clicks_and_spikes_and_compute_λ0!(data; use_bin_center=use_bin_center,
-        dt=dt, delay=delay, pad=pad, filtSD=filtSD)
+    output = map((spikes, binned_clicks)-> bin_spikes(spikes, dt, binned_clicks.nT), spikes, binned_clicks)
+    spikes = getindex.(output, 1)
+    padded = getindex.(output, 2)
+    
+    μ_rnt = filtered_rate.(padded, dt)
+    
+    μ_t = map(n-> [max(0., mean([μ_rnt[i][n][t]
+        for i in findall(nT .>= t)]))
+        for t in 1:(maximum(nT))], 1:ncells)
+    
+    λ0 = map(binned_clicks-> bin_λ0(μ_t, dt, binned_clicks.nT), binned_clicks)
 
-    return data
-
+    input_data = neuralinputs(click_times, binned_clicks, λ0, dt, centered)
+    neuraldata(input_data, spikes, ncells)
+    
 end
 
 
@@ -80,8 +86,8 @@ function bin_clicks_spikes_λ0(spikes, λ0, clicks; centered::Bool=true,
         dt::Float64=1e-2, delay::Float64=0., dt_synthetic::Float64=1e-4,
         synthetic::Bool=false)
 
-    spikes = bin_spikes(spikes, dt; dt_synthetic=dt_synthetic, synthetic=synthetic)
-    λ0 = bin_λ0(λ0, dt; synthetic=synthetic)
+    spikes = bin_spikes(spikes, dt, dt_synthetic)
+    λ0 = bin_λ0(λ0, dt, dt_synthetic)
     binned_clicks = bin_clicks(clicks, centered=centered, dt=dt)
 
     return spikes, λ0, binned_clicks
@@ -101,102 +107,62 @@ function bin_clicks_spikes_λ0(spikes, λ0, clicks; centered::Bool=true,
     #data["λ0"] = compute_λ0(data["λ0"], dt; synthetic=true)
     #data = compute_λ0!(data)
 
-    return data
+    #return data
 
 end
 
 
 """
 """
-bin_λ0(λ0::Vector{Vector{Vector{Float64}}}, dt; synthetic=false, dt_synthetic=1e-4) =
-    bin_λ0.(λ0, dt; synthetic=synthetic, dt_synthetic=dt_synthetic)
+bin_λ0(λ0::Vector{Vector{Vector{Float64}}}, dt, dt_synthetic) = bin_λ0.(λ0, dt, dt_synthetic)
 
 
 """
 """
-function bin_λ0(λ0::Vector{Vector{Float64}}, dt; synthetic=false, dt_synthetic=1e-4)
+bin_λ0(λ0::Vector{Vector{Float64}}, dt, dt_synthetic) = decimate.(λ0, Int(dt/dt_synthetic))
 
-    if synthetic
-        decimate.(λ0, Int(dt/dt_synthetic))
 
-    else
+"""
+"""
+bin_spikes(spikes::Vector{Vector{Vector{Int}}}, dt, dt_synthetic) = bin_spikes.(spikes, dt, dt_synthetic)
 
-        map(i-> map(n-> data["μ_t"][n][1:data["nT"][i]], 1:data["N"]), 1:data["ntrials"])
 
-    end
 
+"""
+"""
+bin_spikes(spikes::Vector{Vector{Int}}, dt::Float64, dt_synthetic::Float64) = 
+    map(SCn-> sum.(Iterators.partition(SCn, Int(dt/dt_synthetic))), spikes)
+
+
+"""
+"""
+function bin_spikes(spike_times::Vector{Vector{Float64}}, dt, nT::Int; delay::Float64=0., pad::Int=10) 
+
+    trial = map(x-> fit(Histogram, vec(collect(x .- delay)), 
+            collect(range(0, stop=nT*dt, length=nT+1)), closed=:left).weights, spike_times)
+
+    padded = map(x-> fit(Histogram, vec(collect(x .- delay)), 
+            collect(range(-pad*dt, stop=(nT+pad)*dt, length=(nT+2*pad)+1)), closed=:left).weights, spike_times)
+
+
+    return trial, padded
+    
 end
 
 
 """
 """
-function pad_binned_spikes!(data; delay::Float64=0., pad::Int=10)
-
-    data["pad"] = pad
-
-    if data["synthetic"]
-
-        #is this correct?
-        dt = data["dt"]
-
-        data["spike_counts_padded"] =  map(x -> map(z -> vcat(poisson_noise!.((sum(x[z][1:10])/(10*dt))*ones(pad),
-                        data["dt"]), x[z], poisson_noise!.((sum(x[z][end-9:end])/(10*dt))*ones(pad),
-                        data["dt"])), 1:data["N"]),
-                data["spike_counts"])
-
-    else
-
-        data["spike_counts_padded"] =  map((x,y) -> map(z -> fit(Histogram, vec(collect(y[z] .- delay)),
-                    collect(range(-pad*dt,stop=(x+pad)*dt,length=(x+2*pad)+1)),
-                    closed=:left).weights, 1:data["N"]), data["nT"], data["spike_times"])
-
-    end
-
-    return data
-
-end
-
-bin_spikes(spikes::Vector{Vector{Vector{Int}}}, dt; delay::Float64=0., dt_synthetic=1e-4, synthetic=false) =
-    bin_spikes.(spikes, dt; delay=delay, dt_synthetic=dt_synthetic, synthetic=synthetic)
+bin_λ0(λ0::Vector{Vector{Float64}}, nT) = map(λ0-> λ0[1:nT], λ0)
 
 
 """
 """
-function bin_spikes(spikes::Vector{Vector{Int}}, dt ;delay::Float64=0., dt_synthetic=1e-4, synthetic=false)
+function filtered_rate(padded, dt; filtSD::Int=5, pad::Int=10)
 
-    if synthetic
-        map(SCn-> sum.(Iterators.partition(SCn, Int(dt/dt_synthetic))), spikes)
+    kern = reflect(KernelFactors.gaussian(filtSD, 8*filtSD+1));
 
-    else
-
-        data["spike_counts"] =  map((x,y) -> map(z -> fit(Histogram, vec(collect(y[z] .- delay)),
-                collect(range(0,stop=x*dt,length=x+1)),
-                closed=:left).weights, 1:data["N"]), data["nT"], data["spike_times"])
-
-    end
-
-end
-
-
-"""
-"""
-function compute_filtered_rate!(data; filtSD::Int=5)
-
-    dt = data["dt"]
-    pad = data["pad"]
-
-    kern = reflect(KernelFactors.gaussian(filtSD,8*filtSD+1));
-
-    data["μ_rnt"] = map(r-> map(n-> imfilter(1/dt * data["spike_counts_padded"][r][n], kern,
-                Fill(zero(eltype(data["spike_counts_padded"][r][n]))))[pad+1:end-pad],
-                1:data["N"]), 1:data["ntrials"])
-
-    #added max to prevent any small negative numbers that might creep in
-    data["μ_t"] = map(n-> [max(0., mean([data["μ_rnt"][i][n][t]
-        for i in findall(data["nT"] .>= t)]))
-        for t in 1:(maximum(data["nT"]))], 1:data["N"])
-
-    return data
+    map(padded-> imfilter(1/dt * padded, kern,
+            Fill(zero(eltype(padded))))[pad+1:end-pad], padded)
 
 end
 

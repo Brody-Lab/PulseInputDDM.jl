@@ -11,7 +11,7 @@ using ForwardDiff, Distributed, LinearAlgebra
 using Optim, DSP, SpecialFunctions, MAT, Random
 using Discretizers
 import StatsFuns: logistic, logit, softplus, xlogy
-#using ImageFiltering
+using ImageFiltering
 using ForwardDiff: value
 using PositiveFactorizations, Parameters, Flatten
 import Base.rand

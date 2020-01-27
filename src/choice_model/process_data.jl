@@ -9,8 +9,8 @@ function load(file::String; centered::Bool=false, dt::Float64=1e-2)
     data = read(matopen(file), "rawdata")
 
     T = vec(data["T"])
-    L = map(x-> vec(collect(x)), data[collect(keys(data))[occursin.("left", collect(keys(data)))][1]])
-    R = map(x-> vec(collect(x)), data[collect(keys(data))[occursin.("right", collect(keys(data)))][1]])
+    L = vec(map(x-> vec(collect(x)), data[collect(keys(data))[occursin.("left", collect(keys(data)))][1]]))
+    R = vec(map(x-> vec(collect(x)), data[collect(keys(data))[occursin.("right", collect(keys(data)))][1]]))
     choices = vec(convert(BitArray, data["pokedR"]))
 
     click_times = clicks.(L, R, T)
