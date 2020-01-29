@@ -1,4 +1,33 @@
 """
+    save(file, model, options, CI)
+
+Given a file, model produced by optimize and options, save the results of the optimization to a .MAT file
+"""
+function save(file, model::neuralDDM, options, CI)
+
+    @unpack lb, ub, fit = options
+    @unpack θ = model
+    
+    dict = Dict("ML_params"=> collect(pulse_input_DDM.flatten(θ)),
+        "lb"=> lb, "ub"=> ub, "fit"=> fit,
+        "CI" => CI)
+
+    matwrite(file, dict)
+
+    #=
+    if !isempty(H)
+        #dict["H"] = H
+        hfile = matopen(path*"hessian_"*file, "w")
+        write(hfile, "H", H)
+        close(hfile)
+    end
+    =#
+
+end
+
+
+
+"""
 """
 function train_test_divide(data,frac)
 
@@ -27,8 +56,9 @@ end
 
 Load neural data .MAT files and return a Dict.
 """
-function load(file::String; break_session::Bool=false, centered::Bool=true,
-        dt::Float64=1e-2, delay::Float64=0., pad::Int=10, filtSD::Int=5)
+function load(file::String, break_sim_data::Bool, centered::Bool=true;
+        dt::Float64=1e-2, delay::Float64=0., pad::Int=10, filtSD::Int=5,
+        cut::Int=10)
 
     data = read(matopen(file), "rawdata")
 
@@ -41,7 +71,8 @@ function load(file::String; break_session::Bool=false, centered::Bool=true,
 
     ncells = size(data["spike_times"][1], 2)
 
-    if break_session
+    #=
+    if break_sim_data
 
         rawdata["N"] = 1
 
@@ -54,25 +85,30 @@ function load(file::String; break_session::Bool=false, centered::Bool=true,
         end
 
     else
+    =#
 
-        spikes = vec(map(x-> vec(vec.(collect.(x))), rawdata["spike_times"]))
+    spikes = vec(map(x-> vec(vec.(collect.(x))), data["spike_times"]))
 
-    end
+    #end
 
-    output = map((spikes, binned_clicks)-> bin_spikes(spikes, dt, binned_clicks.nT), spikes, binned_clicks)
+    nT = map(x-> x.nT, binned_clicks)
+
+    output = map((spikes, nT)-> bin_spikes(spikes, dt, nT; delay=delay, pad=pad), spikes, nT)
     spikes = getindex.(output, 1)
     padded = getindex.(output, 2)
     
-    μ_rnt = filtered_rate.(padded, dt)
-    
+    μ_rnt = filtered_rate.(padded, dt; filtSD=filtSD, cut=cut)
+        
     μ_t = map(n-> [max(0., mean([μ_rnt[i][n][t]
-        for i in findall(nT .>= t)]))
-        for t in 1:(maximum(nT))], 1:ncells)
+        for i in findall(nT .+ (pad - cut) .>= t)]))
+        for t in 1:(maximum(nT) .+ (pad - cut))], 1:ncells)
     
-    λ0 = map(binned_clicks-> bin_λ0(μ_t, dt, binned_clicks.nT), binned_clicks)
+    λ0 = map(nT-> bin_λ0(μ_t, nT), nT)
+    #λ0 = map(nT-> map(μ_t-> zeros(nT), μ_t), nT)
 
     input_data = neuralinputs(click_times, binned_clicks, λ0, dt, centered)
-    neuraldata(input_data, spikes, ncells)
+    
+    return neuraldata(input_data, spikes, ncells), μ_rnt, μ_t
     
 end
 
@@ -157,73 +193,42 @@ bin_λ0(λ0::Vector{Vector{Float64}}, nT) = map(λ0-> λ0[1:nT], λ0)
 
 """
 """
-function filtered_rate(padded, dt; filtSD::Int=5, pad::Int=10)
+function filtered_rate(padded, dt; filtSD::Int=5, cut::Int=10)
 
     kern = reflect(KernelFactors.gaussian(filtSD, 8*filtSD+1));
 
     map(padded-> imfilter(1/dt * padded, kern,
-            Fill(zero(eltype(padded))))[pad+1:end-pad], padded)
+            Fill(zero(eltype(padded))))[cut+1:end-cut], padded)
 
 end
 
 
 """
 """
-function process_spike_data!(data;nconds::Int=4)
+function process_spike_data(μ_rnt, data, ncells; pad::Int=10, cut::Int=10, nconds::Int=4)
 
-    data["μ_rn"] = map(n-> map(r-> mean(data["μ_rnt"][r][n]), 1:data["ntrials"]), 1:data["N"])
+    nT = map(x-> x.input_data.binned_clicks.nT, data)
+    μ_rn = map(n-> map(μ_rnt-> mean(μ_rnt[n]), μ_rnt), 1:ncells)
 
-    if haskey(data,"pokedR")
-        data["d'"] = map(n-> dprime(data["μ_rn"][n], data["pokedR"]), 1:data["N"])
-    end
+    #if haskey(data,"pokedR")
+    #    data["d'"] = map(n-> dprime(data["μ_rn"][n], data["pokedR"]), 1:data["N"])
+    #end
 
-    ΔLRT = data["ΔLRT"]
-    data["nconds"] = nconds
-    #data["conds"] = cut(ΔLRT,data["nconds"],labels=false) .+ 1;
-    #data["conds"] = qcut(ΔLRT,data["nconds"],labels=false) .+ 1;
-    data["conds"] = encode(LinearDiscretizer(binedges(DiscretizeUniformWidth(data["nconds"]), ΔLRT)), ΔLRT)
+    ΔLRT = last.(diffLR.(data))
+    #data["nconds"] = nconds
+    conds = encode(LinearDiscretizer(binedges(DiscretizeUniformWidth(nconds), ΔLRT)), ΔLRT)
 
-    data["μ_ct"] = map(n-> map(c-> [mean([data["μ_rnt"][data["conds"] .== c][i][n][t]
-        for i in findall(data["nT"][data["conds"] .== c] .>= t)])
-        for t in 1:(maximum(data["nT"][data["conds"] .== c]))], 1:data["nconds"]), 1:data["N"])
+    μ_ct = map(n-> map(c-> [mean([μ_rnt[conds .== c][i][n][t]
+        for i in findall(nT[conds .== c] .+ (pad - cut) .>= t)])
+        for t in 1:(maximum(nT[conds .== c]) .+ (pad - cut))], 1:nconds), 1:ncells)
 
-    data["σ_ct"] = map(n-> map(c-> [std([data["μ_rnt"][data["conds"] .== c][i][n][t]
-        for i in findall(data["nT"][data["conds"] .== c] .>= t)]) /
-            sqrt(length([data["μ_rnt"][data["conds"] .== c][i][n][t]
-                for i in findall(data["nT"][data["conds"] .== c] .>= t)]))
-        for t in 1:(maximum(data["nT"][data["conds"] .== c]))], 1:data["nconds"]), 1:data["N"])
+    σ_ct = map(n-> map(c-> [std([μ_rnt[conds .== c][i][n][t]
+        for i in findall(nT[conds .== c] .+ (pad - cut) .>= t)]) /
+            sqrt(length([μ_rnt[conds .== c][i][n][t]
+                for i in findall(nT[conds .== c] .+ (pad - cut) .>= t)]))
+        for t in 1:(maximum(nT[conds .== c]) .+ (pad - cut))], 1:nconds), 1:ncells)
 
-    #data["μ_t"] = map(i-> map(n-> repeat([mean(data["μ_t"][n][1:data["nT"][i]])], data["nT"][i]),
-    #        1:data["N"]), 1:data["ntrials"])
-
-    #keep extra and clip here?
-    #more filtering here?
-    #data["μ_t"] = map(n-> data["μ_t"][n], 1:data["N"])
-    #data["μ_ct"] = map(c-> map(n-> data["μ_ct"][c][n], 1:data["N"]), 1:data["nconds"])
-    #data["σ_ct"] = map(c-> map(n-> data["σ_ct"][c][n], 1:data["N"]), 1:data["nconds"])
-
-    #data["μ_ct"] = map(c-> map(n-> imfilter(1/dt * [mean([data["spike_counts_padded"][data["conds"] .== c][i][n][t]
-    #    for i in findall(data["nT"][data["conds"] .== c] .+ 2*pad .>= t)])
-    #    for t in 1:(maximum(data["nT"][data["conds"] .== c])+2*pad)], kern)[pad+1:end-pad],
-    #        1:data["N"]), 1:data["nconds"])
-
-    #data["σ_ct"] = map(c-> map(n-> imfilter(1/dt * [std([data["spike_counts_padded"][data["conds"] .== c][i][n][t]
-    #    for i in findall(data["nT"][data["conds"] .== c] .+ 2*pad .>= t)]; corrected=false) /
-    #        sqrt(length([data["spike_counts_padded"][data["conds"] .== c][i][n][t]
-    #            for i in findall(data["nT"][data["conds"] .== c] .+ 2*pad .>= t)]))
-    #    for t in 1:(maximum(data["nT"][data["conds"] .== c])+2*pad)], kern)[pad+1:end-pad],
-    #        1:data["N"]), 1:data["nconds"])
-
-    #data["μ_t"] = map(n-> imfilter(1/dt * [mean([data["spike_counts_padded"][i][n][t]
-    #    for i in findall(data["nT"] .+ 2*pad .>= t)])
-    #    for t in 1:(maximum(data["nT"])+2*pad)], kern)[pad+1:end-pad], 1:data["N"])
-
-    #data["λ0"] = map(i-> map(n-> repeat([mean(data["μ_t"][n][1:data["nT"][i]])], data["nT"][i]),
-    #        1:data["N"]), 1:data["ntrials"])
-    #data["λ0"] = data["μ_t"]
-    #data["λ0"] = map(x -> repeat([zeros(x)], outer=data["N"]), binnedT)
-
-    return data
+    return μ_ct, σ_ct, μ_rn
 
 end
 

@@ -140,7 +140,7 @@ function compute_p0(ΔLR, spikes, dt, f; nconds::Int=7)
     end
 
     #added because was getting log problem later, since rate function canot be negative
-    p[1] == 0. ? p[1] += eps() : nothing
+    p[1] == 0. ? p[1] += 1e-1 : nothing
 
     return p
 

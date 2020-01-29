@@ -1,44 +1,4 @@
-"""
-    mean_exp_rate_per_trial(pz, py, data, f_str; use_bin_center=false, dt=1e-2, num_samples=100)
-Given parameters and model inputs returns the average expected firing rate of the model computed over num_samples number of samples.
-"""
-function mean_exp_rate_per_trial(pz, py, data, f_str::String; use_bin_center::Bool=false, dt::Float64=1e-2,
-        num_trials::Int=100)
-
-    output = map(i-> sample_expected_rates_multiple_sessions(pz, py, data, f_str, use_bin_center, dt; rng=i), 1:num_samples)
-    mean(map(k-> output[k][1], 1:length(output)))
-
-end
-
-
-
-"""
-    mean_exp_rate_per_cond(pz, py, data, f_str; use_bin_center=false, dt=1e-2, num_samples=100)
-
-"""
-function mean_exp_rate_per_cond(pz, py, data, f_str::String; use_bin_center::Bool=false, dt::Float64=1e-2,
-        num_trials::Int=100)
-
-    μ_rate = mean_exp_rate_per_trial(pz, py, data, f_str; use_bin_center=use_bin_center, dt=dt, num_samples=num_samples)
-
-    map(i-> condition_mean_varying_duration_trials(μ_rate[i], data[i]["conds"],
-            data[i]["nconds"], data[i]["N"], data[i]["nT"]), 1:length(data))
-
-end
-
-
-"""
-"""
-function condition_mean_varying_duration_trials(μ_rate, conds, nconds, N, nT)
-
-    map(n-> map(c-> [mean([μ_rate[conds .== c][k][n][t]
-        for k in findall(nT[conds .== c] .>= t)])
-        for t in 1:(maximum(nT[conds .== c]))],
-                1:nconds), 1:N)
-
-end
-
-
+#=
 """
 """
 function boot_LL(pz,py,data,f_str,i,n)
@@ -61,13 +21,60 @@ function boot_LL(pz,py,data,f_str,i,n)
     LL_ML - LL_null
 
 end
+=#
+
+
+"""
+    Sample rates from latent model with multiple rngs, to average over
+"""
+function synthetic_λ(θ::θneural, data; num_samples::Int=100, nconds::Int=2)
+
+    @unpack θz,θy,ncells = θ
+
+    λ = map(rng-> rand.(Ref(θz), θy, data, Ref(rng)), 1:num_samples)
+    μ_λ = mean(λ)
+    
+    μ_c_λ = cond_mean.(μ_λ, data, ncells; nconds=nconds)
+    
+    return μ_λ, μ_c_λ
+
+end
+
+
+"""
+    Sample all trials over one session
+"""
+function rand(θz, θy, data, rng)
+    
+    ntrials = length(data)
+    rng = sample(Random.seed!(rng), 1:ntrials, ntrials; replace=false)
+
+    pmap((data,rng) -> rand(θz,θy,data.input_data; rng=rng)[1], data, rng)
+
+end
+
+
+"""
+"""
+function cond_mean(μ_λ, data, ncells; nconds=2)
+        
+    nT = map(x-> x.input_data.binned_clicks.nT, data)
+    ΔLRT = last.(diffLR.(data))
+    conds = encode(LinearDiscretizer(binedges(DiscretizeUniformWidth(nconds), ΔLRT)), ΔLRT)
+
+    map(n-> map(c-> [mean([μ_λ[conds .== c][k][n][t]
+        for k in findall(nT[conds .== c] .>= t)])
+        for t in 1:(maximum(nT[conds .== c]))],
+                1:nconds), 1:ncells)
+
+end
 
 
 """
 """
 function synthetic_data(θ::θneural,
         ntrials::Vector{Int}; centered::Bool=true,
-        dt::Float64=1e-2, rng::Int=1, dt_synthetic::Float64=1e-4)
+        dt::Float64=1e-2, rng::Int=1, dt_synthetic::Float64=1e-4, pad::Int=10)
 
     nsess = length(ntrials)
     rng = sample(Random.seed!(rng), 1:nsess, nsess; replace=false)
@@ -88,8 +95,19 @@ function synthetic_data(θ::θneural,
     binned_clicks = getindex.(output, 3)
 
     input_data = neuralinputs.(clicks, binned_clicks, λ0, dt, centered)
+    
+    padded = map(spikes-> map(spikes-> map(SCn-> vcat(rand.(Poisson.((sum(SCn[1:10])/(10*dt))*ones(pad)*dt)), 
+                    SCn, rand.(Poisson.((sum(SCn[end-9:end])/(10*dt))*ones(pad)*dt))), spikes), spikes), spikes)
+    
+    μ_rnt = map(padded-> filtered_rate.(padded, dt), padded)
+    
+    nT = map(x-> map(x-> x.nT, x), binned_clicks)
+    
+    μ_t = map((μ_rnt, ncells, nT)-> map(n-> [max(0., mean([μ_rnt[i][n][t]
+        for i in findall(nT .>= t)]))
+        for t in 1:(maximum(nT))], 1:ncells), μ_rnt, ncells, nT)
 
-    neuraldata.(input_data, spikes, ncells)
+    neuraldata.(input_data, spikes, ncells), μ_rnt, μ_t
 
 end
 
@@ -105,10 +123,9 @@ function synthetic_λ0(clicks::clicks, N::Int; dt::Float64=1e-4, rng::Int=1)
 
     @unpack T = clicks
 
-    #Random.seed!(rng)
-    #data["λ0"] = [repeat([collect(range(10. *rand(),stop=10. * rand(),
-    #                    length=Int(ceil(T./dt))))], outer=length(py)) for T in data["T"]]
-    λ0 = repeat([zeros(Int(ceil(T/dt)))], outer=N)
+    Random.seed!(rng)
+    λ0 = repeat([collect(range(10. + 5*rand(), stop=20. + 5*rand(), length=Int(ceil(T/dt))))], outer=N)
+    #λ0 = repeat([zeros(Int(ceil(T/dt)))], outer=N)
 
 end
 

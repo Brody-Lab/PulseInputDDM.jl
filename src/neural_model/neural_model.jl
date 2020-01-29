@@ -54,7 +54,8 @@ function (θ::Softplus)(x::Union{U,Vector{U}}, λ0::Union{Float64,Vector{Float64
     @unpack a,c,d = θ
 
     y = a .+ softplus.(c*x .+ d)
-    y = max.(eps(), y .+ λ0)
+    #y = max.(eps(), y .+ λ0)
+    y = softplus.(y .+ λ0)
 
 end
 
