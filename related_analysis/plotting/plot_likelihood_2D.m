@@ -103,7 +103,14 @@ for i = 1:n_params
     for j = i+1:n_params
         subplot_ind = (i-1)*n_params +j;
         subplot(n_params, n_params, subplot_ind);
-        fig_prepare_axes
+        set(gca, 'FontSize',16)
+        set(gca, 'Color', 'None')
+        set(gca, 'TickDir', 'out')
+        set(gca, 'NextPlot', 'Add')
+        set(gca, 'LineWidth', 1)
+        set(gca, 'XColor', [0,0,0])
+        set(gca, 'YColor', [0,0,0])
+        set(gca, 'TitleFontWeight', 'normal')
         set(gca, 'XLimMode', 'auto', 'YLimMode', 'auto')
         mu = [ML_vals(i); ML_vals(j)];
         s2 = S2([i,j], [i,j]);
