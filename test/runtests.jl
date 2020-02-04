@@ -21,7 +21,7 @@ options = choiceoptions(fit = vcat(trues(9)),
     x0 = vcat([0.1, 15., -0.1, 20., 0.5, 0.8, 0.008], [0.,0.01]))
 
 model, = optimize(data, options, n; iterations=5, outer_iterations=1);
-@test round(norm(Flatten.flatten(model.θ)), digits=2) ≈ 25.05
+@test round(norm(Flatten.flatten(model.θ)), digits=2) ≈ 25.04
 
 H = Hessian(model, n)
 @test round(norm(H), digits=2) ≈ 40.64
