@@ -100,7 +100,10 @@ function save_optimization_parameters(path, file, pz, pd; H=[])
         "name" => vcat(pz["name"], pd["name"]),
         "lb"=> vcat(pz["lb"], pd["lb"]),
         "ub"=> vcat(pz["ub"], pd["ub"]),
-        "fit"=> vcat(pz["fit"], pd["fit"]))
+        "fit"=> vcat(pz["fit"], pd["fit"]),
+	"generative"=> vcat(pz["generative"], pd["generative"]),
+	"initial"=>vcat(pz["initial"], pd["initial"]))
+
 
     if haskey(pz,"CI_plus_LRtest")
 
