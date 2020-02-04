@@ -64,7 +64,7 @@ x0 = pulse_input_DDM.flatten(θ0)
 @test round(loglikelihood(x0, data, ncells, nparams, f), digits=2) ≈ -533.09
 
 model, = optimize(data, options0; iterations=2, outer_iterations=1)
-@test round(norm(pulse_input_DDM.flatten(model.θ)), digits=2) ≈ 61.36 #new init
+@test round(norm(pulse_input_DDM.flatten(model.θ)), digits=2) ≈ 61.28 #new init
 
 @test round(norm(gradient(model)), digits=2) ≈ 7.0
 
