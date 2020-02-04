@@ -11,6 +11,8 @@ function sample_clicks(ntrials::Int; rng::Int=1)
     data["leftbups"] = map(i->output[i][3],1:ntrials)
     data["rightbups"] = map(i->output[i][2],1:ntrials)
     data["T"] = map(i->output[i][1],1:ntrials)
+    data["correct"] = map(i->output[i][4], 1:ntrials)
+    data["gamma"] = map(i->output[i][5], 1:ntrials)
     data["ntrials"] = ntrials
     
     return data
@@ -20,13 +22,16 @@ end
 
 """
 """
-function generate_stimulus(i::Int; tmin::Float64=10.0,tmax::Float64=10.0,clicktot::Int=40)
+function generate_stimulus(i::Int; tmin::Float64=10.0,tmax::Float64=10.0,clickrate::Int=40)
     
     T = tmin + (tmax-tmin)*rand()
+    clicktot = clickrate*Int(ceil.(T))
     
-    ratetot = clicktot/T
-    Rbar = ratetot*rand()
-    Lbar = ratetot - Rbar
+    # these values correspond to a gamma of (-) 0.5, 1.5, 2.5 and 3.5
+    # gamma = 3.5
+    # r = (clickrate*exp(gamma))./(1+exp(gamma))
+    Rbar = rand((15.10, 24.89, 7.29, 32.7, 3.03, 36.96, 1.17, 38.82))
+    Lbar = clickrate - Rbar
 
     R = cumsum(rand(Exponential(1/Rbar),clicktot))
     L = cumsum(rand(Exponential(1/Lbar),clicktot))
@@ -34,8 +39,10 @@ function generate_stimulus(i::Int; tmin::Float64=10.0,tmax::Float64=10.0,clickto
     L = vcat(0,L[L .<= T])
     
     T = ceil.(T, digits=2)
-    
-    return T,R,L
+    correct = Bool(Rbar > Lbar)
+    gamma = round(log(Rbar/Lbar), digits =1)
+
+    return T,R,L,correct, gamma
     
 end
 
