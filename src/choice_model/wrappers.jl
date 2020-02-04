@@ -12,14 +12,16 @@ function default_parameters(;generative::Bool=false)
               "ub" => [30, 1.])
 
     pz = Dict("name" => ["σ_i","B", "λ", "σ_a","σ_s","ϕ","τ_ϕ"],
-              "fit" => vcat(false, true, true, true, true, true, true),
-              "initial" => [1e-16, 3., 0.5, 20., 0.5, 0.8, 0.008],
+              "fit" => vcat(false, true, false, false, true, false, false),
+              "initial" => [eps(), 2.,-0.01, 2., 0.1, 0.1, 0.04],
               "lb" => [0., 1., -5., 0., 0., 0.01, 0.005],
-              "ub" => [2., 15., 5., 100., 2.5, 1.2, 1.])
+              "ub" => [2., 15., 5., 100., 5, 1.2, 1.])
 
     if generative
-        pz["generative"] = [eps(), 5.5, -0.1, 5., 1.5, 0.4, 0.02]
+        pz["generative"] = [eps(), rand()*7., rand()*2. - 1., rand()*2., rand()*5., rand()*1.5, rand()]
         pd["generative"] = [0.,0.0]
+
+	pz["initial"][pz["fit"] .== 0] = pz["generative"][pz["fit"] .== 0]
     end
 
     return pz, pd
@@ -125,7 +127,7 @@ BACK IN THE DAY TOLS WERE: x_tol::Float64=1e-4, f_tol::Float64=1e-9, g_tol::Floa
 
 """
 function optimize_model(pz::Dict{}, pd::Dict{}, data::Dict{}; n::Int=53,
-        x_tol::Float64=1e-12, f_tol::Float64=1e-12, g_tol::Float64=1e-12,
+        x_tol::Float64=1e-32, f_tol::Float64=1e-12, g_tol::Float64=1e-9,
         iterations::Int=Int(2e3), show_trace::Bool=true,
         outer_iterations::Int=Int(1e1))
 
@@ -305,7 +307,7 @@ end
     LL_across_range(pz, pd, data)
 
 """
-function LL_across_range(pz::Dict, pd::Dict, data::Dict, lb, ub; n::Int=53, state::String="final")
+function LL_across_range(pz::Dict, pd::Dict, data::Dict, lb, ub; n::Int=53, state::String="state")
 
     fit_vec = combine_latent_and_observation(pz["fit"], pd["fit"])
 
