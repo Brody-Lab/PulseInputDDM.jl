@@ -74,14 +74,15 @@ end
 """
 function synthetic_data(θ::θneural,
         ntrials::Vector{Int}; centered::Bool=true,
-        dt::Float64=1e-2, rng::Int=1, dt_synthetic::Float64=1e-4, pad::Int=10)
+        dt::Float64=1e-2, rng::Int=1, dt_synthetic::Float64=1e-4, pad::Int=10,
+        pos_ramp::Bool=false)
 
     nsess = length(ntrials)
     rng = sample(Random.seed!(rng), 1:nsess, nsess; replace=false)
 
     @unpack θz,θy,ncells = θ
 
-    output = rand.(Ref(θz), θy, ntrials, ncells, rng)
+    output = rand.(Ref(θz), θy, ntrials, ncells, rng; pos_ramp=pos_ramp)
 
     spikes = getindex.(output, 1)
     λ0 = getindex.(output, 2)
@@ -114,29 +115,33 @@ end
 
 """
 """
-synthetic_λ0(clicks, N::Int; dt::Float64=1e-4, rng::Int=1) = synthetic_λ0.(clicks, N; dt=dt, rng=rng)
+synthetic_λ0(clicks, N::Int; dt::Float64=1e-4, rng::Int=1, pos_ramp::Bool=false) = 
+    synthetic_λ0.(clicks, N; dt=dt, rng=rng, pos_ramp=pos_ramp)
 
 
 """
 """
-function synthetic_λ0(clicks::clicks, N::Int; dt::Float64=1e-4, rng::Int=1)
+function synthetic_λ0(clicks::clicks, N::Int; dt::Float64=1e-4, rng::Int=1, pos_ramp::Bool=false)
 
     @unpack T = clicks
 
     Random.seed!(rng)
+        if pos_ramp
     λ0 = repeat([collect(range(10. + 5*rand(), stop=20. + 5*rand(), length=Int(ceil(T/dt))))], outer=N)
-    #λ0 = repeat([zeros(Int(ceil(T/dt)))], outer=N)
+    else
+        λ0 = repeat([zeros(Int(ceil(T/dt)))], outer=N)
+    end
 
 end
 
 
 """
 """
-function rand(θz, θy, ntrials, ncells, rng; centered::Bool=false, dt::Float64=1e-4)
+function rand(θz, θy, ntrials, ncells, rng; centered::Bool=false, dt::Float64=1e-4, pos_ramp::Bool=false)
 
     clicks = synthetic_clicks.(ntrials, rng)
     binned_clicks = bin_clicks.(clicks, centered=centered, dt=dt)
-    λ0 = synthetic_λ0.(clicks, ncells; dt=dt)
+    λ0 = synthetic_λ0.(clicks, ncells; dt=dt, pos_ramp=pos_ramp)
     input_data = neuralinputs.(clicks, binned_clicks, λ0, dt, centered)
 
     rng = sample(Random.seed!(rng), 1:ntrials, ntrials; replace=false)
