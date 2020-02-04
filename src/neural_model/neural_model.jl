@@ -71,6 +71,7 @@ end
     input_data::neuralinputs
     spikes::Vector{Vector{Int}}
     ncells::Int
+    choice::Bool
 end
 
 
@@ -84,7 +85,7 @@ end
 
 """
 """
-neuraldata(input_data, spikes::Vector{Vector{Vector{Int}}}, ncells::Int) =  neuraldata.(input_data,spikes,ncells)
+neuraldata(input_data, spikes::Vector{Vector{Vector{Int}}}, ncells::Int, choice) =  neuraldata.(input_data,spikes,Ref(ncells),choice)
 
 
 """
@@ -163,8 +164,8 @@ Extract parameters related to the choice model from a struct and returns an orde
 function flatten(θ::θneural)
 
     @unpack θy, θz = θ
-    @unpack σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ = θz
-    vcat(σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ, vcat(collect.(Flatten.flatten.(vcat(θ.θy...)))...))
+    @unpack σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ, μ_1, μ_2 = θz
+    vcat(σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ, μ_1, μ_2, vcat(collect.(Flatten.flatten.(vcat(θ.θy...)))...))
 
 end
 

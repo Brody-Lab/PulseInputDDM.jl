@@ -85,7 +85,8 @@ BACK IN THE DAY TOLS WERE: x_tol::Float64=1e-4, f_tol::Float64=1e-9, g_tol::Floa
 """
 function optimize(data, options::choiceoptions, n::Int;
         x_tol::Float64=1e-10, f_tol::Float64=1e-6, g_tol::Float64=1e-3,
-        iterations::Int=Int(2e3), show_trace::Bool=true, outer_iterations::Int=Int(1e1))
+        iterations::Int=Int(2e3), show_trace::Bool=true, outer_iterations::Int=Int(1e1),
+        extended_trace::Bool=false, show_every::Int=2, scaled::Bool=false)
 
     @unpack fit, lb, ub, x0 = options
 
@@ -96,7 +97,8 @@ function optimize(data, options::choiceoptions, n::Int;
 
     output = optimize(x0, ℓℓ, lb, ub; g_tol=g_tol, x_tol=x_tol,
         f_tol=f_tol, iterations=iterations, show_trace=show_trace,
-        outer_iterations=outer_iterations)
+        outer_iterations=outer_iterations,extended_trace=extended_trace,
+        show_every=show_every, scaled=scaled)
 
     x = Optim.minimizer(output)
     x = stack(x,c,fit)
@@ -106,7 +108,7 @@ function optimize(data, options::choiceoptions, n::Int;
 
     println("optimization complete. converged: $converged \n")
 
-    return model
+    return model, output
 
 end
 

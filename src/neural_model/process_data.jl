@@ -65,6 +65,7 @@ function load(file::String, break_sim_data::Bool, centered::Bool=true;
     T = vec(data["T"])
     L = vec(map(x-> vec(collect(x)), data[collect(keys(data))[occursin.("left", collect(keys(data)))][1]]))
     R = vec(map(x-> vec(collect(x)), data[collect(keys(data))[occursin.("right", collect(keys(data)))][1]]))
+    choices = vec(convert(BitArray, data["pokedR"]))
 
     click_times = clicks.(L, R, T)
     binned_clicks = bin_clicks(click_times, centered=centered, dt=dt)
@@ -108,7 +109,7 @@ function load(file::String, break_sim_data::Bool, centered::Bool=true;
 
     input_data = neuralinputs(click_times, binned_clicks, λ0, dt, centered)
     
-    return neuraldata(input_data, spikes, ncells), μ_rnt, μ_t
+    return neuraldata(input_data, spikes, ncells, choices), μ_rnt, μ_t
     
 end
 

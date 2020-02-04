@@ -6,15 +6,28 @@ Computes the log likelihood for a set of trials consistent with the observed neu
 function loglikelihood(θ::θneural, data, n::Int)
 
     @unpack θy, θz = θ
-    @unpack σ2_i, B, λ, σ2_a = θz
+    @unpack σ2_i, B, λ, σ2_a, μ_1, μ_2 = θz
     @unpack dt = data[1][1].input_data
 
-    P,M,xc,dx = initialize_latent_model(σ2_i, B, λ, σ2_a, n, dt)
+    P0,M,xc,dx = initialize_latent_model(σ2_i, zero(typeof(σ2_i)), B, λ, σ2_a, n, dt)
+    P1, = initialize_latent_model(σ2_i, μ_1, B, λ, σ2_a, n, dt)
+    P2, = initialize_latent_model(σ2_i, μ_2, B, λ, σ2_a, n, dt)
 
-    sum(map((data, θy) -> loglikelihood(θz, θy, data, P, M, xc, dx; n=n), data, θy))
+    sum(map((data, θy) -> hist_dep_loglikelihood(θz, θy, data, P0, P1, P2, M, xc, dx; n=n), data, θy))
     #sum(pmap((data, θy) -> loglikelihood(θz,θy,data,P, M, xc, dx, n),
     #    vcat(data...), vcat(map((x,y)-> repeat([x],y), θy, length.(data))...)))
 
+end
+
+function hist_dep_loglikelihood(θz, θy, data, P0, P1, P2, M, xc, dx; n::Int=53) where {TT <: Any}
+    
+    Ltrials = findall(map(x-> x.choice == false, data[1:end-1])) .+ 1
+    Rtrials = findall(map(x-> x.choice == true, data[1:end-1])) .+ 1
+    
+    loglikelihood(θz,θy,data[1],P0, M, xc, dx, n) + 
+        sum(pmap(data -> loglikelihood(θz,θy,data,P1, M, xc, dx, n), data[Ltrials])) + 
+        sum(pmap(data -> loglikelihood(θz,θy,data,P2, M, xc, dx, n), data[Rtrials]))
+   
 end
 
 

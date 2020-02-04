@@ -35,7 +35,7 @@ Generate a sample latent trajecgtory,
 given parameters of the latent model θz and clicks for one trial, contained
 within inputs.
 """
-function rand(θz::θz{T}, inputs) where T <: Real
+function rand(θz::θz{T}, inputs, a) where T <: Real
 
     @unpack σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ = θz
     @unpack clicks, binned_clicks, centered, dt = inputs
@@ -45,12 +45,6 @@ function rand(θz::θz{T}, inputs) where T <: Real
     La, Ra = adapt_clicks(ϕ, τ_ϕ, L, R)
 
     A = Vector{T}(undef,nT)
-
-    if σ2_i > 0.
-        a = sqrt(σ2_i)*randn()
-    else
-        a = zero(typeof(σ2_i))
-    end
 
     for t = 1:nT
 

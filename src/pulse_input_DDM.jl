@@ -63,6 +63,8 @@ abstract type DDMθ end
     σ2_s = 1.5
     ϕ = 0.8; @assert ϕ != 1.
     τ_ϕ = 0.05
+    μ_1 = 0.
+    μ_2 = 0.
 end
 
 
@@ -123,9 +125,9 @@ neuralinputs(clicks, binned_clicks, λ0::Vector{Vector{Vector{Float64}}}, dt::Fl
 """
 @with_kw mutable struct choiceoptions
     fit::Vector{Bool} = vcat(trues(dimz+2))
-    lb::Vector{Float64} = vcat([0., 8., -5., 0., 0., 0.01, 0.005], [-30, 0.])
-    ub::Vector{Float64} = vcat([2., 30., 5., 100., 2.5, 1.2, 1.], [30, 1.])
-    x0::Vector{Float64} = vcat([0.1, 15., -0.1, 20., 0.5, 0.8, 0.008], [0.,0.01])
+    lb::Vector{Float64} = vcat([0., 8., -5., 0., 0., 0.01, 0.005,-30.,-30.], [-5., 0.])
+    ub::Vector{Float64} = vcat([2., 30., 5., 100., 2.5, 1.2, 1.,30.,30.], [5., 1.])
+    x0::Vector{Float64} = vcat([0.1, 15., -0.1, 20., 0.5, 0.8, 0.008,0.,0.], [0.,0.01])
 end
 
 
@@ -140,12 +142,12 @@ end
     #    lb::Vector{Float64} = vcat([0., 8., -5., 0., 0., 0.01, 0.005], repeat([eps(),-10.,-10.], sum(ncells)))
     #    ub::Vector{Float64} = vcat([2., 30., 5., 100., 2.5, 1.2, 1.], repeat([100.,10.,10.], sum(ncells)))
     #elseif f == "Sigmoid"
-        lb::Vector{Float64} = vcat([0., 8., -5., 0., 0., 0.01, 0.005], repeat([-100.,0.,-10.,-10.], sum(ncells)))
-        ub::Vector{Float64} = vcat([2., 30., 5., 100., 2.5, 1.2, 1.], repeat([100.,100.,10.,10.], sum(ncells)))
+        lb::Vector{Float64} = vcat([0., 8., -5., 0., 0., 0.01, 0.005, -30., -30.], repeat([-100.,0.,-10.,-10.], sum(ncells)))
+        ub::Vector{Float64} = vcat([2., 30., 5., 100., 2.5, 1.2, 1., 30., 30.], repeat([100.,100.,10.,10.], sum(ncells)))
     #end
     #x0::Vector{Float64} = vcat([0.1, 15., -0.1, 20., 0.5, 0.8, 0.008],
     #    repeat(Vector{Float64}(undef,nparams), sum(ncells)))
-    x0::Vector{Float64} = vcat([0.1, 15., -0.1, 20., 0.5, 0.8, 0.008],
+    x0::Vector{Float64} = vcat([0.1, 15., -0.1, 20., 0.5, 0.8, 0.008, 0., 0.],
         repeat([10.,10.,1.,0.], sum(ncells)))
 end
 

@@ -1,5 +1,5 @@
 
-const dimz = 7
+const dimz = 9
 
 
 """
@@ -80,11 +80,11 @@ are identical for all trials.
 ```jldoctest
 ```
 """
-function initialize_latent_model(σ2_i::TT, B::TT, λ::TT, σ2_a::TT,
+function initialize_latent_model(σ2_i::TT, μ::TT, B::TT, λ::TT, σ2_a::TT,
      n::Int, dt::Float64; lapse::UU=0.) where {TT,UU <: Any}
 
     xc,dx = bins(B,n)
-    P = P0(σ2_i,n,dx,xc,dt; lapse=lapse)
+    P = P0(σ2_i,μ,n,dx,xc,dt; lapse=lapse)
     M = transition_M(σ2_a*dt,λ,zero(TT),dx,xc,n,dt)
 
     return P, M, xc, dx
@@ -96,13 +96,13 @@ end
     P0(σ2_i, n dx, xc, dt; lapse=0.)
 
 """
-function P0(σ2_i::TT, n::Int, dx::VV, xc::Vector{TT}, dt::Float64;
+function P0(σ2_i::TT, μ::TT, n::Int, dx::VV, xc::Vector{TT}, dt::Float64;
     lapse::UU=0.) where {TT,UU,VV <: Any}
 
     P = zeros(TT,n)
     P[ceil(Int,n/2)] = one(TT) - lapse
     P[1], P[n] = lapse/2., lapse/2.
-    M = transition_M(σ2_i,zero(TT),zero(TT),dx,xc,n,dt)
+    M = transition_M(σ2_i,zero(TT),μ,dx,xc,n,dt)
     P = M * P
 
 end
@@ -316,8 +316,18 @@ function adapt_clicks!(ϕ::TT, τ_ϕ::TT, Ca::Vector{TT}, C::Vector{Float64}) wh
     ici = diff(C)
 
     for i = 1:length(ici)
-        arg = xlogy(τ_ϕ, abs(1. - Ca[i]* ϕ))
-        Ca[i+1] = 1. - exp((-ici[i] + arg)/τ_ϕ)
+        
+        #arg = xlogy(τ_ϕ, abs(1. - Ca[i]* ϕ))
+        #Ca[i+1] = 1. - exp((-ici[i] + arg)/τ_ϕ)
+        
+        arg = (1/τ_ϕ) * (-ici[i] + xlogy(τ_ϕ, abs(1. - Ca[i]* ϕ)))
+        
+        if Ca[i]* ϕ <= 1
+            Ca[i+1] = 1. - exp(arg)
+        else
+            Ca[i+1] = 1. + exp(arg)
+        end
+        
     end
 
 end

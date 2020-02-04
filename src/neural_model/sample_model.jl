@@ -23,6 +23,55 @@ function boot_LL(pz,py,data,f_str,i,n)
 end
 =#
 
+"""
+    Sample rates from latent model with multiple rngs, to average over
+"""
+function synthetic_a(θ::θneural, data; num_samples::Int=100)
+
+    @unpack θz,θy,ncells = θ
+
+    a = map(rng-> rand_a.(Ref(θz), θy, data, Ref(rng)), 1:num_samples)
+
+end
+
+
+"""
+    Sample all trials over one session
+"""
+function rand_a(θz, θy, data, rng)
+    
+    ntrials = length(data)
+    rng = sample(Random.seed!(rng), 1:ntrials, ntrials; replace=false)
+    
+    @unpack σ2_i, μ_1, μ_2 = θz
+        
+    if σ2_i > 0.
+        a = sqrt(σ2_i)*randn()
+    else
+        a = zero(typeof(σ2_i))
+    end
+    
+    Output = Vector{Vector{Float64}}(undef, ntrials)
+    choice = map(x-> x.choice, data)
+        
+    for i in 1:length(Output)
+        
+        if i == 1
+            output = rand(θz,θy,data[i].input_data,a; rng=rng[i])
+        elseif choice[i-1] == false
+            output = rand(θz,θy,data[i].input_data,a + μ_1; rng=rng[i])
+        elseif choice[i-1] == true
+            output = rand(θz,θy,data[i].input_data,a + μ_2; rng=rng[i])
+        end
+        
+        Output[i] = output[2]
+
+    end
+    
+    return Output
+
+end
+
 
 """
     Sample rates from latent model with multiple rngs, to average over
@@ -36,7 +85,7 @@ function synthetic_λ(θ::θneural, data; num_samples::Int=100, nconds::Int=2)
     
     μ_c_λ = cond_mean.(μ_λ, data, ncells; nconds=nconds)
     
-    return μ_λ, μ_c_λ
+    return μ_λ, μ_c_λ, λ
 
 end
 
@@ -48,8 +97,33 @@ function rand(θz, θy, data, rng)
     
     ntrials = length(data)
     rng = sample(Random.seed!(rng), 1:ntrials, ntrials; replace=false)
+    
+    @unpack σ2_i, μ_1, μ_2 = θz
+        
+    if σ2_i > 0.
+        a = sqrt(σ2_i)*randn()
+    else
+        a = zero(typeof(σ2_i))
+    end
+    
+    Output = Vector{Vector{Vector{Float64}}}(undef, ntrials)
+    choice = map(x-> x.choice, data)
+        
+    for i in 1:length(Output)
+        
+        if i == 1
+            output = rand(θz,θy,data[i].input_data,a; rng=rng[i])
+        elseif choice[i-1] == false
+            output = rand(θz,θy,data[i].input_data,a + μ_1; rng=rng[i])
+        elseif choice[i-1] == true
+            output = rand(θz,θy,data[i].input_data,a + μ_2; rng=rng[i])
+        end
+        
+        Output[i] = output[1]
 
-    pmap((data,rng) -> rand(θz,θy,data.input_data; rng=rng)[1], data, rng)
+    end
+    
+    return Output
 
 end
 
@@ -86,6 +160,7 @@ function synthetic_data(θ::θneural,
     spikes = getindex.(output, 1)
     λ0 = getindex.(output, 2)
     clicks = getindex.(output, 3)
+    choice = getindex.(output, 4)
 
     output = bin_clicks_spikes_λ0.(spikes, λ0, clicks;
         centered=centered, dt=dt, dt_synthetic=dt_synthetic, synthetic=true)
@@ -107,7 +182,7 @@ function synthetic_data(θ::θneural,
         for i in findall(nT .>= t)]))
         for t in 1:(maximum(nT))], 1:ncells), μ_rnt, ncells, nT)
 
-    neuraldata.(input_data, spikes, ncells), μ_rnt, μ_t
+    neuraldata.(input_data, spikes, ncells, choice), μ_rnt, μ_t
 
 end
 
@@ -140,25 +215,50 @@ function rand(θz, θy, ntrials, ncells, rng; centered::Bool=false, dt::Float64=
     input_data = neuralinputs.(clicks, binned_clicks, λ0, dt, centered)
 
     rng = sample(Random.seed!(rng), 1:ntrials, ntrials; replace=false)
+      
+    @unpack σ2_i, μ_1, μ_2 = θz
+        
+    if σ2_i > 0.
+        a = sqrt(σ2_i)*randn()
+    else
+        a = zero(typeof(σ2_i))
+    end
+    
+    spikes = Vector{Vector{Vector{Int64}}}(undef, ntrials)
+    choice = Vector{Bool}(undef, ntrials)
+        
+    for i in 1:length(spikes)
+        
+        if i == 1
+            output = rand(θz,θy,input_data[i],a; rng=rng[i])
+        elseif choice[i-1] == false
+            output = rand(θz,θy,input_data[i],a + μ_1; rng=rng[i])
+        elseif choice[i-1] == true
+            output = rand(θz,θy,input_data[i],a + μ_2; rng=rng[i])
+        end
+        
+        spikes[i] = output[3]
+        choice[i] = output[4]
 
-    spikes = pmap((input_data,rng) -> rand(θz,θy,input_data; rng=rng)[3], input_data, rng)
+    end
 
-    return spikes, λ0, clicks
+    return spikes, λ0, clicks, choice
 
 end
 
 
 """
 """
-function rand(θz::θz, θy, input_data::neuralinputs; rng::Int=1)
+function rand(θz::θz, θy, input_data::neuralinputs, a; rng::Int=1)
 
     @unpack λ0, dt = input_data
 
     Random.seed!(rng)
-    a = rand(θz,input_data)
+    a = rand(θz,input_data,a)
     λ = map((θy,λ0)-> θy(a, λ0), θy, λ0)
     spikes = map(λ-> rand.(Poisson.(λ*dt)), λ)
-
-    return λ, a, spikes
+    choice = a[end] >= 0.
+    
+    return λ, a, spikes, choice
 
 end

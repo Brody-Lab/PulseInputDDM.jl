@@ -29,7 +29,7 @@ function rand(θ::θchoice, ntrials::Int; dt::Float64=1e-4, rng::Int = 1, center
     rng = sample(Random.seed!(rng), 1:ntrials, ntrials; replace=false)
 
     #choices = rand.(Ref(θ), inputs, rng)
-    choices = pmap((inputs, rng) -> rand(θ, inputs, rng), inputs, rng)
+    choices = pmap((inputs, rng) -> rand(θ, inputs, rng, 0.), inputs, rng)
 
     return clicks, choices
 
@@ -41,12 +41,12 @@ end
 
 Produces L/R choice for one trial, given model parameters and inputs.
 """
-function rand(θ::θchoice, inputs::choiceinputs, rng::Int)
+function rand(θ::θchoice, inputs::choiceinputs, rng::Int, a)
 
     Random.seed!(rng)
     @unpack θz, bias, lapse = θ
 
-    a = rand(θz,inputs)
+    a = rand(θz,inputs,a)
     rand() > lapse ? choice = a[end] >= bias : choice = Bool(round(rand()))
 
 end
