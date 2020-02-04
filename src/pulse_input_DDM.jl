@@ -140,8 +140,8 @@ end
     #    lb::Vector{Float64} = vcat([0., 8., -5., 0., 0., 0.01, 0.005], repeat([eps(),-10.,-10.], sum(ncells)))
     #    ub::Vector{Float64} = vcat([2., 30., 5., 100., 2.5, 1.2, 1.], repeat([100.,10.,10.], sum(ncells)))
     #elseif f == "Sigmoid"
-        lb::Vector{Float64} = vcat([0., 8., -5., 0., 0., 0.01, 0.005], repeat([-100.,0.,-10.,-10.], sum(ncells)))
-        ub::Vector{Float64} = vcat([2., 30., 5., 100., 2.5, 1.2, 1.], repeat([100.,100.,10.,10.], sum(ncells)))
+        lb::Vector{Float64} = vcat([0., 8.,  -5., 0.,   0.,  0.01, 0.005], repeat([-100.,0.,-10.,-10.], sum(ncells)))
+        ub::Vector{Float64} = vcat([30., 32., 5., 200., 5.0, 1.2,  1.],    repeat([ 100.,100.,10.,10.], sum(ncells)))
     #end
     #x0::Vector{Float64} = vcat([0.1, 15., -0.1, 20., 0.5, 0.8, 0.008],
     #    repeat(Vector{Float64}(undef,nparams), sum(ncells)))

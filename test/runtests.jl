@@ -27,7 +27,7 @@ H = Hessian(model, n)
 @test round(norm(H), digits=2) ≈ 9.1
 
 CI, HPSD = CIs(H)
-@test round(norm(CI), digits=2) ≈ 172.88
+@test round(norm(CI), digits=2) ≈ 27478.64
 
 ## Neural model
 f, ncells, ntrials, nparams = "Sigmoid", [1,2], [10,5], 4
@@ -37,7 +37,7 @@ f, ncells, ntrials, nparams = "Sigmoid", [1,2], [10,5], 4
     θy=[[Sigmoid() for n in 1:N] for N in ncells], ncells=ncells,
     nparams=nparams, f=f);
 
-data = synthetic_data(θ, ntrials);
+data, = synthetic_data(θ, ntrials);
 model_gen = neuralDDM(θ, data);
 
 @test round(loglikelihood(model_gen, n), digits=2) ≈ -519.57
