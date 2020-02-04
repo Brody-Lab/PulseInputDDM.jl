@@ -197,9 +197,10 @@ Optimize model parameters. pz and py are dictionaries that contains initial valu
 and specification of which parameters to fit.
 """
 function optimize(data, options::neuraloptions, n::Int;
-        x_tol::Float64=1e-10, f_tol::Float64=1e-6, g_tol::Float64=1e-3,
+        x_tol::Float64=1e-10, f_tol::Float64=1e-9, g_tol::Float64=1e-3,
         iterations::Int=Int(2e3), show_trace::Bool=true,
-        outer_iterations::Int=Int(1e1))
+        outer_iterations::Int=Int(1e1), scaled::Bool=false,
+        extended_trace::Bool=false)
 
     @unpack fit, lb, ub, x0, ncells, f, nparams = options
 
@@ -210,7 +211,8 @@ function optimize(data, options::neuraloptions, n::Int;
 
     output = optimize(x0, ℓℓ, lb, ub; g_tol=g_tol, x_tol=x_tol,
         f_tol=f_tol, iterations=iterations, show_trace=show_trace,
-        outer_iterations=outer_iterations)
+        outer_iterations=outer_iterations, scaled=scaled,
+        extended_trace=extended_trace)
 
     x = Optim.minimizer(output)
     x = stack(x,c,fit)
@@ -220,6 +222,6 @@ function optimize(data, options::neuraloptions, n::Int;
 
     println("optimization complete. converged: $converged \n")
 
-    return model
+    return model, output
 
 end

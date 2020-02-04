@@ -24,7 +24,7 @@ model, = optimize(data, options, n; iterations=5, outer_iterations=1);
 @test round(norm(Flatten.flatten(model.θ)), digits=2) ≈ 25.04
 
 H = Hessian(model, n)
-@test round(norm(H), digits=2) ≈ 40.64
+@test round(norm(H), digits=2) ≈ 9.1
 
 CI, HPSD = CIs(H)
 @test round(norm(CI), digits=2) ≈ 172.88
@@ -63,14 +63,14 @@ x0 = pulse_input_DDM.flatten(θ0)
 @unpack ncells, nparams, f = θ0
 @test round(loglikelihood(x0, data, ncells, nparams, f), digits=2) ≈ -533.09
 
-model = optimize(data, options0; iterations=2, outer_iterations=1)
+model, = optimize(data, options0; iterations=2, outer_iterations=1)
 @test round(norm(pulse_input_DDM.flatten(model.θ)), digits=2) ≈ 61.36 #new init
 
 @test round(norm(gradient(model)), digits=2) ≈ 7.0
 
 options = neuraloptions(ncells=ncells, x0=pulse_input_DDM.flatten(model.θ))
 
-model = optimize(data, options, n; iterations=2, outer_iterations=1)
+model, = optimize(data, options, n; iterations=2, outer_iterations=1)
 @test round(norm(pulse_input_DDM.flatten(model.θ)), digits=2) ≈ 61.26 #new init
 
 H = Hessian(model, n, chuck_size=4)
