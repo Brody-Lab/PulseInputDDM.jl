@@ -4,7 +4,7 @@ using Documenter, pulse_input_DDM
 using Literate
 DocMeta.setdocmeta!(pulse_input_DDM, :DocTestSetup, :(using pulse_input_DDM); recursive=true)
 
-EXAMPLE = joinpath(@__DIR__, "..", "examples", "recover_choice_model.jl")
+EXAMPLE = joinpath(@__DIR__, "..", "examples", "choice model", "recover_choice_model.jl")
 OUTPUT = joinpath(@__DIR__, "src/generated")
 Literate.markdown(EXAMPLE, OUTPUT)
 
@@ -12,7 +12,7 @@ EXAMPLE = joinpath(@__DIR__, "..", "examples", "recover_neural_model.jl")
 OUTPUT = joinpath(@__DIR__, "src/generated")
 Literate.markdown(EXAMPLE, OUTPUT)
 
-EXAMPLE = joinpath(@__DIR__, "..", "examples", "fit_choice_model.jl")
+EXAMPLE = joinpath(@__DIR__, "..", "examples", "choice model", "fit_choice_model.jl")
 OUTPUT = joinpath(@__DIR__, "src/generated")
 Literate.markdown(EXAMPLE, OUTPUT)
 

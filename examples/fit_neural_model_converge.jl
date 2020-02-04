@@ -39,7 +39,7 @@ end
 options = neuraloptions(ncells=ncells, x0=x0, 
     fit=vcat(falses(1), trues(6), trues(sum(ncells)*nparams)), nparams=nparams, f=f)
 
-model = optimize(data, options, n; f_tol=1e-9)
+model, = optimize(data, options, n; f_tol=1e-9)
 
 H = Hessian(model, n)
 CI, HPSD = CIs(H)

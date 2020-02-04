@@ -25,10 +25,10 @@ n = 53
 options0 = neuraloptions(ncells=ncells,
     fit=vcat(falses(dimz), trues(sum(ncells)*nparams)),
     x0=vcat([0., 30., 0. + eps(), 0., 0., 1. - eps(), 0.008], θy0))
-model = optimize(data, options0; iterations=2, outer_iterations=1)
+model, = optimize(data, options0; iterations=2, outer_iterations=1)
 
 options = neuraloptions(ncells=ncells, x0=pulse_input_DDM.flatten(model.θ))
-model = optimize(data, options, n; iterations=2, outer_iterations=1)
+model, = optimize(data, options, n; iterations=2, outer_iterations=1)
 
 # ### Compute Hessian and the confidence interavls
 # Blah blah blah

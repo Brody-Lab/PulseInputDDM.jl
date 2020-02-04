@@ -22,7 +22,7 @@ options = choiceoptions(fit = vcat(trues(9)),
     ub = vcat([2., 30., 5., 100., 2.5, 1.2, 1.], [30, 1.]),
     x0 = vcat([0.1, 8., -0.1, 20., 0.5, 0.4, 0.008], [0.,0.01]))
 
-model = optimize(data, options, n)
+model, = optimize(data, options, n)
 
 # ### Compute Hessian and the confidence interavls
 # Blah blah blah
