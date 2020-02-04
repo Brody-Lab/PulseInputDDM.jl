@@ -34,6 +34,8 @@ include("neural_model/deterministic_model.jl")
 #include("neural_model/sample_model_functions_FP.jl")
 
 export dimz, RTfit
+export sample_clicks_and_choices, sample_choices_all_trials
+export split_variable_and_const, combine_latent_and_observation, split_latent_and_observation, combine_variable_and_const
 export compute_CIs!, optimize_model, compute_LL, compute_Hessian, compute_gradient
 export default_parameters, LL_all_trials
 export bin_clicks!, load_choice_data, bounded_mass_all_trials
@@ -42,6 +44,8 @@ export default_parameters_and_data
 export LL_across_range
 
 export mean_exp_rate_per_trial, mean_exp_rate_per_cond
+
+export diffLR
 
 #=
 
@@ -55,7 +59,6 @@ export sample_spikes_single_session, sample_spikes_single_trial, sample_expected
 export sample_choices_all_trials
 export aggregate_spiking_data, bin_clicks_spikes_and_λ0!
 
-export diffLR
 
 export filter_data_by_cell!
 
