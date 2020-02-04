@@ -6,7 +6,7 @@
     θy=[[Sigmoid() for n in 1:N] for N in ncells], ncells=ncells,
     nparams=nparams, f=f)
 
-data = synthetic_data(θ_syn, ntrials);</code></pre><h3><a class="nav-anchor" id="Optimize-stuff-1" href="#Optimize-stuff-1">Optimize stuff</a></h3><p>Blah blah blah</p><pre><code class="language-julia">n = 53
+data = synthetic_data(θ_syn, ntrials);</code></pre><h3><a class="nav-anchor" id="Optimize-stuff-1" href="#Optimize-stuff-1">Optimize stuff</a></h3><p>Blah blah blah</p><pre><code class="language-">n = 53
 
 θy0 = vcat(vcat(initialize_θy.(data, f)...)...)
 
@@ -16,10 +16,6 @@ options0 = neuraloptions(ncells=ncells,
 model = optimize(data, options0; iterations=2, outer_iterations=1)
 
 options = neuraloptions(ncells=ncells, x0=pulse_input_DDM.flatten(model.θ))
-model = optimize(data, options, n; iterations=2, outer_iterations=1)</code></pre><pre><code class="language-none">neuralDDM{θneural{θz{Float64},Array{Array{Sigmoid{Float64},1},1}},Array{Array{neuraldata,1},1}}
-  θ: θneural{θz{Float64},Array{Array{Sigmoid{Float64},1},1}}
-  data: Array{Array{neuraldata,1}}((2,))
-</code></pre><h3><a class="nav-anchor" id="Compute-Hessian-and-the-confidence-interavls-1" href="#Compute-Hessian-and-the-confidence-interavls-1">Compute Hessian and the confidence interavls</a></h3><p>Blah blah blah</p><pre><code class="language-julia">H = Hessian(model, n, chuck_size=4)
-CI, HPSD = CIs(H);</code></pre><pre><code class="language-none">┌ Warning: Hessian is not positive definite. Approximated by closest PSD matrix.
-│             ||ϵ||/||H|| is 4.888548456033988
-└ @ pulse_input_DDM ~/build/Brody-Lab/pulse_input_DDM/src/base_model.jl:19</code></pre><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p><footer><hr/><a class="previous" href="../recover_choice_model/"><span class="direction">Previous</span><span class="title">Fitting a choice model</span></a><a class="next" href="../../man/vpn_is_annoying/"><span class="direction">Next</span><span class="title">Efficient Remote SSH</span></a></footer></article></body></html>
+model = optimize(data, options, n; iterations=2, outer_iterations=1)</code></pre><h3><a class="nav-anchor" id="Compute-Hessian-and-the-confidence-interavls-1" href="#Compute-Hessian-and-the-confidence-interavls-1">Compute Hessian and the confidence interavls</a></h3><p>Blah blah blah</p><pre><code class="language-">H = Hessian(model, n, chuck_size=4)
+CI, HPSD = CIs(H);
+nothing #hide</code></pre><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p><footer><hr/><a class="previous" href="../recover_choice_model/"><span class="direction">Previous</span><span class="title">Fitting a choice model</span></a><a class="next" href="../../man/vpn_is_annoying/"><span class="direction">Next</span><span class="title">Efficient Remote SSH</span></a></footer></article></body></html>

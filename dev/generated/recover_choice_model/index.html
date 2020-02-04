@@ -6,10 +6,31 @@ options = choiceoptions(fit = vcat(trues(9)),
     ub = vcat([2., 30., 5., 100., 2.5, 1.2, 1.], [30, 1.]),
     x0 = vcat([0.1, 15., -0.1, 20., 0.5, 0.8, 0.008], [0.,0.01]))
 
-model = optimize(data, options, n; iterations=5, outer_iterations=1)</code></pre><pre><code class="language-none">choiceDDM{θchoice{θz{Float64},Float64},Array{choicedata{pulse_input_DDM.choiceinputs{pulse_input_DDM.clicks,pulse_input_DDM.binned_clicks}},1}}
+model = optimize(data, options, n; iterations=5, outer_iterations=1)</code></pre><pre><code class="language-none">(choiceDDM{θchoice{θz{Float64},Float64},Array{choicedata{pulse_input_DDM.choiceinputs{pulse_input_DDM.clicks,pulse_input_DDM.binned_clicks}},1}}
   θ: θchoice{θz{Float64},Float64}
   data: Array{choicedata{pulse_input_DDM.choiceinputs{pulse_input_DDM.clicks,pulse_input_DDM.binned_clicks}}}((10,))
-</code></pre><h3><a class="nav-anchor" id="Compute-Hessian-and-the-confidence-interavls-1" href="#Compute-Hessian-and-the-confidence-interavls-1">Compute Hessian and the confidence interavls</a></h3><p>Blah blah blah</p><pre><code class="language-julia">H = Hessian(model, n)
-CI, HPSD = CIs(H);</code></pre><pre><code class="language-none">┌ Warning: Hessian is not positive definite. Approximated by closest PSD matrix.
-│             ||ϵ||/||H|| is 0.9652628965396166
-└ @ pulse_input_DDM ~/build/Brody-Lab/pulse_input_DDM/src/base_model.jl:19</code></pre><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p><footer><hr/><a class="previous" href="../fit_choice_model/"><span class="direction">Previous</span><span class="title">Loading data and fitting a choice model</span></a><a class="next" href="../recover_neural_model/"><span class="direction">Next</span><span class="title">Fitting a neural model</span></a></footer></article></body></html>
+,  * Status: failure (reached maximum number of iterations)
+
+ * Candidate solution
+    Minimizer: [1.09e-01, 1.50e+01, -1.20e-01,  ...]
+    Minimum:   5.399683e+00
+
+ * Found with
+    Algorithm:     Fminbox with BFGS
+    Initial Point: [1.00e-01, 1.50e+01, -1.00e-01,  ...]
+
+ * Convergence measures
+    |x - x&#39;|               = 8.44e-01 ≰ 1.0e-10
+    |x - x&#39;|/|x&#39;|          = 3.37e-02 ≰ 0.0e+00
+    |f(x) - f(x&#39;)|         = 2.38e+00 ≰ 1.0e-06
+    |f(x) - f(x&#39;)|/|f(x&#39;)| = 4.41e-01 ≰ 0.0e+00
+    |g(x)|                 = 2.87e+00 ≰ 1.0e-03
+
+ * Work counters
+    Seconds run:   4  (vs limit Inf)
+    Iterations:    1
+    f(x) calls:    27
+    ∇f(x) calls:   6
+)</code></pre><h3><a class="nav-anchor" id="Compute-Hessian-and-the-confidence-interavls-1" href="#Compute-Hessian-and-the-confidence-interavls-1">Compute Hessian and the confidence interavls</a></h3><p>Blah blah blah</p><pre><code class="language-">H = Hessian(model, n)
+CI, HPSD = CIs(H);
+nothing #hide</code></pre><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p><footer><hr/><a class="previous" href="../fit_choice_model/"><span class="direction">Previous</span><span class="title">Loading data and fitting a choice model</span></a><a class="next" href="../recover_neural_model/"><span class="direction">Next</span><span class="title">Fitting a neural model</span></a></footer></article></body></html>
