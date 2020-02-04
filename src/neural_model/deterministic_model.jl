@@ -24,7 +24,7 @@ function optimize(data, options::neuraloptions;
 
     println("optimization complete. converged: $converged \n")
 
-    return model
+    return model, output
 
 end
 
