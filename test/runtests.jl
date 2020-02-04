@@ -66,15 +66,15 @@ x0 = pulse_input_DDM.flatten(θ0)
 model, = optimize(data, options0; iterations=2, outer_iterations=1)
 @test round(norm(pulse_input_DDM.flatten(model.θ)), digits=2) ≈ 61.28 #new init
 
-@test round(norm(gradient(model)), digits=2) ≈ 7.0
+@test round(norm(gradient(model)), digits=2) ≈ 2.36
 
 options = neuraloptions(ncells=ncells, x0=pulse_input_DDM.flatten(model.θ))
 
 model, = optimize(data, options, n; iterations=2, outer_iterations=1)
-@test round(norm(pulse_input_DDM.flatten(model.θ)), digits=2) ≈ 61.26 #new init
+@test round(norm(pulse_input_DDM.flatten(model.θ)), digits=2) ≈ 61.31 #new init
 
 H = Hessian(model, n, chuck_size=4)
-@test round(norm(H), digits=2) ≈ 2449.29
+@test round(norm(H), digits=2) ≈ 2594.52
 
 CI, HPSD = CIs(H)
-@test round(norm(CI), digits=2) ≈ 967.12
+@test round(norm(CI), digits=2) ≈ 719.83
