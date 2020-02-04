@@ -9,10 +9,11 @@ Wrapper for executing an unconstrained optimization based on the objective funct
 function optimize(x::Vector{TT}, ll, lb, ub;
         g_tol::Float64=1e-12, x_tol::Float64=1e-16, f_tol::Float64=1e-16,
         iterations::Int=Int(5e3), outer_iterations::Int=Int(1e1), 
-        show_trace::Bool=true, extended_trace::Bool=false) where TT <: Real
+        show_trace::Bool=true, extended_trace::Bool=false,
+        scaled::Bool=false) where TT <: Real
 
     obj = OnceDifferentiable(ll, x; autodiff=:forward)
-    m = BFGS(alphaguess = InitialStatic(alpha=1.0,scaled=true), linesearch = BackTracking())
+    m = BFGS(alphaguess = InitialStatic(alpha=1.0,scaled=scaled), linesearch = BackTracking())
 
     options = Optim.Options(g_tol=g_tol, x_tol=x_tol, f_tol=f_tol,
         iterations= iterations, allow_f_increases=true,
