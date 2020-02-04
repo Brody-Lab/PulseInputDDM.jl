@@ -20,8 +20,7 @@ function default_parameters(;generative::Bool=false)
     if generative
         pz["generative"] = [eps(), rand()*7., rand()*2. - 1., rand()*2., rand()*5., rand()*1.5, rand()]
         pd["generative"] = [0.,0.0]
-
-	pz["initial"][pz["fit"] .== 0] = pz["generative"][pz["fit"] .== 0]
+        pz["initial"][pz["fit"] .== 0] = pz["generative"][pz["fit"] .== 0]
     end
 
     return pz, pd
@@ -309,13 +308,14 @@ end
 """
 function LL_across_range(pz::Dict, pd::Dict, data::Dict, lb, ub; n::Int=53, state::String="state")
 
+    nrange = 20
     fit_vec = combine_latent_and_observation(pz["fit"], pd["fit"])
 
     lb_vec = combine_latent_and_observation(lb[1], lb[2])
     ub_vec = combine_latent_and_observation(ub[1], ub[2])
 
-    LLs = Vector{Vector{Float64}}(undef,length(fit_vec))
-    xs = Vector{Vector{Float64}}(undef,length(fit_vec))
+    LLs = Array{Float64}(undef,length(fit_vec), nrange)
+    xs = Array{Float64}(undef,length(fit_vec), nrange)
 
     ll_θ = compute_LL(pz[state], pd[state], data; n=n)
 
@@ -331,12 +331,56 @@ function LL_across_range(pz::Dict, pd::Dict, data::Dict, lb, ub; n::Int=53, stat
         parameter_map_f(x) = split_latent_and_observation(combine_variable_and_const(x, p_const, fit_vec2))
         ll(x) = compute_LL([x], data, parameter_map_f) - (ll_θ - 1.92)
 
-        xs[i] = range(lb_vec[i], stop=ub_vec[i], length=50)
-        LLs[i] = map(x->ll(x), xs[i])
+        xs[i,:] = range(lb_vec[i], stop=ub_vec[i], length=nrange)
+        LLs[i,:] = map(x->ll(x), xs[i,:])
 
     end
 
     return LLs, xs
+
+end
+
+
+"""
+    LL_across_2params(pz, pd, data)
+
+"""
+function LL_across_2params(pz::Dict, pd::Dict, data::Dict, lb, ub, prm; nrange = 10, n::Int=53, state::String="state")
+
+    fit_vec = combine_latent_and_observation(pz["fit"], pd["fit"])
+
+    lb_vec = combine_latent_and_observation(lb[1], lb[2])
+    ub_vec = combine_latent_and_observation(ub[1], ub[2])
+
+    LLs = Array{Float64}(undef,nrange*nrange)
+    xs = Array{Float64}(undef,length(fit_vec), nrange)
+    ys = Array{Float64}(undef,length(fit_vec), nrange)
+    mesh = Array{Float64,2}(undef,nrange*nrange ,2)
+
+    fit_vec2 = falses(length(fit_vec))
+    fit_vec2[prm[1]] = true
+    fit_vec2[prm[2]] = true
+
+    ll_θ = compute_LL(pz[state], pd[state], data; n=n)
+
+    p_opt, p_const = split_variable_and_const(combine_latent_and_observation(pz[state], pd[state]), fit_vec2)
+
+    parameter_map_f(x) = split_latent_and_observation(combine_variable_and_const(x, p_const, fit_vec2))
+    ll(x) = compute_LL(x, data, parameter_map_f) - (ll_θ - 1.92)
+
+    xs = range(lb_vec[prm[1]], stop=ub_vec[prm[1]], length=nrange)
+    ys = range(lb_vec[prm[2]], stop=ub_vec[prm[2]], length=nrange)
+    i = 1
+    for x = xs, y = ys
+        print(i)
+        mesh[i,1] = x
+        mesh[i,2] = y
+        LLs[i] = ll([x,y])
+        i = i + 1
+    end
+    
+
+    return LLs, mesh
 
 end
 
