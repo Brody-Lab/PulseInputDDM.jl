@@ -50,7 +50,7 @@ end
 """
 function sample_latent(nT::Int, L::Vector{Float64},R::Vector{Float64},
         nL::Vector{Int}, nR::Vector{Int}, 
-        pz::Vector{TT}, a_0::Float64, use_bin_center::Bool; 
+        pz::Vector{TT}, a_0::TT, use_bin_center::Bool; 
         dt::Float64=1e-4) where {TT <: Any}
     
     σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ, η, α_prior, β_prior = pz
@@ -95,13 +95,13 @@ function sample_one_step!(a::TT, t::Int, σ2_a::TT, σ2_s::TT, λ::TT,
     any(t .== nR) ? sR = sum(Ra[t .== nR]) : sR = zero(TT)
     σ2, μ = σ2_s * (sL + sR), -sL + sR  
     
-    η = sqrt(σ2_a * dt + σ2) * randn()
+    ξ = sqrt(σ2_a * dt + σ2) * randn()
     
     if abs(λ) < 1e-150 
-        a += μ + η
+        a += μ + ξ
     else
         h = μ/(dt*λ)
-        a = exp(λ*dt)*(a + h) - h + η
+        a = exp(λ*dt)*(a + h) - h + ξ
     end
     
     return a

@@ -47,7 +47,7 @@ this one is for RT
 """
 function sample_choice_single_trial(nT::Int, L::Vector{Float64}, R::Vector{Float64},
         nL::Vector{Int}, nR::Vector{Int},
-        pz::Vector{Float64},pd::Vector{Float64}, a_0::Float64; use_bin_center::Bool=false, dtMC::Float64=1e-4, rng::Int=1)
+        pz::Vector{Float64},pd::Vector{Float64}, a_0::TT; use_bin_center::Bool=false, dtMC::Float64=1e-4, rng::Int=1) where {TT <: Any}
 
     Random.seed!(rng)
 
@@ -77,7 +77,7 @@ end
 
 """
 """
-function compute_initial_value(data::Dict, η::TT, α_prior::TT, β_prior::TT) where {TT}
+function compute_initial_value(data::Dict, η::TT, α_prior::TT, β_prior::TT) where {TT <: Any}
 
     correct = data["correct"]
     ra = abs.(diff(correct))
@@ -88,7 +88,7 @@ function compute_initial_value(data::Dict, η::TT, α_prior::TT, β_prior::TT) w
     prior_0 = pdf.(prior,x)
     prior_0 = prior_0/sum(prior_0)
 
-    cprob = Array{Float64}(undef, data["ntrials"])
+    cprob = Array{TT}(undef, data["ntrials"]) 
     post = Array{Float64}(undef, size(prior_0))
 
     for i = 1:data["ntrials"]
