@@ -28,9 +28,8 @@ function generate_stimulus(i::Int; tmin::Float64=10.0,tmax::Float64=10.0,clickra
     clicktot = clickrate*Int(ceil.(T))
     
     # these values correspond to a gamma of (-) 0.5, 1.5, 2.5 and 3.5
-    # gamma = 3.5
-    # r = (clickrate*exp(gamma))./(1+exp(gamma))
-    Rbar = rand((15.10, 24.89, 7.29, 32.7, 3.03, 36.96, 1.17, 38.82))
+    # Rbar = (clickrate*exp(gamma))./(1+exp(gamma))
+    Rbar = rand([15.10, 24.89, 7.29, 32.7, 3.03, 36.96, 1.17, 38.82])
     Lbar = clickrate - Rbar
 
     R = cumsum(rand(Exponential(1/Rbar),clicktot))
@@ -60,6 +59,7 @@ function sample_latent(nT::Int, L::Vector{Float64},R::Vector{Float64},
     A = Vector{TT}(undef,nT)
     RT = 0 
 
+    # this is where the initial point would go
     a = sqrt(σ2_i)*randn()
 
     for t = 1:nT

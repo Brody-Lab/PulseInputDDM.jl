@@ -7,13 +7,13 @@ const RTfit = true
 
 """
 function initialize_latent_model(σ2_i::TT, B::TT, λ::TT, σ2_a::TT,
-     n::Int, dt::Float64; L_lapse::UU=0., R_lapse::UU=0.) where {TT,UU <: Any}
+     n::Int, dt::Float64, a_0::TT; L_lapse::UU=0., R_lapse::UU=0.) where {TT,UU <: Any}
 
     #bin centers and number of bins
     xc,dx = bins(B,n)
 
     # make initial latent distribution
-    P = P0(σ2_i,n,dx,xc,dt; L_lapse=L_lapse, R_lapse=R_lapse)
+    P = P0(σ2_i,n,a_0,dx,xc,dt; L_lapse=L_lapse, R_lapse=R_lapse)
 
     # build state transition matrix for times when there are no click inputs
     M = transition_M(σ2_a*dt,λ,zero(TT),dx,xc,n,dt)
@@ -27,14 +27,16 @@ end
     P0(σ2_i, n dx, xc, dt; L_lapse=0., R_lapse=0.)
 
 """
-function P0(σ2_i::TT, n::Int, dx::VV, xc::Vector{TT}, dt::Float64;
+function P0(σ2_i::TT, n::Int, a_0::TT, dx::VV, xc::Vector{TT}, dt::Float64;
         L_lapse::UU=0., R_lapse::UU=0.) where {TT,UU,VV <: Any}
 
     P = zeros(TT,n)
     # make initial delta function
+
+    # this is where the initial point would actually go
     P[ceil(Int,n/2)] = one(TT) - (L_lapse + R_lapse)
     P[1], P[n] = L_lapse, R_lapse
-    M = transition_M(σ2_i,zero(TT),zero(TT),dx,xc,n,dt)
+    M = transition_M(σ2_i,zero(TT),a_0,dx,xc,n,dt)
     P = M * P
 
 end

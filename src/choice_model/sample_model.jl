@@ -26,6 +26,8 @@ function sample_choices_all_trials(data::Dict, pz::Vector{Float64}, pd::Vector{F
     Random.seed!(rng)
     nT,nL,nR = bin_clicks(data["T"],data["leftbups"],data["rightbups"]; dt=dtMC, use_bin_center=use_bin_center)
 
+    # add a function here to compute initial point based on "corrects"
+
     if RTfit == true
         choices = pmap((nT,L,R,nL,nR,rng) -> sample_choice_single_trial(nT,L,R,nL,nR,pz,pd;
                 use_bin_center=use_bin_center, rng=rng), nT, data["leftbups"], data["rightbups"], nL, nR, shuffle(1:length(data["T"])))
@@ -55,4 +57,48 @@ function sample_choice_single_trial(nT::Int, L::Vector{Float64}, R::Vector{Float
         a = sample_latent(nT,L,R,nL,nR,pz,use_bin_center;dt=dtMC)
         rand() > lapse ? choice = a[end] >= bias : choice = Bool(round(rand()))
     end
+end
+
+
+"""
+"""
+function compute_initial_value(data::Dict, η::TT, α_prior::TT, β_prior::TT) where {TT}
+
+    correct = data["correct"]
+    ra = abs.(diff(correct))
+    ra = vcat(0, ra)
+
+    prior = Beta(α_prior, β_prior)
+    x = collect(0:0.01:1)
+    prior_0 = pdf.(prior,x)
+    prior_0 = prior_0/sum(prior_0)
+
+    cprob = Array{Float64}(undef, data["ntrials"])
+    post = Array{Float64}(undef, size(prior_0))
+
+    for i = 1:data["ntrials"]
+        if i == 1
+            prior_i = prior_0
+            Ep_x1_xt_1 = sum(x.*prior_i)
+            cprob[i] = Ep_x1_xt_1
+        else
+            prior_i = η*post + (1-η)*prior_0
+            Ep_x1_xt_1 = sum(x.*prior_i)
+            if correct[i-1] == 1
+                cprob[i] = Ep_x1_xt_1
+            else
+                cprob[i] = 1-Ep_x1_xt_1
+            end
+        end
+
+        if ra[i] == 1
+            post = (1 .- x).* prior_i
+        else
+            post = x.*prior_i
+        end
+        post = post./sum(post)
+    end
+
+    return log.(cprob ./(1 .- cprob))
+
 end
