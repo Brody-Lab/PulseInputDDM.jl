@@ -50,17 +50,18 @@ end
 """
 function sample_latent(nT::Int, L::Vector{Float64},R::Vector{Float64},
         nL::Vector{Int}, nR::Vector{Int}, 
-        pz::Vector{TT}, use_bin_center::Bool; 
+        pz::Vector{TT}, a_0::Float64, use_bin_center::Bool; 
         dt::Float64=1e-4) where {TT <: Any}
     
-    σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ = pz
+    σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ, η, α_prior, β_prior = pz
     La, Ra = make_adapted_clicks(ϕ, τ_ϕ, L, R)
 
     A = Vector{TT}(undef,nT)
     RT = 0 
 
     # this is where the initial point would go
-    a = sqrt(σ2_i)*randn()
+    a = sqrt(σ2_i)+ a_0
+
 
     for t = 1:nT
             

@@ -27,10 +27,12 @@ function sample_choices_all_trials(data::Dict, pz::Vector{Float64}, pd::Vector{F
     nT,nL,nR = bin_clicks(data["T"],data["leftbups"],data["rightbups"]; dt=dtMC, use_bin_center=use_bin_center)
 
     # add a function here to compute initial point based on "corrects"
+    σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ, η, α_prior, β_prior = pz
+    a_0 = compute_initial_value(data, η, α_prior, β_prior)
 
     if RTfit == true
-        choices = pmap((nT,L,R,nL,nR,rng) -> sample_choice_single_trial(nT,L,R,nL,nR,pz,pd;
-                use_bin_center=use_bin_center, rng=rng), nT, data["leftbups"], data["rightbups"], nL, nR, shuffle(1:length(data["T"])))
+        choices = pmap((nT,L,R,nL,nR,a_0,rng) -> sample_choice_single_trial(nT,L,R,nL,nR,pz,pd,a_0;
+                use_bin_center=use_bin_center, rng=rng), nT, data["leftbups"], data["rightbups"], nL, nR, a_0,shuffle(1:length(data["T"])))
     else
         choices = pmap((nT,L,R,nL,nR,rng) -> sample_choice_single_trial(nT,L,R,nL,nR,pz,pd;
                 use_bin_center=use_bin_center, rng=rng), nT, data["leftbups"], data["rightbups"], nL, nR, shuffle(1:length(data["T"])))
@@ -39,7 +41,27 @@ end
 
 
 """
+
+this one is for RT
+
 """
+function sample_choice_single_trial(nT::Int, L::Vector{Float64}, R::Vector{Float64},
+        nL::Vector{Int}, nR::Vector{Int},
+        pz::Vector{Float64},pd::Vector{Float64}, a_0::Float64; use_bin_center::Bool=false, dtMC::Float64=1e-4, rng::Int=1)
+
+    Random.seed!(rng)
+
+    bias,lapse = pd
+
+    a, RT = sample_latent(nT,L,R,nL,nR,pz,a_0,use_bin_center;dt=dtMC)
+    choice = sign(a[RT]) > 0 
+    return choice, RT*dtMC
+    
+end
+"""
+"""
+
+
 function sample_choice_single_trial(nT::Int, L::Vector{Float64}, R::Vector{Float64},
         nL::Vector{Int}, nR::Vector{Int},
         pz::Vector{Float64},pd::Vector{Float64}; use_bin_center::Bool=false, dtMC::Float64=1e-4, rng::Int=1)
@@ -47,16 +69,9 @@ function sample_choice_single_trial(nT::Int, L::Vector{Float64}, R::Vector{Float
     Random.seed!(rng)
 
     bias,lapse = pd
+    a = sample_latent(nT,L,R,nL,nR,pz,use_bin_center;dt=dtMC)
+    rand() > lapse ? choice = a[end] >= bias : choice = Bool(round(rand()))
 
-    if RTfit == true
-        σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ = pz
-        a, RT = sample_latent(nT,L,R,nL,nR,pz,use_bin_center;dt=dtMC)
-        choice = sign(a[RT]) > 0 
-        return choice, RT*dtMC
-    else
-        a = sample_latent(nT,L,R,nL,nR,pz,use_bin_center;dt=dtMC)
-        rand() > lapse ? choice = a[end] >= bias : choice = Bool(round(rand()))
-    end
 end
 
 

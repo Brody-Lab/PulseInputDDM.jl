@@ -11,14 +11,14 @@ function default_parameters(;generative::Bool=false)
               "lb" => [-30, 0.],
               "ub" => [30, 1.])
 
-    pz = Dict("name" => ["σ_i","B", "λ", "σ_a","σ_s","ϕ","τ_ϕ"],
-              "fit" => vcat(false, true, false, false, true, false, false),
-              "initial" => [eps(), 2.,-0.01, 2., 0.1, 0.1, 0.04],
-              "lb" => [0., 1., -5., 0., 0., 0.01, 0.005],
-              "ub" => [2., 15., 5., 100., 5, 1.2, 1.])
+    pz = Dict("name" => ["σ_i","B", "λ", "σ_a","σ_s","ϕ","τ_ϕ","η","α_prior","β_prior"],
+              "fit" => vcat(false, true, false, false, true, false, false, true, true, true),
+              "initial" => [eps(), 2.,-0.01, 2., 0.1, 0.1, 0.04, 0.99, 2., 2.],
+              "lb" => [0., 1., -5., 0., 0., 0.01, 0.005, 0., 0., 0.],
+              "ub" => [2., 15., 5., 100., 5, 1.2, 1., 1., 20., 20.])
 
     if generative
-        pz["generative"] = [eps(), rand()*7., rand()*2. - 1., rand()*2., rand()*5., rand()*1.5, rand()]
+        pz["generative"] = [eps(), rand()*7., rand()*2. - 1., rand()*2., rand()*5., rand()*1.5, rand(), rand(), rand()+1., rand()+1.]
         pd["generative"] = [0.,0.0]
         pz["initial"][pz["fit"] .== 0] = pz["generative"][pz["fit"] .== 0]
     end
