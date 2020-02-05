@@ -8,7 +8,7 @@ EXAMPLE = joinpath(@__DIR__, "..", "examples", "choice model", "recover_choice_m
 OUTPUT = joinpath(@__DIR__, "src/generated")
 Literate.markdown(EXAMPLE, OUTPUT)
 
-EXAMPLE = joinpath(@__DIR__, "..", "examples", "recover_neural_model.jl")
+EXAMPLE = joinpath(@__DIR__, "..", "examples", "neural model", "recover_neural_model.jl")
 OUTPUT = joinpath(@__DIR__, "src/generated")
 Literate.markdown(EXAMPLE, OUTPUT)
 
