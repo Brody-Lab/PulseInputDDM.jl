@@ -27,6 +27,7 @@ export loglikelihood, synthetic_data
 export CIs, optimize, Hessian, gradient
 export load, reload, save, flatten, unflatten
 export initialize_θy, neural_null
+export synthetic_clicks, binLR, bin_clicks
 
 export default_parameters_and_data, compute_LL
 

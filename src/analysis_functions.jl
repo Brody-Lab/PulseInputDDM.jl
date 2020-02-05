@@ -9,8 +9,10 @@ nanstderr(x,y) = mapslices(nanstderr,x,dims=y)
 """
 """
 function diffLR(data)
+    
+    @unpack binned_clicks, clicks, dt = data.input_data
 
-    L,R = binLR(data)
+    L,R = binLR(binned_clicks, clicks, dt)
     cumsum(-L + R)
 
 end
@@ -18,9 +20,8 @@ end
 
 """
 """
-function binLR(data)
+function binLR(binned_clicks, clicks, dt)
 
-    @unpack binned_clicks, clicks, dt = data.input_data
     @unpack L, R = clicks
     @unpack nT = binned_clicks
 
