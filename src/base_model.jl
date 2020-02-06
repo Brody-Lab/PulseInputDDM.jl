@@ -1,20 +1,90 @@
 
 const dimz = 7
 
-"""
-    initialize_latent_model(σ2_i, B, λ, σ2_a, n, dt; L_lapse=0., R_lapse=0.)
 
+"""
+    CIs(H)
+
+Given a Hessian matrix `H`, compute the 2 std confidence intervals based on the Laplace approximation.
+If `H` is not positive definite (which it should be, but might not be due numerical round off, etc.) compute
+a close approximation to it by adding a correction term. The magnitude of this correction is reported.
+
+"""
+function CIs(H::Array{Float64,2}) where T <: DDM
+
+    HPSD = Matrix(cholesky(Positive, H, Val{false}))
+
+    if !isapprox(HPSD,H)
+        norm_ϵ = norm(HPSD - H)/norm(H)
+        @warn "Hessian is not positive definite. Approximated by closest PSD matrix.
+            ||ϵ||/||H|| is $norm_ϵ"
+    end
+
+    CI = 2*sqrt.(diag(inv(HPSD)))
+
+    return CI, HPSD
+
+end
+
+
+"""
+    loglikelihood(model, n)
+
+Given a model, computes the log likelihood for a set of trials.
+```
+"""
+function loglikelihood(model::T, n::Int) where T <: DDM
+
+    @unpack θ, data = model
+    loglikelihood(θ, data, n)
+
+end
+
+
+"""
+    P, M, xc, dx = initialize_latent_model(σ2_i, B, λ, σ2_a, n, dt; lapse=0.)
+
+Creates several variables that are required to compute the LL for each trial, but that
+are identical for all trials.
+
+## PARAMETERS:
+
+- σ2_i       initial variance
+
+- B          bound height
+
+- λ          drift
+
+- σ2_a       accumlator variance
+
+- n          number of bins
+
+- dt         temporal bin width
+
+## OPTIONAL PARAMETERS:
+
+- lapse    lapse rate. Optionaly because only required for choice model.
+
+## RETURNS:
+
+- P    A vector. Discrete approximation to P(a).
+
+- M    A n x n matrix. The transition matrix of P(a_t | a_{t-1})
+
+- xc   A vector. Spatial bin centers
+
+- dx   Scalar. The spacing between spatial bins.
+
+## EXAMPLE CALL:
+
+```jldoctest
+```
 """
 function initialize_latent_model(σ2_i::TT, B::TT, λ::TT, σ2_a::TT,
-     n::Int, dt::Float64; L_lapse::UU=0., R_lapse::UU=0.) where {TT,UU <: Any}
+     n::Int, dt::Float64; lapse::UU=0.) where {TT,UU <: Any}
 
-    #bin centers and number of bins
     xc,dx = bins(B,n)
-
-    # make initial latent distribution
-    P = P0(σ2_i,n,dx,xc,dt; L_lapse=L_lapse, R_lapse=R_lapse)
-
-    # build state transition matrix for times when there are no click inputs
+    P = P0(σ2_i,n,dx,xc,dt; lapse=lapse)
     M = transition_M(σ2_a*dt,λ,zero(TT),dx,xc,n,dt)
 
     return P, M, xc, dx
@@ -23,16 +93,15 @@ end
 
 
 """
-    P0(σ2_i, n dx, xc, dt; L_lapse=0., R_lapse=0.)
+    P0(σ2_i, n dx, xc, dt; lapse=0.)
 
 """
 function P0(σ2_i::TT, n::Int, dx::VV, xc::Vector{TT}, dt::Float64;
-        L_lapse::UU=0., R_lapse::UU=0.) where {TT,UU,VV <: Any}
+    lapse::UU=0.) where {TT,UU,VV <: Any}
 
     P = zeros(TT,n)
-    # make initial delta function
-    P[ceil(Int,n/2)] = one(TT) - (L_lapse + R_lapse)
-    P[1], P[n] = L_lapse, R_lapse
+    P[ceil(Int,n/2)] = one(TT) - lapse
+    P[1], P[n] = lapse/2., lapse/2.
     M = transition_M(σ2_i,zero(TT),zero(TT),dx,xc,n,dt)
     P = M * P
 
@@ -214,10 +283,10 @@ end
 
 
 """
-    make_adapted_clicks(ϕ, τ_ϕ, L, R)
+    adapted_clicks(ϕ, τ_ϕ, L, R)
 
 """
-function make_adapted_clicks(ϕ::TT, τ_ϕ::TT, L::Vector{Float64}, R::Vector{Float64}) where {TT}
+function adapt_clicks(ϕ::TT, τ_ϕ::TT, L::Vector{Float64}, R::Vector{Float64}) where {TT}
 
     La, Ra = ones(TT,length(L)), ones(TT,length(R))
 
@@ -230,8 +299,8 @@ function make_adapted_clicks(ϕ::TT, τ_ϕ::TT, L::Vector{Float64}, R::Vector{Fl
     #    La[1], Ra[1] = eps(), eps()
     #end
 
-    (length(L) > 1 && ϕ != 1.) ? adapt_clicks!(La, L, ϕ, τ_ϕ) : nothing
-    (length(R) > 1 && ϕ != 1.) ? adapt_clicks!(Ra, R, ϕ, τ_ϕ) : nothing
+    (length(L) > 1 && ϕ != 1.) ? adapt_clicks!(ϕ, τ_ϕ, La, L) : nothing
+    (length(R) > 1 && ϕ != 1.) ? adapt_clicks!(ϕ, τ_ϕ, Ra, R) : nothing
 
     return La, Ra
 
@@ -242,13 +311,20 @@ end
     adapt_clicks!(Ca, C, ϕ, τ_ϕ)
 
 """
-function adapt_clicks!(Ca::Vector{TT}, C::Vector{Float64}, ϕ::TT, τ_ϕ::TT) where {TT}
+function adapt_clicks!(ϕ::TT, τ_ϕ::TT, Ca::Vector{TT}, C::Vector{Float64}) where {TT}
 
     ici = diff(C)
 
-    for i = 1:length(ici)
-        arg = xlogy(τ_ϕ, abs(1. - Ca[i]* ϕ))
-        Ca[i+1] = 1. - exp((-ici[i] + arg)/τ_ϕ)
+        for i = 1:length(ici)
+        
+        arg = (1/τ_ϕ) * (-ici[i] + xlogy(τ_ϕ, abs(1. - Ca[i]* ϕ)))
+        
+        if Ca[i]* ϕ <= 1
+            Ca[i+1] = 1. - exp(arg)
+        else
+            Ca[i+1] = 1. + exp(arg)
+        end
+        
     end
 
 end

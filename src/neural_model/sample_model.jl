@@ -1,172 +1,169 @@
-"""
-    mean_exp_rate_per_trial(pz, py, data, f_str; use_bin_center=false, dt=1e-2, num_samples=100)
-Given parameters and model inputs returns the average expected firing rate of the model computed over num_samples number of samples.
-"""
-function mean_exp_rate_per_trial(pz, py, data, f_str::String; use_bin_center::Bool=false, dt::Float64=1e-2, 
-        num_trials::Int=100)
-    
-    output = map(i-> sample_expected_rates_multiple_sessions(pz, py, data, f_str, use_bin_center, dt; rng=i), 1:num_samples)
-    mean(map(k-> output[k][1], 1:length(output)))
-        
-end
-
-
-
-"""
-    mean_exp_rate_per_cond(pz, py, data, f_str; use_bin_center=false, dt=1e-2, num_samples=100)
-
-"""
-function mean_exp_rate_per_cond(pz, py, data, f_str::String; use_bin_center::Bool=false, dt::Float64=1e-2,
-        num_trials::Int=100)
-    
-    μ_rate = mean_exp_rate_per_trial(pz, py, data, f_str; use_bin_center=use_bin_center, dt=dt, num_samples=num_samples)
-    
-    map(i-> condition_mean_varying_duration_trials(μ_rate[i], data[i]["conds"], 
-            data[i]["nconds"], data[i]["N"], data[i]["nT"]), 1:length(data))   
-    
-end
-
-
-"""
-"""
-function condition_mean_varying_duration_trials(μ_rate, conds, nconds, N, nT)
-    
-    map(n-> map(c-> [mean([μ_rate[conds .== c][k][n][t] 
-        for k in findall(nT[conds .== c] .>= t)]) 
-        for t in 1:(maximum(nT[conds .== c]))], 
-                1:nconds), 1:N)
-    
-end
-
-
+#=
 """
 """
 function boot_LL(pz,py,data,f_str,i,n)
     dcopy = deepcopy(data)
-    dcopy["spike_counts"] = sample_spikes_multiple_sessions(pz, py, [dcopy], f_str; rng=i)[1]    
-    
+    dcopy["spike_counts"] = sample_spikes_multiple_sessions(pz, py, [dcopy], f_str; rng=i)[1]
+
     LL_ML = compute_LL(pz, py, [dcopy], n, f_str)
 
-    #LL_null = mapreduce(d-> mapreduce(r-> mapreduce(n-> 
-    #            neural_null(d["spike_counts"][r][n], d["λ0"][r][n], d["dt"]), 
+    #LL_null = mapreduce(d-> mapreduce(r-> mapreduce(n->
+    #            neural_null(d["spike_counts"][r][n], d["λ0"][r][n], d["dt"]),
     #                +, 1:d["N"]), +, 1:d["ntrials"]), +, [data])
 
-    #(LL_ML - LL_null) / dcopy["ntrials"]    
+    #(LL_ML - LL_null) / dcopy["ntrials"]
 
-    LL_null = mapreduce(d-> mapreduce(r-> mapreduce(n-> 
-        neural_null(d["spike_counts"][r][n], map(λ-> f_py(0.,λ, py[1][n],f_str), d["λ0"][r][n]), d["dt"]), 
+    LL_null = mapreduce(d-> mapreduce(r-> mapreduce(n->
+        neural_null(d["spike_counts"][r][n], map(λ-> f_py(0.,λ, py[1][n],f_str), d["λ0"][r][n]), d["dt"]),
             +, 1:d["N"]), +, 1:d["ntrials"]), +, [dcopy])
 
     #return 1. - (LL_ML/LL_null), LL_ML, LL_null
     LL_ML - LL_null
+
+end
+=#
+
+
+"""
+    Sample rates from latent model with multiple rngs, to average over
+"""
+function synthetic_λ(θ::θneural, data; num_samples::Int=100, nconds::Int=2)
+
+    @unpack θz,θy,ncells = θ
+
+    λ = map(rng-> rand.(Ref(θz), θy, data, Ref(rng)), 1:num_samples)
+    μ_λ = mean(λ)
     
+    μ_c_λ = cond_mean.(μ_λ, data, ncells; nconds=nconds)
+    
+    return μ_λ, μ_c_λ
+
+end
+
+
+"""
+    Sample all trials over one session
+"""
+function rand(θz, θy, data, rng)
+    
+    ntrials = length(data)
+    rng = sample(Random.seed!(rng), 1:ntrials, ntrials; replace=false)
+
+    pmap((data,rng) -> rand(θz,θy,data.input_data; rng=rng)[1], data, rng)
+
 end
 
 
 """
 """
-function sample_clicks_and_spikes(pz::Vector{Float64}, py::Vector{Vector{Vector{Float64}}}, 
-        f_str::String, num_sessions::Int, num_trials_per_session::Vector{Int}; use_bin_center::Bool=false,
-        dtMC::Float64=1e-4, rng::Int=0)
+function cond_mean(μ_λ, data, ncells; nconds=2)
         
-    data = map((ntrials,rng)-> sample_clicks(ntrials; rng=rng), num_trials_per_session, (1:num_sessions) .+ rng) 
-      
-    map((data,py) -> data=sample_λ0!(data, py; dtMC=dtMC), data, py)
-    
-    Y = sample_spikes_multiple_sessions(pz, py, data, f_str, use_bin_center, dtMC; rng=rng)      
-    map((data,Y)-> data["spike_counts"] = Y, data, Y) 
-        
-    return data
-    
-end
+    nT = map(x-> x.input_data.binned_clicks.nT, data)
+    ΔLRT = last.(diffLR.(data))
+    conds = encode(LinearDiscretizer(binedges(DiscretizeUniformWidth(nconds), ΔLRT)), ΔLRT)
 
-function sample_λ0!(data, py::Vector{Vector{Float64}}; dtMC::Float64=1e-4, rng::Int=1)
-    
-    data["dt_synthetic"], data["synthetic"], data["N"] = dtMC, true, length(py)
-            
-    #Random.seed!(rng)   
-    #data["λ0"] = [repeat([collect(range(10. *rand(),stop=10. * rand(), 
-    #                    length=Int(ceil(T./dt))))], outer=length(py)) for T in data["T"]]
-    data["λ0"] = [repeat([zeros(Int(ceil(T./dtMC)))], outer=length(py)) for T in data["T"]]
-            
-    return data
-    
+    map(n-> map(c-> [mean([μ_λ[conds .== c][k][n][t]
+        for k in findall(nT[conds .== c] .>= t)])
+        for t in 1:(maximum(nT[conds .== c]))],
+                1:nconds), 1:ncells)
+
 end
 
 
 """
 """
-function sample_spikes_multiple_sessions(pz::Vector{Float64}, py::Vector{Vector{Vector{Float64}}}, 
-        data, f_str::String, use_bin_center::Bool, dt::Float64; rng::Int=1)
+function synthetic_data(θ::θneural,
+        ntrials::Vector{Int}; centered::Bool=true,
+        dt::Float64=1e-2, rng::Int=1, dt_synthetic::Float64=1e-4, pad::Int=10,
+        pos_ramp::Bool=false)
+
+    nsess = length(ntrials)
+    rng = sample(Random.seed!(rng), 1:nsess, nsess; replace=false)
+
+    @unpack θz,θy,ncells = θ
+
+    output = rand.(Ref(θz), θy, ntrials, ncells, rng; pos_ramp=pos_ramp)
+
+    spikes = getindex.(output, 1)
+    λ0 = getindex.(output, 2)
+    clicks = getindex.(output, 3)
+
+    output = bin_clicks_spikes_λ0.(spikes, λ0, clicks;
+        centered=centered, dt=dt, dt_synthetic=dt_synthetic, synthetic=true)
+
+    spikes = getindex.(output, 1)
+    λ0 = getindex.(output, 2)
+    binned_clicks = getindex.(output, 3)
+
+    input_data = neuralinputs.(clicks, binned_clicks, λ0, dt, centered)
     
-    λ, = sample_expected_rates_multiple_sessions(pz, py, data, f_str, use_bin_center, dt; rng=rng) 
-    Y = map((λ,data)-> map(λ-> map(λ-> poisson_noise!.(λ, dt), λ), λ), λ, data)         
-    #Y = map((py,λ0)-> poisson_noise!.(map((a, λ0)-> f_py!(a, λ0, py, f_str), a, λ0), dt), py, λ0)  
-            
-    #this assumes only one spike per bin, which should most often be true at 1e-4, but not guaranteed!
-    #findall(x-> x > 1, pulse_input_DDM.poisson_noise!.(10 * ones(100 * 10 * Int(1. /1e-4)),1e-4))
-    #Y = map((py,λ0)-> findall(x -> x != 0, 
-    #        poisson_noise!.(map((a, λ0)-> f_py!(a, λ0, py, f_str=f_str), a, λ0), dt)) .* dt, py, λ0)   
+    padded = map(spikes-> map(spikes-> map(SCn-> vcat(rand.(Poisson.((sum(SCn[1:10])/(10*dt))*ones(pad)*dt)), 
+                    SCn, rand.(Poisson.((sum(SCn[end-9:end])/(10*dt))*ones(pad)*dt))), spikes), spikes), spikes)
     
-    return Y
+    μ_rnt = map(padded-> filtered_rate.(padded, dt), padded)
     
+    nT = map(x-> map(x-> x.nT, x), binned_clicks)
+    
+    μ_t = map((μ_rnt, ncells, nT)-> map(n-> [max(0., mean([μ_rnt[i][n][t]
+        for i in findall(nT .>= t)]))
+        for t in 1:(maximum(nT))], 1:ncells), μ_rnt, ncells, nT)
+
+    neuraldata.(input_data, spikes, ncells), μ_rnt, μ_t
+
 end
 
 
 """
 """
-function sample_expected_rates_multiple_sessions(pz::Vector{Float64}, py::Vector{Vector{Vector{Float64}}}, 
-        data, f_str::String, use_bin_center::Bool, dt::Float64; rng::Int=1)
-    
-    nsessions = length(data)
-      
-    output = map((data, py)-> sample_expected_rates_single_session(data, pz, py, f_str, use_bin_center, dt; rng=rng), 
-        data, py)   
-    
-    λ = map(x-> x[1], output)
-    a = map(x-> x[2], output)  
-    
-    return λ, a
-    
+synthetic_λ0(clicks, N::Int; dt::Float64=1e-4, rng::Int=1, pos_ramp::Bool=false) = 
+    synthetic_λ0.(clicks, N; dt=dt, rng=rng, pos_ramp=pos_ramp)
+
+
+"""
+"""
+function synthetic_λ0(clicks::clicks, N::Int; dt::Float64=1e-4, rng::Int=1, pos_ramp::Bool=false)
+
+    @unpack T = clicks
+
+    Random.seed!(rng)
+        if pos_ramp
+    λ0 = repeat([collect(range(10. + 5*rand(), stop=20. + 5*rand(), length=Int(ceil(T/dt))))], outer=N)
+    else
+        λ0 = repeat([zeros(Int(ceil(T/dt)))], outer=N)
+    end
+
 end
 
 
 """
 """
-function sample_expected_rates_single_session(data::Dict, pz::Vector{Float64}, py::Vector{Vector{Float64}}, 
-        f_str::String, use_bin_center::Bool, dt::Float64; rng::Int=1)
-    
-    Random.seed!(rng)   
-    
-    T, L, R, λ0 = data["T"], data["leftbups"], data["rightbups"], data["λ0"]
-    nT, nL, nR = bin_clicks(T,L,R;dt=dt, use_bin_center=use_bin_center)
-    
-    output = pmap((λ0,nT,L,R,nL,nR,rng) -> sample_expected_rates_single_trial(pz,py,λ0,nT,L,R,nL,nR,
-        f_str,use_bin_center,dt; rng=rng), λ0, nT, L, R, nL, nR, shuffle(1:length(T)))    
-    
-    λ = map(x-> x[1], output)
-    a = map(x-> x[2], output)  
-    
-    return λ,a
-    
+function rand(θz, θy, ntrials, ncells, rng; centered::Bool=false, dt::Float64=1e-4, pos_ramp::Bool=false)
+
+    clicks = synthetic_clicks.(ntrials, rng)
+    binned_clicks = bin_clicks.(clicks, centered=centered, dt=dt)
+    λ0 = synthetic_λ0.(clicks, ncells; dt=dt, pos_ramp=pos_ramp)
+    input_data = neuralinputs.(clicks, binned_clicks, λ0, dt, centered)
+
+    rng = sample(Random.seed!(rng), 1:ntrials, ntrials; replace=false)
+
+    spikes = pmap((input_data,rng) -> rand(θz,θy,input_data; rng=rng)[3], input_data, rng)
+
+    return spikes, λ0, clicks
+
 end
 
 
 """
 """
-function sample_expected_rates_single_trial(pz::Vector{Float64}, py::Vector{Vector{Float64}}, λ0::Vector{Vector{Float64}}, 
-        nT::Int, L::Vector{Float64}, R::Vector{Float64}, nL::Vector{Int}, nR::Vector{Int},
-        f_str::String, use_bin_center::Bool, dt::Float64; rng::Int=1)
-    
-    Random.seed!(rng)  
-    a = sample_latent(nT,L,R,nL,nR,pz,use_bin_center;dt=dt)
-    λ = map((py,λ0)-> map((a, λ0)-> f_py!(a, λ0, py, f_str), a, λ0), py, λ0)  
-    
-    return λ, a
-    
+function rand(θz::θz, θy, input_data::neuralinputs; rng::Int=1)
+
+    @unpack λ0, dt = input_data
+
+    Random.seed!(rng)
+    a = rand(θz,input_data)
+    λ = map((θy,λ0)-> θy(a, λ0), θy, λ0)
+    spikes = map(λ-> rand.(Poisson.(λ*dt)), λ)
+
+    return λ, a, spikes
+
 end
-
-
-"""
-"""
-poisson_noise!(lambda,dt) = Int(rand(Poisson(lambda*dt)))

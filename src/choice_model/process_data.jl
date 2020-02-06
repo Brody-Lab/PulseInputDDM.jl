@@ -1,141 +1,101 @@
 """
+    load(file)
+
+Given a path to a .mat file containing data (properly formatted), loads data into
+an acceptable format to use with pulse_input_DDM.
 """
-function load_choice_data(path::String, file::String;
-                use_bin_center::Bool=false, dt::Float64=1e-2)
+function load(file::String; centered::Bool=false, dt::Float64=1e-2)
 
-    println("loading data \n")
-    data = read(matopen(path*file), "rawdata")
+    data = read(matopen(file), "rawdata")
 
-    data = process_click_input_data!(data)
-    data = process_choice_data!(data)
-    data = bin_clicks!(data; use_bin_center=use_bin_center, dt=dt)
+    T = vec(data["T"])
+    L = vec(map(x-> vec(collect(x)), data[collect(keys(data))[occursin.("left", collect(keys(data)))][1]]))
+    R = vec(map(x-> vec(collect(x)), data[collect(keys(data))[occursin.("right", collect(keys(data)))][1]]))
+    choices = vec(convert(BitArray, data["pokedR"]))
 
-    return data
+    click_times = clicks.(L, R, T)
+    binned_clicks = bin_clicks.(click_times, centered=centered, dt=dt)
+    inputs = choiceinputs.(click_times, binned_clicks, dt, centered)
+
+    choicedata.(inputs, choices)
 
 end
 
 
 """
+    save(file, model, options, CI)
+
+Given a file, model produced by optimize and options, save the results of the optimization to a .MAT file
 """
-function process_choice_data!(data)
+function save(file, model, options, CI)
 
-    data["pokedR"] = vec(convert(BitArray, data["pokedR"]))
+    @unpack lb, ub, fit = options
+    @unpack θ = model
 
-    if !isempty(occursin.("correct", collect(keys(data))))
-        data["correct"] = vec(convert(BitArray, data[collect(keys(data))[occursin.("correct", collect(keys(data)))][1]]))
-    end
+    dict = Dict("ML_params"=> collect(Flatten.flatten(θ)),
+        "name" => ["σ2_i", "B", "λ", "σ2_a", "σ2_s", "ϕ", "τ_ϕ", "bias", "lapse"],
+        "lb"=> lb, "ub"=> ub, "fit"=> fit,
+        "CI" => CI)
 
-    return data
+    matwrite(file, dict)
 
-end
-
-
-"""
-"""
-function process_click_input_data!(data)
-
-    data["T"] = vec(data["T"])
-    data["leftbups"] = map(x-> vec(collect(x)), data[collect(keys(data))[occursin.("left", collect(keys(data)))][1]])
-    data["rightbups"] = map(x-> vec(collect(x)), data[collect(keys(data))[occursin.("right", collect(keys(data)))][1]])
-
-    return data
-
-end
-
-
-"""
-"""
-function bin_clicks!(data::Dict; use_bin_center::Bool=false, dt::Float64=1e-2)
-
-    data["dt"] = dt
-    data["use_bin_center"] = use_bin_center
-
-    data["nT"], data["binned_leftbups"], data["binned_rightbups"] =
-        bin_clicks(data["T"], data["leftbups"], data["rightbups"], dt=dt, use_bin_center=use_bin_center)
-
-    data["ΔLRT"] = map((nT,L,R)-> diffLR(nT,L,R,data["dt"])[end], data["nT"], data["leftbups"], data["rightbups"])
-    data["ΔLR"] = map((nT,L,R)-> diffLR(nT,L,R,data["dt"]), data["nT"], data["leftbups"], data["rightbups"])
-
-    return data
-
-end
-
-
-"""
-"""
-function bin_clicks(T,L,R;dt::Float64=1e-2, use_bin_center::Bool=false)
-
-    nT = ceil.(Int, round.((T/dt), digits=10))
-    #added on 6/11/19, to avoid problem, such as 0.28/1e-2 = 28.0000000004, etc.
-
-    if use_bin_center
-
-        #so that a(t) is computed to middle of bin
-        nL =  map((x,y)-> map(z-> searchsortedlast((0. -dt/2):dt:(x -dt/2)*dt,z), y), nT, L)
-        nR = map((x,y)-> map(z-> searchsortedlast((0. -dt/2):dt:(x -dt/2)*dt,z), y), nT, R)
-
-    else
-
-        nL =  map((x,y)-> map(z-> searchsortedlast(0.:dt:x*dt,z), y), nT, L)
-        nR = map((x,y)-> map(z-> searchsortedlast(0.:dt:x*dt,z), y), nT, R)
-
-    end
-
-    return nT, nL, nR
-
-end
-
-
-"""
-    save_optimization_parameters(path, file, pz, pd; H=[])
-Given a path and dictionaries produced by optimize_model(), save the results of the optimization to a .MAT file
-"""
-function save_optimization_parameters(path, file, pz, pd; H=[])
-
-    println("done. saving ML parameters! \n")
-    dict = Dict("ML_params"=> vcat(pz["final"], pd["final"]),
-        "name" => vcat(pz["name"], pd["name"]),
-        "lb"=> vcat(pz["lb"], pd["lb"]),
-        "ub"=> vcat(pz["ub"], pd["ub"]),
-        "fit"=> vcat(pz["fit"], pd["fit"]))
-
-    if haskey(pz,"CI_plus_LRtest")
-
-        dict["CI_plus_LRtest"] = vcat(pz["CI_plus_LRtest"], pd["CI_plus_LRtest"])
-        dict["CI_minus_LRtest"] = vcat(pz["CI_minus_LRtest"], pd["CI_minus_LRtest"])
-
-    end
-
-    if haskey(pz,"CI_plus_hessian")
-
-        dict["CI_plus_hessian"] = vcat(pz["CI_plus_hessian"], pd["CI_plus_hessian"])
-        dict["CI_minus_hessian"] = vcat(pz["CI_minus_hessian"], pd["CI_minus_hessian"])
-
-    end
-
+    #=
     if !isempty(H)
         #dict["H"] = H
         hfile = matopen(path*"hessian_"*file, "w")
         write(hfile, "H", H)
         close(hfile)
     end
-
-    matwrite(path*file, dict)
+    =#
 
 end
 
 
 """
-    reload_optimization_parameters(path, file, pz, pd)
+    reload(file)
+    
 Given a path and dictionaries, reload the results of a previous optimization saved as a .MAT file and
 place them in the "state" key of the dictionaires that optimize_model() expects.
 """
-function reload_optimization_parameters(path, file, pz, pd)
+function reload(file)
 
-    println("reloading saved ML params \n")
-    pz["state"] = read(matopen(path*file),"ML_params")[1:dimz]
-    pd["state"] = read(matopen(path*file),"ML_params")[dimz+1:dimz+2]
+    read(matopen(file), "ML_params")
 
-    return pz, pd
+end
+
+
+"""
+    bin_clicks(clicks::Vector{T})
+
+Wrapper to broadcast bin_clicks across a vector of clicks.
+"""
+bin_clicks(clicks::Vector{T}; dt::Float64=1e-2, centered::Bool=false) where T <: Any =
+    bin_clicks.(clicks; dt=dt, centered=centered)
+
+
+"""
+    bin_clicks(clicks)
+
+Bins clicks, based on dt (defaults to 1e-2). 'centered' determines if the bin edges
+occur at 0 and dt (and then ever dt after that), or at -dt/2 and dt/2 (and then
+every dt after that). If the former, the bins align with the binning of spikes
+in the neural model. For choice model, the latter is fine.
+"""
+function bin_clicks(clicks::clicks; dt::Float64=1e-2, centered::Bool=false)
+
+    @unpack T,L,R = clicks
+    nT = ceil(Int, round((T/dt), digits=10))
+
+    if centered
+        nL = searchsortedlast.(Ref((0. -dt/2):dt:(nT -dt/2)*dt), L)
+        nR = searchsortedlast.(Ref((0. -dt/2):dt:(nT -dt/2)*dt), R)
+
+    else
+        nL = searchsortedlast.(Ref(0.:dt:nT*dt), L)
+        nR = searchsortedlast.(Ref(0.:dt:nT*dt), R)
+
+    end
+
+    binned_clicks(nT, nL, nR)
 
 end

@@ -1,39 +1,52 @@
 """
+    synthetic_data(; θ=θchoice(), ntrials=2000, rng=1)
+
+Returns default parameters and ntrials of synthetic data (clicks and choices) organized into a choicedata type.
 """
-function sample_clicks_and_choices(pz::Vector{Float64}, pd::Vector{Float64}, ntrials::Int;
-        dtMC::Float64=1e-4, rng::Int = 1, use_bin_center::Bool=false)
+function synthetic_data(; θ::θchoice=θchoice(), ntrials::Int=2000, rng::Int=1, dt::Float64=1e-2, centered::Bool=false)
 
-    data = sample_clicks(ntrials;rng=rng)
-    data["pokedR"] = sample_choices_all_trials(data, pz, pd; dtMC=dtMC, rng=rng, use_bin_center=use_bin_center)
+    clicks, choices = rand(θ, ntrials; rng=rng)
+    binned_clicks = bin_clicks.(clicks, centered=centered, dt=dt)
+    inputs = choiceinputs.(clicks, binned_clicks, dt, centered)
 
-    return data
+    return θ, choicedata.(inputs, choices)
 
 end
 
 
 """
-"""
-function sample_choices_all_trials(data::Dict, pz::Vector{Float64}, pd::Vector{Float64};
-        dtMC::Float64=1e-4, rng::Int = 1, use_bin_center::Bool=false)
+    rand(θ, ntrials)
 
-    Random.seed!(rng)
-    nT,nL,nR = bin_clicks(data["T"],data["leftbups"],data["rightbups"]; dt=dtMC, use_bin_center=use_bin_center)
-    choices = pmap((nT,L,R,nL,nR,rng) -> sample_choice_single_trial(nT,L,R,nL,nR,pz,pd;
-            use_bin_center=use_bin_center, rng=rng), nT, data["leftbups"], data["rightbups"], nL, nR, shuffle(1:length(data["T"])))
+Produces synthetic clicks and choices for n trials using model parameters θ.
+"""
+function rand(θ::θchoice, ntrials::Int; dt::Float64=1e-4, rng::Int = 1, centered::Bool=false)
+
+    clicks = synthetic_clicks(ntrials, rng)
+    binned_clicks = bin_clicks.(clicks,centered=centered,dt=dt)
+    inputs = choiceinputs.(clicks, binned_clicks, dt, centered)
+
+    ntrials = length(inputs)
+    rng = sample(Random.seed!(rng), 1:ntrials, ntrials; replace=false)
+
+    #choices = rand.(Ref(θ), inputs, rng)
+    choices = pmap((inputs, rng) -> rand(θ, inputs, rng), inputs, rng)
+
+    return clicks, choices
 
 end
 
 
 """
+    rand(θ, inputs, rng)
+
+Produces L/R choice for one trial, given model parameters and inputs.
 """
-function sample_choice_single_trial(nT::Int, L::Vector{Float64}, R::Vector{Float64},
-        nL::Vector{Int}, nR::Vector{Int},
-        pz::Vector{Float64},pd::Vector{Float64}; use_bin_center::Bool=false, dtMC::Float64=1e-4, rng::Int=1)
+function rand(θ::θchoice, inputs::choiceinputs, rng::Int)
 
     Random.seed!(rng)
-    a = sample_latent(nT,L,R,nL,nR,pz,use_bin_center;dt=dtMC)
+    @unpack θz, bias, lapse = θ
 
-    bias,lapse = pd
+    a = rand(θz,inputs)
     rand() > lapse ? choice = a[end] >= bias : choice = Bool(round(rand()))
 
 end
