@@ -1,7 +1,7 @@
 """
 """
 function load_choice_data(path::String, file::String;
-                use_bin_center::Bool=false, dt::Float64=1e-4)
+                use_bin_center::Bool=false, dt::Float64=1e-2)
 
     println("loading data \n")
     data = read(matopen(path*file), "rawdata")
@@ -9,6 +9,7 @@ function load_choice_data(path::String, file::String;
     data = process_click_input_data!(data)
     data = process_choice_data!(data)
     data = bin_clicks!(data; use_bin_center=use_bin_center, dt=dt)
+    data["ntrials"] = Int(length(data["T"]))
 
     return data
 

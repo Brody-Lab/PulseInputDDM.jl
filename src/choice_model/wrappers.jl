@@ -18,7 +18,7 @@ function default_parameters(;generative::Bool=false)
               "ub" => [2., 15., 5., 100., 5, 1.2, 1., 1., 20., 20.])
 
     if generative
-        pz["generative"] = [eps(), 4. +rand()*(7. - 4.), rand()*2. - 1., rand()*2., rand()*2., rand()*1.5, rand(), rand(), rand()+1., rand()+1.]
+        pz["generative"] = [eps(), 4. + rand()*(7. - 4.), rand()*2. - 1., rand()*2., rand()*2., rand()*1.5, rand(), rand(), rand()+1., rand()+1.]
         pd["generative"] = [0.,0.0]
         pz["initial"][pz["fit"] .== 0] = pz["generative"][pz["fit"] .== 0]
     end
