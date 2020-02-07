@@ -310,21 +310,22 @@ function LL_across_range(pz::Dict, pd::Dict, data::Dict, lb, ub; n::Int=53, stat
 
     nrange = 20
     fit_vec = combine_latent_and_observation(pz["fit"], pd["fit"])
+    fit_vec_ids = findall(x-> x == 1, fit_vec)
 
-    lb_vec = combine_latent_and_observation(lb[1], lb[2])
-    ub_vec = combine_latent_and_observation(ub[1], ub[2])
+    lb_vec = combine_latent_and_observation(lb[1][pz["fit"]], lb[2][pd["fit"]])
+    ub_vec = combine_latent_and_observation(ub[1][pz["fit"]], ub[2][pd["fit"]])
 
-    LLs = Array{Float64}(undef,length(fit_vec), nrange)
-    xs = Array{Float64}(undef,length(fit_vec), nrange)
+    LLs = Array{Float64}(undef,length(lb_vec), nrange)
+    xs = Array{Float64}(undef,length(lb_vec), nrange)
 
     ll_θ = compute_LL(pz[state], pd[state], data; n=n)
 
-    for i = 1:length(fit_vec)
+    for i = 1:length(lb_vec)
 
         println(i)
 
         fit_vec2 = falses(length(fit_vec))
-        fit_vec2[i] = true
+        fit_vec2[fit_vec_ids[i]] = true
 
         p_opt, p_const = split_variable_and_const(combine_latent_and_observation(pz[state], pd[state]), fit_vec2)
 

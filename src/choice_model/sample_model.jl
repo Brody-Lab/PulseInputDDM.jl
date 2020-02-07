@@ -4,9 +4,14 @@ function sample_clicks_and_choices(pz::Vector{Float64}, pd::Vector{Float64}, ntr
         dtMC::Float64=1e-4, rng::Int = 1, use_bin_center::Bool=false)
 
     data = sample_clicks(ntrials;rng=rng)
-    data["sessidx"] = Vector{Bool}(undef, 50)
+    data["sessidx"] = Vector{Bool}(undef, ntrials)
     data["sessidx"][:] .= 0
-    data["sessidx"][1] = 1
+    idx = 1
+    data["sessidx"][idx] = 1
+    for i = 1:ntrials/800
+        idx = 400+ceil(Int,rand()*(800-400)) + idx
+        data["sessidx"][idx] = 1
+    end
 
     if RTfit == true
         inp = sample_choices_all_trials(data, pz, pd; dtMC=dtMC, rng=rng, use_bin_center=use_bin_center)
@@ -90,9 +95,9 @@ function compute_initial_value(data::Dict, η::TT, α_prior::TT, β_prior::TT) w
     x = collect(0:0.01:1)
     prior_0 = pdf.(prior,x)
     prior_0 = prior_0/sum(prior_0)
-
-    cprob = Array{TT}(undef, data["ntrials"]) 
+    
     post = Array{Float64}(undef, size(prior_0))
+    cprob = Array{TT}(undef, data["ntrials"]) 
 
     for i = 1:data["ntrials"]
         if data["sessidx"][i] == 1
