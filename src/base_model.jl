@@ -250,8 +250,13 @@ function adapt_clicks!(Ca::Vector{TT}, C::Vector{Float64}, ϕ::TT, τ_ϕ::TT) wh
     ici = diff(C)
 
     for i = 1:length(ici)
-        arg = xlogy(τ_ϕ, abs(1. - Ca[i]* ϕ))
-        Ca[i+1] = 1. - exp((-ici[i] + arg)/τ_ϕ)
+        arg = (1/τ_ϕ) * (-ici[i] + xlogy(τ_ϕ, abs(1. - Ca[i]*ϕ)))
+
+        if Ca[i]*ϕ <= 1
+            Ca[i+1] = 1. - exp(arg)
+        else
+            Ca[i+1] = 1. + exp(arg)
+        end
     end
 
 end
