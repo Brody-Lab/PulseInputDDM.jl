@@ -158,7 +158,7 @@ function transition_M!(F::Array{TT,2}, σ2::TT, λ::TT, μ::TT, dx::UU,
     ps = exp.(-0.5 * (5*deltaidx./ndeltas).^2)
     ps = ps/sum(ps)
 
-    try
+  
     @inbounds for j = 2:n-1
 
         #abs(λ) < 1e-150 ? mu = xc[j] + μ : mu = exp(λ*dt)*(xc[j] + μ/(λ*dt)) - μ/(λ*dt)
@@ -193,7 +193,7 @@ function transition_M!(F::Array{TT,2}, σ2::TT, λ::TT, μ::TT, dx::UU,
                 else
 
                     hp,lp = ceil(Int, (s-xc[2])/dx) + 2, floor(Int, (s-xc[2])/dx) + 2
-                    println(hp, lp)
+                  
                 end
 
                 if hp == lp
@@ -211,11 +211,8 @@ function transition_M!(F::Array{TT,2}, σ2::TT, λ::TT, μ::TT, dx::UU,
             end
 
         end
-
-    catch
-        println(σ2,' ',λ,' ',μ,' ',dx,' ', xc,' ',n)
-    end
-
+	end
+ 
 end
 
 

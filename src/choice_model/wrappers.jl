@@ -12,9 +12,9 @@ function default_parameters(;generative::Bool=false)
               "ub" => [30, 1.])
 
     pz = Dict("name" => ["σ_i","B", "λ", "σ_a","σ_s","ϕ","τ_ϕ","η","α_prior","β_prior"],
-              "fit" => vcat(false, true, false, false, true, false, false, true, true, true),
-              "initial" => [eps(), 4. + rand()*(7. - 4.),-0.001, 1., 2. + rand()* (4. - 2.), 0.2, 0.15, rand(), rand()+1., rand()+1.],
-              "lb" => [0., 1., -5., 0., 0., 0.01, 0.005, 0., 0., 0.],
+              "fit" => vcat(false, true, false, false, true, true, true, true, true, true),
+              "initial" => [eps(), 4. + rand()*(7. - 4.),-0.001, eps(), 2. + rand()* (4. - 2.), 0.2, 0.15, rand(), rand()+1., rand()+1.],
+              "lb" => [0., 1., -5., 0., 0., 0.01, 0.005, 0., 1., 1.],
               "ub" => [2., 15., 5., 100., 5, 1.2, 1., 1., 20., 20.])
 
     if generative
