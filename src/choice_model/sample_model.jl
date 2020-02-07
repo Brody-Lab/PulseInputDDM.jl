@@ -4,6 +4,9 @@ function sample_clicks_and_choices(pz::Vector{Float64}, pd::Vector{Float64}, ntr
         dtMC::Float64=1e-4, rng::Int = 1, use_bin_center::Bool=false)
 
     data = sample_clicks(ntrials;rng=rng)
+    data["sessidx"] = Vector{Bool}(undef, 50)
+    data["sessidx"][:] .= 0
+    data["sessidx"][1] = 1
 
     if RTfit == true
         inp = sample_choices_all_trials(data, pz, pd; dtMC=dtMC, rng=rng, use_bin_center=use_bin_center)
@@ -92,7 +95,7 @@ function compute_initial_value(data::Dict, η::TT, α_prior::TT, β_prior::TT) w
     post = Array{Float64}(undef, size(prior_0))
 
     for i = 1:data["ntrials"]
-        if i == 1
+        if data["sessidx"][i] == 1
             prior_i = prior_0
             Ep_x1_xt_1 = sum(x.*prior_i)
             cprob[i] = Ep_x1_xt_1

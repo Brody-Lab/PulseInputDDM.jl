@@ -9,6 +9,8 @@ function load_choice_data(path::String, file::String;
     data = process_click_input_data!(data)
     data = process_choice_data!(data)
     data = bin_clicks!(data; use_bin_center=use_bin_center, dt=dt)
+  
+    data["sessidx"] = vec(convert(BitArray, data["sessidx"]))
     data["ntrials"] = Int(length(data["T"]))
 
     return data
@@ -99,8 +101,8 @@ function save_optimization_parameters(path, file, pz, pd; H=[])
         "lb"=> vcat(pz["lb"], pd["lb"]),
         "ub"=> vcat(pz["ub"], pd["ub"]),
         "fit"=> vcat(pz["fit"], pd["fit"]),
-#	"generative"=> vcat(pz["generative"], pd["generative"]),
-	"initial"=>vcat(pz["initial"], pd["initial"]))
+	    #   "generative"=> vcat(pz["generative"], pd["generative"]),
+        "initial"=>vcat(pz["initial"], pd["initial"]))
 
 
     if haskey(pz,"CI_plus_LRtest")
