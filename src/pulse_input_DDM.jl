@@ -17,6 +17,7 @@ using PositiveFactorizations, Parameters, Flatten
 import Base.rand
 import Base.Iterators: partition
 import Flatten: flattenable
+using Polynomials, Missings
 
 export choiceDDM, choiceoptions, θchoice, choicedata, θz
 export θneural, neuralDDM, neuraldata, θy, neuraldata

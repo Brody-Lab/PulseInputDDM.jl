@@ -68,48 +68,64 @@ function load(file::String, break_sim_data::Bool, centered::Bool=true;
 
     click_times = clicks.(L, R, T)
     binned_clicks = bin_clicks(click_times, centered=centered, dt=dt)
+    nT = map(x-> x.nT, binned_clicks)
 
     ncells = size(data["spike_times"][1], 2)
-
-    #=
+    
     if break_sim_data
-
-        rawdata["N"] = 1
+        
+        spike_data = Vector(undef, ncells)
+        μ_rnt = Vector(undef, ncells)
+        μ_t = Vector(undef, ncells)
 
         for n = 1:ncells
+            
+            spikes = vec(map(x-> [vec(collect(x[n]))], data["spike_times"]))
 
-            subdata = deepcopy(rawdata)
-            subdata["spike_times"] = vec(map(x-> vec(collect([x[n]])), rawdata["spike_times"]))
-            push!(data, subdata)
+            output = map((spikes, nT)-> bin_spikes(spikes, dt, nT; delay=delay, pad=pad), spikes, nT)
+            spikes = getindex.(output, 1)
+            padded = getindex.(output, 2)
+
+            μ_rnt[n] = filtered_rate.(padded, dt; filtSD=filtSD, cut=cut)
+
+            μ_t[n] = map(n-> [max(0., mean([μ_rnt[n][i][1][t]
+                for i in findall(nT .+ (pad - cut) .>= t)]))
+                for t in 1:(maximum(nT) .+ (pad - cut))], n:n)
+
+            λ0 = map(nT-> bin_λ0(μ_t[n], nT), nT)
+            #λ0 = map(nT-> map(μ_t-> zeros(nT), μ_t), nT)
+
+            input_data = neuralinputs(click_times, binned_clicks, λ0, dt, centered)
+            spike_data[n] = neuraldata(input_data, spikes, 1)
 
         end
 
+        return spike_data, μ_rnt, μ_t
+
     else
-    =#
 
-    spikes = vec(map(x-> vec(vec.(collect.(x))), data["spike_times"]))
+        spikes = vec(map(x-> vec(vec.(collect.(x))), data["spike_times"]))
 
-    #end
+        output = map((spikes, nT)-> bin_spikes(spikes, dt, nT; delay=delay, pad=pad), spikes, nT)
+        spikes = getindex.(output, 1)
+        padded = getindex.(output, 2)
 
-    nT = map(x-> x.nT, binned_clicks)
+        μ_rnt = filtered_rate.(padded, dt; filtSD=filtSD, cut=cut)
 
-    output = map((spikes, nT)-> bin_spikes(spikes, dt, nT; delay=delay, pad=pad), spikes, nT)
-    spikes = getindex.(output, 1)
-    padded = getindex.(output, 2)
+        μ_t = map(n-> [max(0., mean([μ_rnt[i][n][t]
+            for i in findall(nT .+ (pad - cut) .>= t)]))
+            for t in 1:(maximum(nT) .+ (pad - cut))], 1:ncells)
+
+        λ0 = map(nT-> bin_λ0(μ_t, nT), nT)
+        #λ0 = map(nT-> map(μ_t-> zeros(nT), μ_t), nT)
+
+        input_data = neuralinputs(click_times, binned_clicks, λ0, dt, centered)
+        spike_data = neuraldata(input_data, spikes, ncells)
+
+    end
     
-    μ_rnt = filtered_rate.(padded, dt; filtSD=filtSD, cut=cut)
-        
-    μ_t = map(n-> [max(0., mean([μ_rnt[i][n][t]
-        for i in findall(nT .+ (pad - cut) .>= t)]))
-        for t in 1:(maximum(nT) .+ (pad - cut))], 1:ncells)
-    
-    λ0 = map(nT-> bin_λ0(μ_t, nT), nT)
-    #λ0 = map(nT-> map(μ_t-> zeros(nT), μ_t), nT)
+    return spike_data, μ_rnt, μ_t
 
-    input_data = neuralinputs(click_times, binned_clicks, λ0, dt, centered)
-    
-    return neuraldata(input_data, spikes, ncells), μ_rnt, μ_t
-    
 end
 
 

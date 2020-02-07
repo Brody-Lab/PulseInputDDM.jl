@@ -14,9 +14,9 @@ version = "0.3.2"
 
 [[ArrayInterface]]
 deps = ["LinearAlgebra", "Requires", "SparseArrays"]
-git-tree-sha1 = "656fd4bcdf204ea96945d9bc1068c0056013438a"
+git-tree-sha1 = "4f1109cf20b2a31b5196f346bba07b2c61587442"
 uuid = "4fba245c-0d91-5ea0-9b3e-6abc04ee57a9"
-version = "2.3.1"
+version = "2.4.1"
 
 [[AxisArrays]]
 deps = ["Dates", "IntervalSets", "IterTools", "RangeArrays"]
@@ -89,9 +89,9 @@ version = "0.9.1"
 
 [[ColorVectorSpace]]
 deps = ["ColorTypes", "Colors", "FixedPointNumbers", "LinearAlgebra", "SpecialFunctions", "Statistics", "StatsBase"]
-git-tree-sha1 = "59a561934dc2ad6aba4f500aa839c0f1b8fa8314"
+git-tree-sha1 = "cbeacd53a6e7bc4f5c2b4fdebad001649fa6bf8e"
 uuid = "c3611d14-8923-5661-9e6a-0046d554d3a4"
-version = "0.8.2"
+version = "0.8.3"
 
 [[Colors]]
 deps = ["ColorTypes", "FixedPointNumbers", "InteractiveUtils", "Printf", "Reexport"]
@@ -192,6 +192,11 @@ git-tree-sha1 = "743809ded6db3a3145565a71ee9c8b23f3a4c463"
 uuid = "31c24e10-a181-5473-b8eb-7969acd0382f"
 version = "0.22.0"
 
+[[EllipsisNotation]]
+git-tree-sha1 = "65dad386e877850e6fce4fc77f60fe75a468ce9d"
+uuid = "da5c29d0-fa7d-589e-88eb-ea29b0a81949"
+version = "0.4.0"
+
 [[FFTViews]]
 deps = ["CustomUnitRanges", "FFTW"]
 git-tree-sha1 = "70a0cfd9b1c86b0209e38fbfe6d8231fd606eeaf"
@@ -223,9 +228,9 @@ version = "0.8.4"
 
 [[FiniteDiff]]
 deps = ["ArrayInterface", "LinearAlgebra", "Requires", "SparseArrays", "StaticArrays"]
-git-tree-sha1 = "9780052a73314dba08bc427edb9e7a5e8895d447"
+git-tree-sha1 = "eb90294af97b564e6036b49296479d7f667763c0"
 uuid = "6a86dc24-6348-571c-b903-95158fe2bd41"
-version = "2.0.1"
+version = "2.2.0"
 
 [[FixedPointNumbers]]
 git-tree-sha1 = "4aaea64dd0c30ad79037084f8ca2b94348e65eaa"
@@ -290,10 +295,10 @@ deps = ["Markdown"]
 uuid = "b77e0a4c-d291-57a0-90e8-8db25a27a240"
 
 [[IntervalSets]]
-deps = ["Dates", "Statistics"]
-git-tree-sha1 = "4214b48a62eb8f2c292b2ee34a508c256c0cdbc9"
+deps = ["Dates", "EllipsisNotation", "Statistics"]
+git-tree-sha1 = "8a83c4788fdc2e32d08d90214834ec2dc1a54f57"
 uuid = "8197267c-284f-5f27-9208-e0e47529a953"
-version = "0.3.2"
+version = "0.4.0"
 
 [[IterTools]]
 git-tree-sha1 = "05110a2ab1fc5f932622ffea2a003221f4782c18"
@@ -339,9 +344,9 @@ version = "0.7.0"
 
 [[MacroTools]]
 deps = ["DataStructures", "Markdown", "Random"]
-git-tree-sha1 = "e2fc7a55bb2224e203bbd8b59f72b91323233458"
+git-tree-sha1 = "07ee65e03e28ca88bc9a338a3726ae0c3efaa94b"
 uuid = "1914dd2f-81c6-5fcd-8719-6d5c9610ff09"
-version = "0.5.3"
+version = "0.5.4"
 
 [[MappedArrays]]
 git-tree-sha1 = "e2a02fe7ee86a10c707ff1756ab1650b40b140bb"
@@ -363,9 +368,9 @@ uuid = "a63ad114-7e13-5084-954f-fe012c677804"
 
 [[NLSolversBase]]
 deps = ["DiffResults", "Distributed", "FiniteDiff", "ForwardDiff"]
-git-tree-sha1 = "b13b1f97ce88a37dd55ce7ae7e75b81002bf2b9d"
+git-tree-sha1 = "7c4e66c47848562003250f28b579c584e55becc0"
 uuid = "d41bc354-129a-5804-8e4c-c37616107c6c"
-version = "7.6.0"
+version = "7.6.1"
 
 [[NaNMath]]
 git-tree-sha1 = "928b8ca9b2791081dc71a51c55347c27c618760f"
@@ -409,9 +414,9 @@ version = "0.12.0"
 
 [[Parsers]]
 deps = ["Dates", "Test"]
-git-tree-sha1 = "0139ba59ce9bc680e2925aec5b7db79065d60556"
+git-tree-sha1 = "d112c19ccca00924d5d3a38b11ae2b4b268dda39"
 uuid = "69de0a69-1ddd-5017-9359-2bf0b02dc9f0"
-version = "0.3.10"
+version = "0.3.11"
 
 [[Pkg]]
 deps = ["Dates", "LibGit2", "Markdown", "Printf", "REPL", "Random", "SHA", "UUIDs"]
@@ -465,9 +470,9 @@ version = "0.2.0"
 
 [[Requires]]
 deps = ["UUIDs"]
-git-tree-sha1 = "999513b7dea8ac17359ed50ae8ea089e4464e35e"
+git-tree-sha1 = "d37400976e98018ee840e0ca4f9d20baa231dc6b"
 uuid = "ae029012-a4dd-5104-9daa-d747884805df"
-version = "1.0.0"
+version = "1.0.1"
 
 [[Rmath]]
 deps = ["BinaryProvider", "Libdl", "Random", "Statistics"]
