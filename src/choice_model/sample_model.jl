@@ -95,7 +95,7 @@ function compute_initial_value(data::Dict, η::TT, α_prior::TT, β_prior::TT) w
     β_actual = β_prior - α_actual
 
     prior = Beta(α_actual, β_actual)
-    x = collect(0:0.01:1)
+    x = collect(0.001 : 0.001 : 1. - 0.001)
     prior_0 = pdf.(prior,x)
     prior_0 = prior_0/sum(prior_0)
     
