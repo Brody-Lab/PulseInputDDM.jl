@@ -35,6 +35,7 @@ end
 function process_click_input_data!(data)
 
     data["T"] = vec(data["T"])
+    data["trueT"] = vec(data["T"])
     data["leftbups"] = map(x-> vec(collect(x)), data[collect(keys(data))[occursin.("left", collect(keys(data)))][1]])
     data["rightbups"] = map(x-> vec(collect(x)), data[collect(keys(data))[occursin.("right", collect(keys(data)))][1]])
 
