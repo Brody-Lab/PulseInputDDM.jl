@@ -3,7 +3,7 @@
 function sample_clicks_and_choices(pz::Vector{Float64}, pd::Vector{Float64}, ntrials::Int;
         dtMC::Float64=1e-4, rng::Int = 1, use_bin_center::Bool=false)
     
-    σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ, η, α_prior, β_prior, nd = pz
+    σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ, η, α_prior, β_prior = pz
 
 
     data = sample_clicks(ntrials;rng=rng)
@@ -22,7 +22,6 @@ function sample_clicks_and_choices(pz::Vector{Float64}, pd::Vector{Float64}, ntr
         inp = sample_choices_all_trials(data, pz, pd; dtMC=dtMC, rng=rng, use_bin_center=use_bin_center)
         data["pokedR"] = map(i->inp[i][1],1:ntrials)
         data["T"] = map(i->inp[i][2],1:ntrials)
-        data["T"] = data["T"] .+ nd
     else
         data["pokedR"] = sample_choices_all_trials(data, pz, pd; dtMC=dtMC, rng=rng, use_bin_center=use_bin_center)
     end
@@ -41,7 +40,7 @@ function sample_choices_all_trials(data::Dict, pz::Vector{Float64}, pd::Vector{F
     nT,nL,nR = bin_clicks(data["T"],data["leftbups"],data["rightbups"]; dt=dtMC, use_bin_center=use_bin_center)
 
     # add a function here to compute initial point based on "corrects"
-    σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ, η, α_prior, β_prior, nd = pz
+    σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ, η, α_prior, β_prior = pz
     a_0 = compute_initial_value(data, η, α_prior, β_prior)
 
     if RTfit == true

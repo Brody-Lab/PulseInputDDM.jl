@@ -24,16 +24,10 @@ julia> round.(bounded_mass_all_trials(pz["generative"], pd["generative"], data),
 function bounded_mass_all_trials(pz::Vector{TT}, pd::Vector{TT}, data::Dict; n::Int=53) where {TT}
 
     bias, lapse = pd
-    σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ, η, α_prior, β_prior, nd = pz
+    σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ, η, α_prior, β_prior = pz
 
     # computing initial values here
     a_0 = compute_initial_value(data, η, α_prior, β_prior)
-    
-    # adding non-deicision time
-    data["T"][data["trueT"].< nd] .= 0.001
-    data["T"][data["trueT"].>= nd] = data["trueT"][data["trueT"].>= nd] .- nd
-    data = bin_clicks!(data)
-
 
     L, R, nT, nL, nR, choice = data["leftbups"], data["rightbups"], data["nT"], data["binned_leftbups"],
         data["binned_rightbups"], data["pokedR"]
