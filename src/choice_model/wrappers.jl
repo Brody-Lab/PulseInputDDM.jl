@@ -7,13 +7,13 @@ function default_parameters(;generative::Bool=false)
 
     pd = Dict("name" => vcat("bias","lapse"),
               "fit" => vcat(false, false),
-              "initial" => vcat(0.,0.),
+              "initial" => vcat(0.,0.1),
               "lb" => [-30, 0.],
               "ub" => [30, 1.])
 
     #### NOOOOTE: a_prior = a/a+b, b_prior = a+b
     pz = Dict("name" => ["σ_i","B", "λ", "σ_a","σ_s","ϕ","τ_ϕ","η","α_prior","β_prior"],
-              "fit" => vcat(false, true, false, false, true, false, false, true, true, false),
+              "fit" => vcat(false, true, false, false, true, false, false, true, true, true),
               "initial" => [eps(), 4. + rand()*(7. - 4.),-0.001, eps(), 2. + rand()* (4. - 2.), 0.15, 0.02, rand(), rand(), 2.],
               "lb" => [0., 1., -5., 0., 0., 0.01, 0.005, 0., 0., 0.],
               "ub" => [2., 15., 5., 100., 100., 1.2, 1., 1., 1., 30.])
