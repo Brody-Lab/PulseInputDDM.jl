@@ -192,8 +192,13 @@ function P_single_trial!(σ2_i::TT, B::TT, λ::TT, σ2_a::TT, σ2_s::TT, ϕ::TT,
 
         # For the new likelihood =======
         NDtimedist = Gamma(γ_shape, γ_scale)
-        tvec = dt .* collect(nT:-1:1)
-        return Pbounds * pdf.(NDtimedist, tvec)
+        # tvec = dt .* collect(nT:-1:1)
+        # return Pbounds * pdf.(NDtimedist, tvec)
+
+        # if normalization turns out to be a problem
+        tvec = dt .* collect(nT:-1:1) .+ dt
+        tvec_1 = dt .* collect(nT:-1:1) .- dt
+        return Pbounds * (cdf.(NDtimedist, tvec)- cdf.(NDtimedist, tvec_1))  # this will be correct
     else
         return P
     end

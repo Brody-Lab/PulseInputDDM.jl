@@ -22,13 +22,12 @@ function sample_clicks_and_choices(pz::Vector{Float64}, pd::Vector{Float64}, ntr
         inp = sample_choices_all_trials(data, pz, pd; dtMC=dtMC, rng=rng, use_bin_center=use_bin_center)
         data["pokedR"] = map(i->inp[i][1],1:ntrials)
         data["T"] = map(i->inp[i][2],1:ntrials)
-        data["RT"] = map(i->inp[i][2], 1:ntrials)
     else
         data["pokedR"] = sample_choices_all_trials(data, pz, pd; dtMC=dtMC, rng=rng, use_bin_center=use_bin_center)
     end
 
     NDtimedist = Gamma(γ_shape, γ_scale) 
-    data["T"] = data["T"] .+ rand(NDtimedist, data["ntrials"])
+    data["T"] = round.(data["T"] .+ rand(NDtimedist, data["ntrials"]), digits = 4)
 
 
     return data
