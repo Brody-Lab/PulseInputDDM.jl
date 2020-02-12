@@ -34,8 +34,8 @@ function P0(σ2_i::TT, n::Int, a_0::TT, dx::VV, xc::Vector{TT}, dt::Float64;
     # make initial delta function
 
     # this is where the initial point would actually go
-    P[ceil(Int,n/2)] = one(TT) #- (L_lapse + R_lapse)
-    #P[1], P[n] = L_lapse, R_lapse
+    P[ceil(Int,n/2)] = one(TT) - (L_lapse + R_lapse)
+    P[1], P[n] = L_lapse, R_lapse
     M = transition_M(σ2_i,zero(TT),a_0,dx,xc,n,dt)
     P = M * P
 

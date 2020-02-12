@@ -7,7 +7,7 @@ function default_parameters(;generative::Bool=false)
 
     pd = Dict("name" => vcat("bias","lapse"),
               "fit" => vcat(false, false),
-              "initial" => vcat(0.,0.1),
+              "initial" => vcat(0.,0.0),
               "lb" => [-30, 0.],
               "ub" => [30, 1.])
 
@@ -19,7 +19,7 @@ function default_parameters(;generative::Bool=false)
               "ub" => [2., 15., 5., 100., 100., 1.2, 1., 1., 1., 30.])
 
     if generative
-        pz["generative"] = [eps(), 4. + rand()*(7. - 4.), rand()*2. - 1., rand()*2., rand()*2., rand()*1.5, rand(), rand(), rand(), 3. + rand()*(6. - 3.)]
+        pz["generative"] = [eps(), 8., -0.001, eps(), 4., 0.15, 0.02, 0.7, 0.75, 2.]
         pd["generative"] = [0.,0.0]
         pz["initial"][pz["fit"] .== 0] = pz["generative"][pz["fit"] .== 0]
     end
