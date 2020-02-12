@@ -33,11 +33,8 @@ function bounded_mass_all_trials(pz::Vector{TT}, pd::Vector{TT}, data::Dict; n::
         data["binned_rightbups"], data["pokedR"]
     dt = data["dt"]
 
-    # non-decision time distribution
-    NDtimedist = Gamma(γ_shape, γ_scale) 
-
-    P = pmap((L,R,nT,nL,nR,a_0) -> P_single_trial!(σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ, lapse,
-            L, R, nT, nL, nR, a_0, n, dt, NDtimedist), L, R, nT, nL, nR, a_0)
+    P = pmap((L,R,nT,nL,nR,a_0) -> P_single_trial!(σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ, lapse, γ_shape, γ_scale,
+            L, R, nT, nL, nR, a_0, n, dt), L, R, nT, nL, nR, a_0)
     
     # For the previous likelihood ========
     # return log.(eps() .+ (map((P,choice)-> (choice ? P[n] : P[1]), P, choice)))
@@ -148,9 +145,9 @@ end
              L, R, nT, nL, nR, a_0, n, dt)
 
 """
-function P_single_trial!(σ2_i::TT, B::TT, λ::TT, σ2_a::TT, σ2_s::TT, ϕ::TT, τ_ϕ::TT, lapse::TT,
+function P_single_trial!(σ2_i::TT, B::TT, λ::TT, σ2_a::TT, σ2_s::TT, ϕ::TT, τ_ϕ::TT, lapse::TT, γ_shape::TT, γ_scale::TT,
         L::Vector{Float64}, R::Vector{Float64}, nT::Int, nL::Vector{Int}, nR::Vector{Int}, a_0::TT,
-        n::Int, dt::Float64, NDtimedist::Gamma{Float64}) where {TT <: Any}
+        n::Int, dt::Float64) where {TT <: Any}
 
     P,M,xc,dx = initialize_latent_model(σ2_i, B, λ, σ2_a, n, dt, a_0,L_lapse=lapse/2, R_lapse=lapse/2)
 
@@ -194,6 +191,7 @@ function P_single_trial!(σ2_i::TT, B::TT, λ::TT, σ2_a::TT, σ2_s::TT, ϕ::TT,
         # return (P - Pt_1)   # getting the mass that hits the bound at the very last time step
 
         # For the new likelihood =======
+        NDtimedist = Gamma(γ_shape, γ_scale)
         tvec = dt .* collect(nT:-1:1)
         return Pbounds * pdf.(NDtimedist, tvec)
     else
