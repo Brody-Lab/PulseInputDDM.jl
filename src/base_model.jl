@@ -1,5 +1,5 @@
 
-const dimz = 10
+const dimz = 12
 const RTfit = true
 
 """

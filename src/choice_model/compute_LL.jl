@@ -24,7 +24,7 @@ julia> round.(bounded_mass_all_trials(pz["generative"], pd["generative"], data),
 function bounded_mass_all_trials(pz::Vector{TT}, pd::Vector{TT}, data::Dict; n::Int=53) where {TT}
 
     bias, lapse = pd
-    σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ, η, α_prior, β_prior = pz
+    σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ, η, α_prior, β_prior, γ_shape, γ_scale = pz
 
     # computing initial values here
     a_0 = compute_initial_value(data, η, α_prior, β_prior)
@@ -33,11 +33,17 @@ function bounded_mass_all_trials(pz::Vector{TT}, pd::Vector{TT}, data::Dict; n::
         data["binned_rightbups"], data["pokedR"]
     dt = data["dt"]
 
-    P = pmap((L,R,nT,nL,nR,a_0) -> P_single_trial!(σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ, lapse,
-            L, R, nT, nL, nR, a_0, n, dt), L, R, nT, nL, nR, a_0)
- 
-    return log.(eps() .+ (map((P,choice)-> (choice ? P[n] : P[1]), P, choice)))
+    # non-decision time distribution
+    NDtimedist = Gamma(γ_shape, γ_scale) 
 
+    P = pmap((L,R,nT,nL,nR,a_0) -> P_single_trial!(σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ, lapse,
+            L, R, nT, nL, nR, a_0, n, dt, NDtimedist), L, R, nT, nL, nR, a_0)
+    
+    # For the previous likelihood ========
+    # return log.(eps() .+ (map((P,choice)-> (choice ? P[n] : P[1]), P, choice)))
+
+    # For the new likelihood =======
+    return log.(map((P, choice) -> (choice ? P[2] : P[1]), P, choice))
 end
 
 
@@ -144,7 +150,7 @@ end
 """
 function P_single_trial!(σ2_i::TT, B::TT, λ::TT, σ2_a::TT, σ2_s::TT, ϕ::TT, τ_ϕ::TT, lapse::TT,
         L::Vector{Float64}, R::Vector{Float64}, nT::Int, nL::Vector{Int}, nR::Vector{Int}, a_0::TT,
-        n::Int, dt::Float64) where {TT <: Any}
+        n::Int, dt::Float64, NDtimedist::Gamma{Float64}) where {TT <: Any}
 
     P,M,xc,dx = initialize_latent_model(σ2_i, B, λ, σ2_a, n, dt, a_0,L_lapse=lapse/2, R_lapse=lapse/2)
 
@@ -154,21 +160,42 @@ function P_single_trial!(σ2_i::TT, B::TT, λ::TT, σ2_a::TT, σ2_s::TT, ϕ::TT,
 
     #empty transition matrix for time bins with clicks
     F = zeros(TT,n,n)
-    Pt_1 = zeros(TT,n)
-    Ft_1 = zeros(TT,n,n)
+
+    # For the previous likelihood ========
+    # Pt_1 = zeros(TT,n)
+    # Ft_1 = zeros(TT,n,n)
+
+    # For the new likelihood =======
+    Pbounds = zeros(TT, 2, nT)
+
     
     @inbounds for t = 1:nT
     
-        if t == nT-1    
-            Pt_1, Ft_1 = latent_one_step!(P,F,λ,σ2_a,σ2_s,t,nL,nR,La,Ra,M,dx,xc,n,dt)
-        end
+        # For the previous likelihood ========
+        # if t == nT-1    
+        #     Pt_1, Ft_1 = latent_one_step!(P,F,λ,σ2_a,σ2_s,t,nL,nR,La,Ra,M,dx,xc,n,dt)
+        # end
 
         P,F = latent_one_step!(P,F,λ,σ2_a,σ2_s,t,nL,nR,La,Ra,M,dx,xc,n,dt)
-    
+
+        # For the new likelihood =======
+        if t == 1
+            Pbounds[1,t] = P[1]  # left bound
+            Pbounds[2,t] = P[n]  # right bound
+        else 
+            Pbounds[1,t] = P[1] - Pbounds[1, t-1]   # mass differential
+            Pbounds[2,t] = P[n] - Pbounds[2, t-1]   # mass differential
+        end
+
     end
     
     if RTfit == true
-        return (P - Pt_1)   # getting the mass that hits the bound at the very last time step
+        # For the previous likelihood ========
+        # return (P - Pt_1)   # getting the mass that hits the bound at the very last time step
+
+        # For the new likelihood =======
+        tvec = dt .* collect(nT:-1:1)
+        return Pbounds * pdf.(NDtimedist, tvec)
     else
         return P
     end
