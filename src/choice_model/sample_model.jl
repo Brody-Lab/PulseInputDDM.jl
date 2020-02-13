@@ -26,9 +26,8 @@ function sample_clicks_and_choices(pz::Vector{Float64}, pd::Vector{Float64}, ntr
         data["pokedR"] = sample_choices_all_trials(data, pz, pd; dtMC=dtMC, rng=rng, use_bin_center=use_bin_center)
     end
 
-    NDtimedist = Normal(γ_shape, γ_scale) 
+    NDtimedist = TruncatedNormal(γ_shape, γ_scale, 0., 5.) 
     data["T"] = round.(data["T"] .+ rand(NDtimedist, data["ntrials"]), digits = 4)
-    data["T"][data["T"] .<= 0] .= 0.
 
 
     return data

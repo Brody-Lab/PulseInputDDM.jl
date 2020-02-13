@@ -180,8 +180,8 @@ function P_single_trial!(σ2_i::TT, B::TT, λ::TT, σ2_a::TT, σ2_s::TT, ϕ::TT,
             Pbounds[1,t] = P[1]  # left bound
             Pbounds[2,t] = P[n]  # right bound
         else 
-            Pbounds[1,t] = P[1] - Pbounds[1, t-1]   # mass differential
-            Pbounds[2,t] = P[n] - Pbounds[2, t-1]   # mass differential
+            Pbounds[1,t] = P[1] - sum(Pbounds[1, :])   # mass differential
+            Pbounds[2,t] = P[n] - sum(Pbounds[2, :])   # mass differential
         end
 
     end
