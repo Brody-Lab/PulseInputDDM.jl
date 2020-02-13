@@ -191,7 +191,7 @@ function P_single_trial!(σ2_i::TT, B::TT, λ::TT, σ2_a::TT, σ2_s::TT, ϕ::TT,
         # return (P - Pt_1)   # getting the mass that hits the bound at the very last time step
 
         # For the new likelihood =======
-        NDtimedist = Gamma(γ_shape, γ_scale)
+        NDtimedist = Normal(γ_shape, γ_scale)
         tvec = dt .* collect(nT:-1:1)
         return Pbounds * (pdf.(NDtimedist, tvec) .* dt)
 
