@@ -13,13 +13,13 @@ function default_parameters(;generative::Bool=false)
 
     #### NOOOOTE: a_prior = a/a+b, b_prior = a+b
     pz = Dict("name" => ["σ_i","B", "λ", "σ_a","σ_s","ϕ","τ_ϕ","η","α_prior","β_prior", "γ_shape", "γ_scale"],
-              "fit" => vcat(false, true, false, false, true, false, false, true, true, true, true, true),
+              "fit" => vcat(false, true, false, false, true, false, false, false, false, false, true, true),
               "initial" => [eps(), 4. + rand()*(7. - 4.),-0.001, eps(), 2. + rand()* (4. - 2.), 0.15, 0.02, rand(), rand(), 2., 0.02, 1.],
               "lb" => [0., 1., -5., 0., 0., 0.01, 0.005, 0., 0., 0., 0., 0.],
-              "ub" => [2., 15., 5., 100., 100., 1.2, 1., 1., 1., 30., 1., 2.])
+              "ub" => [2., 15., 5., 100., 20., 1.2, 1., 1., 1., 30., 5., 5.])
 
     if generative
-        pz["generative"] = [eps(), 8., -0.001, eps(), 4., 0.15, 0.02, 0.7, 0.75, 2., 0.02, 1.]
+        pz["generative"] = [eps(), 4., -0.001, eps(), 2., 0.15, 0.02, 1.0, 0.75, 2., 1.9, 0.07894]
         pd["generative"] = [0.,0.0]
         pz["initial"][pz["fit"] .== 0] = pz["generative"][pz["fit"] .== 0]
     end
