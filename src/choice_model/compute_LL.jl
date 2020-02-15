@@ -24,10 +24,13 @@ julia> round.(bounded_mass_all_trials(pz["generative"], pd["generative"], data),
 function bounded_mass_all_trials(pz::Vector{TT}, pd::Vector{TT}, data::Dict; n::Int=53) where {TT}
 
     bias, lapse = pd
-    σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ, η, α_prior, β_prior, γ_shape, γ_scale = pz
+    σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ, η, α_prior, β_prior, B_0, γ_shape, γ_scale = pz
 
     # computing initial values here
     a_0 = compute_initial_value(data, η, α_prior, β_prior)
+
+    # adding the bias to a_0
+    a_0 = a_0 .+ B_0
 
     L, R, nT, nL, nR, choice = data["leftbups"], data["rightbups"], data["nT"], data["binned_leftbups"],
         data["binned_rightbups"], data["pokedR"]
@@ -40,7 +43,7 @@ function bounded_mass_all_trials(pz::Vector{TT}, pd::Vector{TT}, data::Dict; n::
     # return log.(eps() .+ (map((P,choice)-> (choice ? P[n] : P[1]), P, choice)))
 
     # For the new likelihood =======
-    return log.(map((P, choice) -> (choice ? P[2] : P[1]), P, choice))
+    return log.(eps() .+ map((P, choice) -> (choice ? P[2] : P[1]), P, choice))
 end
 
 
@@ -191,7 +194,7 @@ function P_single_trial!(σ2_i::TT, B::TT, λ::TT, σ2_a::TT, σ2_s::TT, ϕ::TT,
         # return (P - Pt_1)   # getting the mass that hits the bound at the very last time step
 
         # For the new likelihood =======
-        NDtimedist = Normal(γ_shape, γ_scale)
+        NDtimedist = Gamma(γ_shape, γ_scale)
         tvec = dt .* collect(nT:-1:1)
         return Pbounds * (pdf.(NDtimedist, tvec) .* dt)
 

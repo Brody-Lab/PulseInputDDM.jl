@@ -34,8 +34,8 @@ function generate_stimulus(i::Int; tmin::Float64=10.0,tmax::Float64=10.0,clickra
 
     R = cumsum(rand(Exponential(1/Rbar),clicktot))
     L = cumsum(rand(Exponential(1/Lbar),clicktot))
-    R = vcat(0,R[R .<= T])
-    L = vcat(0,L[L .<= T])
+    R = vcat(R[R .<= T])
+    L = vcat(L[L .<= T])
     
     T = ceil.(T, digits=2)
     correct = Bool(Rbar > Lbar)
@@ -53,7 +53,7 @@ function sample_latent(nT::Int, L::Vector{Float64},R::Vector{Float64},
         pz::Vector{TT}, a_0::TT, use_bin_center::Bool; 
         dt::Float64=1e-4) where {TT <: Any}
     
-    σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ, η, α_prior, β_prior, γ_shape, γ_scale = pz
+    σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ, η, α_prior, β_prior, B_0, γ_shape, γ_scale = pz
     La, Ra = make_adapted_clicks(ϕ, τ_ϕ, L, R)
 
     A = Vector{TT}(undef,nT)
@@ -73,10 +73,10 @@ function sample_latent(nT::Int, L::Vector{Float64},R::Vector{Float64},
 
         abs(a) > B ? (a = B * sign(a); A[t:nT] .= a; RT = t; break) : A[t] = a
 	
-	# this should be handles in a better way, but for now to prevent fatal errors
-	if t == nT
-	     RT = t
-	end 
+	   # this should be handles in a better way, but for now to prevent fatal errors
+	   if t == nT
+	       RT = t
+	   end 
 
     end               
     

@@ -3,7 +3,7 @@
 function sample_clicks_and_choices(pz::Vector{Float64}, pd::Vector{Float64}, ntrials::Int;
         dtMC::Float64=1e-4, rng::Int = 1, use_bin_center::Bool=false)
     
-    σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ, η, α_prior, β_prior, γ_shape, γ_scale = pz
+    σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ, η, α_prior, β_prior, B_0, γ_shape, γ_scale = pz
 
 
     data = sample_clicks(ntrials;rng=rng)
@@ -26,7 +26,7 @@ function sample_clicks_and_choices(pz::Vector{Float64}, pd::Vector{Float64}, ntr
         data["pokedR"] = sample_choices_all_trials(data, pz, pd; dtMC=dtMC, rng=rng, use_bin_center=use_bin_center)
     end
 
-    NDtimedist = TruncatedNormal(γ_shape, γ_scale, 0., 5.) 
+    NDtimedist = Gamma(γ_shape, γ_scale) 
     data["T"] = round.(data["T"] .+ rand(NDtimedist, data["ntrials"]), digits = 4)
 
 
@@ -38,14 +38,15 @@ end
 """
 """
 function sample_choices_all_trials(data::Dict, pz::Vector{Float64}, pd::Vector{Float64};
-        dtMC::Float64=1e-4, rng::Int = 1, use_bin_center::Bool=false)
+        dtMC::Float64=1e-2, rng::Int = 1, use_bin_center::Bool=false)
 
     Random.seed!(rng)
     nT,nL,nR = bin_clicks(data["T"],data["leftbups"],data["rightbups"]; dt=dtMC, use_bin_center=use_bin_center)
 
     # add a function here to compute initial point based on "corrects"
-    σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ, η, α_prior, β_prior, γ_shape, γ_scale = pz
+    σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ, η, α_prior, β_prior, B_0, γ_shape, γ_scale = pz
     a_0 = compute_initial_value(data, η, α_prior, β_prior)
+    a_0 = a_0 .+ B_0 # adding bias to initial point
 
     if RTfit == true
         choices = pmap((nT,L,R,nL,nR,a_0,rng) -> sample_choice_single_trial(nT,L,R,nL,nR,pz,pd,a_0;
