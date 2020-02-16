@@ -36,7 +36,7 @@ function sample_choices_all_trials(data::Dict, pz::Vector{Float64}, pd::Vector{F
     nT,nL,nR = bin_clicks(data["T"],data["leftbups"],data["rightbups"]; dt=dtMC, use_bin_center=use_bin_center)
 
     # add a function here to compute initial point based on "corrects"
-    σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ, η, α_prior, β_prior, B_0, γ_shape, γ_scale, γ_shape1, γ_scale1 = pz
+    σ2_i, B, B_λ, λ, σ2_a, σ2_s, ϕ, τ_ϕ, η, α_prior, β_prior, B_0, γ_shapeL, γ_scaleL, γ_shapeR, γ_scaleR = pz
     a_0 = compute_initial_value(data, η, α_prior, β_prior)
     a_0 = a_0 .+ B_0 # adding bias to initial point
 
@@ -64,15 +64,15 @@ function sample_choice_single_trial(nT::Int, L::Vector{Float64}, R::Vector{Float
     bias,lapse = pd
 
     a, RT = sample_latent(nT,L,R,nL,nR,pz,a_0,use_bin_center;dt=dtMC)
-    σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ, η, α_prior, β_prior, B_0, γ_shape, γ_scale, γ_shape1, γ_scale1 = pz
+    σ2_i, B, B_λ, λ, σ2_a, σ2_s, ϕ, τ_ϕ, η, α_prior, β_prior, B_0, γ_shapeL, γ_scaleL, γ_shapeR, γ_scaleR = pz
 
     choice = sign(a[RT]) > 0 
 
     if sign(a[RT]) > 0
-        ndtime = InverseGaussian(γ_shape1, γ_scale1)
+        ndtime = Gamma(γ_shapeR, γ_scaleR)
         RT = round(RT*dtMC + rand(ndtime, 1)[1], digits = 4)
     else
-        ndtime = InverseGaussian(γ_shape, γ_scale)
+        ndtime = Gamma(γ_shapeL, γ_scaleL)
         RT = round(RT*dtMC + rand(ndtime, 1)[1], digits = 4)
     end
 

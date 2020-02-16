@@ -24,7 +24,7 @@ julia> round.(bounded_mass_all_trials(pz["generative"], pd["generative"], data),
 function bounded_mass_all_trials(pz::Vector{TT}, pd::Vector{TT}, data::Dict; n::Int=53) where {TT}
 
     bias, lapse = pd
-    σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ, η, α_prior, β_prior, B_0, γ_shape, γ_scale, γ_shape1, γ_scale1 = pz
+    σ2_i, B, B_λ, λ, σ2_a, σ2_s, ϕ, τ_ϕ, η, α_prior, β_prior, B_0, γ_shapeL, γ_scaleL, γ_shapeR, γ_scaleR = pz
 
     # computing initial values here
     a_0 = compute_initial_value(data, η, α_prior, β_prior)
@@ -36,11 +36,8 @@ function bounded_mass_all_trials(pz::Vector{TT}, pd::Vector{TT}, data::Dict; n::
         data["binned_rightbups"], data["pokedR"]
     dt = data["dt"]
 
-    P = pmap((L,R,nT,nL,nR,a_0) -> P_single_trial!(σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ, lapse, γ_shape, γ_scale, γ_shape1, γ_scale1,
+    P = pmap((L,R,nT,nL,nR,a_0) -> P_single_trial!(σ2_i, B, B_λ, λ, σ2_a, σ2_s, ϕ, τ_ϕ, lapse, γ_shapeL, γ_scaleL, γ_shapeR, γ_scaleR,
             L, R, nT, nL, nR, a_0, n, dt), L, R, nT, nL, nR, a_0)
-    
-    # For the previous likelihood ========
-    # return log.(eps() .+ (map((P,choice)-> (choice ? P[n] : P[1]), P, choice)))
 
     # For the new likelihood =======
     return log.(eps() .+ map((P, choice) -> (choice ? P[2] : P[1]), P, choice))
@@ -148,60 +145,59 @@ end
              L, R, nT, nL, nR, a_0, n, dt)
 
 """
-function P_single_trial!(σ2_i::TT, B::TT, λ::TT, σ2_a::TT, σ2_s::TT, ϕ::TT, τ_ϕ::TT, lapse::TT, γ_shape::TT, γ_scale::TT, γ_shape1::TT, γ_scale1::TT,
+function P_single_trial!(σ2_i::TT, B::TT, B_λ::TT, λ::TT, σ2_a::TT, σ2_s::TT, ϕ::TT, τ_ϕ::TT, lapse::TT, γ_shapeL::TT, γ_scaleL::TT, γ_shapeR::TT, γ_scaleR::TT,
         L::Vector{Float64}, R::Vector{Float64}, nT::Int, nL::Vector{Int}, nR::Vector{Int}, a_0::TT,
         n::Int, dt::Float64) where {TT <: Any}
 
-    P,M,xc,dx = initialize_latent_model(σ2_i, B, λ, σ2_a, n, dt, a_0,L_lapse=lapse/2, R_lapse=lapse/2)
+    absB = 1
 
-    
+    P,xc,dx = initialize_latent_model(σ2_i, B, λ, σ2_a, n, dt, a_0, absB, L_lapse=lapse/2, R_lapse=lapse/2)
+
+    # computing sticky bounds for each time step -- this will fail if the collapse is really high 
+    Bt = zeros(TT,nT)
+    numsticky = zeros(TT,nT)
+    tv = collect(1:nT)
+    Bt = B .- B.*(1 .- exp.((B_λ*dt).*tv))
+    numsticky = [absB; absB .+ floor.(Int, cumsum(abs.(diff(Bt))./dx))]
+
     #adapt magnitude of the click inputs
     La, Ra = make_adapted_clicks(ϕ,τ_ϕ,L,R)
 
-    #empty transition matrix for time bins with clicks
+    # empty transition matrix for time bins with clicks
     F = zeros(TT,n,n)
-
-    # For the previous likelihood ========
-    # Pt_1 = zeros(TT,n)
-    # Ft_1 = zeros(TT,n,n)
 
     # For the new likelihood =======
     Pbounds = zeros(TT, 2, nT)
 
     
     @inbounds for t = 1:nT
-    
-        # For the previous likelihood ========
-        # if t == nT-1    
-        #     Pt_1, Ft_1 = latent_one_step!(P,F,λ,σ2_a,σ2_s,t,nL,nR,La,Ra,M,dx,xc,n,dt)
-        # end
 
-        P,F = latent_one_step!(P,F,λ,σ2_a,σ2_s,t,nL,nR,La,Ra,M,dx,xc,n,dt)
+        absB = floor.(Int, numsticky[t])
+
+        P,F = latent_one_step!(P,F,λ,σ2_a,σ2_s,t,nL,nR,La,Ra,dx,xc,n,dt,absB)
 
         # For the new likelihood =======
         if t == 1
-            Pbounds[1,t] = P[1]  # left bound
-            Pbounds[2,t] = P[n]  # right bound
+            Pbounds[1,t] = sum(P[1:absB])  # left bound
+            Pbounds[2,t] = sum(P[end-(absB-1):end])  # right bound
         else 
-            Pbounds[1,t] = P[1] - sum(Pbounds[1, :])   # mass differential
-            Pbounds[2,t] = P[n] - sum(Pbounds[2, :])   # mass differential
+            Pbounds[1,t] = sum(P[1:absB]) - sum(Pbounds[1, :])   # mass differential
+            Pbounds[2,t] = sum(P[end-(absB-1):end])  - sum(Pbounds[2, :])   # mass differential
         end
 
     end
     
     if RTfit == true
-        # For the previous likelihood ========
-        # return (P - Pt_1)   # getting the mass that hits the bound at the very last time step
-
+        
         # For the new likelihood =======
-        NDtimedist = InverseGaussian(γ_shape, γ_scale)
-        NDtimedist1 = InverseGaussian(γ_shape1, γ_scale1)
+        NDtimedistL = Gamma(γ_shapeL, γ_scaleL)
+        NDtimedistR = Gamma(γ_shapeR, γ_scaleR)
 
         tvec = dt .* collect(nT:-1:1)
 
         pback = zeros(TT,2)
-        pback[1] = transpose(Pbounds[1,:]) * (pdf.(NDtimedist, tvec) .* dt)
-        pback[2] = transpose(Pbounds[2,:]) * (pdf.(NDtimedist1, tvec) .* dt)
+        pback[1] = transpose(Pbounds[1,:]) * (pdf.(NDtimedistL, tvec) .* dt)
+        pback[2] = transpose(Pbounds[2,:]) * (pdf.(NDtimedistR, tvec) .* dt)
         return pback
 
     else
@@ -210,42 +206,6 @@ function P_single_trial!(σ2_i::TT, B::TT, λ::TT, σ2_a::TT, σ2_s::TT, ϕ::TT,
 end
 
 
-
-"""
-    P_single_trial!(λ, σ2_a, σ2_s, ϕ, τ_ϕ,
-        P, M, dx, xc, L, R, nT, nL, nR, n, dt)
-
-"""
-function P_single_trial!(λ::TT, σ2_a::TT, σ2_s::TT, ϕ::TT, τ_ϕ::TT,
-        P::Vector{TT}, M::Array{TT,2}, dx::UU,
-        xc::Vector{TT}, L::Vector{Float64}, R::Vector{Float64}, nT::Int,
-        nL::Vector{Int}, nR::Vector{Int},
-        n::Int, dt::Float64) where {TT,UU <: Any}
-
-    #adapt magnitude of the click inputs
-    La, Ra = make_adapted_clicks(ϕ,τ_ϕ,L,R)
-
-    #empty transition matrix for time bins with clicks
-    F = zeros(TT,n,n)
-    Pt_1 = zeros(TT,n)
-    Ft_1 = zeros(TT,n,n)
-    
-    @inbounds for t = 1:nT
-    
-        if t == nT-1    
-            Pt_1, Ft_1 = latent_one_step!(P,F,λ,σ2_a,σ2_s,t,nL,nR,La,Ra,M,dx,xc,n,dt)
-        end
-
-        P,F = latent_one_step!(P,F,λ,σ2_a,σ2_s,t,nL,nR,La,Ra,M,dx,xc,n,dt)
-    
-    end
-    
-    if RTfit == true
-        return (P - Pt_1)   # getting the mass that hits the bound at the very last time step
-    else
-        return P
-    end
-end
 
 
 # """
