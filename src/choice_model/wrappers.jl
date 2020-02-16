@@ -16,7 +16,7 @@ function default_parameters(;generative::Bool=false)
               "fit" => vcat(false, true, false, false, true, false, false, true, true, true, true, true, true, true, true),
               "initial" => [eps(), 4. + rand()*(7. - 4.),-0.001, eps(), 2. + rand()* (4. - 2.), 0.15, 0.02, rand(), rand(), rand() * 2., rand(), rand(), rand(), rand(), rand()],
               "lb" => [0., 1., -5., 0., 0., 0.01, 0.005, 0., 0., 0., -15., 0., 0., 0., 0.],
-              "ub" => [2., 15., 5., 100., 20., 1.2, 1., 1., 1., 30., 15., 5., 5., 5., 5.])
+              "ub" => [2., 15., 5., 20., 20., 1.2, 1., 1., 1., 30., 15., 5., 5., 5., 5.])
 
     if generative
         pz["generative"] = [eps(), 4. + rand()*(7. - 4.), -0.001, eps(), 0.5 + rand()* (3. - 0.5), 0.15, 0.02, 1., 0.5, 2., 1., rand(), rand(), rand(), rand()]

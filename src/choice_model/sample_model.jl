@@ -69,11 +69,11 @@ function sample_choice_single_trial(nT::Int, L::Vector{Float64}, R::Vector{Float
     choice = sign(a[RT]) > 0 
 
     if sign(a[RT]) > 0
-        ndtime = Gamma(γ_shape1, γ_scale1)
-        RT = round(RT*dtMC + rand(ndtime, 1), digits = 4)
+        ndtime = InverseGaussian(γ_shape1, γ_scale1)
+        RT = round(RT*dtMC + rand(ndtime, 1)[1], digits = 4)
     else
-        ndtime = Gamma(γ_shape, γ_scale)
-        RT = round(RT*dtMC + rand(ndtime, 1), digits = 4)
+        ndtime = InverseGaussian(γ_shape, γ_scale)
+        RT = round(RT*dtMC + rand(ndtime, 1)[1], digits = 4)
     end
 
     return choice, RT
