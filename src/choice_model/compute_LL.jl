@@ -24,7 +24,7 @@ julia> round.(bounded_mass_all_trials(pz["generative"], pd["generative"], data),
 function bounded_mass_all_trials(pz::Vector{TT}, pd::Vector{TT}, data::Dict; n::Int=53) where {TT}
 
     bias, lapse = pd
-    σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ, η, α_prior, β_prior, B_0, γ_shape, γ_scale = pz
+    σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ, η, α_prior, β_prior, B_0, γ_shape, γ_scale, γ_shape1, γ_scale1 = pz
 
     # computing initial values here
     a_0 = compute_initial_value(data, η, α_prior, β_prior)
@@ -36,7 +36,7 @@ function bounded_mass_all_trials(pz::Vector{TT}, pd::Vector{TT}, data::Dict; n::
         data["binned_rightbups"], data["pokedR"]
     dt = data["dt"]
 
-    P = pmap((L,R,nT,nL,nR,a_0) -> P_single_trial!(σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ, lapse, γ_shape, γ_scale,
+    P = pmap((L,R,nT,nL,nR,a_0) -> P_single_trial!(σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ, lapse, γ_shape, γ_scale, γ_shape1, γ_scale1,
             L, R, nT, nL, nR, a_0, n, dt), L, R, nT, nL, nR, a_0)
     
     # For the previous likelihood ========
@@ -148,7 +148,7 @@ end
              L, R, nT, nL, nR, a_0, n, dt)
 
 """
-function P_single_trial!(σ2_i::TT, B::TT, λ::TT, σ2_a::TT, σ2_s::TT, ϕ::TT, τ_ϕ::TT, lapse::TT, γ_shape::TT, γ_scale::TT,
+function P_single_trial!(σ2_i::TT, B::TT, λ::TT, σ2_a::TT, σ2_s::TT, ϕ::TT, τ_ϕ::TT, lapse::TT, γ_shape::TT, γ_scale::TT, γ_shape1::TT, γ_scale1::TT,
         L::Vector{Float64}, R::Vector{Float64}, nT::Int, nL::Vector{Int}, nR::Vector{Int}, a_0::TT,
         n::Int, dt::Float64) where {TT <: Any}
 
@@ -195,13 +195,15 @@ function P_single_trial!(σ2_i::TT, B::TT, λ::TT, σ2_a::TT, σ2_s::TT, ϕ::TT,
 
         # For the new likelihood =======
         NDtimedist = Gamma(γ_shape, γ_scale)
-        tvec = dt .* collect(nT:-1:1)
-        return Pbounds * (pdf.(NDtimedist, tvec) .* dt)
+        NDtimedist1 = Gamma(γ_shape1, γ_scale1)
 
-        # if normalization turns out to be a problem
-        # tvec = dt .* collect(nT:-1:1) .+ dt
-        # tvec_1 = dt .* collect(nT:-1:1) .- dt
-        # return Pbounds * (cdf.(NDtimedist, tvec)- cdf.(NDtimedist, tvec_1))  # this will be correct
+        tvec = dt .* collect(nT:-1:1)
+
+        pback = zeros(TT,2)
+        pback[1] = transpose(Pbounds[1,:]) * (pdf.(NDtimedist, tvec) .* dt)
+        pback[2] = transpose(Pbounds[2,:]) * (pdf.(NDtimedist1, tvec) .* dt)
+        return pback
+
     else
         return P
     end

@@ -12,14 +12,14 @@ function default_parameters(;generative::Bool=false)
               "ub" => [30, 1.])
 
     #### NOOOOTE: a_prior = a/a+b, b_prior = a+b
-    pz = Dict("name" => ["σ_i","B", "λ", "σ_a","σ_s","ϕ","τ_ϕ","η","α_prior","β_prior","B_0","γ_shape", "γ_scale"],
-              "fit" => vcat(false, true, true, false, true, true, true, true, true, true, true, true, true),
-              "initial" => [eps(), 4. + rand()*(7. - 4.),-0.001, eps(), 2. + rand()* (4. - 2.), 0.15, 0.02, rand(), rand(), rand() * 2., rand(), rand(), rand()],
-              "lb" => [0., 1., -5., 0., 0., 0.01, 0.005, 0., 0., 0., -15., 0., 0.],
-              "ub" => [2., 15., 5., 100., 20., 1.2, 1., 1., 1., 30., 15., 1., 5.])
+    pz = Dict("name" => ["σ_i","B", "λ", "σ_a","σ_s","ϕ","τ_ϕ","η","α_prior","β_prior","B_0","γ_shape", "γ_scale", "γ_shape1", "γ_scale1"],
+              "fit" => vcat(false, true, false, false, true, false, false, true, true, true, true, true, true, true, true),
+              "initial" => [eps(), 4. + rand()*(7. - 4.),-0.001, eps(), 2. + rand()* (4. - 2.), 0.15, 0.02, rand(), rand(), rand() * 2., rand(), rand(), rand(), rand(), rand()],
+              "lb" => [0., 1., -5., 0., 0., 0.01, 0.005, 0., 0., 0., -15., 0., 0., 0., 0.],
+              "ub" => [2., 15., 5., 100., 20., 1.2, 1., 1., 1., 30., 15., 5., 5., 5., 5.])
 
     if generative
-        pz["generative"] = [eps(), 4. + rand()*(7. - 4.), -0.001, eps(), 0.5 + rand()* (3. - 0.5), 0.15, 0.02, 1., 0.5, 2., 1., rand(), rand()]
+        pz["generative"] = [eps(), 4. + rand()*(7. - 4.), -0.001, eps(), 0.5 + rand()* (3. - 0.5), 0.15, 0.02, 1., 0.5, 2., 1., rand(), rand(), rand(), rand()]
         pd["generative"] = [0.,0.0]
         pz["initial"][pz["fit"] .== 0] = pz["generative"][pz["fit"] .== 0]
     end
