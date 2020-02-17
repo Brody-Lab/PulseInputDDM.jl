@@ -157,8 +157,9 @@ function P_single_trial!(σ2_i::TT, B::TT, B_λ::TT, λ::TT, σ2_a::TT, σ2_s::T
     Bt = zeros(TT,nT)
     numsticky = zeros(TT,nT)
     tv = collect(1:nT)
-    Bt = B .- B.*(1 .- exp.((B_λ*dt).*tv))
-    numsticky = [absB; absB .+ floor.(Int, cumsum(abs.(diff(Bt))./dx))]
+    Bt =  B .* exp.((B_λ*dt).*tv)
+    numsticky = absB .+ floor.(Int, cumsum(abs.(diff(Bt))./dx))
+    numsticky = [numsticky; numsticky[end]]
 
     #adapt magnitude of the click inputs
     La, Ra = make_adapted_clicks(ϕ,τ_ϕ,L,R)

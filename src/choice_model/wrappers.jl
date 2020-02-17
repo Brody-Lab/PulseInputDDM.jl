@@ -311,7 +311,7 @@ function LL_across_range(pz::Dict, pd::Dict, data::Dict, lb, ub; n::Int=53, stat
 
     println("I am here don't worry \n")
 
-    nrange = 20
+    nrange = 10
     fit_vec = combine_latent_and_observation(pz["fit"], pd["fit"])
     fit_vec_ids = findall(x-> x == 1, fit_vec)
 

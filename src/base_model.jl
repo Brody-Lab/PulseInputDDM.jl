@@ -150,7 +150,7 @@ function transition_M!(F::Array{TT,2}, σ2::TT, λ::TT, μ::TT, dx::UU,
     ps = ps/sum(ps)
 
   
-    @inbounds for j = 2:n-1
+    @inbounds for j = absB+1:n-absB
 
         #abs(λ) < 1e-150 ? mu = xc[j] + μ : mu = exp(λ*dt)*(xc[j] + μ/(λ*dt)) - μ/(λ*dt)
         #abs(λ) < 1e-150 ? mu = xc[j] + h * dt : mu = exp(λ*dt)*(xc[j] + h/λ) - h/λ
