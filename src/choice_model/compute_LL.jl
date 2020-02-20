@@ -154,12 +154,16 @@ function P_single_trial!(σ2_i::TT, B::TT, B_λ::TT, λ::TT, σ2_a::TT, σ2_s::T
     P,xc,dx = initialize_latent_model(σ2_i, B, λ, σ2_a, n, dt, a_0, absB, L_lapse=lapse/2, R_lapse=lapse/2)
 
     # computing sticky bounds for each time step -- this will fail if the collapse is really high 
-    Bt = zeros(TT,nT)
-    numsticky = zeros(TT,nT)
-    tv = collect(1:nT)
-    Bt =  B .* exp.((B_λ*dt).*tv)
-    numsticky = absB .+ floor.(Int, cumsum(abs.(diff(Bt))./dx))
-    numsticky = [numsticky; numsticky[end]]
+    if nT >= 2
+        Bt = zeros(TT,nT)
+        numsticky = zeros(TT,nT)
+        tv = collect(1:nT)
+        Bt =  B .* exp.((B_λ*dt).*tv)
+        numsticky = absB .+ floor.(Int, cumsum(abs.(diff(Bt))./dx))
+        numsticky = [numsticky; numsticky[end]]
+    else
+        numsticky = absB
+    end
 
     #adapt magnitude of the click inputs
     La, Ra = make_adapted_clicks(ϕ,τ_ϕ,L,R)
