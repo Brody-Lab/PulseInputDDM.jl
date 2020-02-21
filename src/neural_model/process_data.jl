@@ -92,10 +92,10 @@ function load(file::String, break_sim_data::Bool, centered::Bool=true;
                 for i in findall(nT .+ (pad - cut) .>= t)]))
                 for t in 1:(maximum(nT) .+ (pad - cut))], n:n)
 
-            λ0 = map(nT-> bin_λ0(μ_t[n], nT), nT)
+            #λ0 = map(nT-> bin_λ0(μ_t[n], nT), nT)
             #λ0 = map(nT-> map(μ_t-> zeros(nT), μ_t), nT)
 
-            input_data = neuralinputs(click_times, binned_clicks, λ0, dt, centered)
+            input_data = neuralinputs(click_times, binned_clicks, dt, centered)
             spike_data[n] = neuraldata(input_data, spikes, 1)
 
         end
@@ -116,10 +116,10 @@ function load(file::String, break_sim_data::Bool, centered::Bool=true;
             for i in findall(nT .+ (pad - cut) .>= t)]))
             for t in 1:(maximum(nT) .+ (pad - cut))], 1:ncells)
 
-        λ0 = map(nT-> bin_λ0(μ_t, nT), nT)
+        #λ0 = map(nT-> bin_λ0(μ_t, nT), nT)
         #λ0 = map(nT-> map(μ_t-> zeros(nT), μ_t), nT)
 
-        input_data = neuralinputs(click_times, binned_clicks, λ0, dt, centered)
+        input_data = neuralinputs.(click_times, binned_clicks, dt, centered)
         spike_data = neuraldata(input_data, spikes, ncells)
 
     end
@@ -134,15 +134,14 @@ end
 #function bin_clicks_spikes_λ0(data::Dict; centered::Bool=true,
 #        dt::Float64=1e-2, delay::Float64=0., pad::Int=10, filtSD::Int=5)
 
-function bin_clicks_spikes_λ0(spikes, λ0, clicks; centered::Bool=true,
+function bin_clicks_spikes_λ0(spikes, clicks; centered::Bool=true,
         dt::Float64=1e-2, delay::Float64=0., dt_synthetic::Float64=1e-4,
         synthetic::Bool=false)
 
     spikes = bin_spikes(spikes, dt, dt_synthetic)
-    λ0 = bin_λ0(λ0, dt, dt_synthetic)
     binned_clicks = bin_clicks(clicks, centered=centered, dt=dt)
 
-    return spikes, λ0, binned_clicks
+    return spikes, binned_clicks
 
     #T, L, R = data["T"], data["leftbups"], data["rightbups"]
     #binned_clicks = bin_clicks(clicks(L, R, T, data["ntrials"]), centered=centered, dt=dt)
@@ -193,7 +192,7 @@ function bin_spikes(spike_times::Vector{Vector{Float64}}, dt, nT::Int; delay::Fl
     trial = map(x-> fit(Histogram, vec(collect(x .- delay)), 
             collect(range(0, stop=nT*dt, length=nT+1)), closed=:left).weights, spike_times)
 
-    padded = map(x-> fit(Histogram, vec(collect(x .- delay)), 
+    padded = map(x-> fit(Histogram, vec(collect(x)), 
             collect(range(-pad*dt, stop=(nT+pad)*dt, length=(nT+2*pad)+1)), closed=:left).weights, spike_times)
 
 

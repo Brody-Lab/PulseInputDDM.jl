@@ -5,12 +5,12 @@ function optimize(data, options::neuraloptions;
         iterations::Int=Int(2e3), show_trace::Bool=true,
         outer_iterations::Int=Int(1e1))
 
-    @unpack fit, lb, ub, x0, ncells, f, nparams = options
+    @unpack fit, lb, ub, x0, ncells, f, nparams, npolys = options
 
     lb, = unstack(lb, fit)
     ub, = unstack(ub, fit)
     x0,c = unstack(x0, fit)
-    ℓℓ(x) = -loglikelihood(stack(x,c,fit), data, ncells, nparams, f)
+    ℓℓ(x) = -loglikelihood(stack(x,c,fit), data, ncells, nparams, f, npolys)
 
     output = optimize(x0, ℓℓ, lb, ub; g_tol=g_tol, x_tol=x_tol,
         f_tol=f_tol, iterations=iterations, show_trace=show_trace,
@@ -18,7 +18,7 @@ function optimize(data, options::neuraloptions;
 
     x = Optim.minimizer(output)
     x = stack(x,c,fit)
-    θ = unflatten(x, ncells, nparams, f)
+    θ = unflatten(x, ncells, nparams, f, npolys)
     model = neuralDDM(θ, data)
     converged = Optim.converged(output)
 
@@ -36,9 +36,9 @@ A wrapper function that accepts a vector of mixed parameters, splits the vector
 into two vectors based on the parameter mapping function provided as an input. Used
 in optimization, Hessian and gradient computation.
 """
-function loglikelihood(x::Vector{T1}, data, ncells, nparams, f) where {T1 <: Real}
+function loglikelihood(x::Vector{T1}, data, ncells, nparams, f, npolys) where {T1 <: Real}
 
-    θ = unflatten(x, ncells, nparams, f)
+    θ = unflatten(x, ncells, nparams, f, npolys)
     loglikelihood(θ, data)
 
 end
@@ -50,10 +50,10 @@ end
 function gradient(model::neuralDDM)
 
     @unpack θ, data = model
-    @unpack ncells, nparams, f = θ
+    @unpack ncells, nparams, f, npolys = θ
     x = flatten(θ)
     #x = [flatten(θ)...]
-    ℓℓ(x) = -loglikelihood(x, data, ncells, nparams, f)
+    ℓℓ(x) = -loglikelihood(x, data, ncells, nparams, f, npolys)
 
     ForwardDiff.gradient(ℓℓ, x)
 
@@ -64,10 +64,10 @@ end
 """
 function loglikelihood(θ, data)
 
-    @unpack θz, θy = θ
+    @unpack θz, θμ, θy = θ
 
-    sum(map((θy, data) -> sum(pmap(data-> loglikelihood(θz, θy, data), data,
-        batch_size=length(data))), θy, data))
+    sum(map((θy, θμ, data) -> sum(pmap(data-> loglikelihood(θz, θμ, θy, data), data,
+        batch_size=length(data))), θy, θμ, data))
 
 end
 
@@ -84,11 +84,11 @@ end
 
 """
 """
-function loglikelihood(θz, θy, data::neuraldata)
+function loglikelihood(θz, θμ, θy, data::neuraldata)
 
     @unpack spikes, input_data = data
     @unpack dt = input_data
-    λ, = loglikelihood(θz,θy,input_data)
+    λ, = loglikelihood(θz,θμ,θy,input_data)
     sum(logpdf.(Poisson.(vcat(λ...)*dt), vcat(spikes...)))
 
 end
@@ -96,12 +96,13 @@ end
 
 """
 """
-function loglikelihood(θz::θz, θy, input_data::neuralinputs)
+function loglikelihood(θz::θz, θμ, θy, input_data::neuralinputs)
 
-    @unpack λ0, dt = input_data
+    @unpack binned_clicks, dt = input_data
+    @unpack nT = binned_clicks
 
     a = rand(θz,input_data)
-    λ = map((θy,λ0)-> θy(a, λ0), θy, λ0)
+    λ = map((θy,θμ)-> θy(a, θμ(1:nT)), θy, θμ)
 
     return λ, a
 

@@ -21,7 +21,7 @@ using Polynomials, Missings
 
 export choiceDDM, choiceoptions, θchoice, choicedata, θz
 export θneural, neuralDDM, neuraldata, θy, neuraldata
-export Sigmoid, Softplus, neuraloptions
+export Sigmoid, Softplus, Sigmoidoptions
 
 export dimz
 export loglikelihood, synthetic_data
@@ -52,6 +52,7 @@ export filter_data_by_cell!
 =#
 
 abstract type DDM end
+abstract type neuraloptions end
 abstract type DDMdata end
 abstract type DDMθ end
 
@@ -110,16 +111,13 @@ end
 @with_kw struct neuralinputs{T1,T2}
     clicks::T1
     binned_clicks::T2
-    λ0::Vector{Vector{Float64}}
     dt::Float64
     centered::Bool
 end
 
 
-"""
-"""
-neuralinputs(clicks, binned_clicks, λ0::Vector{Vector{Vector{Float64}}}, dt::Float64, centered::Bool) =
-    neuralinputs.(clicks, binned_clicks, λ0, dt, centered)
+#neuralinputs(clicks, binned_clicks, dt::Float64, centered::Bool) =
+#    neuralinputs.(clicks, binned_clicks, dt, centered)
 
 """
 """
@@ -133,21 +131,20 @@ end
 
 """
 """
-@with_kw struct neuraloptions
+@with_kw struct Sigmoidoptions <: neuraloptions
     ncells::Vector{Int}
     nparams::Int = 4
+    npolys::Int = 4
     f::String = "Sigmoid"
-    fit::Vector{Bool} = vcat(trues(dimz+sum(ncells)*nparams))
-    #if f == "Softplus"
-    #    lb::Vector{Float64} = vcat([0., 8., -5., 0., 0., 0.01, 0.005], repeat([eps(),-10.,-10.], sum(ncells)))
-    #    ub::Vector{Float64} = vcat([2., 30., 5., 100., 2.5, 1.2, 1.], repeat([100.,10.,10.], sum(ncells)))
-    #elseif f == "Sigmoid"
-        lb::Vector{Float64} = vcat([0., 8.,  -5., 0.,   0.,  0.01, 0.005], repeat([-100.,0.,-10.,-10.], sum(ncells)))
-        ub::Vector{Float64} = vcat([30., 32., 5., 200., 5.0, 1.2,  1.],    repeat([ 100.,100.,10.,10.], sum(ncells)))
-    #end
-    #x0::Vector{Float64} = vcat([0.1, 15., -0.1, 20., 0.5, 0.8, 0.008],
-    #    repeat(Vector{Float64}(undef,nparams), sum(ncells)))
+    fit::Vector{Bool} = vcat(trues(dimz + sum(ncells)*npolys + sum(ncells)*nparams))
+    lb::Vector{Float64} = vcat([0., 8.,  -5., 0.,   0.,  0.01, 0.005],
+        repeat(-Inf * ones(npolys), sum(ncells)),
+        repeat([-100.,0.,-10.,-10.], sum(ncells)))
+    ub::Vector{Float64} = vcat([30., 32., 5., 200., 5.0, 1.2,  1.],
+        repeat(Inf * ones(npolys), sum(ncells)),
+        repeat([100.,100.,10.,10.], sum(ncells)))
     x0::Vector{Float64} = vcat([0.1, 15., -0.1, 20., 0.5, 0.8, 0.008],
+        repeat(zeros(npolys), sum(ncells)),
         repeat([10.,10.,1.,0.], sum(ncells)))
 end
 

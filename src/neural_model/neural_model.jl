@@ -1,11 +1,13 @@
 """
 """
-@flattenable @with_kw struct θneural{T1, T2} <: DDMθ
+@flattenable @with_kw struct θneural{T1, T2, T3} <: DDMθ
     θz::T1 = θz() | true
-    θy::T2 | true
+    θμ::T2 | true
+    θy::T3 | true
     ncells::Vector{Int} | false
     nparams::Int
     f::String
+    npolys::Int
 end
 
 
@@ -21,13 +23,13 @@ end
 
 """
 """
-(θ::Sigmoid)(x::Vector{U}, λ0::Vector{Float64}) where U <: Real =
+(θ::Sigmoid)(x::Vector{U}, λ0::Vector{T}) where {U,T <: Real} =
     (θ::Sigmoid).(x, λ0)
 
 
 """
 """
-function (θ::Sigmoid)(x::U, λ0::Float64) where U <: Real
+function (θ::Sigmoid)(x::U, λ0::T) where {U,T <: Real}
 
     @unpack a,b,c,d = θ
 
@@ -49,7 +51,7 @@ end
 
 """
 """
-function (θ::Softplus)(x::Union{U,Vector{U}}, λ0::Union{Float64,Vector{Float64}}) where U <: Real
+function (θ::Softplus)(x::Union{U,Vector{U}}, λ0::Union{Float64,Vector{T}}) where {U,T <: Real}
 
     @unpack a,c,d = θ
 
@@ -62,11 +64,20 @@ end
 
 """
 """
+@with_kw struct θμ{T1}
+    θ::T1
+end
+
+
+"""
+"""
 @with_kw struct θy{T1}
     θ::T1
 end
 
 
+"""
+"""
 @with_kw struct neuraldata <: DDMdata
     input_data::neuralinputs
     spikes::Vector{Vector{Int}}
@@ -89,19 +100,27 @@ neuraldata(input_data, spikes::Vector{Vector{Vector{Int}}}, ncells::Int) =  neur
 
 """
 """
-function unflatten(x::Vector{T}, ncells::Vector{Int}, nparams::Int, f::String) where {T <: Real}
-
-    #this is hardcoded for sig
-    #not very good, has to be a better way to split into 2 and 3
+function unflatten(x::Vector{T}, ncells::Vector{Int}, nparams::Int, f::String, npolys::Int) where {T <: Real}
+    
     dims2 = vcat(0,cumsum(ncells))
-    blah = Tuple.(collect(partition(x[dimz+1:end], nparams)))
+
+    blah = Tuple.(collect(partition(x[dimz + npolys*sum(ncells) + 1:dimz + npolys*sum(ncells) + nparams*sum(ncells)], nparams)))
+    
     if f == "Sigmoid"
         blah2 = map(x-> Sigmoid(x...), blah)
     elseif f == "Softplus"
         blah2 = map(x-> Softplus(x...), blah)
     end
-    θy = map(idx-> blah2[idx], [dims2[i]+1:dims2[i+1] for i in 1:length(dims2)-1])
-    θneural(θz(Tuple(x[1:dimz])...), θy, ncells, nparams, f)
+    
+    θy = map(idx-> blah2[idx], [dims2[i]+1:dims2[i+1] for i in 1:length(dims2)-1]) 
+    
+    blah = Tuple.(collect(partition(x[dimz+1:dimz+npolys*sum(ncells)], npolys)))
+    
+    blah2 = map(x-> Poly(collect(x)), blah)
+    
+    θμ = map(idx-> blah2[idx], [dims2[i]+1:dims2[i+1] for i in 1:length(dims2)-1])
+    
+    θneural(θz(Tuple(x[1:dimz])...), θμ, θy, ncells, nparams, f, npolys)
 
 end
 
@@ -113,9 +132,9 @@ A wrapper function that accepts a vector of mixed parameters, splits the vector
 into two vectors based on the parameter mapping function provided as an input. Used
 in optimization, Hessian and gradient computation.
 """
-function loglikelihood(x::Vector{T}, data, ncells::Vector{Int}, nparams, f, n::Int) where {T <: Real}
+function loglikelihood(x::Vector{T}, data, ncells::Vector{Int}, nparams, f, npolys, n::Int) where {T <: Real}
 
-    θ = unflatten(x, ncells, nparams, f)
+    θ = unflatten(x, ncells, nparams, f, npolys)
     loglikelihood(θ, data, n)
 
 end
@@ -127,10 +146,10 @@ end
 function gradient(model::neuralDDM, n::Int)
 
     @unpack θ, data = model
-    @unpack ncells, nparams, f = θ
+    @unpack ncells, nparams, f, npolys = θ
     x = flatten(θ)
     #x = [flatten(θ)...]
-    ℓℓ(x) = -loglikelihood(x, data, ncells, nparams, f, n)
+    ℓℓ(x) = -loglikelihood(x, data, ncells, nparams, f, n, npolys)
 
     ForwardDiff.gradient(ℓℓ, x)::Vector{Float64}
 
@@ -143,10 +162,10 @@ end
 function Hessian(model::neuralDDM, n::Int; chuck_size::Int=4)
 
     @unpack θ, data = model
-    @unpack ncells, nparams, f = θ
+    @unpack ncells, nparams, f, npolys = θ
     x = flatten(θ)
     #x = [flatten(θ)...]
-    ℓℓ(x) = -loglikelihood(x, data, ncells, nparams, f, n)
+    ℓℓ(x) = -loglikelihood(x, data, ncells, nparams, f, n, npolys)
 
     cfg = ForwardDiff.HessianConfig(ℓℓ, x, ForwardDiff.Chunk{chuck_size}())
     ForwardDiff.hessian(ℓℓ, x, cfg)
@@ -162,9 +181,11 @@ Extract parameters related to the choice model from a struct and returns an orde
 """
 function flatten(θ::θneural)
 
-    @unpack θy, θz = θ
+    @unpack θy, θz, θμ = θ
     @unpack σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ = θz
-    vcat(σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ, vcat(collect.(Flatten.flatten.(vcat(θ.θy...)))...))
+    vcat(σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ, 
+        vcat(coeffs.(vcat(θμ...))...),
+        vcat(collect.(Flatten.flatten.(vcat(θy...)))...))
 
 end
 
@@ -202,12 +223,12 @@ function optimize(data, options::neuraloptions, n::Int;
         outer_iterations::Int=Int(1e1), scaled::Bool=false,
         extended_trace::Bool=false)
 
-    @unpack fit, lb, ub, x0, ncells, f, nparams = options
+    @unpack fit, lb, ub, x0, ncells, f, nparams, npolys = options
 
     lb, = unstack(lb, fit)
     ub, = unstack(ub, fit)
     x0,c = unstack(x0, fit)
-    ℓℓ(x) = -loglikelihood(stack(x,c,fit), data, ncells, nparams, f, n)
+    ℓℓ(x) = -loglikelihood(stack(x,c,fit), data, ncells, nparams, f, npolys, n)
 
     output = optimize(x0, ℓℓ, lb, ub; g_tol=g_tol, x_tol=x_tol,
         f_tol=f_tol, iterations=iterations, show_trace=show_trace,
@@ -216,7 +237,7 @@ function optimize(data, options::neuraloptions, n::Int;
 
     x = Optim.minimizer(output)
     x = stack(x,c,fit)
-    θ = unflatten(x, ncells, nparams, f)
+    θ = unflatten(x, ncells, nparams, f, npolys)
     model = neuralDDM(θ, data)
     converged = Optim.converged(output)
 

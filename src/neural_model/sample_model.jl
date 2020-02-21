@@ -29,9 +29,9 @@ end
 """
 function synthetic_λ(θ::θneural, data; num_samples::Int=100, nconds::Int=2)
 
-    @unpack θz,θy,ncells = θ
+    @unpack θz,θμ,θy,ncells = θ
 
-    λ = map(rng-> rand.(Ref(θz), θy, data, Ref(rng)), 1:num_samples)
+    λ = map(rng-> rand.(Ref(θz), θμ, θy, data, Ref(rng)), 1:num_samples)
     μ_λ = mean(λ)
     
     μ_c_λ = cond_mean.(μ_λ, data, ncells; nconds=nconds)
@@ -44,12 +44,12 @@ end
 """
     Sample all trials over one session
 """
-function rand(θz, θy, data, rng)
+function rand(θz, θμ, θy, data, rng)
     
     ntrials = length(data)
     rng = sample(Random.seed!(rng), 1:ntrials, ntrials; replace=false)
 
-    pmap((data,rng) -> rand(θz,θy,data.input_data; rng=rng)[1], data, rng)
+    pmap((data,rng) -> rand(θz,θμ,θy,data.input_data; rng=rng)[1], data, rng)
 
 end
 
@@ -74,28 +74,25 @@ end
 """
 function synthetic_data(θ::θneural,
         ntrials::Vector{Int}; centered::Bool=true,
-        dt::Float64=1e-2, rng::Int=1, dt_synthetic::Float64=1e-4, pad::Int=10,
-        pos_ramp::Bool=false)
+        dt::Float64=1e-2, rng::Int=1, dt_synthetic::Float64=1e-4, pad::Int=10)
 
     nsess = length(ntrials)
     rng = sample(Random.seed!(rng), 1:nsess, nsess; replace=false)
 
-    @unpack θz,θy,ncells = θ
+    @unpack θz,θμ,θy,ncells = θ
 
-    output = rand.(Ref(θz), θy, ntrials, ncells, rng; pos_ramp=pos_ramp)
+    output = rand.(Ref(θz), θμ, θy, ntrials, ncells, rng)
 
     spikes = getindex.(output, 1)
-    λ0 = getindex.(output, 2)
-    clicks = getindex.(output, 3)
+    clicks = getindex.(output, 2)
 
-    output = bin_clicks_spikes_λ0.(spikes, λ0, clicks;
+    output = bin_clicks_spikes_λ0.(spikes, clicks;
         centered=centered, dt=dt, dt_synthetic=dt_synthetic, synthetic=true)
 
     spikes = getindex.(output, 1)
-    λ0 = getindex.(output, 2)
-    binned_clicks = getindex.(output, 3)
+    binned_clicks = getindex.(output, 2)
 
-    input_data = neuralinputs.(clicks, binned_clicks, λ0, dt, centered)
+    input_data = neuralinputs.(clicks, binned_clicks, dt, centered)
     
     padded = map(spikes-> map(spikes-> map(SCn-> vcat(rand.(Poisson.((sum(SCn[1:10])/(10*dt))*ones(pad)*dt)), 
                     SCn, rand.(Poisson.((sum(SCn[end-9:end])/(10*dt))*ones(pad)*dt))), spikes), spikes), spikes)
@@ -115,53 +112,31 @@ end
 
 """
 """
-synthetic_λ0(clicks, N::Int; dt::Float64=1e-4, rng::Int=1, pos_ramp::Bool=false) = 
-    synthetic_λ0.(clicks, N; dt=dt, rng=rng, pos_ramp=pos_ramp)
-
-
-"""
-"""
-function synthetic_λ0(clicks::clicks, N::Int; dt::Float64=1e-4, rng::Int=1, pos_ramp::Bool=false)
-
-    @unpack T = clicks
-
-    Random.seed!(rng)
-        if pos_ramp
-    λ0 = repeat([collect(range(10. + 5*rand(), stop=20. + 5*rand(), length=Int(ceil(T/dt))))], outer=N)
-    else
-        λ0 = repeat([zeros(Int(ceil(T/dt)))], outer=N)
-    end
-
-end
-
-
-"""
-"""
-function rand(θz, θy, ntrials, ncells, rng; centered::Bool=false, dt::Float64=1e-4, pos_ramp::Bool=false)
+function rand(θz, θμ, θy, ntrials, ncells, rng; centered::Bool=false, dt::Float64=1e-4)
 
     clicks = synthetic_clicks.(ntrials, rng)
     binned_clicks = bin_clicks.(clicks, centered=centered, dt=dt)
-    λ0 = synthetic_λ0.(clicks, ncells; dt=dt, pos_ramp=pos_ramp)
-    input_data = neuralinputs.(clicks, binned_clicks, λ0, dt, centered)
+    input_data = neuralinputs.(clicks, binned_clicks, dt, centered)
 
     rng = sample(Random.seed!(rng), 1:ntrials, ntrials; replace=false)
 
-    spikes = pmap((input_data,rng) -> rand(θz,θy,input_data; rng=rng)[3], input_data, rng)
+    spikes = pmap((input_data,rng) -> rand(θz,θμ,θy,input_data; rng=rng)[3], input_data, rng)
 
-    return spikes, λ0, clicks
+    return spikes, clicks
 
 end
 
 
 """
 """
-function rand(θz::θz, θy, input_data::neuralinputs; rng::Int=1)
+function rand(θz::θz, θμ, θy, input_data::neuralinputs; rng::Int=1)
 
-    @unpack λ0, dt = input_data
-
+    @unpack binned_clicks, dt = input_data
+    @unpack nT = binned_clicks
+    
     Random.seed!(rng)
     a = rand(θz,input_data)
-    λ = map((θy,λ0)-> θy(a, λ0), θy, λ0)
+    λ = map((θy,θμ)-> θy(a, θμ(1:nT)), θy, θμ)
     spikes = map(λ-> rand.(Poisson.(λ*dt)), λ)
 
     return λ, a, spikes
