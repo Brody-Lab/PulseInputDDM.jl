@@ -89,12 +89,14 @@ function sample_one_step!(a::TT, t::Int, σ2_a::TT, σ2_s::TT, λ::TT,
         η = zero(typeof(σ2_a))
     end
 
-    if abs(λ) < 1e-150
-        a += μ + η
-    else
-        h = μ/(dt*λ)
-        a = exp(λ*dt)*(a + h) - h + η
-    end
+    #if abs(λ) < 1e-150
+    #    a += μ + η
+    #else
+    #    h = μ/(dt*λ)
+    #    a = exp(λ*dt)*(a + h) - h + η
+    #end
+    
+    a = exp(λ*dt)*a + μ * expm1_div_x(λ*dt) + η
 
     return a
 

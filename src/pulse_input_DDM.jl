@@ -21,7 +21,7 @@ using Polynomials, Missings
 
 export choiceDDM, choiceoptions, θchoice, choicedata, θz
 export θneural, neuralDDM, neuraldata, θy, neuraldata
-export Sigmoid, Softplus, neuraloptions
+export Sigmoid, Softplus, Sigmoidoptions, Softplusoptions
 
 export dimz
 export loglikelihood, synthetic_data
@@ -54,6 +54,8 @@ export filter_data_by_cell!
 abstract type DDM end
 abstract type DDMdata end
 abstract type DDMθ end
+abstract type neuraloptions end
+
 
 """
 """
@@ -133,22 +135,27 @@ end
 
 """
 """
-@with_kw struct neuraloptions
+@with_kw struct Sigmoidoptions <: neuraloptions
     ncells::Vector{Int}
     nparams::Int = 4
     f::String = "Sigmoid"
     fit::Vector{Bool} = vcat(trues(dimz+sum(ncells)*nparams))
-    #if f == "Softplus"
-    #    lb::Vector{Float64} = vcat([0., 8., -5., 0., 0., 0.01, 0.005], repeat([eps(),-10.,-10.], sum(ncells)))
-    #    ub::Vector{Float64} = vcat([2., 30., 5., 100., 2.5, 1.2, 1.], repeat([100.,10.,10.], sum(ncells)))
-    #elseif f == "Sigmoid"
-        lb::Vector{Float64} = vcat([0., 8.,  -5., 0.,   0.,  0.01, 0.005], repeat([-100.,0.,-10.,-10.], sum(ncells)))
-        ub::Vector{Float64} = vcat([30., 32., 5., 200., 5.0, 1.2,  1.],    repeat([ 100.,100.,10.,10.], sum(ncells)))
-    #end
-    #x0::Vector{Float64} = vcat([0.1, 15., -0.1, 20., 0.5, 0.8, 0.008],
-    #    repeat(Vector{Float64}(undef,nparams), sum(ncells)))
-    x0::Vector{Float64} = vcat([0.1, 15., -0.1, 20., 0.5, 0.8, 0.008],
-        repeat([10.,10.,1.,0.], sum(ncells)))
+    lb::Vector{Float64} = vcat([0., 8.,  -5., 0.,   0.,  0.01, 0.005], repeat([eps(), eps(), -Inf, -Inf], sum(ncells)))
+    ub::Vector{Float64} = vcat([30., 32., 5., 200., 5.0, 1.2,  1.], repeat([Inf, Inf, Inf, Inf], sum(ncells)))
+    x0::Vector{Float64} = vcat([0.1, 15., -0.1, 20., 0.5, 0.8, 0.008], repeat([10.,10.,1.,0.], sum(ncells)))
+end
+
+
+"""
+"""
+@with_kw struct Softplusoptions <: neuraloptions
+    ncells::Vector{Int}
+    nparams::Int = 3
+    f::String = "Softplus"
+    fit::Vector{Bool} = vcat(trues(dimz+sum(ncells)*nparams))
+    lb::Vector{Float64} = vcat([0., 8.,  -5., 0.,   0.,  0.01, 0.005], repeat([eps(), -Inf, -Inf], sum(ncells)))
+    ub::Vector{Float64} = vcat([30., 32., 5., 200., 5.0, 1.2,  1.], repeat([Inf, Inf, Inf], sum(ncells)))
+    x0::Vector{Float64} = vcat([0.1, 15., -0.1, 20., 0.5, 0.8, 0.008], repeat([10.,1.,0.], sum(ncells)))
 end
 
 
