@@ -158,8 +158,9 @@ function P_single_trial!(σ2_i::TT, B::TT, B_λ::TT, λ::TT, σ2_a::TT, σ2_s::T
         numsticky = ceil.(Int, cumsum(abs.(diff(Bt))./dx))
         numsticky = [numsticky[end]; numsticky[end:-1:1]]
     else
-        numsticky = ceil.(Int, Bt/dx)-1
+        numsticky = floor.(Int,Bt/dx)
     end
+
 
     P,xc,dx = initialize_latent_model(σ2_i, Bt[end], λ, σ2_a, n, dt, a_0, numsticky[1], L_lapse=lapse/2, R_lapse=lapse/2)
 
@@ -179,14 +180,18 @@ function P_single_trial!(σ2_i::TT, B::TT, B_λ::TT, λ::TT, σ2_a::TT, σ2_s::T
         absB = floor.(Int, numsticky[t])
 
         P,F = latent_one_step!(P,F,λ,σ2_a,σ2_s,t,nL,nR,La,Ra,dx,xc,n,dt,absB)
+        P[1] = sum(P[1:absB])
+        P[n] = sum(P[end-(absB-1):end])
+        P[2:absB] .= 0.
+        P[end-(absB-1):end-1] .= 0
 
         # For the new likelihood =======
         if t == 1
-            Pbounds[1,t] = sum(P[1:absB])  # left bound
-            Pbounds[2,t] = sum(P[end-(absB-1):end])  # right bound
+            Pbounds[1,t] = P[1]  # left bound
+            Pbounds[2,t] = P[end]  # right bound
         else 
-            Pbounds[1,t] = sum(P[1:absB]) - sum(Pbounds[1, :])   # mass differential
-            Pbounds[2,t] = sum(P[end-(absB-1):end])  - sum(Pbounds[2, :])   # mass differential
+            Pbounds[1,t] = P[1] - sum(Pbounds[1, :])   # mass differential
+            Pbounds[2,t] = P[end]  - sum(Pbounds[2, :])   # mass differential
         end
 
     end
