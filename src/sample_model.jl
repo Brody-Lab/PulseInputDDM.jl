@@ -58,12 +58,10 @@ function sample_latent(nT::Int, L::Vector{Float64},R::Vector{Float64},
 
     A = Vector{TT}(undef,nT)
     a = sqrt(σ2_i)+ a_0
-    Bt = B
+    Bt = map(x-> sqrt(B_λ+x)*sqrt(2)*erfinv(2*B - 1.), dt .* collect(1:nT))
     RT = 0
 
     for t = 1:nT
-
-        Bt = B * exp(B_λ*t*dt)  
             
         if use_bin_center && t == 1         
             a = sample_one_step!(a, t, σ2_a, σ2_s, λ, nL, nR, La, Ra, dt/2)
@@ -71,7 +69,7 @@ function sample_latent(nT::Int, L::Vector{Float64},R::Vector{Float64},
             a = sample_one_step!(a, t, σ2_a, σ2_s, λ, nL, nR, La, Ra, dt)
         end
 
-        abs(a) > Bt ? (a = Bt * sign(a); A[t:nT] .= a; RT = t; break) : A[t] = a
+        abs(a) > Bt[t] ? (a = Bt[t] * sign(a); A[t:nT] .= a; RT = t; break) : A[t] = a
 	
 	   # this should be handles in a better way, but for now to prevent fatal errors
 	   if t == nT

@@ -148,22 +148,21 @@ end
 function P_single_trial!(σ2_i::TT, B::TT, B_λ::TT, λ::TT, σ2_a::TT, σ2_s::TT, ϕ::TT, τ_ϕ::TT, lapse::TT, γ_shapeL::TT, γ_scaleL::TT, γ_shapeR::TT, γ_scaleR::TT,
         L::Vector{Float64}, R::Vector{Float64}, nT::Int, nL::Vector{Int}, nR::Vector{Int}, a_0::TT,
         n::Int, dt::Float64) where {TT <: Any}
-
-    absB = 1
-
-    P,xc,dx = initialize_latent_model(σ2_i, B, λ, σ2_a, n, dt, a_0, absB, L_lapse=lapse/2, R_lapse=lapse/2)
-
-    # computing sticky bounds for each time step -- this will fail if the collapse is really high 
+ 
+    # computing the bound
+    Bt = zeros(TT,nT)
+    numsticky = zeros(TT,nT)
+    Bt = map(x-> sqrt(B_λ+x)*sqrt(2)*erfinv(2*B - 1.), dt .* collect(1:nT))
+    xc,dx = bins(Bt[end],n)
     if nT >= 2
-        Bt = zeros(TT,nT)
-        numsticky = zeros(TT,nT)
-        tv = collect(1:nT)
-        Bt =  B .* exp.((B_λ*dt).*tv)
-        numsticky = absB .+ floor.(Int, cumsum(abs.(diff(Bt))./dx))
-        numsticky = [numsticky; numsticky[end]]
+        numsticky = ceil.(Int, cumsum(abs.(diff(Bt))./dx))
+        numsticky = [numsticky[end]; numsticky[end:-1:1]]
     else
-        numsticky = absB
+        numsticky = ceil.(Int, Bt/dx)-1
     end
+
+    P,xc,dx = initialize_latent_model(σ2_i, Bt[end], λ, σ2_a, n, dt, a_0, numsticky[1], L_lapse=lapse/2, R_lapse=lapse/2)
+
 
     #adapt magnitude of the click inputs
     La, Ra = make_adapted_clicks(ϕ,τ_ϕ,L,R)
