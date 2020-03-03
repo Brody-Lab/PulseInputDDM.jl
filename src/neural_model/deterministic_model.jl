@@ -1,16 +1,35 @@
 """
 """
+function train_and_test(data, options::neuraloptions; seed::Int=1, α1s = 10. .^(-6:7))
+    
+    ntrials = length(data)
+    train = sample(Random.seed!(seed), 1:ntrials, ceil(Int, 0.9 * ntrials), replace=false)
+    test = setdiff(1:ntrials, train)
+      
+    model = map(α1-> optimize([data[train]], options; α1=α1, show_trace=false)[1], α1s)   
+    testLL = map(model-> loglikelihood(model.θ, [data[test]]), model)
+
+    return α1s, model, testLL
+    
+end
+
+
+
+"""
+"""
 function optimize(data, options::neuraloptions;
         x_tol::Float64=1e-10, f_tol::Float64=1e-6, g_tol::Float64=1e-3,
         iterations::Int=Int(2e3), show_trace::Bool=true,
-        outer_iterations::Int=Int(1e1))
+        outer_iterations::Int=Int(1e1), α1::Float64=0.)
 
     @unpack fit, lb, ub, x0, ncells, f, nparams, npolys = options
 
     lb, = unstack(lb, fit)
     ub, = unstack(ub, fit)
     x0,c = unstack(x0, fit)
-    ℓℓ(x) = -loglikelihood(stack(x,c,fit), data, ncells, nparams, f, npolys)
+    #ℓℓ(x) = -loglikelihood(stack(x,c,fit), data, ncells, nparams, f, npolys)
+    ℓℓ(x) = -(loglikelihood(stack(x,c,fit), data, ncells, nparams, f, npolys) -
+        α1 * (x[2] - lb[2]).^2)
 
     output = optimize(x0, ℓℓ, lb, ub; g_tol=g_tol, x_tol=x_tol,
         f_tol=f_tol, iterations=iterations, show_trace=show_trace,
@@ -21,8 +40,6 @@ function optimize(data, options::neuraloptions;
     θ = unflatten(x, ncells, nparams, f, npolys)
     model = neuralDDM(θ, data)
     converged = Optim.converged(output)
-
-    println("optimization complete. converged: $converged \n")
 
     return model, output
 

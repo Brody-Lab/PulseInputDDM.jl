@@ -95,7 +95,7 @@ function load(file::String, break_sim_data::Bool, centered::Bool=true;
             #λ0 = map(nT-> bin_λ0(μ_t[n], nT), nT)
             #λ0 = map(nT-> map(μ_t-> zeros(nT), μ_t), nT)
 
-            input_data = neuralinputs(click_times, binned_clicks, dt, centered)
+            input_data = neuralinputs.(click_times, binned_clicks, dt, centered)
             spike_data[n] = neuraldata(input_data, spikes, 1)
 
         end

@@ -1,5 +1,22 @@
 """
 """
+function train_and_test(data, options::neuraloptions, n; seed::Int=1, α1s = 10. .^(-6:7))
+    
+    ntrials = length(data)
+    train = sample(Random.seed!(seed), 1:ntrials, ceil(Int, 0.9 * ntrials), replace=false)
+    test = setdiff(1:ntrials, train)
+      
+    model = map(α1-> optimize([data[train]], options, n; α1=α1, show_trace=false)[1], α1s)   
+    testLL = map(model-> loglikelihood(model.θ, [data[test]], n), model)
+
+    return α1s, model, testLL
+    
+end
+
+
+
+"""
+"""
 @flattenable @with_kw struct θneural{T1, T2, T3} <: DDMθ
     θz::T1 = θz() | true
     θμ::T2 | true
@@ -35,7 +52,8 @@ function (θ::Sigmoid)(x::U, λ0::T) where {U,T <: Real}
 
     y = c * x + d
     y = a + b * logistic!(y)
-    y = softplus(y + λ0)
+    #y = softplus(y + λ0)
+    y = max(eps(), y + λ0)
 
 end
 
@@ -51,13 +69,13 @@ end
 
 """
 """
-function (θ::Softplus)(x::Union{U,Vector{U}}, λ0::Union{Float64,Vector{T}}) where {U,T <: Real}
+function (θ::Softplus)(x::Union{U,Vector{U}}, λ0::Union{T,Vector{T}}) where {U,T <: Real}
 
     @unpack a,c,d = θ
 
-    y = a .+ softplus.(c*x .+ d)
+    y = a .+ softplus.(c*x .+ d .+ λ0)
     #y = max.(eps(), y .+ λ0)
-    y = softplus.(y .+ λ0)
+    #y = softplus.(y .+ λ0)
 
 end
 
@@ -90,6 +108,46 @@ end
 @with_kw struct neuralDDM{T,U} <: DDM
     θ::T = θneural()
     data::U
+end
+
+
+"""
+"""
+@with_kw struct Sigmoidoptions <: neuraloptions
+    ncells::Vector{Int}
+    nparams::Int = 4
+    npolys::Int = 4
+    f::String = "Sigmoid"
+    fit::Vector{Bool} = vcat(trues(dimz + sum(ncells)*npolys + sum(ncells)*nparams))
+    lb::Vector{Float64} = vcat([0., 8.,  -5., 0.,   0.,  0.01, 0.005],
+        repeat(-Inf * ones(npolys), sum(ncells)),
+        repeat([-100.,0.,-10.,-10.], sum(ncells)))
+    ub::Vector{Float64} = vcat([Inf, Inf, 10., Inf, Inf, 1.2,  1.],
+        repeat(Inf * ones(npolys), sum(ncells)),
+        repeat([100.,100.,10.,10.], sum(ncells)))
+    x0::Vector{Float64} = vcat([0.1, 15., -0.1, 20., 0.5, 0.8, 0.008],
+        repeat(zeros(npolys), sum(ncells)),
+        repeat([10.,10.,1.,0.], sum(ncells)))
+end
+
+
+"""
+"""
+@with_kw struct Softplusoptions <: neuraloptions
+    ncells::Vector{Int}
+    nparams::Int = 3
+    npolys::Int = 4
+    f::String = "Softplus"
+    fit::Vector{Bool} = vcat(trues(dimz + sum(ncells)*npolys + sum(ncells)*nparams))
+    lb::Vector{Float64} = vcat([0., 8.,  -10., 0.,   0.,  0., 0.005],
+        repeat(-Inf * ones(npolys), sum(ncells)),
+        repeat([1e-12, -10., -10.], sum(ncells)))
+    ub::Vector{Float64} = vcat([Inf, 200., 10., Inf, Inf, 1.2,  1.],
+        repeat(Inf * ones(npolys), sum(ncells)),
+        repeat([100., 10., 10.], sum(ncells)))
+    x0::Vector{Float64} = vcat([0.1, 15., -0.1, 20., 0.5, 0.8, 0.008],
+        repeat(zeros(npolys), sum(ncells)),
+        repeat([10.,1.,0.], sum(ncells)))
 end
 
 
@@ -149,7 +207,7 @@ function gradient(model::neuralDDM, n::Int)
     @unpack ncells, nparams, f, npolys = θ
     x = flatten(θ)
     #x = [flatten(θ)...]
-    ℓℓ(x) = -loglikelihood(x, data, ncells, nparams, f, n, npolys)
+    ℓℓ(x) = -loglikelihood(x, data, ncells, nparams, f, npolys, n)
 
     ForwardDiff.gradient(ℓℓ, x)::Vector{Float64}
 
@@ -165,7 +223,7 @@ function Hessian(model::neuralDDM, n::Int; chuck_size::Int=4)
     @unpack ncells, nparams, f, npolys = θ
     x = flatten(θ)
     #x = [flatten(θ)...]
-    ℓℓ(x) = -loglikelihood(x, data, ncells, nparams, f, n, npolys)
+    ℓℓ(x) = -loglikelihood(x, data, ncells, nparams, f, npolys, n)
 
     cfg = ForwardDiff.HessianConfig(ℓℓ, x, ForwardDiff.Chunk{chuck_size}())
     ForwardDiff.hessian(ℓℓ, x, cfg)
@@ -221,14 +279,16 @@ function optimize(data, options::neuraloptions, n::Int;
         x_tol::Float64=1e-10, f_tol::Float64=1e-9, g_tol::Float64=1e-3,
         iterations::Int=Int(2e3), show_trace::Bool=true,
         outer_iterations::Int=Int(1e1), scaled::Bool=false,
-        extended_trace::Bool=false)
+        extended_trace::Bool=false, α1::Float64=10. .^0)
 
     @unpack fit, lb, ub, x0, ncells, f, nparams, npolys = options
 
     lb, = unstack(lb, fit)
     ub, = unstack(ub, fit)
     x0,c = unstack(x0, fit)
-    ℓℓ(x) = -loglikelihood(stack(x,c,fit), data, ncells, nparams, f, npolys, n)
+    #ℓℓ(x) = -loglikelihood(stack(x,c,fit), data, ncells, nparams, f, npolys, n)
+    ℓℓ(x) = -(loglikelihood(stack(x,c,fit), data, ncells, nparams, f, npolys, n) -
+        α1 * (x[2] - lb[2]).^2)
 
     output = optimize(x0, ℓℓ, lb, ub; g_tol=g_tol, x_tol=x_tol,
         f_tol=f_tol, iterations=iterations, show_trace=show_trace,
@@ -240,8 +300,6 @@ function optimize(data, options::neuraloptions, n::Int;
     θ = unflatten(x, ncells, nparams, f, npolys)
     model = neuralDDM(θ, data)
     converged = Optim.converged(output)
-
-    println("optimization complete. converged: $converged \n")
 
     return model, output
 

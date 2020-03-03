@@ -21,7 +21,9 @@ using Polynomials, Missings
 
 export choiceDDM, choiceoptions, θchoice, choicedata, θz
 export θneural, neuralDDM, neuraldata, θy, neuraldata
-export Sigmoid, Softplus, Sigmoidoptions
+export Sigmoid, Softplus, Sigmoidoptions, Softplusoptions
+export θfilt, filtoptions, train_and_test
+export filtinputs, filtdata, sigmoid_filtoptions
 
 export dimz
 export loglikelihood, synthetic_data
@@ -126,26 +128,6 @@ end
     lb::Vector{Float64} = vcat([0., 8., -5., 0., 0., 0.01, 0.005], [-30, 0.])
     ub::Vector{Float64} = vcat([2., 30., 5., 100., 2.5, 1.2, 1.], [30, 1.])
     x0::Vector{Float64} = vcat([0.1, 15., -0.1, 20., 0.5, 0.8, 0.008], [0.,0.01])
-end
-
-
-"""
-"""
-@with_kw struct Sigmoidoptions <: neuraloptions
-    ncells::Vector{Int}
-    nparams::Int = 4
-    npolys::Int = 4
-    f::String = "Sigmoid"
-    fit::Vector{Bool} = vcat(trues(dimz + sum(ncells)*npolys + sum(ncells)*nparams))
-    lb::Vector{Float64} = vcat([0., 8.,  -5., 0.,   0.,  0.01, 0.005],
-        repeat(-Inf * ones(npolys), sum(ncells)),
-        repeat([-100.,0.,-10.,-10.], sum(ncells)))
-    ub::Vector{Float64} = vcat([30., 32., 5., 200., 5.0, 1.2,  1.],
-        repeat(Inf * ones(npolys), sum(ncells)),
-        repeat([100.,100.,10.,10.], sum(ncells)))
-    x0::Vector{Float64} = vcat([0.1, 15., -0.1, 20., 0.5, 0.8, 0.008],
-        repeat(zeros(npolys), sum(ncells)),
-        repeat([10.,10.,1.,0.], sum(ncells)))
 end
 
 
