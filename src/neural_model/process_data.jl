@@ -26,31 +26,6 @@ function save(file, model::neuralDDM, options, CI)
 end
 
 
-
-"""
-"""
-function train_test_divide(data,frac)
-
-    train_trials = StatsBase.sample(1:data["ntrials"], Int(ceil(0.8 * data["ntrials"])), replace = false)
-    test_trials = setdiff(1:data["ntrials"], train_trials)
-
-    train_data, test_data = deepcopy(data), deepcopy(data)
-
-    for key in collect(keys(data))
-        if length(data[key]) == data["ntrials"]
-            train_data[key] = data[key][train_trials]
-            test_data[key] = data[key][test_trials]
-        end
-    end
-
-    #all of the mus and sigams should be filtered too, but not important for fitting.
-    train_data["ntrials"], test_data["ntrials"] = length(train_trials), length(test_trials)
-
-    return train_data, test_data
-
-end
-
-
 """
     load_neural_data(path, files)
 

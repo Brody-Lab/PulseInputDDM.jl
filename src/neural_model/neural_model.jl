@@ -1,5 +1,31 @@
 """
 """
+@with_kw struct Sigmoidoptions <: neuraloptions
+    ncells::Vector{Int}
+    nparams::Int = 4
+    f::String = "Sigmoid"
+    fit::Vector{Bool} = vcat(trues(dimz+sum(ncells)*nparams))
+    lb::Vector{Float64} = vcat([0., 8.,  -10., 0.,   0.,  0., 0.005], repeat([-Inf, eps(), -Inf, -Inf], sum(ncells)))
+    ub::Vector{Float64} = vcat([30., Inf, 10., Inf, Inf, 1.2,  1.], repeat([Inf, Inf, Inf, Inf], sum(ncells)))
+    x0::Vector{Float64} = vcat([0.1, 15., -0.1, 20., 0.5, 0.8, 0.008], repeat([10.,10.,1.,0.], sum(ncells)))
+end
+
+
+"""
+"""
+@with_kw struct Softplusoptions <: neuraloptions
+    ncells::Vector{Int}
+    nparams::Int = 3
+    f::String = "Softplus"
+    fit::Vector{Bool} = vcat(trues(dimz+sum(ncells)*nparams))
+    lb::Vector{Float64} = vcat([0., 8.,  -5., 0.,   0.,  0.01, 0.005], repeat([eps(), -Inf, -Inf], sum(ncells)))
+    ub::Vector{Float64} = vcat([30., Inf, 5., Inf, Inf, 1.2,  1.], repeat([Inf, Inf, Inf], sum(ncells)))
+    x0::Vector{Float64} = vcat([0.1, 15., -0.1, 20., 0.5, 0.8, 0.008], repeat([10.,1.,0.], sum(ncells)))
+end
+
+
+"""
+"""
 @flattenable @with_kw struct θneural{T1, T2} <: DDMθ
     θz::T1 = θz() | true
     θy::T2 | true

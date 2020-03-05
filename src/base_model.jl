@@ -298,9 +298,17 @@ function adapt_clicks(ϕ::TT, τ_ϕ::TT, L::Vector{Float64}, R::Vector{Float64})
     #if !isempty(L) && !isempty(R) && abs(L[1]-R[1]) < eps()
     #    La[1], Ra[1] = eps(), eps()
     #end
-
-    (length(L) > 1 && ϕ != 1.) ? adapt_clicks!(ϕ, τ_ϕ, La, L) : nothing
-    (length(R) > 1 && ϕ != 1.) ? adapt_clicks!(ϕ, τ_ϕ, Ra, R) : nothing
+    
+    if (ϕ ≈ 1.)
+        
+        #@warn "it worked!"
+        
+    else
+        
+        (length(L) > 1 && ϕ != 1.) ? adapt_clicks!(ϕ, τ_ϕ, La, L) : nothing
+        (length(R) > 1 && ϕ != 1.) ? adapt_clicks!(ϕ, τ_ϕ, Ra, R) : nothing
+        
+    end
 
     return La, Ra
 
