@@ -1,6 +1,6 @@
 """
 """
-function train_and_test(data, options::neuraloptions; seed::Int=1, α1s = 10. .^(-6:7))
+function train_and_test(data, options::neural_options; seed::Int=1, α1s = 10. .^(-6:7))
     
     ntrials = length(data)
     train = sample(Random.seed!(seed), 1:ntrials, ceil(Int, 0.9 * ntrials), replace=false)
@@ -14,21 +14,22 @@ function train_and_test(data, options::neuraloptions; seed::Int=1, α1s = 10. .^
 end
 
 
-
 """
 """
-function optimize(data, options::neuraloptions;
+function optimize(data, options::neural_options;
         x_tol::Float64=1e-10, f_tol::Float64=1e-6, g_tol::Float64=1e-3,
         iterations::Int=Int(2e3), show_trace::Bool=true,
         outer_iterations::Int=Int(1e1), α1::Float64=0.)
 
-    @unpack fit, lb, ub, x0, ncells, f, nparams, npolys = options
+    @unpack fit, lb, ub, x0, ncells, f, nparams = options
+    
+    θ = θneural(x0, ncells, nparams, f)
 
     lb, = unstack(lb, fit)
     ub, = unstack(ub, fit)
     x0,c = unstack(x0, fit)
     #ℓℓ(x) = -loglikelihood(stack(x,c,fit), data, ncells, nparams, f, npolys)
-    ℓℓ(x) = -(loglikelihood(stack(x,c,fit), data, ncells, nparams, f, npolys) -
+    ℓℓ(x) = -(loglikelihood(stack(x,c,fit), data, θ) -
         α1 * (x[2] - lb[2]).^2)
 
     output = optimize(x0, ℓℓ, lb, ub; g_tol=g_tol, x_tol=x_tol,
@@ -37,7 +38,7 @@ function optimize(data, options::neuraloptions;
 
     x = Optim.minimizer(output)
     x = stack(x,c,fit)
-    θ = unflatten(x, ncells, nparams, f, npolys)
+    θ = θneural(x, ncells, nparams, f)
     model = neuralDDM(θ, data)
     converged = Optim.converged(output)
 
@@ -53,12 +54,15 @@ A wrapper function that accepts a vector of mixed parameters, splits the vector
 into two vectors based on the parameter mapping function provided as an input. Used
 in optimization, Hessian and gradient computation.
 """
-function loglikelihood(x::Vector{T1}, data, ncells, nparams, f, npolys) where {T1 <: Real}
+function loglikelihood(x::Vector{T1}, data::Vector{Vector{T2}}, 
+        θ::θneural) where {T1 <: Real, T2 <: neuraldata}
 
-    θ = unflatten(x, ncells, nparams, f, npolys)
+    @unpack ncells, nparams, f = θ
+    θ = θneural(x, ncells, nparams, f)
     loglikelihood(θ, data)
 
 end
+
 
 
 """
@@ -67,10 +71,8 @@ end
 function gradient(model::neuralDDM)
 
     @unpack θ, data = model
-    @unpack ncells, nparams, f, npolys = θ
     x = flatten(θ)
-    #x = [flatten(θ)...]
-    ℓℓ(x) = -loglikelihood(x, data, ncells, nparams, f, npolys)
+    ℓℓ(x) = -loglikelihood(x, data, θ)
 
     ForwardDiff.gradient(ℓℓ, x)
 
@@ -79,12 +81,12 @@ end
 
 """
 """
-function loglikelihood(θ, data)
+function loglikelihood(θ::θneural, data::Vector{Vector{T1}}) where T1 <: neuraldata
 
-    @unpack θz, θμ, θy = θ
+    @unpack θz, θy = θ
 
-    sum(map((θy, θμ, data) -> sum(pmap(data-> loglikelihood(θz, θμ, θy, data), data,
-        batch_size=length(data))), θy, θμ, data))
+    sum(map((θy, data) -> sum(pmap(data-> loglikelihood(θz, θy, data), data,
+        batch_size=length(data))), θy, data))
 
 end
 
@@ -101,11 +103,11 @@ end
 
 """
 """
-function loglikelihood(θz, θμ, θy, data::neuraldata)
+function loglikelihood(θz::θz, θy::Vector{T1}, data::neuraldata) where T1 <: DDMf
 
     @unpack spikes, input_data = data
     @unpack dt = input_data
-    λ, = loglikelihood(θz,θμ,θy,input_data)
+    λ, = loglikelihood(θz,θy,input_data)
     sum(logpdf.(Poisson.(vcat(λ...)*dt), vcat(spikes...)))
 
 end
@@ -113,13 +115,12 @@ end
 
 """
 """
-function loglikelihood(θz::θz, θμ, θy, input_data::neuralinputs)
+function loglikelihood(θz::θz, θy::Vector{T1}, input_data::neuralinputs) where T1 <: DDMf
 
-    @unpack binned_clicks, dt = input_data
-    @unpack nT = binned_clicks
+    @unpack λ0, dt = input_data
 
     a = rand(θz,input_data)
-    λ = map((θy,θμ)-> θy(a, θμ(1:nT)), θy, θμ)
+    λ = map((θy,λ0)-> θy(a, λ0), θy, λ0)
 
     return λ, a
 
@@ -128,23 +129,21 @@ end
 
 """
 """
-function initialize_θy(data, f::String)
+function θy(data, f::String)
 
     ΔLR =  diffLR.(data)
     spikes = group_by_neuron(data)
-    #λ0_byneuron = group_by_neuron(data["λ0"], data["ntrials"], data["N"])
 
     @unpack dt = data[1].input_data
-    θy = map(spikes-> compute_p0(vcat(ΔLR...), vcat(spikes...), dt, f), spikes)
+    map(spikes-> θy(vcat(ΔLR...), vcat(spikes...), dt, f), spikes)
 
 end
 
 
 """
 """
-function compute_p0(ΔLR, spikes, dt, f; nconds::Int=7)
+function θy(ΔLR, spikes, dt, f; nconds::Int=7)
 
-    #conds_bins, = qcut(vcat(ΔLR...),nconds,labels=false,duplicates="drop",retbins=true)
     conds_bins = encode(LinearDiscretizer(binedges(DiscretizeUniformWidth(nconds), ΔLR)), ΔLR)
 
     rate = map(i -> (1/dt)*mean(spikes[conds_bins .== i]),1:nconds)

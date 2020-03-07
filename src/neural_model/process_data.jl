@@ -92,10 +92,10 @@ function load(file::String, break_sim_data::Bool, centered::Bool=true;
                 for i in findall(nT .+ (pad - cut) .>= t)]))
                 for t in 1:(maximum(nT) .+ (pad - cut))], n:n)
 
-            #λ0 = map(nT-> bin_λ0(μ_t[n], nT), nT)
+            λ0 = map(nT-> bin_λ0(μ_t[n], nT), nT)
             #λ0 = map(nT-> map(μ_t-> zeros(nT), μ_t), nT)
 
-            input_data = neuralinputs.(click_times, binned_clicks, dt, centered)
+            input_data = neuralinputs(click_times, binned_clicks, λ0, dt, centered)
             spike_data[n] = neuraldata(input_data, spikes, 1)
 
         end
@@ -116,10 +116,10 @@ function load(file::String, break_sim_data::Bool, centered::Bool=true;
             for i in findall(nT .+ (pad - cut) .>= t)]))
             for t in 1:(maximum(nT) .+ (pad - cut))], 1:ncells)
 
-        #λ0 = map(nT-> bin_λ0(μ_t, nT), nT)
+        λ0 = map(nT-> bin_λ0(μ_t, nT), nT)
         #λ0 = map(nT-> map(μ_t-> zeros(nT), μ_t), nT)
 
-        input_data = neuralinputs.(click_times, binned_clicks, dt, centered)
+        input_data = neuralinputs(click_times, binned_clicks, λ0, dt, centered)
         spike_data = neuraldata(input_data, spikes, ncells)
 
     end

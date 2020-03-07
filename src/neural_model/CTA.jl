@@ -22,7 +22,7 @@ end
 
 """
 """
-@with_kw struct sigmoid_filtoptions <: neuraloptions
+@with_kw struct sigmoid_filtoptions <: neural_options
     ncells::Vector{Int}
     nparams::Int = 4
     npolys::Int = 4
@@ -43,7 +43,7 @@ end
 
 """
 """
-@with_kw struct filtoptions <: neuraloptions
+@with_kw struct filtoptions <: neural_options
     ncells::Vector{Int}
     nparams::Int = 3
     npolys::Int = 4

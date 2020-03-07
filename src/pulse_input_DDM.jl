@@ -10,25 +10,29 @@ using StatsBase, Distributions, LineSearches, JLD2
 using ForwardDiff, Distributed, LinearAlgebra
 using Optim, DSP, SpecialFunctions, MAT, Random
 using Discretizers
-import StatsFuns: logistic, logit, softplus, xlogy
 using ImageFiltering
 using ForwardDiff: value
 using PositiveFactorizations, Parameters, Flatten
+using Polynomials, Missings
+
+import StatsFuns: logistic, logit, softplus, xlogy
 import Base.rand
 import Base.Iterators: partition
 import Flatten: flattenable
-using Polynomials, Missings
+import Polynomials: Poly
 
 export choiceDDM, choiceoptions, θchoice, choicedata, θz
 export θneural, neuralDDM, neuraldata, θy, neuraldata
-export Sigmoid, Softplus, Sigmoidoptions, Softplusoptions
+export Sigmoid, Softplus, Sigmoid_options, Softplus_options
 export θfilt, filtoptions, train_and_test
 export filtinputs, filtdata, sigmoid_filtoptions
+
+export neural_poly_DDM, θneural_poly
 
 export dimz
 export loglikelihood, synthetic_data
 export CIs, optimize, Hessian, gradient
-export load, reload, save, flatten, unflatten
+export load, reload, save, flatten
 export initialize_θy, neural_null
 export synthetic_clicks, binLR, bin_clicks
 
@@ -54,9 +58,9 @@ export filter_data_by_cell!
 =#
 
 abstract type DDM end
-abstract type neuraloptions end
 abstract type DDMdata end
 abstract type DDMθ end
+abstract type DDMf end
 
 """
 """
@@ -107,19 +111,22 @@ end
     centered::Bool
 end
 
-
 """
 """
 @with_kw struct neuralinputs{T1,T2}
     clicks::T1
     binned_clicks::T2
+    λ0::Vector{Vector{Float64}}
     dt::Float64
     centered::Bool
 end
 
 
-#neuralinputs(clicks, binned_clicks, dt::Float64, centered::Bool) =
-#    neuralinputs.(clicks, binned_clicks, dt, centered)
+"""
+"""
+neuralinputs(clicks, binned_clicks, λ0::Vector{Vector{Vector{Float64}}}, dt::Float64, centered::Bool) =
+    neuralinputs.(clicks, binned_clicks, λ0, dt, centered)
+
 
 """
 """
@@ -142,10 +149,12 @@ include("choice_model/sample_model.jl")
 include("choice_model/process_data.jl")
 
 include("neural_model/neural_model.jl")
+include("neural_model/neural_poly_model.jl")
 include("neural_model/compute_LL.jl")
 include("neural_model/sample_model.jl")
 include("neural_model/process_data.jl")
-include("neural_model/deterministic_model.jl")
+include("neural_model/noiseless_model.jl")
+include("neural_model/noiseless_model_poly.jl")
 include("neural_model/CTA.jl")
 
 #include("neural_model/load_and_optimize.jl")

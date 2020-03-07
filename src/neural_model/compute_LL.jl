@@ -3,7 +3,7 @@
 
 Computes the log likelihood for a set of trials consistent with the observed neural activity on each trial.
 """
-function loglikelihood(θ::θneural, data, n::Int)
+function loglikelihood(θ::θneural_poly, data, n::Int)
 
     @unpack θz, θμ, θy = θ
     @unpack σ2_i, B, λ, σ2_a = θz
@@ -265,41 +265,6 @@ function posterior_single_trial(pz::Vector{TT}, P::Vector{TT}, M::Array{TT,2}, d
 
 end
 
-=#
-
-########################## Model with RBF #################################################################
-
-#=
-
-function LL_all_trials(pz::Vector{TT}, py::Vector{Vector{TT}}, pRBF::Vector{Vector{TT}},
-        data::Dict; dt::Float64=1e-2, n::Int=53,
-        f_str::String="softplus", comp_posterior::Bool=false,
-        numRBF::Int=20) where {TT <: Any}
-
-    P,M,xc,dx, = initialize_latent_model(pz,n,dt)
-
-    λ = hcat(fy.(py,[xc],f_str=f_str)...)
-    #c = map(x->dt:dt:maximum(data["nT"][x])*dt,data["trial"])
-    #rbf = map(x->UniformRBFE(x,numRBF),c);
-    #λ0 = map((x,y,z)->x(y)*z, rbf, c, pRBF)
-
-    λ0 = λ0_from_RBFs(pRBF,data;dt=dt,numRBF=numRBF)
-
-    output = pmap((L,R,T,nL,nR,N,SC) -> LL_single_trial(pz, P, M, dx, xc,
-        L, R, T, nL, nR, λ[:,N], SC, dt, n, λ0=λ0[N]),
-        data["leftbups"], data["rightbups"], data["nT"], data["binned_leftbups"],
-        data["binned_rightbups"], data["N"],data["spike_counts"])
-
-end
-
-function λ0_from_RBFs(pRBF::Vector{Vector{TT}},data::Dict;
-        dt::Float64=1e-2,numRBF::Int=20) where {TT <: Any}
-
-    c = map(x->dt:dt:maximum(data["nT"][x])*dt,data["trial"])
-    rbf = map(x->UniformRBFE(x,numRBF),c);
-    λ0 = map((x,y,z)->x(y)*z, rbf, c, pRBF)
-
-end
 =#
 
 #=
