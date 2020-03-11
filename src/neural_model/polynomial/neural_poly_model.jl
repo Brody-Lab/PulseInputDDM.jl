@@ -104,10 +104,11 @@ A wrapper function that accepts a vector of mixed parameters, splits the vector
 into two vectors based on the parameter mapping function provided as an input. Used
 in optimization, Hessian and gradient computation.
 """
-function loglikelihood(x::Vector{T}, data, ncells::Vector{Int}, nparams, f, npolys, n::Int) where {T <: Real}
+function loglikelihood(x::Vector{T}, data, θ::θneural_poly; n::Int=53) where {T <: Real}
 
+    @unpack ncells, nparams, f, npolys = θ
     θ = θneural_poly(x, ncells, nparams, f, npolys)
-    loglikelihood(θ, data, n)
+    loglikelihood(θ, data; n=n)
 
 end
 
@@ -171,19 +172,20 @@ BACK IN THE DAY, TOLS USED TO BE x_tol::Float64=1e-4, f_tol::Float64=1e-9, g_tol
 Optimize model parameters. pz and py are dictionaries that contains initial values, boundaries,
 and specification of which parameters to fit.
 """
-function optimize(data, options::neural_poly_options, n::Int;
+function optimize(data, options::neural_poly_options; n::Int=53,
         x_tol::Float64=1e-10, f_tol::Float64=1e-9, g_tol::Float64=1e-3,
         iterations::Int=Int(2e3), show_trace::Bool=true,
         outer_iterations::Int=Int(1e1), scaled::Bool=false,
         extended_trace::Bool=false, α1::Float64=10. .^0)
 
     @unpack fit, lb, ub, x0, ncells, f, nparams, npolys = options
+    θ = θneural_poly(x0, ncells, nparams, f, npolys)
 
     lb, = unstack(lb, fit)
     ub, = unstack(ub, fit)
     x0,c = unstack(x0, fit)
     #ℓℓ(x) = -loglikelihood(stack(x,c,fit), data, ncells, nparams, f, npolys, n)
-    ℓℓ(x) = -(loglikelihood(stack(x,c,fit), data, ncells, nparams, f, npolys, n) -
+    ℓℓ(x) = -(loglikelihood(stack(x,c,fit), data, θ; n=n) -
         α1 * (x[2] - lb[2]).^2)
 
     output = optimize(x0, ℓℓ, lb, ub; g_tol=g_tol, x_tol=x_tol,
@@ -198,5 +200,65 @@ function optimize(data, options::neural_poly_options, n::Int;
     converged = Optim.converged(output)
 
     return model, output
+
+end
+
+
+"""
+    LL_all_trials(pz, py, data; n=53)
+
+Computes the log likelihood for a set of trials consistent with the observed neural activity on each trial.
+"""
+function loglikelihood(θ::θneural_poly, data; n::Int=53)
+
+    @unpack θz, θμ, θy = θ
+    @unpack σ2_i, B, λ, σ2_a = θz
+    @unpack dt = data[1][1].input_data
+
+    P,M,xc,dx = initialize_latent_model(σ2_i, B, λ, σ2_a, n, dt)
+
+    sum(map((data, θμ, θy) -> 
+            sum(pmap(data -> loglikelihood(θz,θμ,θy,data,P, M, xc, dx, n=n), data)), data, θμ, θy))
+    #sum(pmap((data, θy) -> loglikelihood(θz,θy,data,P, M, xc, dx, n),
+    #    vcat(data...), vcat(map((x,y)-> repeat([x],y), θy, length.(data))...)))
+
+end
+
+
+"""
+"""
+function loglikelihood(θz,θμ,θy,data,
+        P::Vector{TT}, M::Array{TT,2},
+        xc::Vector{TT}, dx::VV; n::Int=53) where {TT,UU,VV <: Any}
+
+    @unpack λ, σ2_a, σ2_s, ϕ, τ_ϕ = θz
+    @unpack spikes, input_data = data
+    @unpack binned_clicks, clicks, dt, centered = input_data
+    @unpack nT, nL, nR = binned_clicks
+    @unpack L, R = clicks
+
+    #adapt magnitude of the click inputs
+    La, Ra = adapt_clicks(ϕ,τ_ϕ,L,R)
+
+    c = Vector{TT}(undef,nT)
+    F = zeros(TT,n,n) #empty transition matrix for time bins with clicks
+
+    @inbounds for t = 1:nT
+
+        if centered && t == 1
+            P,F = latent_one_step!(P,F,λ,σ2_a,σ2_s,t,nL,nR,La,Ra,M,dx,xc,n,dt/2)
+        else
+            P,F = latent_one_step!(P,F,λ,σ2_a,σ2_s,t,nL,nR,La,Ra,M,dx,xc,n,dt)
+        end
+
+        P .*= vcat(map(xc-> exp(sum(map((k,θy,θμ)-> logpdf(Poisson(θy(xc,θμ(t)) * dt),
+                                k[t]), spikes, θy, θμ))), xc)...)
+
+        c[t] = sum(P)
+        P /= c[t]
+
+    end
+
+    return sum(log.(c))
 
 end

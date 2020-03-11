@@ -3,7 +3,7 @@
 
 Given parameters θ and data (inputs and choices) computes the LL for all trials
 """
-function loglikelihood(θ::θchoice, data, n::Int)
+function loglikelihood(θ::θchoice, data; n::Int=53)
 
     @unpack θz, lapse = θ
     @unpack σ2_i, B, λ, σ2_a = θz
@@ -11,7 +11,7 @@ function loglikelihood(θ::θchoice, data, n::Int)
 
     P,M,xc,dx = initialize_latent_model(σ2_i, B, λ, σ2_a, n, dt, lapse=lapse)
 
-    sum(pmap(data -> loglikelihood!(θ, P, M, dx, xc, data, n), data))
+    sum(pmap(data -> loglikelihood!(θ, P, M, dx, xc, data, n=n), data))
 
 end
 
@@ -21,7 +21,7 @@ end
 
 Given parameters θ and data (inputs and choices) computes the LL for all trials
 """
-(θ::θchoice)(data; n::Int=53) = loglikelihood(θ, data, n)
+(θ::θchoice)(data; n::Int=53) = loglikelihood(θ, data, n=n)
 
 
 """
@@ -31,8 +31,8 @@ Given parameters θ and data (inputs and choices) computes the LL for one trial
 """
 function loglikelihood!(θ::θchoice,
         P::Vector{TT}, M::Array{TT,2}, dx::UU,
-        xc::Vector{TT}, data::choicedata,
-        n::Int) where {TT,UU <: Real}
+        xc::Vector{TT}, data::choicedata;
+        n::Int=53) where {TT,UU <: Real}
 
     @unpack θz, bias = θ
     @unpack click_data, choice = data

@@ -26,31 +26,6 @@ function save(file, model::neuralDDM, options, CI)
 end
 
 
-
-"""
-"""
-function train_test_divide(data,frac)
-
-    train_trials = StatsBase.sample(1:data["ntrials"], Int(ceil(0.8 * data["ntrials"])), replace = false)
-    test_trials = setdiff(1:data["ntrials"], train_trials)
-
-    train_data, test_data = deepcopy(data), deepcopy(data)
-
-    for key in collect(keys(data))
-        if length(data[key]) == data["ntrials"]
-            train_data[key] = data[key][train_trials]
-            test_data[key] = data[key][test_trials]
-        end
-    end
-
-    #all of the mus and sigams should be filtered too, but not important for fitting.
-    train_data["ntrials"], test_data["ntrials"] = length(train_trials), length(test_trials)
-
-    return train_data, test_data
-
-end
-
-
 """
     load_neural_data(path, files)
 
@@ -115,6 +90,10 @@ function load(file::String, break_sim_data::Bool, centered::Bool=true;
         μ_t = map(n-> [max(0., mean([μ_rnt[i][n][t]
             for i in findall(nT .+ (pad - cut) .>= t)]))
             for t in 1:(maximum(nT) .+ (pad - cut))], 1:ncells)
+        
+        #μ_t = map(n-> [max(0., mean([spikes[i][n][t]/dt
+        #    for i in findall(nT .>= t)]))
+        #    for t in 1:(maximum(nT))], 1:ncells)
 
         λ0 = map(nT-> bin_λ0(μ_t, nT), nT)
         #λ0 = map(nT-> map(μ_t-> zeros(nT), μ_t), nT)

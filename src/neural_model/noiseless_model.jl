@@ -1,6 +1,52 @@
+abstract type neural_options_noiseless end
+
+
 """
 """
-function train_and_test(data, options::neural_options; seed::Int=1, α1s = 10. .^(-6:7))
+@with_kw struct Sigmoid_options_noiseless <: neural_options_noiseless
+    ncells::Vector{Int}
+    nparams::Int = 4
+    f::String = "Sigmoid"
+    fit::Vector{Bool} = vcat(falses(dimz), trues(sum(ncells)*nparams))
+    lb::Vector{Float64} = vcat([0., 8.,  -5., 0.,   0.,  0.01, 0.005],
+        repeat([-100.,0.,-10.,-10.], sum(ncells)))
+    ub::Vector{Float64} = vcat([Inf, Inf, 10., Inf, Inf, 1.2,  1.],
+        repeat([100.,100.,10.,10.], sum(ncells)))
+    x0::Vector{Float64} = vcat([0., 15., 0. - eps(), 0., 0., 1.0 - eps(), 0.008],
+        repeat([10.,10.,1.,0.], sum(ncells)))
+end
+
+
+"""
+"""
+@with_kw struct Softplus_options_noiseless <: neural_options_noiseless
+    ncells::Vector{Int}
+    nparams::Int = 3
+    f::String = "Softplus"
+    fit::Vector{Bool} = vcat(falses(dimz), trues(sum(ncells)*nparams))
+    lb::Vector{Float64} = vcat([0., 8.,  -10., 0.,   0.,  0., 0.005],
+        repeat([1e-12, -10., -10.], sum(ncells)))
+    ub::Vector{Float64} = vcat([Inf, 200., 10., Inf, Inf, 1.2,  1.],
+        repeat([100., 10., 10.], sum(ncells)))
+    x0::Vector{Float64} = vcat([0., 15., 0. - eps(), 0., 0., 1.0 - eps(), 0.008],
+        repeat([10.,1.,0.], sum(ncells)))
+end
+
+
+"""
+"""
+@with_kw struct θneural_noiseless{T1, T2} <: DDMθ
+    θz::T1
+    θy::T2
+    ncells::Vector{Int}
+    nparams::Int
+    f::String
+end
+
+
+"""
+"""
+function train_and_test(data, options::T1; seed::Int=1, α1s = 10. .^(-6:7)) where T1 <: neural_options_noiseless
     
     ntrials = length(data)
     train = sample(Random.seed!(seed), 1:ntrials, ceil(Int, 0.9 * ntrials), replace=false)
@@ -16,14 +62,14 @@ end
 
 """
 """
-function optimize(data, options::neural_options;
+function optimize(data, options::T1;
         x_tol::Float64=1e-10, f_tol::Float64=1e-6, g_tol::Float64=1e-3,
         iterations::Int=Int(2e3), show_trace::Bool=true,
-        outer_iterations::Int=Int(1e1), α1::Float64=0.)
+        outer_iterations::Int=Int(1e1), α1::Float64=0.) where T1 <: neural_options_noiseless
 
     @unpack fit, lb, ub, x0, ncells, f, nparams = options
     
-    θ = θneural(x0, ncells, nparams, f)
+    θ = θneural_noiseless(x0, ncells, nparams, f)
 
     lb, = unstack(lb, fit)
     ub, = unstack(ub, fit)
@@ -38,11 +84,27 @@ function optimize(data, options::neural_options;
 
     x = Optim.minimizer(output)
     x = stack(x,c,fit)
-    θ = θneural(x, ncells, nparams, f)
+    θ = θneural_noiseless(x, ncells, nparams, f)
     model = neuralDDM(θ, data)
     converged = Optim.converged(output)
 
     return model, output
+
+end
+
+
+"""
+    flatten(θ)
+
+Extract parameters related to the choice model from a struct and returns an ordered vector
+```
+"""
+function flatten(θ::θneural_noiseless)
+
+    @unpack θy, θz = θ
+    @unpack σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ = θz
+    vcat(σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ, 
+        vcat(collect.(Flatten.flatten.(vcat(θy...)))...))
 
 end
 
@@ -54,12 +116,33 @@ A wrapper function that accepts a vector of mixed parameters, splits the vector
 into two vectors based on the parameter mapping function provided as an input. Used
 in optimization, Hessian and gradient computation.
 """
-function loglikelihood(x::Vector{T1}, data::Vector{Vector{T2}}, 
-        θ::θneural) where {T1 <: Real, T2 <: neuraldata}
+function loglikelihood(x::Vector{T1}, data::Union{Vector{Vector{T2}}, Vector{Any}}, 
+        θ::θneural_noiseless) where {T1 <: Real, T2 <: neuraldata}
 
     @unpack ncells, nparams, f = θ
-    θ = θneural(x, ncells, nparams, f)
+    θ = θneural_noiseless(x, ncells, nparams, f)
     loglikelihood(θ, data)
+
+end
+
+
+"""
+"""
+function θneural_noiseless(x::Vector{T}, ncells::Vector{Int}, nparams::Int, f::String) where {T <: Real}
+    
+    dims2 = vcat(0,cumsum(ncells))
+
+    blah = Tuple.(collect(partition(x[dimz + 1:dimz + nparams*sum(ncells)], nparams)))
+    
+    if f == "Sigmoid"
+        blah2 = map(x-> Sigmoid(x...), blah)
+    elseif f == "Softplus"
+        blah2 = map(x-> Softplus(x...), blah)
+    end
+    
+    θy = map(idx-> blah2[idx], [dims2[i]+1:dims2[i+1] for i in 1:length(dims2)-1]) 
+        
+    θneural_noiseless(θz(Tuple(x[1:dimz])...), θy, ncells, nparams, f)
 
 end
 
@@ -81,7 +164,8 @@ end
 
 """
 """
-function loglikelihood(θ::θneural, data::Vector{Vector{T1}}) where T1 <: neuraldata
+function loglikelihood(θ::θneural_noiseless, 
+        data::Union{Vector{Vector{T1}}, Vector{Any}}) where T1 <: neuraldata
 
     @unpack θz, θy = θ
 

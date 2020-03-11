@@ -29,6 +29,8 @@ export filtinputs, filtdata, sigmoid_filtoptions
 
 export neural_poly_DDM, θneural_poly
 
+export θneural_noiseless, Sigmoid_options_noiseless
+
 export dimz
 export loglikelihood, synthetic_data
 export CIs, optimize, Hessian, gradient
@@ -128,16 +130,6 @@ neuralinputs(clicks, binned_clicks, λ0::Vector{Vector{Vector{Float64}}}, dt::Fl
     neuralinputs.(clicks, binned_clicks, λ0, dt, centered)
 
 
-"""
-"""
-@with_kw mutable struct choiceoptions
-    fit::Vector{Bool} = vcat(trues(dimz+2))
-    lb::Vector{Float64} = vcat([0., 8., -5., 0., 0., 0.01, 0.005], [-30, 0.])
-    ub::Vector{Float64} = vcat([2., 30., 5., 100., 2.5, 1.2, 1.], [30, 1.])
-    x0::Vector{Float64} = vcat([0.1, 15., -0.1, 20., 0.5, 0.8, 0.008], [0.,0.01])
-end
-
-
 include("base_model.jl")
 include("analysis_functions.jl")
 include("optim_funcs.jl")
@@ -149,13 +141,13 @@ include("choice_model/sample_model.jl")
 include("choice_model/process_data.jl")
 
 include("neural_model/neural_model.jl")
-include("neural_model/neural_poly_model.jl")
 include("neural_model/compute_LL.jl")
 include("neural_model/sample_model.jl")
 include("neural_model/process_data.jl")
 include("neural_model/noiseless_model.jl")
-include("neural_model/noiseless_model_poly.jl")
-include("neural_model/CTA.jl")
+include("neural_model/polynomial/neural_poly_model.jl")
+#include("neural_model/polynomial/noiseless_model_poly.jl")
+include("neural_model/filter/filtered.jl")
 
 #include("neural_model/load_and_optimize.jl")
 #include("neural_model/sample_model_functions_FP.jl")

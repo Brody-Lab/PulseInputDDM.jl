@@ -52,8 +52,8 @@ function (θ::Sigmoid)(x::U, λ0::T) where {U,T <: Real}
 
     y = c * x + d
     y = a + b * logistic!(y)
-    #y = softplus(y + λ0)
-    y = max(eps(), y + λ0)
+    y = softplus(y + λ0)
+    #y = max(eps(), y + λ0)
 
 end
 
@@ -110,7 +110,7 @@ end
     ncells::Vector{Int}
     nparams::Int = 4
     f::String = "Sigmoid"
-    fit::Vector{Bool} = vcat(trues(dimz + sum(ncells)*npolys + sum(ncells)*nparams))
+    fit::Vector{Bool} = vcat(trues(dimz + sum(ncells)*nparams))
     lb::Vector{Float64} = vcat([0., 8.,  -5., 0.,   0.,  0.01, 0.005],
         repeat([-100.,0.,-10.,-10.], sum(ncells)))
     ub::Vector{Float64} = vcat([Inf, Inf, 10., Inf, Inf, 1.2,  1.],
@@ -126,7 +126,7 @@ end
     ncells::Vector{Int}
     nparams::Int = 3
     f::String = "Softplus"
-    fit::Vector{Bool} = vcat(trues(dimz + sum(ncells)*npolys + sum(ncells)*nparams))
+    fit::Vector{Bool} = vcat(trues(dimz + sum(ncells)*nparams))
     lb::Vector{Float64} = vcat([0., 8.,  -10., 0.,   0.,  0., 0.005],
         repeat([1e-12, -10., -10.], sum(ncells)))
     ub::Vector{Float64} = vcat([Inf, 200., 10., Inf, Inf, 1.2,  1.],
@@ -169,11 +169,11 @@ A wrapper function that accepts a vector of mixed parameters, splits the vector
 into two vectors based on the parameter mapping function provided as an input. Used
 in optimization, Hessian and gradient computation.
 """
-function loglikelihood(x::Vector{T}, data::Vector{Vector{T2}}, θ::θneural, n::Int) where {T <: Real, T2 <: neuraldata}
+function loglikelihood(x::Vector{T}, data::Vector{Vector{T2}}, θ::θneural; n::Int=53) where {T <: Real, T2 <: neuraldata}
 
     @unpack ncells, nparams, f = θ
     θ = θneural(x, ncells, nparams, f)
-    loglikelihood(θ, data, n)
+    loglikelihood(θ, data; n=n)
 
 end
 
@@ -185,7 +185,7 @@ function gradient(model::neuralDDM, n::Int)
 
     @unpack θ, data = model
     x = flatten(θ)
-    ℓℓ(x) = -loglikelihood(x, data, θ, n)
+    ℓℓ(x) = -loglikelihood(x, data, θ; n=n)
 
     ForwardDiff.gradient(ℓℓ, x)::Vector{Float64}
 
@@ -199,7 +199,7 @@ function Hessian(model::neuralDDM, n::Int; chuck_size::Int=4)
 
     @unpack θ, data = model
     x = flatten(θ)
-    ℓℓ(x) = -loglikelihood(x, data, θ, n)
+    ℓℓ(x) = -loglikelihood(x, data, θ; n=n)
 
     cfg = ForwardDiff.HessianConfig(ℓℓ, x, ForwardDiff.Chunk{chuck_size}())
     ForwardDiff.hessian(ℓℓ, x, cfg)
@@ -233,11 +233,11 @@ BACK IN THE DAY, TOLS USED TO BE x_tol::Float64=1e-4, f_tol::Float64=1e-9, g_tol
 Optimize model parameters. pz and py are dictionaries that contains initial values, boundaries,
 and specification of which parameters to fit.
 """
-function optimize(data, options::neural_options, n::Int;
+function optimize(data, options::T1; n::Int=53,
         x_tol::Float64=1e-10, f_tol::Float64=1e-9, g_tol::Float64=1e-3,
         iterations::Int=Int(2e3), show_trace::Bool=true,
         outer_iterations::Int=Int(1e1), scaled::Bool=false,
-        extended_trace::Bool=false, α1::Float64=10. .^0)
+        extended_trace::Bool=false, α1::Float64=0.) where T1 <: neural_options
 
     @unpack fit, lb, ub, x0, ncells, f, nparams = options
     
@@ -247,7 +247,7 @@ function optimize(data, options::neural_options, n::Int;
     ub, = unstack(ub, fit)
     x0,c = unstack(x0, fit)
     #ℓℓ(x) = -loglikelihood(stack(x,c,fit), data, ncells, nparams, f, npolys, n)
-    ℓℓ(x) = -(loglikelihood(stack(x,c,fit), data, θ) -
+    ℓℓ(x) = -(loglikelihood(stack(x,c,fit), data, θ; n=n) -
         α1 * (x[2] - lb[2]).^2)
 
     output = optimize(x0, ℓℓ, lb, ub; g_tol=g_tol, x_tol=x_tol,
@@ -271,7 +271,7 @@ end
 
 Computes the log likelihood for a set of trials consistent with the observed neural activity on each trial.
 """
-function loglikelihood(θ::θneural, data::Vector{Vector{T1}}, n::Int) where {T1 <: neuraldata}
+function loglikelihood(θ::θneural, data::Vector{Vector{T1}}; n::Int=53) where {T1 <: neuraldata}
 
     @unpack θz, θy = θ
     @unpack σ2_i, B, λ, σ2_a = θz
@@ -280,7 +280,7 @@ function loglikelihood(θ::θneural, data::Vector{Vector{T1}}, n::Int) where {T1
     P,M,xc,dx = initialize_latent_model(σ2_i, B, λ, σ2_a, n, dt)
 
     sum(map((data, θy) -> sum(pmap(data -> 
-                    loglikelihood(θz,θy,data,P, M, xc, dx, n), data)), data, θy))
+                    loglikelihood(θz,θy,data,P, M, xc, dx; n=n), data)), data, θy))
 
 end
 
@@ -289,7 +289,7 @@ end
 """
 function loglikelihood(θz,θy,data::neuraldata,
         P::Vector{T1}, M::Array{T1,2},
-        xc::Vector{T1}, dx::T3, n::Int) where {T1,T3 <: Real}
+        xc::Vector{T1}, dx::T3; n::Int=53) where {T1,T3 <: Real}
 
     @unpack λ, σ2_a, σ2_s, ϕ, τ_ϕ = θz
     @unpack spikes, input_data = data

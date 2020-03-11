@@ -3,6 +3,7 @@
 @with_kw struct filtinputs{T1,T2,T3,T4}
     clicks::T1
     binned_clicks::T2
+    λ0::Vector{Vector{Float64}}
     LX::T3
     RX::T4
     dt::Float64
@@ -72,13 +73,13 @@ end
     nparams::Int
     f::String
     npolys::Int
+    filt_len::Int
 end
 
 
 """
 """
 @with_kw struct θτ{T1,T2}
-    filt_len::Int = 50
     wL::T1 = 0.01 * randn(filt_len)
     wR::T2 = 0.01 * randn(filt_len)
 end
@@ -94,11 +95,17 @@ function train_and_test(data, options::Union{sigmoid_filtoptions, filtoptions}; 
     ntrials = length(data)
     train = sample(Random.seed!(seed), 1:ntrials, ceil(Int, 0.9 * ntrials), replace=false)
     test = setdiff(1:ntrials, train)
+    display(test)
     
-    model = pmap(α1-> optimize([data[train]], options; α1=α1, show_trace=false), α1s)   
+    filt_data = make_filt_data.(data, Ref(filt_len))
     
-    filt_data = make_filt_data.(data, Ref(filt_len));
-    testLL = pmap(model-> loglikelihood(model.θ, [filt_data[test]]), model)
+    if length(α1s) > 1
+        model = pmap(α1-> optimize([data[train]], options; α1=α1, show_trace=true), α1s)   
+        testLL = pmap(model-> loglikelihood(model.θ, [filt_data[test]]), model)
+    else
+        model = optimize([data[train]], options; α1=α1s, show_trace=true)
+        testLL = loglikelihood(model.θ, [filt_data[test]])
+    end
 
     return α1s, model, testLL
     
@@ -110,13 +117,13 @@ end
 function make_filt_data(data, filt_len)
     
     @unpack input_data, spikes, ncells = data
-    @unpack binned_clicks, clicks, dt, centered = input_data
+    @unpack binned_clicks, clicks, dt, centered, λ0 = input_data
 
     L,R = binLR(binned_clicks, clicks, dt)
     LX = map(i-> vcat(missings(Int, max(0, filt_len - i)), L[max(1,i-filt_len+1):i]), 1:length(L))
     RX = map(i-> vcat(missings(Int, max(0, filt_len - i)), R[max(1,i-filt_len+1):i]), 1:length(R));
 
-    filtdata(filtinputs(clicks, binned_clicks, LX, RX, dt, centered), spikes, ncells)
+    filtdata(filtinputs(clicks, binned_clicks, λ0, LX, RX, dt, centered), spikes, ncells)
     
 end
 
@@ -132,6 +139,7 @@ function optimize(data, options::Union{sigmoid_filtoptions, filtoptions};
     @unpack fit, lb, ub, x0, ncells, f, nparams, npolys, filt_len = options
     
     filt_data = map(data-> make_filt_data.(data, Ref(filt_len)), data)
+    θ = θfilt(x0, ncells, nparams, f, npolys, filt_len)
 
     lb, = unstack(lb, fit)
     ub, = unstack(ub, fit)
@@ -144,7 +152,7 @@ function optimize(data, options::Union{sigmoid_filtoptions, filtoptions};
     #    α1 * sum(diff(stack(x,c,fit)[1:2*filt_len]).^2) - 
     #    1e0 * (sum(stack(x,c,fit)[1:2*filt_len]) - 1.))
     
-    ℓℓ(x) = -(loglikelihood(stack(x,c,fit), filt_data, ncells, nparams, npolys, filt_len, f) - 
+    ℓℓ(x) = -(loglikelihood(stack(x,c,fit), filt_data, θ) - 
         α1 * sum(diff(stack(x,c,fit)[1:2*filt_len]).^2))
 
     output = optimize(x0, ℓℓ, lb, ub; g_tol=g_tol, x_tol=x_tol,
@@ -153,7 +161,7 @@ function optimize(data, options::Union{sigmoid_filtoptions, filtoptions};
 
     x = Optim.minimizer(output)
     x = stack(x,c,fit)
-    θ = unflatten(x, ncells, nparams, f, npolys, filt_len)
+    θ = θfilt(x, ncells, nparams, f, npolys, filt_len)
     model = neuralDDM(θ, data)
     converged = Optim.converged(output)
 
@@ -169,9 +177,10 @@ A wrapper function that accepts a vector of mixed parameters, splits the vector
 into two vectors based on the parameter mapping function provided as an input. Used
 in optimization, Hessian and gradient computation.
 """
-function loglikelihood(x::Vector{T1}, data, ncells, nparams, npolys, filt_len::Int, f::String) where {T1 <: Real}
+function loglikelihood(x::Vector{T1}, data, θ::θfilt) where {T1 <: Real}
 
-    θ = unflatten(x, ncells, nparams, f, npolys, filt_len)
+    @unpack ncells, nparams, f, npolys, filt_len = θ
+    θ = θfilt(x, ncells, nparams, f, npolys, filt_len)
     loglikelihood(θ, data)
 
 end
@@ -179,7 +188,7 @@ end
 
 """
 """
-function unflatten(x::Vector{T}, ncells::Vector{Int}, nparams::Int, f::String, npolys::Int, filt_len::Int) where {T <: Real}
+function θfilt(x::Vector{T}, ncells::Vector{Int}, nparams::Int, f::String, npolys::Int, filt_len::Int) where {T <: Real}
     
     dims2 = vcat(0,cumsum(ncells))
 
@@ -200,7 +209,20 @@ function unflatten(x::Vector{T}, ncells::Vector{Int}, nparams::Int, f::String, n
     
     θμ = map(idx-> blah2[idx], [dims2[i]+1:dims2[i+1] for i in 1:length(dims2)-1])
     
-    θfilt(θτ(filt_len, x[1:filt_len], x[filt_len+1:2*filt_len]), θμ, θy, ncells, nparams, f, npolys)
+    θfilt(θτ(x[1:filt_len], x[filt_len+1:2*filt_len]), θμ, θy, ncells, nparams, f, npolys, filt_len)
+
+end
+
+
+"""
+"""
+function flatten(θ::θfilt)
+
+    @unpack θμ, θτ, θy = θ
+    @unpack wL, wR = θτ
+    vcat(wL, wR, 
+        vcat(coeffs.(vcat(vcat(θμ...)...))...),
+        vcat(collect.(Flatten.flatten.(vcat(θy...)))...))
 
 end
 
@@ -233,11 +255,12 @@ end
 """
 function loglikelihood(θτ::θτ, θμ, θy, input_data::filtinputs)
 
-    @unpack binned_clicks, dt = input_data
+    @unpack binned_clicks, λ0, dt = input_data
     @unpack nT = binned_clicks
 
     a = rand(θτ,input_data)
-    λ = map((θy,θμ)-> θy(a, θμ(1:nT)), θy, θμ)
+    #λ = map((θy,θμ)-> θy(a, θμ(1:nT)), θy, θμ)
+    λ = map((θy,λ0)-> θy(a, λ0), θy, λ0)
 
     return λ, a
 
@@ -248,7 +271,7 @@ end
 """
 function rand(θτ::θτ, inputs)
 
-    @unpack wL, wR, filt_len = θτ
+    @unpack wL, wR = θτ
     @unpack LX, RX = inputs
     #@unpack clicks, binned_clicks, dt = inputs
     #@unpack nT = binned_clicks
