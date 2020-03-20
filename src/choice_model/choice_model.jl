@@ -96,7 +96,8 @@ BACK IN THE DAY TOLS WERE: x_tol::Float64=1e-4, f_tol::Float64=1e-9, g_tol::Floa
 function optimize(data, options::choiceoptions; n::Int=53,
         x_tol::Float64=1e-10, f_tol::Float64=1e-6, g_tol::Float64=1e-3,
         iterations::Int=Int(2e3), show_trace::Bool=true, outer_iterations::Int=Int(1e1),
-        extended_trace::Bool=false, scaled::Bool=false)
+        extended_trace::Bool=false, scaled::Bool=false,
+        time_limit::Float64=170000., show_every::Int=10)
 
     @unpack fit, lb, ub, x0 = options
 
@@ -108,7 +109,7 @@ function optimize(data, options::choiceoptions; n::Int=53,
     output = optimize(x0, ℓℓ, lb, ub; g_tol=g_tol, x_tol=x_tol,
         f_tol=f_tol, iterations=iterations, show_trace=show_trace,
         outer_iterations=outer_iterations, extended_trace=extended_trace,
-        scaled=scaled)
+        scaled=scaled, time_limit=time_limit, show_every=show_every)
 
     x = Optim.minimizer(output)
     x = stack(x,c,fit)

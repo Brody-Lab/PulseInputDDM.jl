@@ -33,7 +33,7 @@ Load neural data .MAT files and return a Dict.
 """
 function load(file::String, break_sim_data::Bool, centered::Bool=true;
         dt::Float64=1e-2, delay::Float64=0., pad::Int=10, filtSD::Int=5,
-        cut::Int=10)
+        cut::Int=10, pcut::Float64=0.01)
 
     data = read(matopen(file), "rawdata")
 
@@ -81,30 +81,53 @@ function load(file::String, break_sim_data::Bool, centered::Bool=true;
 
         spikes = vec(map(x-> vec(vec.(collect.(x))), data["spike_times"]))
 
+        output = map((spikes, nT)-> bin_spikes(spikes, dt, nT; delay=0., pad=pad), spikes, nT)
+        spikes = getindex.(output, 1)     
+        FR = map(i-> map((x,T)-> sum(x[i])/T, spikes, T), 1:ncells)
+        choice = vec(convert(BitArray, data["pokedR"]))
+        pval = map(x-> pvalue(EqualVarianceTTest(x[choice], x[.!choice])), FR)      
+        ptest = pval .< pcut
+        
+        
+        spikes = vec(map(x-> vec(vec.(collect.(x))), data["spike_times"]))
         output = map((spikes, nT)-> bin_spikes(spikes, dt, nT; delay=delay, pad=pad), spikes, nT)
         spikes = getindex.(output, 1)
         padded = getindex.(output, 2)
-
-        μ_rnt = filtered_rate.(padded, dt; filtSD=filtSD, cut=cut)
-
-        μ_t = map(n-> [max(0., mean([μ_rnt[i][n][t]
-            for i in findall(nT .+ (pad - cut) .>= t)]))
-            for t in 1:(maximum(nT) .+ (pad - cut))], 1:ncells)
         
-        #μ_t = map(n-> [max(0., mean([spikes[i][n][t]/dt
-        #    for i in findall(nT .>= t)]))
-        #    for t in 1:(maximum(nT))], 1:ncells)
+        
+        if any(ptest)
 
-        λ0 = map(nT-> bin_λ0(μ_t, nT), nT)
-        #λ0 = map(nT-> map(μ_t-> zeros(nT), μ_t), nT)
+            ncells = sum(ptest)
+            
+            spikes = map(spikes-> spikes[ptest], spikes)
+            padded = map(padded-> padded[ptest], padded)
+            
+            μ_rnt = filtered_rate.(padded, dt; filtSD=filtSD, cut=cut)
 
-        input_data = neuralinputs(click_times, binned_clicks, λ0, dt, centered)
-        spike_data = neuraldata(input_data, spikes, ncells)
+            μ_t = map(n-> [max(0., mean([μ_rnt[i][n][t]
+                for i in findall(nT .+ (pad - cut) .>= t)]))
+                for t in 1:(maximum(nT) .+ (pad - cut))], 1:ncells)
+
+            #μ_t = map(n-> [max(0., mean([spikes[i][n][t]/dt
+            #    for i in findall(nT .>= t)]))
+            #    for t in 1:(maximum(nT))], 1:ncells)
+
+            λ0 = map(nT-> bin_λ0(μ_t, nT), nT)
+            #λ0 = map(nT-> map(μ_t-> zeros(nT), μ_t), nT)
+
+            input_data = neuralinputs(click_times, binned_clicks, λ0, dt, centered)
+            spike_data = neuraldata(input_data, spikes, ncells)
+            
+            return spike_data, μ_rnt, μ_t
+            
+        else
+            
+            return nothing
+            
+        end
 
     end
     
-    return spike_data, μ_rnt, μ_t
-
 end
 
 
@@ -171,7 +194,7 @@ function bin_spikes(spike_times::Vector{Vector{Float64}}, dt, nT::Int; delay::Fl
     trial = map(x-> fit(Histogram, vec(collect(x .- delay)), 
             collect(range(0, stop=nT*dt, length=nT+1)), closed=:left).weights, spike_times)
 
-    padded = map(x-> fit(Histogram, vec(collect(x)), 
+    padded = map(x-> fit(Histogram, vec(collect(x .- delay)), 
             collect(range(-pad*dt, stop=(nT+pad)*dt, length=(nT+2*pad)+1)), closed=:left).weights, spike_times)
 
 

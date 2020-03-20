@@ -1,11 +1,3 @@
-
-nanmean(x) = mean(filter(!isnan,x))
-nanmean(x,y) = mapslices(nanmean,x,dims=y)
-
-nanstderr(x) = std(filter(!isnan,x))/sqrt(length(filter(!isnan,x)))
-nanstderr(x,y) = mapslices(nanstderr,x,dims=y)
-
-
 """
 """
 function diffLR(data)

@@ -14,6 +14,7 @@ using ImageFiltering
 using ForwardDiff: value
 using PositiveFactorizations, Parameters, Flatten
 using Polynomials, Missings
+using HypothesisTests
 
 import StatsFuns: logistic, logit, softplus, xlogy
 import Base.rand
