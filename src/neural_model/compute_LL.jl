@@ -21,56 +21,6 @@ neural_null(k,λ,dt) = sum(logpdf.(Poisson.(λ*dt),k))
 
 #=
 
-function LL_all_trials_dx(pz::Vector{TT}, py::Vector{Vector{TT}}, data::Dict,
-        dx::Float64, f_str) where {TT <: Any}
-
-    dt = data["dt"]
-    P,M,xc,n, = initialize_latent_model_dx(pz,dx,dt)
-
-    output = pmap((L,R,T,nL,nR,SC,λ0) -> LL_single_trial(pz, P, M, dx, xc,
-        L, R, T, nL, nR, py, SC, dt, n, λ0, f_str),
-        data["leftbups"], data["rightbups"], data["nT"], data["binned_leftbups"],
-        data["binned_rightbups"], data["spike_counts"], data["λ0"])
-
-end
-
-#for testing
-function LL_single_trial_dx(pz::Vector{TT}, P::Vector{TT}, M::Array{TT,2}, dx::VV,
-        xc::Vector{TT},L::Vector{Float64}, R::Vector{Float64}, T::Int,
-        nL::Vector{Int}, nR::Vector{Int},
-        py::Vector{Vector{TT}}, k::Vector{Vector{Int}},dt::Float64,n::Int,
-        λ0::Vector{Vector{UU}},
-        f_str::String) where {UU,TT,VV <: Any}
-
-    #adapt magnitude of the click inputs
-    La, Ra = make_adapted_clicks(pz,L,R)
-
-    c = Vector{TT}(undef,T)
-    #PS = Array{TT,2}(undef,n,T)
-    F = zeros(TT,n,n) #empty transition matrix for time bins with clicks
-
-    #construct T x N mean firing rate array and spike count array
-    #λ0 = hcat(λ0...)
-    #k = hcat(k...)
-
-    @inbounds for t = 1:T
-
-        P, = latent_one_step!(P,F,pz,t,nL,nR,La,Ra,M,dx,xc,n,dt)
-
-        P .*= vcat(map(xc-> exp(sum(map((k,py,λ0)-> logpdf(Poisson(f_py(xc,λ0[t],py,f_str) * dt),
-                                k[t]), k, py, λ0))), xc)...)
-
-        c[t] = sum(P)
-        #PS[:,t] = P
-        P /= c[t]
-
-    end
-
-    #return PS, c #sum(log.(c))
-    return sum(log.(c))
-
-end
-
 function PY_all_trials(pz::Vector{TT},py::Vector{Vector{TT}},
         data::Dict; dt::Float64=1e-2, n::Int=53, f_str::String="softplus", comp_posterior::Bool=false,
         λ0::Vector{Vector{Vector{Float64}}}=Vector{Vector{Vector{Float64}}}()) where {TT <: Any}
