@@ -194,14 +194,14 @@ function P_single_trial!(σ2_i::TT, B::TT, λ::TT, σ2_a::TT, σ2_s::TT, ϕ::TT,
         # return (P - Pt_1)   # getting the mass that hits the bound at the very last time step
 
         # For the new likelihood =======
-        NDtimedist = InverseGaussian(γ_shape, γ_scale)
-        NDtimedist1 = InverseGaussian(γ_shape1, γ_scale1)
+        NDtimedistL = Gamma(γ_shape, γ_scale)
+        NDtimedistR = Gamma(γ_shape1, γ_scale1)
 
         tvec = dt .* collect(nT:-1:1)
 
         pback = zeros(TT,2)
-        pback[1] = transpose(Pbounds[1,:]) * (pdf.(NDtimedist, tvec) .* dt)
-        pback[2] = transpose(Pbounds[2,:]) * (pdf.(NDtimedist1, tvec) .* dt)
+        pback[1] = transpose(Pbounds[1,:]) * (pdf.(NDtimedistL, tvec) .* dt)
+        pback[2] = transpose(Pbounds[2,:]) * (pdf.(NDtimedistR, tvec) .* dt)
         return pback
 
     else

@@ -69,10 +69,10 @@ function sample_choice_single_trial(nT::Int, L::Vector{Float64}, R::Vector{Float
     choice = sign(a[RT]) > 0 
 
     if sign(a[RT]) > 0
-        ndtime = InverseGaussian(γ_shape1, γ_scale1)
+        ndtime = Gamma(γ_shape1, γ_scale1)
         RT = round(RT*dtMC + rand(ndtime, 1)[1], digits = 4)
     else
-        ndtime = InverseGaussian(γ_shape, γ_scale)
+        ndtime = Gamma(γ_shape, γ_scale)
         RT = round(RT*dtMC + rand(ndtime, 1)[1], digits = 4)
     end
 
@@ -100,9 +100,12 @@ end
 """
 function compute_initial_value(data::Dict, η::TT, α_prior::TT, β_prior::TT) where {TT <: Any}
 
+    # correct = data["correct"]
+    # ra = abs.(diff(correct))
+    # ra = vcat(0, ra)
+
     correct = data["correct"]
-    ra = abs.(diff(correct))
-    ra = vcat(0, ra)
+    ra = data["correct"]
 
     α_actual = α_prior * β_prior
     β_actual = β_prior - α_actual
@@ -123,11 +126,12 @@ function compute_initial_value(data::Dict, η::TT, α_prior::TT, β_prior::TT) w
         else
             prior_i = η*post + (1-η)*prior_0
             Ep_x1_xt_1 = sum(x.*prior_i)
-            if correct[i-1] == 1
-                cprob[i] = Ep_x1_xt_1
-            else
-                cprob[i] = 1-Ep_x1_xt_1
-            end
+            # if correct[i-1] == 1
+            #     cprob[i] = Ep_x1_xt_1
+            # else
+            #     cprob[i] = 1-Ep_x1_xt_1
+            # end
+            cprob[i] = Ep_x1_xt_1
         end
 
         if ra[i] == 1
