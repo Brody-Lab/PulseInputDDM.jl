@@ -21,7 +21,7 @@ julia> round.(bounded_mass_all_trials(pz["generative"], pd["generative"], data),
  0.15
 ```
 """
-function bounded_mass_all_trials(pz::Vector{TT}, pd::Vector{TT}, data::Dict; n::Int=53) where {TT}
+function bounded_mass_all_trials(pz::Vector{TT}, pd::Vector{TT}, data::Dict; dx::Float64=0.1) where {TT}
 
     bias, lapse = pd
     σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ, η, α_prior, β_prior, B_0, γ_shape, γ_scale, γ_shape1, γ_scale1 = pz
@@ -37,7 +37,7 @@ function bounded_mass_all_trials(pz::Vector{TT}, pd::Vector{TT}, data::Dict; n::
     dt = data["dt"]
 
     P = pmap((L,R,nT,nL,nR,a_0) -> P_single_trial!(σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ, lapse, γ_shape, γ_scale, γ_shape1, γ_scale1,
-            L, R, nT, nL, nR, a_0, n, dt), L, R, nT, nL, nR, a_0)
+            L, R, nT, nL, nR, a_0, dx, dt), L, R, nT, nL, nR, a_0)
     
     # For the previous likelihood ========
     # return log.(eps() .+ (map((P,choice)-> (choice ? P[n] : P[1]), P, choice)))
@@ -71,11 +71,11 @@ julia> round.(LL_all_trials(pz["generative"], pd["generative"], data), digits=2)
  -0.15
 ```
 """
-function LL_all_trials(pz::Vector{TT}, pd::Vector{TT}, data::Dict; n::Int=53) where {TT <: Any}
+function LL_all_trials(pz::Vector{TT}, pd::Vector{TT}, data::Dict; dx::Float64=0.1) where {TT <: Any}
 
     if RTfit == true
 
-        bounded_mass_all_trials(pz, pd, data; n=n)
+        bounded_mass_all_trials(pz, pd, data; dx=dx)
     
     else
         bias, lapse = pd
@@ -150,9 +150,9 @@ end
 """
 function P_single_trial!(σ2_i::TT, B::TT, λ::TT, σ2_a::TT, σ2_s::TT, ϕ::TT, τ_ϕ::TT, lapse::TT, γ_shape::TT, γ_scale::TT, γ_shape1::TT, γ_scale1::TT,
         L::Vector{Float64}, R::Vector{Float64}, nT::Int, nL::Vector{Int}, nR::Vector{Int}, a_0::TT,
-        n::Int, dt::Float64) where {TT <: Any}
+        dx::Float64, dt::Float64) where {TT <: Any}
 
-    P,M,xc,dx = initialize_latent_model(σ2_i, B, λ, σ2_a, n, dt, a_0,L_lapse=lapse/2, R_lapse=lapse/2)
+    P,M,xc,n = initialize_latent_model(σ2_i, B, λ, σ2_a, dx, dt, a_0,L_lapse=lapse/2, R_lapse=lapse/2)
 
     
     #adapt magnitude of the click inputs

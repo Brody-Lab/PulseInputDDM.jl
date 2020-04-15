@@ -13,13 +13,13 @@ function default_parameters(;generative::Bool=false)
 
     #### NOOOOTE: a_prior = a/a+b, b_prior = a+b
     pz = Dict("name" => ["σ_i","B", "λ", "σ_a","σ_s","ϕ","τ_ϕ","η","α_prior","β_prior","B_0","γ_shape", "γ_scale", "γ_shape1", "γ_scale1"],
-              "fit" => vcat(false, true, false, false, true, true, true, true, true, true, false, true, true, true, true),
-              "initial" => [eps(), 4. + rand()*(7. - 4.),0. + eps(), eps(), 2. + rand()* (4. - 2.), 0.15, 0.02, rand(), rand(), rand() * 2., 0., rand(), rand(), rand(), rand()],
-              "lb" => [0., 1., -5., 0., 0., 0.01, 0.005, 0., 0., 0., -15., 0., 0., 0., 0.],
-              "ub" => [2., 15., 5., 20., 20., 1.2, 1., 1., 1., 30., 15., 5., 5., 5., 5.])
+              "fit" => vcat(false, true, false, false, true, false, false, true, true, true, false, true, true, true, true),
+              "initial" => [eps(), 4. + rand()*(7. - 4.), -0.001, eps(), 2. + rand()* (4. - 2.), 0.15, 0.02, rand(), rand(), rand() * 2., 0., rand(), rand(), rand(), rand()],
+              "lb" => [0., 0.5, -5., 0., 0., 0.01, 0.005, 0., 0., 0., -15., 0., 0., 0., 0.],
+              "ub" => [2., 10., 5., 20., 20., 1.2, 1., 1., 1., 30., 15., 5., 5., 5., 5.])
 
     if generative
-        pz["generative"] = [eps(), 4. + rand()*(7. - 4.), -0.001, eps(), 0.5 + rand()* (3. - 0.5), 0.15, 0.02, 1., 0.5, 2., 1., rand(), rand(), rand(), rand()]
+        pz["generative"] = [eps(), 5., -0.001, eps(), 2., 0.15, 0.02, 1., 0.5, 2., 1., 3., 0.2, 3., 0.2]
         pd["generative"] = [0.,0.0]
         pz["initial"][pz["fit"] .== 0] = pz["generative"][pz["fit"] .== 0]
     end
@@ -51,7 +51,7 @@ end
 Generate data using known generative paramaeters (must be provided) and then optimize model
 parameters using that data. Useful for testing the model fitting procedure.
 """
-function optimize_model(pz::Dict{}, pd::Dict{}; ntrials::Int=20000, n::Int=53,
+function optimize_model(pz::Dict{}, pd::Dict{}; ntrials::Int=20000, dx::Float64=0.1,
         x_tol::Float64=1e-10, f_tol::Float64=1e-6, g_tol::Float64=1e-3,
         iterations::Int=Int(2e3), show_trace::Bool=true,
         dt::Float64=1e-2, use_bin_center::Bool=false, rng::Int=1)
@@ -59,7 +59,7 @@ function optimize_model(pz::Dict{}, pd::Dict{}; ntrials::Int=20000, n::Int=53,
     data = sample_clicks_and_choices(pz["generative"], pd["generative"], ntrials; rng=rng)
     data = bin_clicks!(data,use_bin_center=use_bin_center, dt=dt)
 
-    pz, pd, converged = optimize_model(pz, pd, data; n=n,
+    pz, pd, converged = optimize_model(pz, pd, data; dx=dx,
         x_tol=x_tol, f_tol=f_tol, g_tol=g_tol, iterations=iterations, show_trace=show_trace)
 
     return pz, pd, data, converged
@@ -75,7 +75,7 @@ end
 Generate data using known generative paramaeters and then optimize model
 parameters using that data. Useful for testing the model fitting procedure.
 """
-function optimize_model(; ntrials::Int=20000, n::Int=53,
+function optimize_model(; ntrials::Int=20000, dx::Float64=0.1,
         x_tol::Float64=1e-10, f_tol::Float64=1e-6, g_tol::Float64=1e-3,
         iterations::Int=Int(2e3), show_trace::Bool=true,
         dt::Float64=1e-2, use_bin_center::Bool=false, rng::Int=1,
@@ -85,7 +85,7 @@ function optimize_model(; ntrials::Int=20000, n::Int=53,
     data = sample_clicks_and_choices(pz["generative"], pd["generative"], ntrials; rng=rng)
     data = bin_clicks!(data,use_bin_center=use_bin_center, dt=dt)
 
-    pz, pd, converged = optimize_model(pz, pd, data; n=n,
+    pz, pd, converged = optimize_model(pz, pd, data; dx=dx,
         x_tol=x_tol, f_tol=f_tol, g_tol=g_tol, iterations=iterations,
         show_trace=show_trace, outer_iterations=outer_iterations)
 
@@ -100,13 +100,13 @@ end
 
 Optimize model parameters using default parameter initialization.
 """
-function optimize_model(data::Dict{}; n::Int=53,
+function optimize_model(data::Dict{}; dx::Float64=0.1,
         x_tol::Float64=1e-10, f_tol::Float64=1e-6, g_tol::Float64=1e-3,
         iterations::Int=Int(2e3), show_trace::Bool=true,
         outer_iterations::Int=Int(1e1))
 
     pz, pd = default_parameters()
-    pz, pd, converged = optimize_model(pz, pd, data; n=n,
+    pz, pd, converged = optimize_model(pz, pd, data; dx=dx,
         x_tol=x_tol, f_tol=f_tol, g_tol=g_tol,
         iterations=iterations, show_trace=show_trace,
         outer_iterations=outer_iterations)
@@ -126,7 +126,7 @@ and specification of which parameters to fit.
 BACK IN THE DAY TOLS WERE: x_tol::Float64=1e-4, f_tol::Float64=1e-9, g_tol::Float64=1e-2
 
 """
-function optimize_model(pz::Dict{}, pd::Dict{}, data::Dict{}; n::Int=53,
+function optimize_model(pz::Dict{}, pd::Dict{}, data::Dict{}; dx::Float64=0.1,
         x_tol::Float64=1e-32, f_tol::Float64=1e-12, g_tol::Float64=1e-9,
         iterations::Int=Int(2e3), show_trace::Bool=true,
         outer_iterations::Int=Int(1e1))
@@ -141,7 +141,7 @@ function optimize_model(pz::Dict{}, pd::Dict{}, data::Dict{}; n::Int=53,
     lb = combine_latent_and_observation(pz["lb"], pd["lb"])[fit_vec]
     ub = combine_latent_and_observation(pz["ub"], pd["ub"])[fit_vec]
 
-    p_opt, ll, parameter_map_f = split_opt_params_and_close(pz,pd,data; n=n, state="state")
+    p_opt, ll, parameter_map_f = split_opt_params_and_close(pz,pd,data; dx=dx, state="state")
 
     p_opt[p_opt .< lb] .= lb[p_opt .< lb]
     p_opt[p_opt .> ub] .= ub[p_opt .> ub]
@@ -165,9 +165,9 @@ end
     compute_gradient(pz, pd, data; n=53, state="state")
 """
 function compute_gradient(pz::Dict{}, pd::Dict{}, data::Dict{};
-    n::Int=53, state::String="state") where {TT <: Any}
+    dx::Float64=0.1, state::String="state") where {TT <: Any}
 
-    p_opt, ll, = split_opt_params_and_close(pz,pd,data; n=n,state=state)
+    p_opt, ll, = split_opt_params_and_close(pz,pd,data; dx=dx,state=state)
     ForwardDiff.gradient(ll, p_opt)
 
 end
@@ -177,13 +177,13 @@ end
     compute_gradient(; ntrials=20000, n=53, dt=1e-2, use_bin_center=false, rng=1)
 Generates default parameters, data and then computes the gradient
 """
-function compute_gradient(; ntrials::Int=20000, n::Int=53,
+function compute_gradient(; ntrials::Int=20000, dx::Float64=0.1,
         dt::Float64=1e-2, use_bin_center::Bool=false, rng::Int=1)
 
     pz, pd = default_parameters(generative=true)
     data = sample_clicks_and_choices(pz["generative"], pd["generative"], ntrials; rng=rng)
     data = bin_clicks!(data,use_bin_center=use_bin_center, dt=dt)
-    p_opt, ll, = split_opt_params_and_close(pz,pd,data; n=n, state="generative")
+    p_opt, ll, = split_opt_params_and_close(pz,pd,data; dx=dx, state="generative")
     ForwardDiff.gradient(ll, p_opt)
 
 end
@@ -193,10 +193,10 @@ end
     compute_Hessian(pz, pd, data; n=53, state="state")
 """
 function compute_Hessian(pz::Dict{}, pd::Dict{}, data::Dict{};
-    n::Int=53, state::String="state") where {TT <: Any}
+    dx::Float64=0.1, state::String="state") where {TT <: Any}
 
     println("computing Hessian! \n")
-    p_opt, ll, = split_opt_params_and_close(pz,pd,data; n=n,state=state)
+    p_opt, ll, = split_opt_params_and_close(pz,pd,data; dx=dx,state=state)
     ForwardDiff.hessian(ll, p_opt)
 
 end
@@ -236,7 +236,7 @@ end
 
 Computes confidence intervals based on the likelihood ratio test
 """
-function compute_CIs!(pz::Dict, pd::Dict, data::Dict; n::Int=53, state::String="final")
+function compute_CIs!(pz::Dict, pd::Dict, data::Dict; dx::Float64=0.1, state::String="final")
 
     fit_vec = combine_latent_and_observation(pz["fit"], pd["fit"])
     lb = combine_latent_and_observation(pz["lb"], pd["lb"])
@@ -246,7 +246,7 @@ function compute_CIs!(pz::Dict, pd::Dict, data::Dict; n::Int=53, state::String="
     LLs = Vector{Vector{Float64}}(undef,length(fit_vec))
     xs = Vector{Vector{Float64}}(undef,length(fit_vec))
 
-    ll_θ = compute_LL(pz[state], pd[state], data; n=n)
+    ll_θ = compute_LL(pz[state], pd[state], data; dx=dx)
 
     for i = 1:length(fit_vec)
 
@@ -307,11 +307,11 @@ end
     LL_across_range(pz, pd, data)
 
 """
-function LL_across_range(pz::Dict, pd::Dict, data::Dict, lb, ub; n::Int=53, state::String="state")
+function LL_across_range(pz::Dict, pd::Dict, data::Dict, lb, ub; dx::Float64=0.1, state::String="state")
 
     println("I am here don't worry \n")
 
-    nrange = 20
+    nrange = 40
     fit_vec = combine_latent_and_observation(pz["fit"], pd["fit"])
     fit_vec_ids = findall(x-> x == 1, fit_vec)
 
@@ -321,7 +321,7 @@ function LL_across_range(pz::Dict, pd::Dict, data::Dict, lb, ub; n::Int=53, stat
     LLs = Array{Float64}(undef,length(lb_vec), nrange)
     xs = Array{Float64}(undef,length(lb_vec), nrange)
 
-    ll_θ = compute_LL(pz[state], pd[state], data; n=n)
+    ll_θ = compute_LL(pz[state], pd[state], data; dx=dx)
 
 
 
@@ -351,7 +351,7 @@ end
     LL_across_2params(pz, pd, data)
 
 """
-function LL_across_2params(pz::Dict, pd::Dict, data::Dict, lb, ub, prm; nrange = 10, n::Int=53, state::String="state")
+function LL_across_2params(pz::Dict, pd::Dict, data::Dict, lb, ub, prm; nrange = 10, dx::Float64=0.1, state::String="state")
 
     fit_vec = combine_latent_and_observation(pz["fit"], pd["fit"])
 
@@ -367,7 +367,7 @@ function LL_across_2params(pz::Dict, pd::Dict, data::Dict, lb, ub, prm; nrange =
     fit_vec2[prm[1]] = true
     fit_vec2[prm[2]] = true
 
-    ll_θ = compute_LL(pz[state], pd[state], data; n=n)
+    ll_θ = compute_LL(pz[state], pd[state], data; dx=dx)
 
     p_opt, p_const = split_variable_and_const(combine_latent_and_observation(pz[state], pd[state]), fit_vec2)
 
@@ -398,10 +398,10 @@ A wrapper function that accepts a vector of mixed parameters, splits the vector
 into two vectors based on the parameter mapping function provided as an input. Used
 in optimization, Hessian and gradient computation.
 """
-function compute_LL(x::Vector{TT}, data::Dict, parameter_map_f::Function; n::Int=53) where {TT <: Any}
+function compute_LL(x::Vector{TT}, data::Dict, parameter_map_f::Function; dx::Float64=0.1) where {TT <: Any}
 
     pz, pd = parameter_map_f(x)
-    compute_LL(pz, pd, data; n=n)
+    compute_LL(pz, pd, data; dx=dx)
 
 end
 
@@ -412,7 +412,7 @@ end
 Computes the log likelihood of the animal's choices (data["pokedR"] in data) given the model parameters
 contained within the Vectors pz and pd.
 """
-compute_LL(pz::Vector{T}, pd::Vector{T}, data; n::Int=53) where {T <: Any} = sum(LL_all_trials(pz, pd, data, n=n))
+compute_LL(pz::Vector{T}, pd::Vector{T}, data; dx::Float64=0.1) where {T <: Any} = sum(LL_all_trials(pz, pd, data, dx=dx))
 
 
 """
@@ -423,8 +423,8 @@ contained within the Dicts pz and pd. The optional argument `state` determines w
 (e.g. initial, final, state, generative, etc.) will be used (since the functions
 this function calls accepts Vectors of Floats)
 """
-function compute_LL(pz::Dict{}, pd::Dict{}, data::Dict{}; n::Int=53, state::String="state") where {T <: Any}
-    compute_LL(pz[state], pd[state], data, n=n)
+function compute_LL(pz::Dict{}, pd::Dict{}, data::Dict{}; dx::Float64=0.1, state::String="state") where {T <: Any}
+    compute_LL(pz[state], pd[state], data, dx=dx)
 end
 
 
@@ -432,26 +432,26 @@ end
     compute_LL(; ntrials=2e4, n=53, dt=1e-2, use_bin_center=false, rng=1)
 Generates default parameters, data and computes the LL of that data
 """
-function compute_LL(; ntrials::Int=20000, n::Int=53,
+function compute_LL(; ntrials::Int=20000, dx::Float64=0.1,
         dt::Float64=1e-2, use_bin_center::Bool=false, rng::Int=1)
 
     pz, pd = default_parameters(generative=true)
     data = sample_clicks_and_choices(pz["generative"], pd["generative"], ntrials; rng=rng)
     data = bin_clicks!(data,use_bin_center=use_bin_center, dt=dt)
-    sum(LL_all_trials(pz["generative"], pd["generative"], data, n=n))
+    sum(LL_all_trials(pz["generative"], pd["generative"], data, dx=dx))
 
 end
 
 
 """
 """
-function split_opt_params_and_close(pz::Dict{}, pd::Dict{}, data::Dict{}; n::Int=53, state::String="state")
+function split_opt_params_and_close(pz::Dict{}, pd::Dict{}, data::Dict{}; dx::Float64=0.1, state::String="state")
 
     fit_vec = combine_latent_and_observation(pz["fit"], pd["fit"])
     p_opt, p_const = split_variable_and_const(combine_latent_and_observation(pz[state], pd[state]), fit_vec)
 
     parameter_map_f(x) = split_latent_and_observation(combine_variable_and_const(x, p_const, fit_vec))
-    ll(x) = -compute_LL(x, data, parameter_map_f, n=n)
+    ll(x) = -compute_LL(x, data, parameter_map_f, dx=dx)
 
     return p_opt, ll, parameter_map_f
 

@@ -7,10 +7,10 @@ const RTfit = true
 
 """
 function initialize_latent_model(σ2_i::TT, B::TT, λ::TT, σ2_a::TT,
-     n::Int, dt::Float64, a_0::TT; L_lapse::UU=0., R_lapse::UU=0.) where {TT,UU <: Any}
+     dx::Float64, dt::Float64, a_0::TT; L_lapse::UU=0., R_lapse::UU=0.) where {TT,UU <: Any}
 
     #bin centers and number of bins
-    xc,dx = bins(B,n)
+    xc,n = bins(B,dx)
 
     # make initial latent distribution
     P = P0(σ2_i,n,a_0,dx,xc,dt; L_lapse=L_lapse, R_lapse=R_lapse)
@@ -18,7 +18,7 @@ function initialize_latent_model(σ2_i::TT, B::TT, λ::TT, σ2_a::TT,
     # build state transition matrix for times when there are no click inputs
     M = transition_M(σ2_a*dt,λ,zero(TT),dx,xc,n,dt)
 
-    return P, M, xc, dx
+    return P, M, xc, n
 
 end
 
@@ -87,15 +87,31 @@ julia> xc,dx = pulse_input_DDM.bins(25.5,53)
 ([-26.0, -25.0, -24.0, -23.0, -22.0, -21.0, -20.0, -19.0, -18.0, -17.0  …  17.0, 18.0, 19.0, 20.0, 21.0, 22.0, 23.0, 24.0, 25.0, 26.0], 1.0)
 ```
 """
-function bins(B::TT, n::Int) where {TT}
+# function bins(B::TT, n::Int) where {TT}
 
-    dx = 2. *B/(n-2)
+#     dx = 2. *B/(n-2)
 
-    xc = vcat(collect(range(-(B+dx/2.),stop=-dx,length=Int((n-1)/2.))),0.,
-        collect(range(dx,stop=(B+dx/2.),length=Int((n-1)/2))))
+#     xc = vcat(collect(range(-(B+dx/2.),stop=-dx,length=Int((n-1)/2.))),0.,
+#         collect(range(dx,stop=(B+dx/2.),length=Int((n-1)/2))))
 
-    return xc, dx
+#     return xc, dx
 
+# end
+
+function bins(B::TT, dx::Float64) where {TT}
+
+    xc = collect(0.:dx:floor(value(B)/dx)*dx)
+
+    if xc[end] == B
+        xc = vcat(xc[1:end-1], B + dx)
+    else
+        xc = vcat(xc, 2*B - xc[end])
+    end
+
+    xc = vcat(-xc[end:-1:2], xc)
+    n = length(xc)
+
+    return xc, n
 end
 
 
