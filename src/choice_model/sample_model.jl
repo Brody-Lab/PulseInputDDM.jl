@@ -126,19 +126,25 @@ function compute_initial_value(data::Dict, η::TT, α_prior::TT, β_prior::TT) w
         else
             prior_i = η*post + (1-η)*prior_0
             Ep_x1_xt_1 = sum(x.*prior_i)
-            # if correct[i-1] == 1
-            #     cprob[i] = Ep_x1_xt_1
-            # else
-            #     cprob[i] = 1-Ep_x1_xt_1
-            # end
+           #  if correct[i-1] == 1
+           #      cprob[i] = Ep_x1_xt_1
+           #  else
+           #      cprob[i] = 1-Ep_x1_xt_1
+           #  end
             cprob[i] = Ep_x1_xt_1
         end
 
-        if ra[i] == 1
-            post = (1 .- x).* prior_i
-        else
-            post = x.*prior_i
-        end
+#        if ra[i] == 1
+#           post = (1 .- x).* prior_i
+#        else
+#           post = x.*prior_i
+#        end
+
+	if ra[i] == 1
+	 	post = x.*prior_i
+	else
+	 	post = (1 .- x).* prior_i
+	end
         post = post./sum(post)
     end
 
