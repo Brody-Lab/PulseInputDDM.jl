@@ -1,5 +1,5 @@
 
-const dimz = 15
+const dimz = 16
 const RTfit = true
 
 """
@@ -15,10 +15,7 @@ function initialize_latent_model(σ2_i::TT, B::TT, λ::TT, σ2_a::TT,
     # make initial latent distribution
     P = P0(σ2_i,n,a_0,dx,xc,dt; L_lapse=L_lapse, R_lapse=R_lapse)
 
-    # build state transition matrix for times when there are no click inputs
-    M = transition_M(σ2_a*dt,λ,zero(TT),dx,xc,n,dt)
-
-    return P, M, xc, n
+    return P, xc, n
 
 end
 
@@ -31,9 +28,8 @@ function P0(σ2_i::TT, n::Int, a_0::TT, dx::VV, xc::Vector{TT}, dt::Float64;
         L_lapse::UU=0., R_lapse::UU=0.) where {TT,UU,VV <: Any}
 
     P = zeros(TT,n)
+    
     # make initial delta function
-
-    # this is where the initial point would actually go
     P[ceil(Int,n/2)] = one(TT) - (L_lapse + R_lapse)
     P[1], P[n] = L_lapse, R_lapse
     M = transition_M(σ2_i,zero(TT),a_0,dx,xc,n,dt)
@@ -48,7 +44,7 @@ end
 """
 function latent_one_step!(P::Vector{TT}, F::Array{TT,2}, λ::TT, σ2_a::TT, σ2_s::TT,
         t::Int, nL::Vector{Int}, nR::Vector{Int},
-        La::Vector{TT}, Ra::Vector{TT}, M::Array{TT,2},
+        La::Vector{TT}, Ra::Vector{TT},
         dx::UU, xc::Vector{TT}, n::Int, dt::Float64; backwards::Bool=false) where {TT,UU <: Any}
 
     any(t .== nL) ? sL = sum(La[t .== nL]) : sL = zero(TT)
@@ -56,20 +52,8 @@ function latent_one_step!(P::Vector{TT}, F::Array{TT,2}, λ::TT, σ2_a::TT, σ2_
 
     σ2 = σ2_s * (sL + sR);   μ = -sL + sR
 
-    if (sL + sR) > zero(TT)
-        transition_M!(F,σ2+σ2_a*dt,λ, μ, dx, xc, n, dt)
-        P = F * P
-    else
-        P = M * P
-    end
-
-    #=
-    if backwards
-        (sL + sR) > zero(TT) ? (M!(F,σ2+σ2_a*dt,λ, μ/dt, dx, xc, n, dt); P  = F' * P;) : P = M' * P
-    else
-        (sL + sR) > zero(TT) ? (M!(F,σ2+σ2_a*dt,λ, μ/dt, dx, xc, n, dt); P  = F * P;) : P = M * P
-    end
-    =#
+    transition_M!(F,σ2+σ2_a*dt,λ, μ, dx, xc, n, dt)
+    P = F * P
 
     return P, F
 
@@ -165,22 +149,19 @@ end
 function transition_M!(F::Array{TT,2}, σ2::TT, λ::TT, μ::TT, dx::UU,
         xc::Vector{TT}, n::Int, dt::Float64) where {TT,UU <: Any}
 
-    F[1,1] = one(TT); F[n,n] = one(TT); F[:,2:n-1] = zeros(TT,n,n-2)
+    F[1,1] = one(TT); F[end,end] = one(TT); 
+    # F[:,2:n-1] = zeros(TT,n,n-2) I think this is unnecessary it was already set to zero
 
-    ndeltas = max(70,ceil(Int, 10. *sqrt(σ2)/dx))
+    ndeltas = max(70,ceil(Int, 10. *sqrt(σ2)/dx)) 
+    deltaidx = collect(-ndeltas:ndeltas) 
 
-    deltaidx = collect(-ndeltas:ndeltas)
     deltas = deltaidx * (5. *sqrt(σ2))/ndeltas
+    
     ps = exp.(-0.5 * (5*deltaidx./ndeltas).^2)
     ps = ps/sum(ps)
-
   
     @inbounds for j = 2:n-1
 
-        #abs(λ) < 1e-150 ? mu = xc[j] + μ : mu = exp(λ*dt)*(xc[j] + μ/(λ*dt)) - μ/(λ*dt)
-        #abs(λ) < 1e-150 ? mu = xc[j] + h * dt : mu = exp(λ*dt)*(xc[j] + h/λ) - h/λ
-        #mu = exp(λ*dt)*xc[j] + μ * (exp(λ*dt) - 1.)/(λ*dt)
-        #mu = exp(λ*dt)*xc[j] + μ * (expm1(λ*dt)/(λ*dt)
         mu = exp(λ*dt)*xc[j] + μ * expm1_div_x(λ*dt)
 
         #now we're going to look over all the slices of the gaussian
@@ -194,7 +175,7 @@ function transition_M!(F::Array{TT,2}, σ2::TT, λ::TT, μ::TT, dx::UU,
 
             elseif s >= xc[n]
 
-                F[n,j] += ps[k]
+                F[end,j] += ps[k]
 
             else
 
@@ -202,9 +183,9 @@ function transition_M!(F::Array{TT,2}, σ2::TT, λ::TT, μ::TT, dx::UU,
 
                     lp,hp = 1,2
 
-                elseif (xc[n-1] < s) && (xc[n] > s)
+                elseif (xc[end-1] < s) && (xc[end] > s)
 
-                    lp,hp = n-1,n
+                    lp,hp = n-1, n
 
                 else
 

@@ -53,15 +53,13 @@ function sample_latent(nT::Int, L::Vector{Float64},R::Vector{Float64},
         pz::Vector{TT}, a_0::TT, use_bin_center::Bool; 
         dt::Float64=1e-4) where {TT <: Any}
     
-    σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ, η, α_prior, β_prior, B_0, γ_shape, γ_scale, γ_shape1, γ_scale1 = pz
+    σ2_i, B, B_λ, λ, σ2_a, σ2_s, ϕ, τ_ϕ, η, α_prior, β_prior, B_0, γ_shape, γ_scale, γ_shape1, γ_scale1 = pz
     La, Ra = make_adapted_clicks(ϕ, τ_ϕ, L, R)
 
     A = Vector{TT}(undef,nT)
-    RT = 0 
-
-    # this is where the initial point would go
     a = sqrt(σ2_i)+ a_0
-
+    Bt = map(x-> sqrt(B_λ+x)*sqrt(2)*erfinv(2*B - 1.), dt .* collect(1:nT))
+    RT = 0 
 
     for t = 1:nT
             
@@ -71,7 +69,7 @@ function sample_latent(nT::Int, L::Vector{Float64},R::Vector{Float64},
             a = sample_one_step!(a, t, σ2_a, σ2_s, λ, nL, nR, La, Ra, dt)
         end
 
-        abs(a) > B ? (a = B * sign(a); A[t:nT] .= a; RT = t; break) : A[t] = a
+        abs(a) > Bt[t] ? (a = Bt[t] * sign(a); A[t:nT] .= a; RT = t; break) : A[t] = a
 	
 	   # this should be handles in a better way, but for now to prevent fatal errors
 	   if t == nT
