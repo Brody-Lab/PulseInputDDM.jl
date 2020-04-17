@@ -38,7 +38,7 @@ export sample_clicks_and_choices, sample_choices_all_trials
 export split_variable_and_const, combine_latent_and_observation, split_latent_and_observation, combine_variable_and_const
 export compute_CIs!, optimize_model, compute_LL, compute_Hessian, compute_gradient
 export default_parameters, LL_all_trials
-export bin_clicks!, load_choice_data, bounded_mass_all_trials
+export bin_clicks!, load_choice_data
 export reload_optimization_parameters, save_optimization_parameters
 export default_parameters_and_data
 export LL_across_range

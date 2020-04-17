@@ -45,7 +45,7 @@ end
 function latent_one_step!(P::Vector{TT}, F::Array{TT,2}, λ::TT, σ2_a::TT, σ2_s::TT,
         t::Int, nL::Vector{Int}, nR::Vector{Int},
         La::Vector{TT}, Ra::Vector{TT},
-        dx::UU, xc::Vector{TT}, n::Int, dt::Float64; backwards::Bool=false) where {TT,UU <: Any}
+        dx::UU, xc::Vector{TT}, n::Int, dt::Float64) where {TT,UU <: Any}
 
     any(t .== nL) ? sL = sum(La[t .== nL]) : sL = zero(TT)
     any(t .== nR) ? sR = sum(Ra[t .== nR]) : sR = zero(TT)
@@ -150,7 +150,6 @@ function transition_M!(F::Array{TT,2}, σ2::TT, λ::TT, μ::TT, dx::UU,
         xc::Vector{TT}, n::Int, dt::Float64) where {TT,UU <: Any}
 
     F[1,1] = one(TT); F[end,end] = one(TT); 
-    # F[:,2:n-1] = zeros(TT,n,n-2) I think this is unnecessary it was already set to zero
 
     ndeltas = max(70,ceil(Int, 10. *sqrt(σ2)/dx)) 
     deltaidx = collect(-ndeltas:ndeltas) 
@@ -159,8 +158,11 @@ function transition_M!(F::Array{TT,2}, σ2::TT, λ::TT, μ::TT, dx::UU,
     
     ps = exp.(-0.5 * (5*deltaidx./ndeltas).^2)
     ps = ps/sum(ps)
+
+    dval = size(F,1) - size(F,2)
+    idx = 2+dval:n-dval-1
   
-    @inbounds for j = 2:n-1
+    @inbounds for j = idx
 
         mu = exp(λ*dt)*xc[j] + μ * expm1_div_x(λ*dt)
 
@@ -175,7 +177,7 @@ function transition_M!(F::Array{TT,2}, σ2::TT, λ::TT, μ::TT, dx::UU,
 
             elseif s >= xc[n]
 
-                F[end,j] += ps[k]
+                F[n,j] += ps[k]
 
             else
 
@@ -183,7 +185,7 @@ function transition_M!(F::Array{TT,2}, σ2::TT, λ::TT, μ::TT, dx::UU,
 
                     lp,hp = 1,2
 
-                elseif (xc[end-1] < s) && (xc[end] > s)
+                elseif (xc[n-1] < s) && (xc[n] > s)
 
                     lp,hp = n-1, n
 
