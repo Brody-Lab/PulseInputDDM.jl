@@ -63,18 +63,15 @@ function P_single_trial!(σ2_i::TT, B::TT, B_λ::TT, λ::TT, σ2_a::TT, σ2_s::T
     # initialize latent model with a_0
     P, xc, n = initialize_latent_model(σ2_i, Bt[1], λ, σ2_a, dx, dt, a_0,L_lapse=lapse/2, R_lapse=lapse/2)
 
+    F = zeros(TT,n,n)
+    
     # to keep track of mass at the bounds  
     Pbounds = zeros(TT, 2, nT)
 
     
     @inbounds for t = 1:nT
 
-        n_prev = n
-        xc,n = bins(Bt[t],dx)
-
-        #empty transition matrix for time bins with clicks
-        F = zeros(TT,n,n_prev)
-    
+        xc,n = bins(Bt[t],xc)    
         P,F = latent_one_step!(P,F,λ,σ2_a,σ2_s,t,nL,nR,La,Ra,dx,xc,n,dt)
 
         if t == 1

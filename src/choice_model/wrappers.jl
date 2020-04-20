@@ -14,12 +14,12 @@ function default_parameters(;generative::Bool=false)
     #### NOOOOTE: a_prior = a/a+b, b_prior = a+b
     pz = Dict("name" => ["σ_i","B", "B_λ", "λ", "σ_a","σ_s","ϕ","τ_ϕ","η","α_prior","β_prior","B_0","γ_shape", "γ_scale", "γ_shape1", "γ_scale1"],
               "fit" => vcat(false, true, true, false, false, true, false, false, true, true, true, false, true, true, true, true),
-              "initial" => [eps(), 0.8, 1., -0.001, eps(), 2. + rand()* (4. - 2.), 0.15, 0.02, rand(), rand(), rand() * 2., 0., rand(), rand(), rand(), rand()],
-              "lb" => [0., 0.51, eps(), -5., 0., 0., 0.01, 0.005, 0., 0., 0., -15., 0., 0., 0., 0.],
+              "initial" => [eps(), 0.6, 1.5, -0.001, eps(), 2. + rand()* (4. - 2.), 0.15, 0.02, rand(), rand(), rand() * 2., 0., rand(), rand(), rand(), rand()],
+              "lb" => [0., 0.5, eps(), -5., 0., 0., 0.01, 0.005, 0., 0., 0., -15., 0., 0., 0., 0.],
               "ub" => [2., 1., 10., 5., 20., 20., 1.2, 1., 1., 1., 30., 15., 5., 5., 5., 5.])
 
     if generative
-        pz["generative"] = [eps(), 0.8, 1., -0.001, eps(), 2., 0.15, 0.02, 1., 0.5, 2., 1., 3., 0.2, 3., 0.2]
+        pz["generative"] = [eps(), 0.75, 4., -0.001, 1., 0.1, 0.15, 0.02, 0.5, 0.5, 2., 1., 3., 0.2, 3., 0.2]
         pd["generative"] = [0.,0.0]
         pz["initial"][pz["fit"] .== 0] = pz["generative"][pz["fit"] .== 0]
     end
@@ -307,11 +307,10 @@ end
     LL_across_range(pz, pd, data)
 
 """
-function LL_across_range(pz::Dict, pd::Dict, data::Dict, lb, ub; dx::Float64=0.1, state::String="state")
+function LL_across_range(pz::Dict, pd::Dict, data::Dict, lb, ub; dx::Float64=0.1, state::String="state", nrange::Int = 10)
 
     println("I am here don't worry \n")
 
-    nrange = 40
     fit_vec = combine_latent_and_observation(pz["fit"], pd["fit"])
     fit_vec_ids = findall(x-> x == 1, fit_vec)
 

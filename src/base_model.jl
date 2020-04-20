@@ -98,6 +98,16 @@ function bins(B::TT, dx::Float64) where {TT}
     return xc, n
 end
 
+function bins(B::TT, xc::Vector{TT}) where {TT <: Any}
+
+    xc = xc[2:end-1]
+    xc = vcat(xc, 2*B - xc[end])
+    xc = vcat(-xc[end], xc)
+    n = length(xc)
+
+    return xc, n
+end
+
 
 """
     expm1_div_x(x)
@@ -149,20 +159,24 @@ end
 function transition_M!(F::Array{TT,2}, σ2::TT, λ::TT, μ::TT, dx::UU,
         xc::Vector{TT}, n::Int, dt::Float64) where {TT,UU <: Any}
 
-    F[1,1] = one(TT); F[end,end] = one(TT); 
-
-    ndeltas = max(70,ceil(Int, 10. *sqrt(σ2)/dx)) 
-    deltaidx = collect(-ndeltas:ndeltas) 
-
-    deltas = deltaidx * (5. *sqrt(σ2))/ndeltas
+    F[1,1] = one(TT); F[n,n] = one(TT); F[:,2:n-1] = zeros(TT,n,n-2)
     
-    ps = exp.(-0.5 * (5*deltaidx./ndeltas).^2)
-    ps = ps/sum(ps)
+    @inbounds for j = 2:n-1
 
-    dval = size(F,1) - size(F,2)
-    idx = 2+dval:n-dval-1
+        if j == 2 | j == n-1
+            dx_j = xc[2] - xc[1]
+        else
+            dx_j = dx
+        end
+
+        ndeltas = max(70,ceil(Int, 10. *sqrt(σ2)/dx_j)) 
+        deltaidx = collect(-ndeltas:ndeltas) 
+
+        deltas = deltaidx * (5. *sqrt(σ2))/ndeltas
+    
+        ps = exp.(-0.5 * (5*deltaidx./ndeltas).^2)
+        ps = ps/sum(ps)
   
-    @inbounds for j = idx
 
         mu = exp(λ*dt)*xc[j] + μ * expm1_div_x(λ*dt)
 
@@ -187,12 +201,12 @@ function transition_M!(F::Array{TT,2}, σ2::TT, λ::TT, μ::TT, dx::UU,
 
                 elseif (xc[n-1] < s) && (xc[n] > s)
 
-                    lp,hp = n-1, n
+                    lp,hp = n-1,n
 
                 else
 
                     hp,lp = ceil(Int, (s-xc[2])/dx) + 2, floor(Int, (s-xc[2])/dx) + 2
-                  
+
                 end
 
                 if hp == lp
