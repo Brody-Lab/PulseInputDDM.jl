@@ -64,7 +64,7 @@ function P_single_trial!(σ2_i::TT, B::TT, B_λ::TT, λ::TT, σ2_a::TT, σ2_s::T
     P, xc, n = initialize_latent_model(σ2_i, Bt[1], λ, σ2_a, dx, dt, a_0,L_lapse=lapse/2, R_lapse=lapse/2)
 
     F = zeros(TT,n,n)
-    
+
     # to keep track of mass at the bounds  
     Pbounds = zeros(TT, 2, nT)
 
