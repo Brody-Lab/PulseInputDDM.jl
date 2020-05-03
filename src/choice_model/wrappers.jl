@@ -11,16 +11,21 @@ function default_parameters(;generative::Bool=false)
               "lb" => [-30, 0.],
               "ub" => [30, 1.])
 
-    #### NOOOOTE: a_prior = a/a+b, b_prior = a+b
-    pz = Dict("name" => ["σ_i","B", "B_λ", "λ", "σ_a","σ_s","ϕ","τ_ϕ","η","α_prior","β_prior","B_0","γ_shape", "γ_scale", "γ_shape1", "γ_scale1"],
-              "fit" => vcat(false, true, true, true, false, true, true, true, true, true, true, false, true, true, true, true),
-              "initial" => [eps(), 0.6, 1.5, -2. + 4. * rand(), eps(), 2. + rand()* (4. - 2.), rand(), rand(), rand(), rand(), rand() * 2., 0., 2. + rand(), rand(), 2. + rand(), rand()],
-              "lb" => [0., 0.5, eps(), -5., 0., 0., 0.0, 0.00, 0., 0., 0., -15., 0., 0., 0., 0.],
-              "ub" => [2., 1., 10., 5., 20., 20., 1., 1., 1., 1., 30., 15., 5., 5., 5., 5.])
+    # a_prior = a/a+b, b_prior = a+b
+    pz = Dict("name" => ["σ_i","B", "B_λ", "B_Δ", "λ", "σ_a","σ_s","ϕ","τ_ϕ",
+                          "η","α_prior","β_prior","B_0","γ_shape", "γ_scale", "γ_shape1", "γ_scale1"],
+              "fit" => vcat(false, true, true, true, true, false, true, true, true, 
+                            true, true, true, false, true, true, true, true),
+              "initial" => [eps(), 1. + 2. * rand(), -2. * rand(), rand(), -0.001, eps(), 2. + rand()* (4. - 2.), rand(), rand(), 
+                            rand(), rand(), rand() * 2., 0., 2. + rand(), rand(), 2. + rand(), rand()],
+              "lb" => [0., 0., -5, 0., -5., 0., 0., 0., 0.,
+                        0., 0., 0., -15., 0., 0., 0., 0.],
+              "ub" => [2., 5., 5., 1., 5., 20., 20., 1., 1., 
+                        1., 1., 30., 15., 5., 5., 5., 5.])
 
     if generative
-        # pz["generative"] = [eps(), 0.99, .05, -0.001, 1., 0.1, 0.15, 0.02, 0.5, 0.5, 2., 1., 3., 0.2, 3., 0.2]
-        pz["generative"] = [eps(), 0.75, 1.5, -2. + 4. * rand(), eps(), 2. + rand()* (4. - 2.), rand(), rand(), rand(), rand(), rand() * 2., 0., 2. + rand(), rand(), 2. + rand(), rand()]
+        pz["generative"] = [eps(),  1. + 2. * rand(), -2. * rand(), rand(), -0.001, eps(), 2. + rand()* (4. - 2.), rand(), rand(), 
+                            rand(), rand(), rand() * 2., 0., 2. + rand(), rand(), 2. + rand(), rand()]
         pd["generative"] = [0.,0.0]
         pz["initial"][pz["fit"] .== 0] = pz["generative"][pz["fit"] .== 0]
     end

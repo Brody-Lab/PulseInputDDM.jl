@@ -1,5 +1,5 @@
 
-const dimz = 16
+const dimz = 17
 const RTfit = true
 
 """
@@ -45,14 +45,18 @@ end
 function latent_one_step!(P::Vector{TT}, F::Array{TT,2}, λ::TT, σ2_a::TT, σ2_s::TT,
         t::Int, nL::Vector{Int}, nR::Vector{Int},
         La::Vector{TT}, Ra::Vector{TT},
-        dx::UU, xc::Vector{TT}, n::Int, dt::Float64) where {TT,UU <: Any}
+        dx::UU, xc::Vector{TT}, xc_pre::Vector{TT}, n::Int, dt::Float64) where {TT,UU <: Any}
 
     any(t .== nL) ? sL = sum(La[t .== nL]) : sL = zero(TT)
     any(t .== nR) ? sR = sum(Ra[t .== nR]) : sR = zero(TT)
 
     σ2 = σ2_s * (sL + sR);   μ = -sL + sR
 
-    transition_M!(F,σ2+σ2_a*dt,λ, μ, dx, xc, n, dt)
+    if size(F,1) == size(F,2)
+        transition_M!(F,σ2+σ2_a*dt,λ, μ, dx, xc, n, dt)
+    else
+        transition_M!(F,σ2+σ2_a*dt,λ, μ, dx, xc, xc_pre, n, dt)
+    end        
     P = F * P
 
     return P, F
@@ -160,23 +164,15 @@ function transition_M!(F::Array{TT,2}, σ2::TT, λ::TT, μ::TT, dx::UU,
         xc::Vector{TT}, n::Int, dt::Float64) where {TT,UU <: Any}
 
     F[1,1] = one(TT); F[n,n] = one(TT); F[:,2:n-1] = zeros(TT,n,n-2)
-    
+
+    ndeltas = max(70,ceil(Int, 10. *sqrt(σ2)/dx))
+
+    deltaidx = collect(-ndeltas:ndeltas)
+    deltas = deltaidx * (5. *sqrt(σ2))/ndeltas
+    ps = exp.(-0.5 * (5*deltaidx./ndeltas).^2)
+    ps = ps/sum(ps)
+
     @inbounds for j = 2:n-1
-
-        if j == 2 | j == n-1
-            dx_j = xc[2] - xc[1]
-        else
-            dx_j = dx
-        end
-
-        ndeltas = max(70,ceil(Int, 10. *sqrt(σ2)/dx_j)) 
-        deltaidx = collect(-ndeltas:ndeltas) 
-
-        deltas = deltaidx * (5. *sqrt(σ2))/ndeltas
-    
-        ps = exp.(-0.5 * (5*deltaidx./ndeltas).^2)
-        ps = ps/sum(ps)
-  
 
         mu = exp(λ*dt)*xc[j] + μ * expm1_div_x(λ*dt)
 
@@ -224,8 +220,85 @@ function transition_M!(F::Array{TT,2}, σ2::TT, λ::TT, μ::TT, dx::UU,
             end
 
         end
-	end
- 
+
+    end
+
+     
+end
+
+
+
+
+"""
+    transition_M!(F::Array{TT,2}, σ2::TT, λ::TT, μ::TT, dx::Float64,
+        xc::Vector{TT}, n::Int, dt::Float64) where {TT <: Any}
+
+"""
+function transition_M!(F::Array{TT,2}, σ2::TT, λ::TT, μ::TT, dx::UU,
+        xc::Vector{TT}, xc_pre::Vector{TT}, n::Int, dt::Float64) where {TT,UU <: Any}
+
+    n_pre = size(F,2)
+    F[1,1] = one(TT); F[n,n_pre] = one(TT); # F[:,2:end-1] = zeros(TT,n,n_pre-2)
+
+    ndeltas = max(70,ceil(Int, 10. *sqrt(σ2)/dx))
+
+    deltaidx = collect(-ndeltas:ndeltas)
+    deltas = deltaidx * (5. *sqrt(σ2))/ndeltas
+    ps = exp.(-0.5 * (5*deltaidx./ndeltas).^2)
+    ps = ps/sum(ps)
+
+    @inbounds for j = 2:n_pre-1
+
+        mu = exp(λ*dt)*xc_pre[j] + μ * expm1_div_x(λ*dt)
+
+        #now we're going to look over all the slices of the gaussian
+        for k = 1:2*ndeltas+1
+
+            s = mu + deltas[k]
+
+            if s <= xc[1]
+
+                F[1,j] += ps[k]
+
+            elseif s >= xc[n]
+
+                F[n,j] += ps[k]
+
+            else
+
+                if (xc[1] < s) && (xc[2] > s)
+
+                    lp,hp = 1,2
+
+                elseif (xc[n-1] < s) && (xc[n] > s)
+
+                    lp,hp = n-1,n
+
+                else
+
+                    hp,lp = ceil(Int, (s-xc[2])/dx) + 2, floor(Int, (s-xc[2])/dx) + 2
+
+                end
+
+                if hp == lp
+
+                    F[lp,j] += ps[k]
+
+                else
+
+                    dd = xc[hp] - xc[lp]
+                    F[hp,j] += ps[k]*(s-xc[lp])/dd
+                    F[lp,j] += ps[k]*(xc[hp]-s)/dd
+
+                end
+
+            end
+
+        end
+
+    end
+
+     
 end
 
 

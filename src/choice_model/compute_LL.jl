@@ -24,7 +24,7 @@ julia> round.(bounded_mass_all_trials(pz["generative"], pd["generative"], data),
 function LL_all_trials(pz::Vector{TT}, pd::Vector{TT}, data::Dict; dx::Float64=0.1) where {TT <: Any}
 
     bias, lapse = pd
-    σ2_i, B, B_λ, λ, σ2_a, σ2_s, ϕ, τ_ϕ, η, α_prior, β_prior, B_0, γ_shape, γ_scale, γ_shape1, γ_scale1 = pz
+    σ2_i, B, B_λ, B_Δ, λ, σ2_a, σ2_s, ϕ, τ_ϕ, η, α_prior, β_prior, B_0, γ_shape, γ_scale, γ_shape1, γ_scale1 = pz
 
     # computing initial values here
     a_0 = compute_initial_value(data, η, α_prior, β_prior)
@@ -36,7 +36,7 @@ function LL_all_trials(pz::Vector{TT}, pd::Vector{TT}, data::Dict; dx::Float64=0
         data["binned_rightbups"], data["pokedR"]
     dt = data["dt"]
 
-    P = pmap((L,R,nT,nL,nR,a_0) -> P_single_trial!(σ2_i, B, B_λ, λ, σ2_a, σ2_s, ϕ, τ_ϕ, lapse, γ_shape, γ_scale, γ_shape1, γ_scale1,
+    P = pmap((L,R,nT,nL,nR,a_0) -> P_single_trial!(σ2_i, B, B_λ, B_Δ, λ, σ2_a, σ2_s, ϕ, τ_ϕ, lapse, γ_shape, γ_scale, γ_shape1, γ_scale1,
             L, R, nT, nL, nR, a_0, dx, dt), L, R, nT, nL, nR, a_0)
     
     return log.(eps() .+ map((P, choice) -> (choice ? P[2] : P[1]), P, choice))
@@ -49,13 +49,14 @@ end
              L, R, nT, nL, nR, a_0, n, dt)
 
 """
-function P_single_trial!(σ2_i::TT, B::TT, B_λ::TT, λ::TT, σ2_a::TT, σ2_s::TT, ϕ::TT, τ_ϕ::TT, lapse::TT, γ_shape::TT, γ_scale::TT, γ_shape1::TT, γ_scale1::TT,
+function P_single_trial!(σ2_i::TT, B::TT, B_λ::TT, B_Δ::TT, λ::TT, σ2_a::TT, σ2_s::TT, ϕ::TT, τ_ϕ::TT, lapse::TT, γ_shape::TT, γ_scale::TT, γ_shape1::TT, γ_scale1::TT,
         L::Vector{Float64}, R::Vector{Float64}, nT::Int, nL::Vector{Int}, nR::Vector{Int}, a_0::TT,
         dx::Float64, dt::Float64) where {TT <: Any}
 
     # computing the bound
     Bt = zeros(TT,nT)
-    Bt = map(x-> sqrt(B_λ+x)*sqrt(2)*erfinv(2*B - 1.), dt .* collect(1:nT))
+    # Bt = map(x-> sqrt(B_λ+x)*sqrt(2)*erfinv(2*B - 1.), dt .* collect(1:nT))
+    Bt = map(x->B*(1. + exp(B_λ*(x-B_Δ)))^(-1.), dt .* collect(1:nT))
 
     #adapt magnitude of the click inputs
     La, Ra = make_adapted_clicks(ϕ,τ_ϕ,L,R)
@@ -63,16 +64,18 @@ function P_single_trial!(σ2_i::TT, B::TT, B_λ::TT, λ::TT, σ2_a::TT, σ2_s::T
     # initialize latent model with a_0
     P, xc, n = initialize_latent_model(σ2_i, Bt[1], λ, σ2_a, dx, dt, a_0,L_lapse=lapse/2, R_lapse=lapse/2)
 
-    F = zeros(TT,n,n)
-
     # to keep track of mass at the bounds  
     Pbounds = zeros(TT, 2, nT)
-
     
     @inbounds for t = 1:nT
 
-        xc,n = bins(Bt[t],xc)    
-        P,F = latent_one_step!(P,F,λ,σ2_a,σ2_s,t,nL,nR,La,Ra,dx,xc,n,dt)
+        n_pre = n
+        xc_pre = xc
+        xc,n = bins(Bt[t], dx)   
+
+        F = zeros(TT,n,n_pre)
+
+        P,F = latent_one_step!(P,F,λ,σ2_a,σ2_s,t,nL,nR,La,Ra,dx,xc,xc_pre,n,dt)
 
         if t == 1
             Pbounds[1,t] = P[1]  # left bound
