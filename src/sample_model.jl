@@ -58,9 +58,9 @@ function sample_latent(nT::Int, L::Vector{Float64},R::Vector{Float64},
 
     A = Vector{TT}(undef,nT)
     a = sqrt(σ2_i)+ a_0
-    Bt = map(x->B*(1. + exp(B_λ*(x-B_Δ)))^(-1.), dt .* collect(1:nT))
+    # Bt = map(x->B*(1. + exp(B_λ*(x-B_Δ)))^(-1.), dt .* collect(1:nT))
 
-    # Bt = map(x-> sqrt(B_λ+x)*sqrt(2)*erfinv(2*B - 1.), dt .* collect(1:nT))
+    Bt = map(x-> sqrt(B_λ+x)*sqrt(2)*erfinv(2*B - 1.), dt .* collect(1:nT))
     # Bt = map(x-> B+B_λ*x,  dt .* collect(1:nT))
 
     RT = 0 
