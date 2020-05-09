@@ -18,14 +18,14 @@ function default_parameters(;generative::Bool=false)
                             true, true, true, false, true, true, true, true),
               "initial" => [eps(), 0.5 + 0.5 * rand(),  1. + 5. * rand(), 0., -0.001, eps(), 2. + rand()* (4. - 2.), rand(), rand(), 
                             rand(), rand(), rand() * 2., 0., 2. + rand(), rand(), 2. + rand(), rand()],
-              "lb" => [0., 0.5, 0., 0., -5., 0., 0., 0., 0.,
-                        0., 0., 0., -15., 0., 0., 0., 0.],
-              "ub" => [2., 1., 30., 1., 5., 20., 20., 1., 1., 
-                        1., 1., 30., 15., 5., 5., 5., 5.])
+              "lb" => [0., 0., 0., 0., -5., 0., 0., 0., 0.,
+                        0., 0., 0., -3., 0., 0., 0., 0.],
+              "ub" => [2., 5., 2.5, 1., 5., 20., 8., 1., 1., 
+                        1., 1., 10., 3., 5., 5., 5., 5.])
 
     if generative   
-        pz["generative"] = [eps(),  0.5 + 0.5 * rand(), 1. + 5. * rand(), 0., -0.001, eps(), 2. + rand()* (4. - 2.), rand(), rand(), 
-                            rand(), rand(), rand() * 2., 0., 2. + rand(), rand(), 2. + rand(), rand()]
+        pz["generative"] = [eps(),  rand(Uniform(pz["lb"][2], pz["ub"][2])), rand(Uniform(pz["lb"][3], pz["ub"][3])), 0., -0.001, eps(), 2. + rand()* (5. - 2.), rand(), rand(), 
+                            rand(), rand(), rand() * 5., 0., 2. + rand(), rand(), 2. + rand(), rand()]
         pd["generative"] = [0.,0.0]
         pz["initial"][pz["fit"] .== 0] = pz["generative"][pz["fit"] .== 0]
     end
