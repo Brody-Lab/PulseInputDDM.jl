@@ -327,6 +327,7 @@ function make_adapted_clicks(ϕ::TT, τ_ϕ::TT, L::Vector{Float64}, R::Vector{Fl
 end
 
 
+
 """
     adapt_clicks!(Ca, C, ϕ, τ_ϕ)
 
@@ -346,3 +347,17 @@ function adapt_clicks!(Ca::Vector{TT}, C::Vector{Float64}, ϕ::TT, τ_ϕ::TT) wh
     end
 
 end
+
+
+"""
+    make_adapted_clicks(ϕ, L, R) - just scaling the clicks with no temporal dynamics
+
+"""
+function make_adapted_clicks(ϕ::TT, L::Vector{Float64}, R::Vector{Float64}) where {TT}
+
+    La, Ra = \phi.*ones(TT,length(L)), phi.*ones(TT,length(R))
+
+    return La, Ra
+
+end
+

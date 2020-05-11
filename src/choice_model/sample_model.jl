@@ -184,6 +184,8 @@ function compute_initial_value(data::Dict, η::TT, α_prior::TT, β_prior::TT) w
     # exponential L-R    
     elseif case == 3
         correct = data["correct"]
+        cprob = Array{TT}(undef, data["ntrials"]) 
+
         η_hat = 1/β_prior
         β_hat = (η*β_prior)/(1+β_prior)
         C     = (1-η)*α_prior/(1-β_hat)
@@ -200,6 +202,8 @@ function compute_initial_value(data::Dict, η::TT, α_prior::TT, β_prior::TT) w
     # exponential approx L-R    
     elseif case == 4
         correct = data["correct"]
+        cprob = Array{TT}(undef, data["ntrials"]) 
+
         for i = 1:data["ntrials"]
             if data["sessidx"][i] == 1
                 cprob[i] = 0.5
