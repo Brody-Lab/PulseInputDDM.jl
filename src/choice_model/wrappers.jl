@@ -21,7 +21,7 @@ function default_parameters(;generative::Bool=false)
               "lb" => [0., 0., 0., 0., -5., 0., 0., 0., 0.,
                         0., 0., 0., -3., 0., 0., 0., 0.],
               "ub" => [2., 5., 2.5, 1., 5., 20., 8., 1., 1., 
-                        1., 1., 10., 3., 5., 5., 5., 5.])
+                        1., 1., 20., 3., 5., 5., 5., 5.])
 
     if generative   
         pz["generative"] = [eps(),  rand(Uniform(pz["lb"][2], pz["ub"][2])), rand(Uniform(pz["lb"][3], pz["ub"][3])), 0., -0.001, eps(), 2. + rand()* (5. - 2.), rand(), rand(), 

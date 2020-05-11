@@ -99,7 +99,7 @@ end
 """
 function compute_initial_value(data::Dict, η::TT, α_prior::TT, β_prior::TT) where {TT <: Any}
 
-    case = 1
+    case = 3
 
     # L-R DBM
     if case == 1
@@ -183,10 +183,30 @@ function compute_initial_value(data::Dict, η::TT, α_prior::TT, β_prior::TT) w
 
     # exponential L-R    
     elseif case == 3
+        correct = data["correct"]
+        η_hat = 1/β_prior
+        β_hat = (η*β_prior)/(1+β_prior)
+        C     = (1-η)*α_prior/(1-β_hat)
+        for i = 1:data["ntrials"]
+            if data["sessidx"][i] == 1
+                cprob[i] = α_prior
+            else
+                cprob[i] = C*(1-β_hat) + η_hat*β_hat*correct[i-1] + β_hat*cprob[i-1]
+            end
+        end
+        
 
 
-    # exponential Alt-Rep    
+    # exponential approx L-R    
     elseif case == 4
+        correct = data["correct"]
+        for i = 1:data["ntrials"]
+            if data["sessidx"][i] == 1
+                cprob[i] = 0.5
+            else
+                cprob[i] = η*correct[i-1] + (1-η)*cprob[i-1]
+            end    
+        end
 
         
 
