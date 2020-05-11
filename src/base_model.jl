@@ -340,7 +340,7 @@ function adapt_clicks!(Ca::Vector{TT}, C::Vector{Float64}, ϕ::TT, τ_ϕ::TT) wh
         arg = (1/τ_ϕ) * (-ici[i] + xlogy(τ_ϕ, abs(1. - Ca[i]*ϕ)))
 
         if Ca[i]*ϕ <= 1
-            Ca[i+1] = 1. - exp(arg)
+            Ca[i+1] = 1. - exp(arg) 
         else
             Ca[i+1] = 1. + exp(arg)
         end
@@ -355,7 +355,7 @@ end
 """
 function make_adapted_clicks(ϕ::TT, L::Vector{Float64}, R::Vector{Float64}) where {TT}
 
-    La, Ra = \phi.*ones(TT,length(L)), phi.*ones(TT,length(R))
+    La, Ra = ϕ.*ones(TT,length(L)), ϕ.*ones(TT,length(R))
 
     return La, Ra
 
