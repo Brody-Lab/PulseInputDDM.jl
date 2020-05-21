@@ -54,8 +54,8 @@ function sample_latent(nT::Int, L::Vector{Float64},R::Vector{Float64},
         dt::Float64=1e-4) where {TT <: Any}
     
     σ2_i, B, B_λ, B_Δ, λ, σ2_a, σ2_s, ϕ, τ_ϕ, η, α_prior, β_prior, B_0, γ_shape, γ_scale, γ_shape1, γ_scale1 = pz
-    # La, Ra = make_adapted_clicks(ϕ, τ_ϕ, L, R)
-    La, Ra = make_adapted_clicks(ϕ, L, R)
+    La, Ra = make_adapted_clicks(ϕ, τ_ϕ, L, R)
+    # La, Ra = make_adapted_clicks(ϕ, L, R)
 
     A = Vector{TT}(undef,nT)
     a = sqrt(σ2_i)+ a_0

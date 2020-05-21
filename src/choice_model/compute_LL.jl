@@ -60,8 +60,8 @@ function P_single_trial!(σ2_i::TT, B::TT, B_λ::TT, B_Δ::TT, λ::TT, σ2_a::TT
     Bt = map(x->B + B_λ*sqrt(x), dt .* collect(1:nT))
 
     #adapt magnitude of the click inputs
-    # La, Ra = make_adapted_clicks(ϕ,τ_ϕ,L,R)
-    La, Ra = make_adapted_clicks(ϕ, L, R)
+    La, Ra = make_adapted_clicks(ϕ,τ_ϕ,L,R)
+    # La, Ra = make_adapted_clicks(ϕ, L, R)
 
     # initialize latent model with a_0
     P, xc, n = initialize_latent_model(σ2_i, Bt[1], λ, σ2_a, dx, dt, a_0,L_lapse=lapse/2, R_lapse=lapse/2)

@@ -99,7 +99,7 @@ end
 """
 function compute_initial_value(data::Dict, η::TT, α_prior::TT, β_prior::TT) where {TT <: Any}
 
-    case = 3
+    case = 4
 
     # L-R DBM
     if case == 1
@@ -136,6 +136,9 @@ function compute_initial_value(data::Dict, η::TT, α_prior::TT, β_prior::TT) w
             end
             post = post./sum(post)
         end
+
+        return log.(cprob ./(1 .- cprob))
+
 
     # Alt-rep DBM    
     elseif case == 2
@@ -181,6 +184,9 @@ function compute_initial_value(data::Dict, η::TT, α_prior::TT, β_prior::TT) w
             post = post./sum(post)
         end
 
+        return log.(cprob ./(1 .- cprob))
+
+
     # exponential L-R    
     elseif case == 3
         correct = data["correct"]
@@ -196,7 +202,9 @@ function compute_initial_value(data::Dict, η::TT, α_prior::TT, β_prior::TT) w
                 cprob[i] = C*(1-β_hat) + η_hat*β_hat*correct[i-1] + β_hat*cprob[i-1]
             end
         end
-        
+            
+        return log.(cprob ./(1 .- cprob))
+
 
 
     # exponential approx L-R    
@@ -206,16 +214,16 @@ function compute_initial_value(data::Dict, η::TT, α_prior::TT, β_prior::TT) w
 
         for i = 1:data["ntrials"]
             if data["sessidx"][i] == 1
-                cprob[i] = 0.5
+                cprob[i] = 0.
             else
-                cprob[i] = η*correct[i-1] + (1-η)*cprob[i-1]
+                cprob[i] = η + α*correct[i-1] + β*cprob[i-1]
             end    
         end
 
+        return cprob
         
 
     end
 
-    return log.(cprob ./(1 .- cprob))
 
 end
