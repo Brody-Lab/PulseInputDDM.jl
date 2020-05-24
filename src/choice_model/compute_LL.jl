@@ -23,7 +23,6 @@ julia> round.(bounded_mass_all_trials(pz["generative"], pd["generative"], data),
 """
 function LL_all_trials(pz::Vector{TT}, pd::Vector{TT}, data::Dict; dx::Float64=0.1) where {TT <: Any}
 
-    bias, lapse = pd
     σ2_i, B, B_λ, B_Δ, λ, σ2_a, σ2_s, ϕ, τ_ϕ, η, α_prior, β_prior, B_0, γ_shape, γ_scale, γ_shape1, γ_scale1 = pz
 
     # computing initial values here
@@ -36,10 +35,18 @@ function LL_all_trials(pz::Vector{TT}, pd::Vector{TT}, data::Dict; dx::Float64=0
         data["binned_rightbups"], data["pokedR"]
     dt = data["dt"]
 
-    P = pmap((L,R,nT,nL,nR,a_0) -> P_single_trial!(σ2_i, B, B_λ, B_Δ, λ, σ2_a, σ2_s, ϕ, τ_ϕ, lapse, γ_shape, γ_scale, γ_shape1, γ_scale1,
+    P = pmap((L,R,nT,nL,nR,a_0) -> P_single_trial!(σ2_i, B, B_λ, B_Δ, λ, σ2_a, σ2_s, ϕ, τ_ϕ, γ_shape, γ_scale, γ_shape1, γ_scale1,
             L, R, nT, nL, nR, a_0, dx, dt), L, R, nT, nL, nR, a_0)
     
-    return log.(eps() .+ map((P, choice) -> (choice ? P[2] : P[1]), P, choice))
+    lapse, lapse1, lapse2 = pd
+
+    # NDtimedistL = Gamma(γ_shape, γ_scale)
+    # NDtimedistR = Gamma(γ_shape1, γ_scale1)
+    # lapse_lik = map((choice,nT) -> (choice ? pdf.(NDtimedistR, nT .* dt) : pdf.(NDtimedist1, nT .* dt) )) .* dt
+
+    lapse_dist = Gamma(lapse1, lapse2)
+    lapse_lik = map(nT-> pdf.(lapse_dist,nT.*dt) .*dt)
+    return log.(lapse .* lapse_lik .+ (1-lapse) .* map((P, choice) -> (choice ? P[2] : P[1]), P, choice))
 end
 
 
@@ -49,7 +56,7 @@ end
              L, R, nT, nL, nR, a_0, n, dt)
 
 """
-function P_single_trial!(σ2_i::TT, B::TT, B_λ::TT, B_Δ::TT, λ::TT, σ2_a::TT, σ2_s::TT, ϕ::TT, τ_ϕ::TT, lapse::TT, γ_shape::TT, γ_scale::TT, γ_shape1::TT, γ_scale1::TT,
+function P_single_trial!(σ2_i::TT, B::TT, B_λ::TT, B_Δ::TT, λ::TT, σ2_a::TT, σ2_s::TT, ϕ::TT, τ_ϕ::TT, γ_shape::TT, γ_scale::TT, γ_shape1::TT, γ_scale1::TT,
         L::Vector{Float64}, R::Vector{Float64}, nT::Int, nL::Vector{Int}, nR::Vector{Int}, a_0::TT,
         dx::Float64, dt::Float64) where {TT <: Any}
 
@@ -64,7 +71,7 @@ function P_single_trial!(σ2_i::TT, B::TT, B_λ::TT, B_Δ::TT, λ::TT, σ2_a::TT
     # La, Ra = make_adapted_clicks(ϕ, L, R)
 
     # initialize latent model with a_0
-    P, xc, n = initialize_latent_model(σ2_i, Bt[1], λ, σ2_a, dx, dt, a_0,L_lapse=lapse/2, R_lapse=lapse/2)
+    P, xc, n = initialize_latent_model(σ2_i, Bt[1], λ, σ2_a, dx, dt, a_0)
 
     # to keep track of mass at the bounds  
     Pbounds = zeros(TT, 2, nT)

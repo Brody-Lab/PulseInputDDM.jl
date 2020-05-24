@@ -140,7 +140,7 @@ function reload_optimization_parameters(path, file, pz, pd)
 
     println("reloading saved ML params \n")
     pz["state"] = read(matopen(path*file),"ML_params")[1:dimz]
-    pd["state"] = read(matopen(path*file),"ML_params")[dimz+1:dimz+2]
+    pd["state"] = read(matopen(path*file),"ML_params")[dimz+1:dimz+3]
 
     return pz, pd
 

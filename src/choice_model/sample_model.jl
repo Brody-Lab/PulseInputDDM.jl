@@ -14,13 +14,11 @@ function sample_clicks_and_choices(pz::Vector{Float64}, pd::Vector{Float64}, ntr
         data["sessidx"][idx] = 1
     end
 
-    if RTfit == true
-        inp = sample_choices_all_trials(data, pz, pd; dtMC=dtMC, rng=rng, use_bin_center=use_bin_center)
-        data["pokedR"] = map(i->inp[i][1],1:ntrials)
-        data["T"] = map(i->inp[i][2],1:ntrials)
-    else
-        data["pokedR"] = sample_choices_all_trials(data, pz, pd; dtMC=dtMC, rng=rng, use_bin_center=use_bin_center)
-    end
+ 
+    inp = sample_choices_all_trials(data, pz, pd; dtMC=dtMC, rng=rng, use_bin_center=use_bin_center)
+    data["pokedR"] = map(i->inp[i][1],1:ntrials)
+    data["T"] = map(i->inp[i][2],1:ntrials)
+    
 
     return data
 
@@ -39,13 +37,10 @@ function sample_choices_all_trials(data::Dict, pz::Vector{Float64}, pd::Vector{F
     a_0 = compute_initial_value(data, η, α_prior, β_prior)
     a_0 = a_0 .+ B_0 # adding bias to initial point
 
-    if RTfit == true
-        choices = pmap((nT,L,R,nL,nR,a_0,rng) -> sample_choice_single_trial(nT,L,R,nL,nR,pz,pd,a_0;
-                use_bin_center=use_bin_center, rng=rng), nT, data["leftbups"], data["rightbups"], nL, nR, a_0,shuffle(1:length(data["T"])))
-    else
-        choices = pmap((nT,L,R,nL,nR,rng) -> sample_choice_single_trial(nT,L,R,nL,nR,pz,pd;
-                use_bin_center=use_bin_center, rng=rng), nT, data["leftbups"], data["rightbups"], nL, nR, shuffle(1:length(data["T"])))
-    end
+    
+    choices = pmap((nT,L,R,nL,nR,a_0,rng) -> sample_choice_single_trial(nT,L,R,nL,nR,pz,pd,a_0;
+            use_bin_center=use_bin_center, rng=rng), nT, data["leftbups"], data["rightbups"], nL, nR, a_0,shuffle(1:length(data["T"])))
+    
 end
 
 
@@ -60,39 +55,47 @@ function sample_choice_single_trial(nT::Int, L::Vector{Float64}, R::Vector{Float
 
     Random.seed!(rng)
 
-    bias,lapse = pd
+    lapse,lapse1, lapse2 = pd
 
     a, RT = sample_latent(nT,L,R,nL,nR,pz,a_0,use_bin_center;dt=dtMC)
     σ2_i, B, B_λ, B_Δ, λ, σ2_a, σ2_s, ϕ, τ_ϕ, η, α_prior, β_prior, B_0, γ_shape, γ_scale, γ_shape1, γ_scale1 = pz
 
-    choice = sign(a[RT]) > 0 
+    # non lapse trial
+    if rand() > lapse
+        choice = sign(a[RT]) > 0 
 
-    if sign(a[RT]) > 0
-        ndtime = Gamma(γ_shape1, γ_scale1)
-        RT = round(RT*dtMC + rand(ndtime, 1)[1], digits = 4)
+        if sign(a[RT]) > 0
+            ndtime = Gamma(γ_shape1, γ_scale1)
+            RT = round(RT*dtMC + rand(ndtime, 1)[1], digits = 4)
+        else
+            ndtime = Gamma(γ_shape, γ_scale)
+            RT = round(RT*dtMC + rand(ndtime, 1)[1], digits = 4)
+        end
+    # lapse trial    
     else
-        ndtime = Gamma(γ_shape, γ_scale)
-        RT = round(RT*dtMC + rand(ndtime, 1)[1], digits = 4)
+        choice = Bool(round(rand()))
+        ndtime = Gamma(lapse1, lapse2)
+        RT = round(rand(ndtime,1)[1], digits = 4)
     end
 
     return choice, RT
     
 end
-"""
-"""
+# """
+# """
 
 
-function sample_choice_single_trial(nT::Int, L::Vector{Float64}, R::Vector{Float64},
-        nL::Vector{Int}, nR::Vector{Int},
-        pz::Vector{Float64},pd::Vector{Float64}; use_bin_center::Bool=false, dtMC::Float64=1e-4, rng::Int=1)
+# function sample_choice_single_trial(nT::Int, L::Vector{Float64}, R::Vector{Float64},
+#         nL::Vector{Int}, nR::Vector{Int},
+#         pz::Vector{Float64},pd::Vector{Float64}; use_bin_center::Bool=false, dtMC::Float64=1e-4, rng::Int=1)
 
-    Random.seed!(rng)
+#     Random.seed!(rng)
 
-    bias,lapse = pd
-    a = sample_latent(nT,L,R,nL,nR,pz,use_bin_center;dt=dtMC)
-    rand() > lapse ? choice = a[end] >= bias : choice = Bool(round(rand()))
+#     lapse, lapse1, lapse2 = pd
+#     a = sample_latent(nT,L,R,nL,nR,pz,use_bin_center;dt=dtMC)
+#     rand() > lapse ? choice = a[end] >= bias : choice = Bool(round(rand()))
 
-end
+# end
 
 
 """
@@ -216,7 +219,7 @@ function compute_initial_value(data::Dict, η::TT, α_prior::TT, β_prior::TT) w
             if data["sessidx"][i] == 1
                 cprob[i] = 0.
             else
-                cprob[i] = η + α*correct[i-1] + β*cprob[i-1]
+                cprob[i] = η + α_prior*correct[i-1] + β_prior*cprob[i-1]
             end    
         end
 

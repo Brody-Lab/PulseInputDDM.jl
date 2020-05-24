@@ -5,11 +5,11 @@ Returns two dictionaries of default model parameters.
 """
 function default_parameters(;generative::Bool=false)
 
-    pd = Dict("name" => vcat("bias","lapse"),
-              "fit" => vcat(false, false),
-              "initial" => vcat(0.,0.0),
-              "lb" => [-30, 0.],
-              "ub" => [30, 1.])
+    pd = Dict("name" => vcat("lapse","lapse1","lapse2"),
+              "fit" => vcat(true, true, true),
+              "initial" => vcat(0.,0.,0.),
+              "lb" => [0., 0., 0.],
+              "ub" => [1., 5., 5.])
 
     # # a_prior = a/a+b, b_prior = a+b
     # pz = Dict("name" => ["σ_i","B", "B_λ", "B_Δ", "λ", "σ_a","σ_s","ϕ","τ_ϕ",
@@ -23,7 +23,7 @@ function default_parameters(;generative::Bool=false)
     #           "ub" => [2., 5., 2.5, 1., 5., 20., 8., 1., 1., 
     #                     1., 1., 20., 3., 5., 5., 5., 5.])
 
-        # a_prior = a/a+b, b_prior = a+b
+    
     pz = Dict("name" => ["σ_i","B", "B_λ", "B_Δ", "λ", "σ_a","σ_s","ϕ","τ_ϕ",
                           "η","α_prior","β_prior","B_0","γ_shape", "γ_scale", "γ_shape1", "γ_scale1"],
               "fit" => vcat(false, true, true, false, false, false, true, true, true, 
@@ -38,8 +38,9 @@ function default_parameters(;generative::Bool=false)
     if generative   
         pz["generative"] = [eps(),  rand(Uniform(pz["lb"][2], pz["ub"][2])), rand(Uniform(pz["lb"][3], pz["ub"][3])), 0., -0.001, eps(), 0.5 + rand()* (5. - 2.), rand(), rand(), 
                             rand(), rand(), rand() * 5., 0., 2. + rand(), rand(), 2. + rand(), rand()]
-        pd["generative"] = [0.,0.0]
+        pd["generative"] = [0.,0.,0.]
         pz["initial"][pz["fit"] .== 0] = pz["generative"][pz["fit"] .== 0]
+        pd["initial"][pd["fit"] .== 0] = pd["generative"][pd["fit"] .== 0]
     end
 
     return pz, pd

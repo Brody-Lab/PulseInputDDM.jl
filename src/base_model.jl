@@ -3,17 +3,17 @@ const dimz = 17
 const RTfit = true
 
 """
-    initialize_latent_model(σ2_i, B, λ, σ2_a, n, dt; L_lapse=0., R_lapse=0.)
+    initialize_latent_model(σ2_i, B, λ, σ2_a, n, dt)
 
 """
 function initialize_latent_model(σ2_i::TT, B::TT, λ::TT, σ2_a::TT,
-     dx::Float64, dt::Float64, a_0::TT; L_lapse::UU=0., R_lapse::UU=0.) where {TT,UU <: Any}
+     dx::Float64, dt::Float64, a_0::TT) where {TT,UU <: Any}
 
     #bin centers and number of bins
     xc,n = bins(B,dx)
 
     # make initial latent distribution
-    P = P0(σ2_i,n,a_0,dx,xc,dt; L_lapse=L_lapse, R_lapse=R_lapse)
+    P = P0(σ2_i,n,a_0,dx,xc,dt)
 
     return P, xc, n
 
@@ -21,17 +21,15 @@ end
 
 
 """
-    P0(σ2_i, n dx, xc, dt; L_lapse=0., R_lapse=0.)
+    P0(σ2_i, n dx, xc, dt)
 
 """
-function P0(σ2_i::TT, n::Int, a_0::TT, dx::VV, xc::Vector{TT}, dt::Float64;
-        L_lapse::UU=0., R_lapse::UU=0.) where {TT,UU,VV <: Any}
+function P0(σ2_i::TT, n::Int, a_0::TT, dx::VV, xc::Vector{TT}, dt::Float64) where {TT,UU,VV <: Any}
 
     P = zeros(TT,n)
     
     # make initial delta function
-    P[ceil(Int,n/2)] = one(TT) - (L_lapse + R_lapse)
-    P[1], P[n] = L_lapse, R_lapse
+    P[ceil(Int,n/2)] = one(TT) 
     M = transition_M(σ2_i,zero(TT),a_0,dx,xc,n,dt)
     P = M * P
 
