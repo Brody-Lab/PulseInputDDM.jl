@@ -102,7 +102,7 @@ end
 """
 function compute_initial_value(data::Dict, η::TT, α_prior::TT, β_prior::TT) where {TT <: Any}
 
-    case = 4
+    case = 3
 
     # L-R DBM
     if case == 1
