@@ -1,7 +1,7 @@
 """
 """
 function load_choice_data(path::String, file::String;
-                use_bin_center::Bool=false, dt::Float64=1e-2)
+                use_bin_center::Bool=false, dt::Float64=5e-4)
 
     println("loading data \n")
     data = read(matopen(path*file), "rawdata")
@@ -45,7 +45,7 @@ end
 
 """
 """
-function bin_clicks!(data::Dict; use_bin_center::Bool=false, dt::Float64=1e-3)
+function bin_clicks!(data::Dict; use_bin_center::Bool=false, dt::Float64=5e-4)
 
     data["dt"] = dt
     data["use_bin_center"] = use_bin_center
@@ -56,8 +56,8 @@ function bin_clicks!(data::Dict; use_bin_center::Bool=false, dt::Float64=1e-3)
     data["nT"], data["binned_leftbups"], data["binned_rightbups"] =
         bin_clicks(data["T"], data["leftbups"], data["rightbups"], dt=dt, use_bin_center=use_bin_center)
 
-    data["ΔLRT"] = map((nT,L,R)-> diffLR(nT,L,R,data["dt"])[end], data["nT"], data["leftbups"], data["rightbups"])
-    data["ΔLR"] = map((nT,L,R)-> diffLR(nT,L,R,data["dt"]), data["nT"], data["leftbups"], data["rightbups"])
+    data["ΔLR"] = map((nT,L,R)-> diffLR(nT,L,R,data["dt"])[end], data["nT"], data["leftbups"], data["rightbups"])
+    # data["ΔLR"] = map((nT,L,R)-> diffLR(nT,L,R,data["dt"]), data["nT"], data["leftbups"], data["rightbups"])
 
     return data
 
@@ -66,7 +66,7 @@ end
 
 """
 """
-function bin_clicks(T,L,R;dt::Float64=1e-2, use_bin_center::Bool=false)
+function bin_clicks(T,L,R;dt::Float64=5e-4, use_bin_center::Bool=false)
 
     nT = ceil.(Int, round.((T/dt), digits=10))
     #added on 6/11/19, to avoid problem, such as 0.28/1e-2 = 28.0000000004, etc.
@@ -140,7 +140,7 @@ function reload_optimization_parameters(path, file, pz, pd)
 
     println("reloading saved ML params \n")
     pz["state"] = read(matopen(path*file),"ML_params")[1:dimz]
-    pd["state"] = read(matopen(path*file),"ML_params")[dimz+1:dimz+3]
+    pd["state"] = read(matopen(path*file),"ML_params")[dimz+1:end]
 
     return pz, pd
 

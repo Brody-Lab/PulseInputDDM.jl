@@ -51,30 +51,35 @@ end
 function sample_latent(nT::Int, L::Vector{Float64},R::Vector{Float64},
         nL::Vector{Int}, nR::Vector{Int}, 
         pz::Vector{TT}, a_0::TT, use_bin_center::Bool; 
-        dt::Float64=1e-4) where {TT <: Any}
+        dt::Float64=5e-4) where {TT <: Any}
     
     σ2_i, B, B_λ, B_Δ, λ, σ2_a, σ2_s, ϕ, τ_ϕ, η, α_prior, β_prior, B_0, γ_shape, γ_scale, γ_shape1, γ_scale1 = pz
     La, Ra = make_adapted_clicks(ϕ, τ_ϕ, L, R)
     # La, Ra = make_adapted_clicks(ϕ, L, R)
 
-    A = Vector{TT}(undef,nT)
-    a = sqrt(σ2_i)+ a_0
+    # A = Vector{TT}(undef,nT)
     # Bt = map(x->B*(1. + exp(B_λ*(x-B_Δ)))^(-1.), dt .* collect(1:nT))
     # Bt = map(x-> sqrt(B_λ+x)*sqrt(2)*erfinv(2*B - 1.), dt .* collect(1:nT))
     Bt = map(x->B + B_λ*sqrt(x), dt .* collect(1:nT))
 
-
+    a = sqrt(σ2_i)+ a_0
     RT = 0 
 
-    for t = 1:nT
+    for t = 2:nT
             
         if use_bin_center && t == 1         
             a = sample_one_step!(a, t, σ2_a, σ2_s, λ, nL, nR, La, Ra, dt/2)
         else
             a = sample_one_step!(a, t, σ2_a, σ2_s, λ, nL, nR, La, Ra, dt)
         end
+        
+        if abs(a) >= Bt[t]
+            a = Bt[t] * sign(a)
+            RT = t
+            break
+        end 
 
-        abs(a) > Bt[t] ? (a = Bt[t] * sign(a); A[t:nT] .= a; RT = t; break) : A[t] = a
+        # abs(a) >= Bt[t] ? (a = Bt[t] * sign(a); A[t:nT] .= a; RT = t; break) : A[t] = a
 	
 	   # this should be handles in a better way, but for now to prevent fatal errors
 	   if t == nT
@@ -83,7 +88,7 @@ function sample_latent(nT::Int, L::Vector{Float64},R::Vector{Float64},
 
     end               
     
-    return A, RT
+    return a, RT
     
 end
 
@@ -92,21 +97,45 @@ end
 """
 function sample_one_step!(a::TT, t::Int, σ2_a::TT, σ2_s::TT, λ::TT, 
         nL::Vector{Int}, nR::Vector{Int}, 
-        La, Ra, dt::Float64) where {TT <: Any}
+        La, Ra, dt::Float64=5e-4) where {TT <: Any}
     
     any(t .== nL) ? sL = sum(La[t .== nL]) : sL = zero(TT)
     any(t .== nR) ? sR = sum(Ra[t .== nR]) : sR = zero(TT)
-    σ2, μ = σ2_s * (sL + sR), -sL + sR  
     
-    ξ = sqrt(σ2_a * dt + σ2) * randn()
+    acc_noise = sqrt(dt*σ2_a)*randn()
+    sens_comp = -sL*(1. + randn()*sqrt(σ2_s)) + sR*(1. + randn()*sqrt(σ2_s))
     
     if abs(λ) < 1e-150 
-        a += μ + ξ
+        a += sens_comp + acc_noise
     else
-        h = μ/(dt*λ)
-        a = exp(λ*dt)*(a + h) - h + ξ
+        dd = exp(dt*λ)
+        a = a*dd + acc_noise + sens_comp    
     end
     
     return a
 
 end
+
+# """
+# """
+# function sample_one_step!(a::TT, t::Int, σ2_a::TT, σ2_s::TT, λ::TT, 
+#         nL::Vector{Int}, nR::Vector{Int}, 
+#         La, Ra, dt::Float64=5e-4) where {TT <: Any}
+    
+#     any(t .== nL) ? sL = sum(La[t .== nL]) : sL = zero(TT)
+#     any(t .== nR) ? sR = sum(Ra[t .== nR]) : sR = zero(TT)
+#     σ2, μ = σ2_s * (sL + sR), -sL + sR  
+    
+#     # scaling variance
+#     ξ = sqrt(σ2_a * dt + σ2) * randn()
+    
+#     if abs(λ) < 1e-150 
+#         a += μ + (ξ)  #
+#     else
+#         h = μ/(dt*λ)   
+#         a = exp(λ*dt)*(a + h) - h + ξ
+#     end
+    
+#     return a
+
+# end

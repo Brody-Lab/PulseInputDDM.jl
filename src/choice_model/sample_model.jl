@@ -1,7 +1,7 @@
 """
 """
 function sample_clicks_and_choices(pz::Vector{Float64}, pd::Vector{Float64}, ntrials::Int;
-        dtMC::Float64=1e-4, rng::Int = 1, use_bin_center::Bool=false)
+        dtMC::Float64=5e-4, rng::Int = abs(rand(Int)), use_bin_center::Bool=false)
     
     data = sample_clicks(ntrials;rng=rng)
 
@@ -28,7 +28,7 @@ end
 """
 """
 function sample_choices_all_trials(data::Dict, pz::Vector{Float64}, pd::Vector{Float64};
-        dtMC::Float64=1e-2, rng::Int = 1, use_bin_center::Bool=false)
+        dtMC::Float64=5e-4, rng::Int = abs(rand(Int)), use_bin_center::Bool=false)
 
     Random.seed!(rng)
     nT,nL,nR = bin_clicks(data["T"],data["leftbups"],data["rightbups"]; dt=dtMC, use_bin_center=use_bin_center)
@@ -39,7 +39,7 @@ function sample_choices_all_trials(data::Dict, pz::Vector{Float64}, pd::Vector{F
 
     
     choices = pmap((nT,L,R,nL,nR,a_0,rng) -> sample_choice_single_trial(nT,L,R,nL,nR,pz,pd,a_0;
-            use_bin_center=use_bin_center, rng=rng), nT, data["leftbups"], data["rightbups"], nL, nR, a_0,shuffle(1:length(data["T"])))
+            use_bin_center=use_bin_center, rng=rng, dtMC=dtMC), nT, data["leftbups"], data["rightbups"], nL, nR, a_0,shuffle(1:length(data["T"])))
     
 end
 
@@ -51,20 +51,20 @@ this one is for RT
 """
 function sample_choice_single_trial(nT::Int, L::Vector{Float64}, R::Vector{Float64},
         nL::Vector{Int}, nR::Vector{Int},
-        pz::Vector{Float64},pd::Vector{Float64}, a_0::TT; use_bin_center::Bool=false, dtMC::Float64=1e-4, rng::Int=1) where {TT <: Any}
+        pz::Vector{Float64},pd::Vector{Float64}, a_0::TT; use_bin_center::Bool=false, dtMC::Float64=5e-4, rng::Int=abs(rand(Int))) where {TT <: Any}
 
     Random.seed!(rng)
 
-    lapse,lapse1, lapse2 = pd
 
     a, RT = sample_latent(nT,L,R,nL,nR,pz,a_0,use_bin_center;dt=dtMC)
     σ2_i, B, B_λ, B_Δ, λ, σ2_a, σ2_s, ϕ, τ_ϕ, η, α_prior, β_prior, B_0, γ_shape, γ_scale, γ_shape1, γ_scale1 = pz
+    lapse,lapse1, lapse2 = pd
 
     # non lapse trial
     if rand() > lapse
-        choice = sign(a[RT]) > 0 
+        choice = sign(a) > 0 
 
-        if sign(a[RT]) > 0
+        if sign(a) > 0
             ndtime = Gamma(γ_shape1, γ_scale1)
             RT = round(RT*dtMC + rand(ndtime, 1)[1], digits = 4)
         else

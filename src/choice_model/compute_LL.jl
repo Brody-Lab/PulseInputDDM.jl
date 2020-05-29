@@ -45,7 +45,7 @@ function LL_all_trials(pz::Vector{TT}, pd::Vector{TT}, data::Dict; dx::Float64=0
     # lapse_lik = map((choice,nT) -> (choice ? pdf.(NDtimedistR, nT .* dt) : pdf.(NDtimedist1, nT .* dt) )) .* dt
 
     lapse_dist = Gamma(lapse1, lapse2)
-    lapse_lik = map(nT-> pdf.(lapse_dist,nT.*dt) .*dt)
+    lapse_lik = pdf.(lapse_dist,nT.*dt) .*dt
     return log.(lapse .* lapse_lik .+ (1-lapse) .* map((P, choice) -> (choice ? P[2] : P[1]), P, choice))
 end
 
@@ -53,7 +53,7 @@ end
 
 """
     P_single_trial!(σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ, lapse
-             L, R, nT, nL, nR, a_0, n, dt)
+             L, R, nT, nL, nR, a_0, n, dt)  
 
 """
 function P_single_trial!(σ2_i::TT, B::TT, B_λ::TT, B_Δ::TT, λ::TT, σ2_a::TT, σ2_s::TT, ϕ::TT, τ_ϕ::TT, γ_shape::TT, γ_scale::TT, γ_shape1::TT, γ_scale1::TT,

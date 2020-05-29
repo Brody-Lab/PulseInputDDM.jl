@@ -6,17 +6,17 @@ Returns two dictionaries of default model parameters.
 function default_parameters(;generative::Bool=false)
 
     pd = Dict("name" => vcat("lapse","lapse1","lapse2"),
-              "fit" => vcat(true, true, true),
-              "initial" => vcat(0.,0.,0.),
+              "fit" => vcat(false, false, false),
+              "initial" => vcat(0., 1. + rand(), rand()),
               "lb" => [0., 0., 0.],
               "ub" => [1., 5., 5.])
 
     # # a_prior = a/a+b, b_prior = a+b
     pz = Dict("name" => ["σ_i","B", "B_λ", "B_Δ", "λ", "σ_a","σ_s","ϕ","τ_ϕ",
                           "η","α_prior","β_prior","B_0","γ_shape", "γ_scale", "γ_shape1", "γ_scale1"],
-              "fit" => vcat(false, true, true, false, false, false, true, true, true, 
+              "fit" => vcat(false, true, false, false, false, false, true, true, true, 
                             true, true, true, false, true, true, true, true),
-              "initial" => [eps(), 1. + rand(),  1. + rand(), 0., -0.001, eps(), 2. + rand(), rand(), rand(), 
+              "initial" => [eps(), 2. * rand(),  0., 0., 0., eps(), 2.*rand(), rand(), rand(), 
                             0.5, 0.6 + rand()*(1. - 0.6), 10. + rand() * 5., 0., 2. + rand(), rand(), 2. + rand(), rand()],
               "lb" => [0., 0., 0., 0., -5., 0., 0., 0., 0.,
                         0., 0., 0., -3., 0., 0., 0., 0.],
