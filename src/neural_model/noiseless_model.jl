@@ -19,6 +19,52 @@ end
 
 """
 """
+@with_kw struct Softplus_options_noiseless <: neural_options_noiseless
+    ncells::Vector{Int}
+    nparams::Int = 1
+    f::String = "Softplus"
+    fit::Vector{Bool} = vcat(falses(dimz), trues(sum(ncells)*nparams))
+    lb::Vector{Float64} = vcat([0., 8.,  -10., 0.,   0.,  0., 0.005],
+        repeat([-10.], sum(ncells)))
+    ub::Vector{Float64} = vcat([Inf, 200., 10., Inf, Inf, 1.2,  1.],
+        repeat([10.], sum(ncells)))
+    x0::Vector{Float64} = vcat([0., 15., 0. - eps(), 0., 0., 1.0 - eps(), 0.008],
+        repeat([1.], sum(ncells)))
+end
+
+
+"""
+"""
+@with_kw struct θneural_noiseless{T1, T2} <: DDMθ
+    θz::T1
+    θy::T2
+    ncells::Vector{Int}
+    nparams::Int
+    f::String
+end
+
+
+#=
+"""
+"""
+@with_kw struct Softplus_options_noiseless <: neural_options_noiseless
+    ncells::Vector{Int}
+    nparams::Int = 3
+    f::String = "Softplus"
+    fit::Vector{Bool} = vcat(falses(dimz), trues(sum(ncells)*nparams))
+    lb::Vector{Float64} = vcat([0., 8.,  -5., 0.,   0.,  0.01, 0.005],
+        repeat([-100.,-10.,-10.], sum(ncells)))
+    ub::Vector{Float64} = vcat([Inf, Inf, 10., Inf, Inf, 1.2,  1.],
+        repeat([100.,10.,10.], sum(ncells)))
+    x0::Vector{Float64} = vcat([0., 15., 0. - eps(), 0., 0., 1.0 - eps(), 0.008],
+        repeat([10.,1.,0.], sum(ncells)))
+end
+=#
+
+
+
+"""
+"""
 @with_kw struct null_options
     ncells::Vector{Int}
     nparams::Int = 4
@@ -157,33 +203,6 @@ function loglikelihood(θy::Vector{T1}, input_data::neuralinputs) where T1 <: DD
 
     λ = map((θy,λ0)-> θy(zeros(length(λ0)), λ0), θy, λ0)
 
-end
-
-
-"""
-"""
-@with_kw struct Softplus_options_noiseless <: neural_options_noiseless
-    ncells::Vector{Int}
-    nparams::Int = 3
-    f::String = "Softplus"
-    fit::Vector{Bool} = vcat(falses(dimz), trues(sum(ncells)*nparams))
-    lb::Vector{Float64} = vcat([0., 8.,  -10., 0.,   0.,  0., 0.005],
-        repeat([1e-12, -10., -10.], sum(ncells)))
-    ub::Vector{Float64} = vcat([Inf, 200., 10., Inf, Inf, 1.2,  1.],
-        repeat([100., 10., 10.], sum(ncells)))
-    x0::Vector{Float64} = vcat([0., 15., 0. - eps(), 0., 0., 1.0 - eps(), 0.008],
-        repeat([10.,1.,0.], sum(ncells)))
-end
-
-
-"""
-"""
-@with_kw struct θneural_noiseless{T1, T2} <: DDMθ
-    θz::T1
-    θy::T2
-    ncells::Vector{Int}
-    nparams::Int
-    f::String
 end
 
 
@@ -333,32 +352,37 @@ end
 function loglikelihood(θz::θz, θy::Vector{T1}, data::neuraldata) where T1 <: DDMf
 
     @unpack spikes, input_data = data
-    @unpack dt = input_data
-    λ, = loglikelihood(θz,θy,input_data)
+    @unpack λ0, dt = input_data
+    
+    ΔLR = diffLR(data)
+    #λ = loglikelihood(θz,θy,λ0,ΔLR)
+    λ = map((θy,λ0)-> θy(ΔLR, λ0), θy, λ0)
     sum(logpdf.(Poisson.(vcat(λ...)*dt), vcat(spikes...)))
 
 end
 
 
+#=
 """
 """
-function loglikelihood(θz::θz, θy::Vector{T1}, input_data::neuralinputs) where T1 <: DDMf
+function loglikelihood(θz::θz, θy::Vector{T1}, λ0, ΔLR) where T1 <: DDMf
 
-    @unpack λ0, dt = input_data
+    #@unpack λ0, dt = input_data
 
-    a = rand(θz,input_data)
-    λ = map((θy,λ0)-> θy(a, λ0), θy, λ0)
+    #a = rand(θz,input_data)
+    λ = map((θy,λ0)-> θy(ΔLR, λ0), θy, λ0)
 
-    return λ, a
+    #return λ, a
 
 end
+=#
 
 
 """
 """
 function θy(data, f::String)
 
-    ΔLR =  diffLR.(data)
+    ΔLR = diffLR.(data)
     spikes = group_by_neuron(data)
 
     @unpack dt = data[1].input_data
@@ -373,14 +397,17 @@ function θy(ΔLR, spikes, dt, f; nconds::Int=7)
 
     conds_bins = encode(LinearDiscretizer(binedges(DiscretizeUniformWidth(nconds), ΔLR)), ΔLR)
 
-    rate = map(i -> (1/dt)*mean(spikes[conds_bins .== i]),1:nconds)
+    rate = map(i -> (1/dt)*mean(spikes[conds_bins .== i]), 1:nconds)
 
     c = hcat(ones(size(ΔLR, 1)), ΔLR) \ spikes
 
     if (f == "Sigmoid")
-        p = vcat(minimum(rate), maximum(rate)-minimum(rate), c[2], 0.)
+        p = vcat(minimum(rate) - mean(rate), maximum(rate)- mean(rate), c[2], 0.)
+        #p = vcat(minimum(rate), maximum(rate)- minimum(rate), c[2], 0.)
     elseif f == "Softplus"
-        p = vcat(minimum(rate), (1/dt)*c[2], 0.)
+        #p = vcat(minimum(rate) - mean(rate), (1/dt)*c[2], 0.)
+        #p = vcat(eps(), (1/dt)*c[2], 0.)
+        p = vcat((1/dt)*c[2])
     end
 
     #added because was getting log problem later, since rate function canot be negative

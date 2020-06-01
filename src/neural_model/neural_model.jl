@@ -3,14 +3,14 @@ abstract type neural_options end
 
 """
 """
-function train_and_test(data, options::neural_options, n; seed::Int=1, α1s = 10. .^(-6:7))
+function train_and_test(data, options::neural_options; seed::Int=1, α1s = 10. .^(-3:1))
     
     ntrials = length(data)
     train = sample(Random.seed!(seed), 1:ntrials, ceil(Int, 0.9 * ntrials), replace=false)
     test = setdiff(1:ntrials, train)
       
-    model = map(α1-> optimize([data[train]], options, n; α1=α1, show_trace=false)[1], α1s)   
-    testLL = map(model-> loglikelihood(model.θ, [data[test]], n), model)
+    model = map(α1-> optimize([data[train]], options; α1=α1, show_trace=false)[1], α1s)   
+    testLL = map(model-> loglikelihood(model.θ, [data[test]]), model)
 
     return α1s, model, testLL
     
@@ -52,6 +52,7 @@ function (θ::Sigmoid)(x::U, λ0::T) where {U,T <: Real}
 
     y = c * x + d
     y = a + b * logistic!(y)
+    #y = y + λ0
     y = softplus(y + λ0)
     #y = max(eps(), y + λ0)
 
@@ -61,9 +62,7 @@ end
 """
 """
 @with_kw struct Softplus{T1} <: DDMf
-    a::T1 = 10.
     c::T1 = 5.0*rand([-1,1])
-    d::T1 = 0
 end
 
 
@@ -71,13 +70,17 @@ end
 """
 function (θ::Softplus)(x::Union{U,Vector{U}}, λ0::Union{T,Vector{T}}) where {U,T <: Real}
 
-    @unpack a,c,d = θ
+    @unpack c = θ
 
-    y = a .+ softplus.(c*x .+ d .+ λ0)
+    #y = a .+ softplus.(c*x .+ d) .+ λ0
+     #y = softplus.(c*x .+ a .+ λ0)
+     y = softplus.(c*x .+ softplusinv.(λ0))
     #y = max.(eps(), y .+ λ0)
     #y = softplus.(y .+ λ0)
 
 end
+
+softplusinv(x) = log(expm1(x))
 
 
 """
@@ -124,15 +127,15 @@ end
 """
 @with_kw struct Softplus_options <: neural_options
     ncells::Vector{Int}
-    nparams::Int = 3
+    nparams::Int = 1
     f::String = "Softplus"
     fit::Vector{Bool} = vcat(trues(dimz + sum(ncells)*nparams))
     lb::Vector{Float64} = vcat([0., 8.,  -10., 0.,   0.,  0., 0.005],
-        repeat([1e-12, -10., -10.], sum(ncells)))
+        repeat([-10.], sum(ncells)))
     ub::Vector{Float64} = vcat([Inf, 200., 10., Inf, Inf, 1.2,  1.],
-        repeat([100., 10., 10.], sum(ncells)))
+        repeat([10.], sum(ncells)))
     x0::Vector{Float64} = vcat([0.1, 15., -0.1, 20., 0.5, 0.8, 0.008],
-        repeat([10.,1.,0.], sum(ncells)))
+        repeat([1.], sum(ncells)))
 end
 
 
@@ -163,17 +166,17 @@ end
 
 
 """
-    loglikelihood(x, data; n=53)
+    flatten(θ)
 
-A wrapper function that accepts a vector of mixed parameters, splits the vector
-into two vectors based on the parameter mapping function provided as an input. Used
-in optimization, Hessian and gradient computation.
+Extract parameters related to the choice model from a struct and returns an ordered vector
+```
 """
-function loglikelihood(x::Vector{T}, data::Vector{Vector{T2}}, θ::θneural; n::Int=53) where {T <: Real, T2 <: neuraldata}
+function flatten(θ::θneural)
 
-    @unpack ncells, nparams, f = θ
-    θ = θneural(x, ncells, nparams, f)
-    loglikelihood(θ, data; n=n)
+    @unpack θy, θz = θ
+    @unpack σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ = θz
+    vcat(σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ, 
+        vcat(collect.(Flatten.flatten.(vcat(θy...)))...))
 
 end
 
@@ -206,21 +209,22 @@ function Hessian(model::neuralDDM, n::Int; chuck_size::Int=4)
 
 end
 
+#=
+logprior(x,μ,σ) = logpdf(InverseGamma(μ[1], σ[1]), x[1]) + 
+    logpdf(Laplace(μ[2], σ[2]), x[2]) + 
+    logpdf(Normal(μ[3], σ[3]), x[3]) + 
+    logpdf(InverseGamma(μ[4], σ[4]), x[4]) + 
+    logpdf(InverseGamma(μ[5], σ[5]), x[5]) + 
+    logpdf(Laplace(μ[6], σ[6]), x[6]) +
+    logpdf(Laplace(μ[7], σ[7]), x[7])
+=#
 
-"""
-    flatten(θ)
-
-Extract parameters related to the choice model from a struct and returns an ordered vector
-```
-"""
-function flatten(θ::θneural)
-
-    @unpack θy, θz = θ
-    @unpack σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ = θz
-    vcat(σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ, 
-        vcat(collect.(Flatten.flatten.(vcat(θy...)))...))
-
-end
+#This was that weird prior I used acciently and didn't work very well
+logprior(x,μ,σ) = logpdf(Laplace(μ[1], σ[1]), x[1]) + 
+    logpdf(Laplace(μ[2], σ[2]), x[2]) + 
+    logpdf(Laplace(μ[4], σ[4]), x[4]) + 
+    logpdf(Laplace(μ[6], σ[6]), x[6]) +
+    logpdf(Laplace(μ[7], σ[7]), x[7])
 
 
 """
@@ -237,7 +241,8 @@ function optimize(data, options::T1; n::Int=53,
         x_tol::Float64=1e-10, f_tol::Float64=1e-9, g_tol::Float64=1e-3,
         iterations::Int=Int(2e3), show_trace::Bool=true,
         outer_iterations::Int=Int(1e1), scaled::Bool=false,
-        extended_trace::Bool=false, α1::Float64=0.) where T1 <: neural_options
+        extended_trace::Bool=false, σ::Vector{Float64}=[0.], 
+        μ::Vector{Float64}=[0.],do_prior::Bool=false) where T1 <: neural_options
 
     @unpack fit, lb, ub, x0, ncells, f, nparams = options
     
@@ -246,9 +251,21 @@ function optimize(data, options::T1; n::Int=53,
     lb, = unstack(lb, fit)
     ub, = unstack(ub, fit)
     x0,c = unstack(x0, fit)
-    #ℓℓ(x) = -loglikelihood(stack(x,c,fit), data, ncells, nparams, f, npolys, n)
-    ℓℓ(x) = -(loglikelihood(stack(x,c,fit), data, θ; n=n) -
-        α1 * (x[2] - lb[2]).^2)
+    #prior(x) = sum((stack(x,c,fit)[dimz+3:nparams:end] .- 0.).^2 + 
+    #    (stack(x,c,fit)[dimz+2:nparams:end] .- 0.).^2)
+    #(stack(x,c,fit)[2] .- 40.).^2 + 
+    #prior(x) = sum(
+    #    1/40 * stack(x,c,fit)[2] + 
+    #    1/0.1 * stack(x,c,fit)[7] + 
+    #    0 * (stack(x,c,fit)[5] .- 4.).^2 + 
+    #    0 * (stack(x,c,fit)[6] .- 0.6).^2)
+    #prior(x) = sum(1. ./ [50, 40, 1., 0.4, 0.5] .* stack(x,c,fit)[[1,2,4,6,7]])
+    #prior(x) = sum(α .* (μ .- stack(x,c,fit)[[1,2,4,6,7]]).^2)
+    #logprior(x) = sum(logpdf.(Normal.(μ, σ), stack(x,c,fit)[1:dimz]))
+    #logprior(x) = sum(logpdf.(Laplace.(μ, σ), stack(x,c,fit)[1:dimz]))
+    ℓℓ(x) = -(loglikelihood(stack(x,c,fit), data, θ; n=n) + Float64(do_prior) * logprior(stack(x,c,fit)[1:dimz],μ,σ))
+    #ℓℓ(x) = -(loglikelihood(stack(x,c,fit), data, θ; n=n) - prior(x))
+     #ℓℓ(x) = -(loglikelihood(stack(x,c,fit), data, θ; n=n))
 
     output = optimize(x0, ℓℓ, lb, ub; g_tol=g_tol, x_tol=x_tol,
         f_tol=f_tol, iterations=iterations, show_trace=show_trace,
@@ -267,6 +284,22 @@ end
 
 
 """
+    loglikelihood(x, data; n=53)
+
+A wrapper function that accepts a vector of mixed parameters, splits the vector
+into two vectors based on the parameter mapping function provided as an input. Used
+in optimization, Hessian and gradient computation.
+"""
+function loglikelihood(x::Vector{T}, data::Vector{Vector{T2}}, θ::θneural; n::Int=53) where {T <: Real, T2 <: neuraldata}
+
+    @unpack ncells, nparams, f = θ
+    θ = θneural(x, ncells, nparams, f)
+    loglikelihood(θ, data; n=n)
+
+end
+
+
+"""
     LL_all_trials(pz, py, data; n=53)
 
 Computes the log likelihood for a set of trials consistent with the observed neural activity on each trial.
@@ -280,7 +313,7 @@ function loglikelihood(θ::θneural, data::Vector{Vector{T1}}; n::Int=53) where 
     P,M,xc,dx = initialize_latent_model(σ2_i, B, λ, σ2_a, n, dt)
 
     sum(map((data, θy) -> sum(pmap(data -> 
-                    loglikelihood(θz,θy,data,P, M, xc, dx; n=n), data)), data, θy))
+                    loglikelihood(θz,θy,data, P, M, xc, dx; n=n), data)), data, θy))
 
 end
 
@@ -293,26 +326,32 @@ function loglikelihood(θz,θy,data::neuraldata,
 
     @unpack λ, σ2_a, σ2_s, ϕ, τ_ϕ = θz
     @unpack spikes, input_data = data
-    @unpack binned_clicks, clicks, dt, λ0, centered = input_data
+    @unpack binned_clicks, clicks, dt, λ0, centered, delay, pad = input_data
     @unpack nT, nL, nR = binned_clicks
     @unpack L, R = clicks
 
     #adapt magnitude of the click inputs
     La, Ra = adapt_clicks(ϕ,τ_ϕ,L,R)
 
-    c = Vector{T1}(undef,nT)
     F = zeros(T1,n,n) #empty transition matrix for time bins with clicks
+    
+    time_bin = (-(pad-1):nT+pad) .- delay
+    
+    c = Vector{T1}(undef, length(time_bin))
 
-    @inbounds for t = 1:nT
+    @inbounds for t = 1:length(time_bin)
 
-        if centered && t == 1
-            P,F = latent_one_step!(P,F,λ,σ2_a,σ2_s,t,nL,nR,La,Ra,M,dx,xc,n,dt/2)
-        else
-            P,F = latent_one_step!(P,F,λ,σ2_a,σ2_s,t,nL,nR,La,Ra,M,dx,xc,n,dt)
+        if time_bin[t] >= 1
+            P, F = latent_one_step!(P, F, λ, σ2_a, σ2_s, time_bin[t], nL, nR, La, Ra, M, dx, xc, n, dt)
         end
 
-        P .*= vcat(map(xc-> exp(sum(map((k,θy,λ0)-> logpdf(Poisson(θy(xc,λ0[t]) * dt),
-                                k[t]), spikes, θy, λ0))), xc)...)
+        #weird that this wasn't working....
+        #P .*= vcat(map(xc-> exp(sum(map((k,θy,λ0)-> logpdf(Poisson(θy(xc,λ0[t]) * dt),
+        #                        k[t]), spikes, θy, λ0))), xc)...)
+        
+        P = P .* (vcat(map(xc-> exp(sum(map((k,θy,λ0)-> logpdf(Poisson(θy(xc,λ0[t]) * dt),
+                        k[t]), spikes, θy, λ0))), xc)...))
+        
         c[t] = sum(P)
         P /= c[t]
 

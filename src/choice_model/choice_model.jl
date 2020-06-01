@@ -104,7 +104,10 @@ function optimize(data, options::choiceoptions; n::Int=53,
     lb, = unstack(lb, fit)
     ub, = unstack(ub, fit)
     x0,c = unstack(x0, fit)
-    ℓℓ(x) = -loglikelihood(stack(x,c,fit), data; n=n)
+    #ℓℓ(x) = -loglikelihood(stack(x,c,fit), data; n=n)
+ 
+    prior(x) = sum(1. ./ [50, 40, 0.4, 0.5] .* stack(x,c,fit)[[1,2,6,7]])
+    ℓℓ(x) = -(loglikelihood(stack(x,c,fit), data; n=n) - prior(x))
 
     output = optimize(x0, ℓℓ, lb, ub; g_tol=g_tol, x_tol=x_tol,
         f_tol=f_tol, iterations=iterations, show_trace=show_trace,

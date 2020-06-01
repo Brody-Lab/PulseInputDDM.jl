@@ -21,6 +21,7 @@ import Base.rand
 import Base.Iterators: partition
 import Flatten: flattenable
 import Polynomials: Poly
+using BasisFunctionExpansions
 
 export choiceDDM, choiceoptions, θchoice, choicedata, θz
 export θneural, neuralDDM, neuraldata, θy, neuraldata
@@ -29,6 +30,8 @@ export θfilt, filtoptions, train_and_test
 export filtinputs, filtdata, sigmoid_filtoptions
 
 export neural_poly_DDM, θneural_poly
+
+export Softplus_options_noiseless
 
 export θneural_noiseless, Sigmoid_options_noiseless
 
@@ -39,9 +42,12 @@ export load, reload, save, flatten
 export initialize_θy, neural_null
 export synthetic_clicks, binLR, bin_clicks
 
+export μ_poly_options
+
 export default_parameters_and_data, compute_LL
 
 export mean_exp_rate_per_trial, mean_exp_rate_per_cond
+export logprior
 
 #=
 
@@ -122,13 +128,15 @@ end
     λ0::Vector{Vector{Float64}}
     dt::Float64
     centered::Bool
+    delay::Int
+    pad::Int
 end
 
 
 """
 """
-neuralinputs(clicks, binned_clicks, λ0::Vector{Vector{Vector{Float64}}}, dt::Float64, centered::Bool) =
-    neuralinputs.(clicks, binned_clicks, λ0, dt, centered)
+neuralinputs(clicks, binned_clicks, λ0::Vector{Vector{Vector{Float64}}}, dt::Float64, centered::Bool, delay::Int, pad::Int) =
+    neuralinputs.(clicks, binned_clicks, λ0, dt, centered, delay, pad)
 
 
 include("base_model.jl")
@@ -147,7 +155,7 @@ include("neural_model/sample_model.jl")
 include("neural_model/process_data.jl")
 include("neural_model/noiseless_model.jl")
 include("neural_model/polynomial/neural_poly_model.jl")
-#include("neural_model/polynomial/noiseless_model_poly.jl")
+include("neural_model/polynomial/noiseless_model_poly.jl")
 include("neural_model/filter/filtered.jl")
 
 #include("neural_model/load_and_optimize.jl")

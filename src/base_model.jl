@@ -286,23 +286,43 @@ end
     adapted_clicks(ϕ, τ_ϕ, L, R)
 
 """
-function adapt_clicks(ϕ::TT, τ_ϕ::TT, L::Vector{Float64}, R::Vector{Float64}) where {TT}
+function adapt_clicks(ϕ::TT, τ_ϕ::TT, L::Vector{Float64}, R::Vector{Float64}; cross::Bool=false) where {TT}
+    
+    if cross
+        
+        all = vcat(hcat(L[2:end], -1 * ones(length(L)-1)), hcat(R, ones(length(R))))
+        all = all[sortperm(all[:, 1]), :]
+        adapted = ones(size(all,1))
+        adapted[1] = eps()
 
-    La, Ra = ones(TT,length(L)), ones(TT,length(R))
-
-    # magnitude of stereo clicks set to zero
-    # I removed these lines on 8/8/18, because I'm not exactly sure why they are here (from Bing's original model)
-    # and the cause the state to adapt even when phi = 1., which I'd like to spend time fitting simpler models to
-    # check slack discussion with adrian and alex
-
-    #if !isempty(L) && !isempty(R) && abs(L[1]-R[1]) < eps()
-    #    La[1], Ra[1] = eps(), eps()
-    #end
-
-    if (typeof(ϕ) == Float64) && (isapprox(ϕ, 1.0))
+        if (typeof(ϕ) == Float64) && (isapprox(ϕ, 1.0))
+        else
+            (length(all) > 1 && ϕ != 1.) ? adapt_clicks!(ϕ, τ_ϕ, adapted, all[:, 1]) : nothing
+        end
+        
+        all = vcat([0., -1.]', all)
+        adapted = vcat(eps(), adapted)
+        La, Ra = adapted[all[:,2] .== -1.], adapted[all[:,2] .== 1.]
+        
     else
-        (length(L) > 1 && ϕ != 1.) ? adapt_clicks!(ϕ, τ_ϕ, La, L) : nothing
-        (length(R) > 1 && ϕ != 1.) ? adapt_clicks!(ϕ, τ_ϕ, Ra, R) : nothing
+
+        La, Ra = ones(TT,length(L)), ones(TT,length(R))
+
+        # magnitude of stereo clicks set to zero
+        # I removed these lines on 8/8/18, because I'm not exactly sure why they are here (from Bing's original model)
+        # and the cause the state to adapt even when phi = 1., which I'd like to spend time fitting simpler models to
+        # check slack discussion with adrian and alex
+
+        #if !isempty(L) && !isempty(R) && abs(L[1]-R[1]) < eps()
+        La[1], Ra[1] = eps(), eps()
+        #end
+
+        if (typeof(ϕ) == Float64) && (isapprox(ϕ, 1.0))
+        else
+            (length(L) > 1 && ϕ != 1.) ? adapt_clicks!(ϕ, τ_ϕ, La, L) : nothing
+            (length(R) > 1 && ϕ != 1.) ? adapt_clicks!(ϕ, τ_ϕ, Ra, R) : nothing
+        end
+        
     end
 
     return La, Ra
@@ -318,7 +338,7 @@ function adapt_clicks!(ϕ::TT, τ_ϕ::TT, Ca::Vector{TT}, C::Vector{Float64}) wh
 
     ici = diff(C)
 
-        for i = 1:length(ici)
+    for i = 1:length(ici)
         
         arg = (1/τ_ϕ) * (-ici[i] + xlogy(τ_ϕ, abs(1. - Ca[i]* ϕ)))
         

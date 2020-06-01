@@ -1,16 +1,30 @@
 """
     Sample rates from latent model with multiple rngs, to average over
 """
-function synthetic_λ(θ::θneural, data; num_samples::Int=100, nconds::Int=2)
+function synthetic_λ(θ::θneural, data, rng)
+
+    @unpack θz,θy,ncells = θ
+    μ_λ = rand.(Ref(θz), θy, data, Ref(rng))
+        
+    return μ_λ
+
+end
+
+
+"""
+    Sample rates from latent model with multiple rngs, to average over
+"""
+function synthetic_λ(θ::θneural, data; num_samples::Int=100, nconds::Int=2, rng1::Int=1)
 
     @unpack θz,θy,ncells = θ
 
-    λ = map(rng-> rand.(Ref(θz), θy, data, Ref(rng)), 1:num_samples)
+    rng = sample(Random.seed!(rng1), 1:num_samples, num_samples; replace=false)
+    λ = map(rng-> rand.(Ref(θz), θy, data, Ref(rng)), rng)
     μ_λ = mean(λ)
     
     μ_c_λ = cond_mean.(μ_λ, data, ncells; nconds=nconds)
     
-    return μ_λ, μ_c_λ
+    return μ_λ, μ_c_λ, λ
 
 end
 
@@ -32,13 +46,14 @@ end
 """
 function cond_mean(μ_λ, data, ncells; nconds=2)
         
+    pad = data[1].input_data.pad
     nT = map(x-> x.input_data.binned_clicks.nT, data)
-    ΔLRT = last.(diffLR.(data))
+    ΔLRT = map((data,nT) -> getindex(diffLR(data), pad+nT), data, nT)
     conds = encode(LinearDiscretizer(binedges(DiscretizeUniformWidth(nconds), ΔLRT)), ΔLRT)
 
     map(n-> map(c-> [mean([μ_λ[conds .== c][k][n][t]
-        for k in findall(nT[conds .== c] .>= t)])
-        for t in 1:(maximum(nT[conds .== c]))],
+        for k in findall(nT[conds .== c] .+ (2*pad) .>= t)])
+        for t in 1:(maximum(nT[conds .== c] .+ (2*pad)))],
                 1:nconds), 1:ncells)
 
 end

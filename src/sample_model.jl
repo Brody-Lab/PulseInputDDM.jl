@@ -38,29 +38,39 @@ within inputs.
 function rand(θz::θz{T}, inputs) where T <: Real
 
     @unpack σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ = θz
-    @unpack clicks, binned_clicks, centered, dt = inputs
+    @unpack clicks, binned_clicks, centered, dt, delay, pad = inputs
     @unpack nT, nL, nR = binned_clicks
     @unpack L, R = clicks
 
     La, Ra = adapt_clicks(ϕ, τ_ϕ, L, R)
 
-    A = Vector{T}(undef,nT)
-
+    time_bin = (-(pad-1):nT+pad) .- delay
+    
+    A = Vector{T}(undef, length(time_bin))
+    
     if σ2_i > 0.
         a = sqrt(σ2_i)*randn()
     else
         a = zero(typeof(σ2_i))
     end
 
-    for t = 1:nT
-
-        if centered && t == 1
-            a = sample_one_step!(a, t, σ2_a, σ2_s, λ, nL, nR, La, Ra, dt/2)
+    for t = 1:length(time_bin)
+        
+         if time_bin[t] < 1
+                    
+            if σ2_i > 0.
+                a = sqrt(σ2_i)*randn()
+            else
+                a = zero(typeof(σ2_i))
+            end
+            
         else
-            a = sample_one_step!(a, t, σ2_a, σ2_s, λ, nL, nR, La, Ra, dt)
+            
+            a = sample_one_step!(a, time_bin[t], σ2_a, σ2_s, λ, nL, nR, La, Ra, dt)
+            
         end
 
-        abs(a) > B ? (a = B * sign(a); A[t:nT] .= a; break) : A[t] = a
+        abs(a) > B ? (a = B * sign(a); A[t:end] .= a; break) : A[t] = a
 
     end
 

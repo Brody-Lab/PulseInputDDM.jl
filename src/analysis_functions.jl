@@ -2,10 +2,10 @@
 """
 function diffLR(data)
     
-    @unpack binned_clicks, clicks, dt = data.input_data
+    @unpack binned_clicks, clicks, dt, pad, delay = data.input_data
 
     L,R = binLR(binned_clicks, clicks, dt)
-    cumsum(-L + R)
+    vcat(zeros(Int, pad + delay), cumsum(-L + R), zeros(Int, pad - delay))
 
 end
 
@@ -19,8 +19,8 @@ function binLR(binned_clicks, clicks, dt)
 
     #compute the cumulative diff of clicks
     t = 0:dt:nT*dt;
-    L = fit(Histogram,L,t,closed=:left)
-    R = fit(Histogram,R,t,closed=:left)
+    L = StatsBase.fit(Histogram,L,t,closed=:left)
+    R = StatsBase.fit(Histogram,R,t,closed=:left)
     L = L.weights
     R = R.weights
 
