@@ -38,15 +38,24 @@ function LL_all_trials(pz::Vector{TT}, pd::Vector{TT}, data::Dict; dx::Float64=0
     P = pmap((L,R,nT,nL,nR,a_0) -> P_single_trial!(σ2_i, B, B_λ, B_Δ, λ, σ2_a, σ2_s, ϕ, τ_ϕ, γ_shape, γ_scale, γ_shape1, γ_scale1,
             L, R, nT, nL, nR, a_0, dx, dt), L, R, nT, nL, nR, a_0)
     
-    lapse, lapse1, lapse2 = pd
+    # lapse, lapse1, lapse2 = pd
 
     # NDtimedistL = Gamma(γ_shape, γ_scale)
     # NDtimedistR = Gamma(γ_shape1, γ_scale1)
     # lapse_lik = map((choice,nT) -> (choice ? pdf.(NDtimedistR, nT .* dt) : pdf.(NDtimedist1, nT .* dt) )) .* dt
+    # return log.(lapse .* lapse_lik .+ (1-lapse) .* map((P, choice) -> (choice ? P[2] : P[1]), P, choice))
 
-    lapse_dist = Gamma(lapse1, lapse2)
+    frac = 1e-4;
+
+    lapse_dist = Exponential(0.1495)
     lapse_lik = pdf.(lapse_dist,nT.*dt) .*dt
-    return log.(lapse .* lapse_lik .+ (1-lapse) .* map((P, choice) -> (choice ? P[2] : P[1]), P, choice))
+    return log.(frac .* lapse_lik .* .5 .+ (1. - frac).*map((P, choice) -> (choice ? P[2] : P[1]), P, choice))  # for robustness
+
+
+    # return log.(frac .+ (1. - 2. * frac).*map((P, choice) -> (choice ? P[2] : P[1]), P, choice))  # for robustness
+
+
+
 end
 
 

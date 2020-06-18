@@ -16,7 +16,7 @@ function default_parameters(;generative::Bool=false)
                           "η","α_prior","β_prior","B_0","γ_shape", "γ_scale", "γ_shape1", "γ_scale1"],
               "fit" => vcat(false, true, false, false, false, false, true, true, true, 
                             true, true, true, false, true, true, true, true),
-              "initial" => [eps(), 2. * rand(),  0., 0., 0., eps(), 2.*rand(), rand(), rand(), 
+              "initial" => [eps(), 2. * rand(),  0., 0., 0., eps(), 2. *rand(), rand(), rand(), 
                             0.5, 0.6 + rand()*(1. - 0.6), 10. + rand() * 5., 0., 2. + rand(), rand(), 2. + rand(), rand()],
               "lb" => [0., 0., 0., 0., -5., 0., 0., 0., 0.,
                         0., 0., 0., -3., 0., 0., 0., 0.],
@@ -36,8 +36,10 @@ function default_parameters(;generative::Bool=false)
     #                     2., 5., 5., 3., 5., 5., 5., 5.])
 
     if generative   
-        pz["generative"] = [eps(),  rand(Uniform(pz["lb"][2], pz["ub"][2])), rand(Uniform(pz["lb"][3], pz["ub"][3])), 0., -0.001, eps(), 0.5 + rand()* (5. - 2.), rand(), rand(), 
-                            rand(), rand(), rand() * 5., 0., 2. + rand(), rand(), 2. + rand(), rand()]
+        # pz["generative"] = [eps(),  rand(Uniform(pz["lb"][2], pz["ub"][2])), rand(Uniform(pz["lb"][3], pz["ub"][3])), 0., -0.001, eps(), 0.5 + rand()* (5. - 2.), rand(), rand(), 
+                            # rand(), rand(), rand() * 5., 0., 2. + rand(), rand(), 2. + rand(), rand()]
+        pz["generative"] = [eps(),  1.5, 0., 0., -0.0001, eps(), 2., 0.7, 0.3, 
+                            0.8, 0.5, 2., 0., 2. + rand(), 0.02, 2. + rand(), 0.02]
         pd["generative"] = [0.,0.,0.]
         pz["initial"][pz["fit"] .== 0] = pz["generative"][pz["fit"] .== 0]
         pd["initial"][pd["fit"] .== 0] = pd["generative"][pd["fit"] .== 0]

@@ -14,6 +14,17 @@ function sample_clicks(ntrials::Int; rng::Int=1)
     data["correct"] = map(i->output[i][4], 1:ntrials)
     data["gamma"] = map(i->output[i][5], 1:ntrials)
     data["ntrials"] = ntrials
+
+    # generating session markers - this is super ugly
+    data["sessidx"] = Vector{Bool}(undef, ntrials)
+    data["sessidx"][:] .= 0
+    idx = 1
+    data["sessidx"][idx] = 1
+    for i = 1:ntrials/800
+        idx = 400+ceil(Int,rand()*(800-400)) + idx
+        data["sessidx"][idx] = 1
+    end
+
     
     return data
     

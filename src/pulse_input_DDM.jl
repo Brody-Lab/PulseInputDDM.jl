@@ -24,11 +24,11 @@ include("choice_model/wrappers.jl")
 include("choice_model/sample_model.jl")
 include("choice_model/process_data.jl")
 
-include("neural_model/compute_LL.jl")
-include("neural_model/wrappers.jl")
-include("neural_model/sample_model.jl")
-include("neural_model/process_data.jl")
-include("neural_model/deterministic_model.jl")
+# include("neural_model/compute_LL.jl")
+# include("neural_model/wrappers.jl")
+# include("neural_model/sample_model.jl")
+# include("neural_model/process_data.jl")
+# include("neural_model/deterministic_model.jl")
 
 #include("neural_model/load_and_optimize.jl")
 #include("neural_model/sample_model_functions_FP.jl")
@@ -43,7 +43,7 @@ export reload_optimization_parameters, save_optimization_parameters
 export default_parameters_and_data
 export LL_across_range
 
-export mean_exp_rate_per_trial, mean_exp_rate_per_cond
+# export mean_exp_rate_per_trial, mean_exp_rate_per_cond
 
 export diffLR
 

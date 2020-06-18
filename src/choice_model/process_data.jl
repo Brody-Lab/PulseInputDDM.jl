@@ -34,6 +34,7 @@ end
 """
 function process_click_input_data!(data)
 
+    data["gamma"] = vec(data["gamma"])      
     data["T"] = vec(data["T"])
     data["leftbups"] = map(x-> vec(collect(x)), data[collect(keys(data))[occursin.("left", collect(keys(data)))][1]])
     data["rightbups"] = map(x-> vec(collect(x)), data[collect(keys(data))[occursin.("right", collect(keys(data)))][1]])
@@ -52,6 +53,9 @@ function bin_clicks!(data::Dict; use_bin_center::Bool=false, dt::Float64=5e-4)
 
     data["leftbups"] = map((x,y) -> x[x.<y], data["leftbups"], data["T"])
     data["rightbups"] = map((x,y) -> x[x.<y], data["rightbups"], data["T"])
+
+    data["leftbups"] = map((x) -> x[x.>0.025], data["leftbups"])
+    data["rightbups"] = map((x) -> x[x.>0.025], data["rightbups"])
 
     data["nT"], data["binned_leftbups"], data["binned_rightbups"] =
         bin_clicks(data["T"], data["leftbups"], data["rightbups"], dt=dt, use_bin_center=use_bin_center)

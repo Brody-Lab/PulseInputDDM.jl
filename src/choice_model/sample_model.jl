@@ -4,16 +4,6 @@ function sample_clicks_and_choices(pz::Vector{Float64}, pd::Vector{Float64}, ntr
         dtMC::Float64=5e-4, rng::Int = abs(rand(Int)), use_bin_center::Bool=false)
     
     data = sample_clicks(ntrials;rng=rng)
-
-    data["sessidx"] = Vector{Bool}(undef, ntrials)
-    data["sessidx"][:] .= 0
-    idx = 1
-    data["sessidx"][idx] = 1
-    for i = 1:ntrials/800
-        idx = 400+ceil(Int,rand()*(800-400)) + idx
-        data["sessidx"][idx] = 1
-    end
-
  
     inp = sample_choices_all_trials(data, pz, pd; dtMC=dtMC, rng=rng, use_bin_center=use_bin_center)
     data["pokedR"] = map(i->inp[i][1],1:ntrials)
@@ -23,6 +13,8 @@ function sample_clicks_and_choices(pz::Vector{Float64}, pd::Vector{Float64}, ntr
     return data
 
 end
+
+
 
 
 """
@@ -60,8 +52,9 @@ function sample_choice_single_trial(nT::Int, L::Vector{Float64}, R::Vector{Float
     σ2_i, B, B_λ, B_Δ, λ, σ2_a, σ2_s, ϕ, τ_ϕ, η, α_prior, β_prior, B_0, γ_shape, γ_scale, γ_shape1, γ_scale1 = pz
     lapse,lapse1, lapse2 = pd
 
+    frac = 1e-5
     # non lapse trial
-    if rand() > lapse
+    if rand() > frac
         choice = sign(a) > 0 
 
         if sign(a) > 0
@@ -74,7 +67,7 @@ function sample_choice_single_trial(nT::Int, L::Vector{Float64}, R::Vector{Float
     # lapse trial    
     else
         choice = Bool(round(rand()))
-        ndtime = Gamma(lapse1, lapse2)
+        ndtime = Exponential(0.1495)
         RT = round(rand(ndtime,1)[1], digits = 4)
     end
 
@@ -102,7 +95,7 @@ end
 """
 function compute_initial_value(data::Dict, η::TT, α_prior::TT, β_prior::TT) where {TT <: Any}
 
-    case = 3
+    case = 4
 
     # L-R DBM
     if case == 1
