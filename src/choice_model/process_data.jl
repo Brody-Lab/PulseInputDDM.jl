@@ -33,7 +33,7 @@ function save(file, model, options, CI)
     @unpack θ = model
 
     dict = Dict("ML_params"=> collect(Flatten.flatten(θ)),
-        "name" => ["σ2_i", "B", "λ", "σ2_a", "σ2_s", "ϕ", "τ_ϕ", "bias", "lapse"],
+        "name" => ["σ2_i","ibias","eta","beta", "B", "λ", "σ2_a", "σ2_s", "ϕ", "τ_ϕ", "bias", "lapse"],
         "lb"=> lb, "ub"=> ub, "fit"=> fit,
         "CI" => CI)
 

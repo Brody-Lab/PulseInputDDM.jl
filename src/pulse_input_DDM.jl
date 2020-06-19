@@ -57,10 +57,13 @@ abstract type DDMθ end
 """
 """
 @with_kw struct θz{T<:Real} @deftype T
-    σ2_i = 0.5
-    B = 15.
+    σ2_i = 0.
+    ibias = 0.1
+    eta = 1.5
+    beta = 0.6
+    B = 10.
     λ = -0.5; @assert λ != 0.
-    σ2_a = 50.
+    σ2_a = 2.
     σ2_s = 1.5
     ϕ = 0.8; @assert ϕ != 1.
     τ_ϕ = 0.05

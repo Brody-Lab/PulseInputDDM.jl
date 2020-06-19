@@ -5,13 +5,11 @@ Given parameters θ and data (inputs and choices) computes the LL for all trials
 """
 function loglikelihood(θ::θchoice, data, n::Int)
 
-    @unpack θz, lapse = θ
-    @unpack σ2_i, B, λ, σ2_a = θz
-    @unpack dt = data[1].click_data
+    @unpack ibias, eta, beta = θ.θz
+    clickdata = map(data->data.click_data,data)
+    i_0 = compute_initial_pt(ibias,eta,beta,clickdata)
 
-    P,M,xc,dx = initialize_latent_model(σ2_i, B, λ, σ2_a, n, dt, lapse=lapse)
-
-    sum(pmap(data -> loglikelihood!(θ, P, M, dx, xc, data, n), data))
+    sum(pmap((data, i_0) -> loglikelihood!(θ, data, i_0, n), data, i_0))
 
 end
 
@@ -25,17 +23,19 @@ Given parameters θ and data (inputs and choices) computes the LL for all trials
 
 
 """
-    loglikelihood!(θ, P, M, dx, xc, data, n)
+    loglikelihood!(θ, data, n)
 
 Given parameters θ and data (inputs and choices) computes the LL for one trial
 """
-function loglikelihood!(θ::θchoice,
-        P::Vector{TT}, M::Array{TT,2}, dx::UU,
-        xc::Vector{TT}, data::choicedata,
-        n::Int) where {TT,UU <: Real}
+function loglikelihood!(θ::θchoice,data::choicedata,
+        i_0::UU, n::Int) where {TT,UU <: Real}
 
-    @unpack θz, bias = θ
+    @unpack θz, lapse, bias = θ
+    @unpack B, λ, σ2_a, σ2_i = θz
     @unpack click_data, choice = data
+    @unpack dt = click_data
+
+    P,M,xc,dx = initialize_latent_model(σ2_i,i_0, B, λ, σ2_a, n, dt, lapse=lapse)
 
     P = P_single_trial!(θz,P,M,dx,xc,click_data,n)
     log(sum(choice_likelihood!(bias,xc,P,choice,n,dx)))
@@ -158,37 +158,37 @@ choice_null(choices) = sum(choices .== true)*log(sum(choices .== true)/length(ch
     sum(choices .== false)*log(sum(choices .== false)/length(choices))
 
 
-"""
-    bounded_mass(θ, data, n)
-"""
-function bounded_mass(θ::θchoice, data, n::Int)
+# """
+#     bounded_mass(θ, data, n)
+# """
+# function bounded_mass(θ::θchoice, data, n::Int)
 
-    @unpack θz, lapse = θ
-    @unpack σ2_i, B, λ, σ2_a = θz
-    @unpack dt = data[1].click_data
+#     @unpack θz, lapse = θ
+#     @unpack σ2_i, B, λ, σ2_a = θz
+#     @unpack dt = data[1].click_data
 
-    P,M,xc,dx = initialize_latent_model(σ2_i, B, λ, σ2_a, n, dt, lapse=lapse)
+#     P,M,xc,dx = initialize_latent_model(σ2_i, B, λ, σ2_a, n, dt, lapse=lapse)
 
-    pmap(data -> bounded_mass!(θ, P, M, dx, xc, data, n), data)
+#     pmap(data -> bounded_mass!(θ, P, M, dx, xc, data, n), data)
 
-end
+# end
 
 
-"""
-    bounded_mass!(θ, P, M, dx, xc, data, n)
-"""
-function bounded_mass!(θ::θchoice,
-        P::Vector{TT}, M::Array{TT,2}, dx::UU,
-        xc::Vector{TT}, data::choicedata,
-        n::Int) where {TT,UU <: Real}
+# """
+#     bounded_mass!(θ, P, M, dx, xc, data, n)
+# """
+# function bounded_mass!(θ::θchoice,
+#         P::Vector{TT}, M::Array{TT,2}, dx::UU,
+#         xc::Vector{TT}, data::choicedata,
+#         n::Int) where {TT,UU <: Real}
 
-    @unpack θz, bias = θ
-    @unpack click_data, choice = data
+#     @unpack θz, bias = θ
+#     @unpack click_data, choice = data
 
-    P = P_single_trial!(θz,P,M,dx,xc,click_data,n)
-    choice ? P[n] : P[1]
+#     P = P_single_trial!(θz,P,M,dx,xc,click_data,n)
+#     choice ? P[n] : P[1]
 
-end
+# end
 
 
 #=

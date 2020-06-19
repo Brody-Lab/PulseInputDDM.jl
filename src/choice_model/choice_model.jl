@@ -16,8 +16,8 @@ Example:
 """
 @with_kw struct θchoice{T1, T<:Real} <: DDMθ
     θz::T1 = θz()
-    bias::T = 1.
-    lapse::T = 0.05
+    bias::T = 0.
+    lapse::T = 0.01
 end
 
 

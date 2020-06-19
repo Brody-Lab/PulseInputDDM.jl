@@ -35,9 +35,9 @@ Generate a sample latent trajecgtory,
 given parameters of the latent model θz and clicks for one trial, contained
 within inputs.
 """
-function rand(θz::θz{T}, inputs) where T <: Real
+function rand(θz::θz{T}, inputs, i_0) where T <: Real
 
-    @unpack σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ = θz
+    @unpack B, λ, σ2_i, σ2_a, σ2_s, ϕ, τ_ϕ = θz
     @unpack clicks, binned_clicks, centered, dt = inputs
     @unpack nT, nL, nR = binned_clicks
     @unpack L, R = clicks
@@ -47,9 +47,9 @@ function rand(θz::θz{T}, inputs) where T <: Real
     A = Vector{T}(undef,nT)
 
     if σ2_i > 0.
-        a = sqrt(σ2_i)*randn()
+        a = sqrt(σ2_i)*randn() + i_0
     else
-        a = zero(typeof(σ2_i))
+        a = zero(typeof(σ2_i)) + i_0
     end
 
     for t = 1:nT
@@ -98,4 +98,21 @@ function sample_one_step!(a::TT, t::Int, σ2_a::TT, σ2_s::TT, λ::TT,
 
     return a
 
+end
+
+
+function compute_initial_pt(ibias::TT,eta::TT,beta::TT,click_data) where {TT <: Any}
+    
+    # not respecting session boundaries yet
+    ΔLR = diffLR.(click_data)
+    correct = map(ΔLR->sign(ΔLR),ΔLR)
+    # correct = sign.(ΔLR)
+    
+    i_0 = Array{TT}(undef, length(correct))
+    i_0[1] = ibias;
+    for i = 2:length(correct)
+        i_0[i] = ibias + eta*correct[i-1] + beta*i_0[i-1]
+    end
+    
+    return i_0
 end

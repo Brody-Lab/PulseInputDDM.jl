@@ -31,48 +31,50 @@
 
 # ### Example .jl file
 # Blah blah blah
-
+# use the resources of the package
 using pulse_input_DDM
+using Random
 
-# ### Load some data
-# Blah blah blah
+# println("using ", nprocs(), " cores")
 
-data = load("../examples/choice model/example_matfile.mat")
+# define useful paths to the data and to a directory to save results
+data_path, save_path = "data/", "results/"
 
-# ### Set options for optimization
-# Blah blah blah
+# if the directory that you are saving to doesn't exist, make it
+isdir(save_path) ? nothing : mkpath(save_path)
 
-n = 53
+# read the name of the file located in the data directory
+#files = readdir(data_path)
+#files = files[.!isdir.(files)]
+#file = files[1]
 
-options = choiceoptions(fit = vcat(trues(9)),
-    lb = vcat([0., 8., -5., 0., 0., 0.01, 0.005], [-30, 0.]),
-    ub = vcat([2., 30., 5., 100., 2.5, 1.2, 1.], [30, 1.]),
-    x0 = vcat([0.1, 15., -0.1, 20., 0.5, 0.8, 0.008], [0.,0.01]))
+x = filter(x->occursin(r"^chrono_.*\d_rawdata[.]mat",x), readdir(data_path))
+filenum = parse(Int64,ARGS[1])
+file = x[filenum]
+println(ARGS[1])
 
-# ### Load some data
-# Blah blah blah
-save_file = "../examples/choice model/example_results.mat"
+# load your data
+data = load(data_path*file)
+
+n = 53;
+
+options = choiceoptions(fit = vcat(true, true, true, true, true, true, true, true, true, false, false),
+    lb = vcat([0.,-4., -5.,-1, .5, -5., 0., 0., 0.01, 0.005], [-30, 0.]),
+    ub = vcat([eps(), 4., 5., 1., 30., 5., 100., 2.5, 1.2, 1.], [30, 1.]),
+    x0 = vcat([0., 0., 2., 0.8, 15., -0.5, 2., 1.5, 0.8, 0.008], [0.,1e-4]))
 
 #if you've already ran the optimization once and want to restart from where you stoped, this will reload those parameters
-if isfile(save_file)
-    options.x0 = reload(save_file)
-end
+# if isfile(save_file)
+#     options.x0 = reload(save_file)
+# end
 
-# ### Optimize stuff
-# Blah blah blah
+# run the optimization
+model, = optimize(data, options, n)
 
-model, = optimize(data, options, n; iterations=5, outer_iterations=1)
-
-# ### Compute Hessian and the confidence interavls
-# Blah blah blah
-
+# compute the Hessian around the ML solution, and confidence intervals
 H = Hessian(model, n)
 CI, HPSD = CIs(H);
 
-# ### Save results
-# Blah blah blah
-
-save(save_file, model, options, CI)
-
-# ### Getting help
-# To get more details about how any function in this package works, in julia you can type `?` and then the name of the function. Documentation will display in the REPL.
+# save results
+filename_save = file[1:end-4]*"_"*randstring(2)*".mat"
+save_optimization_parameters(save_path*filename_save, model, options, CI)

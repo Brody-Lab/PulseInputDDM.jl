@@ -8,13 +8,14 @@ nanstderr(x,y) = mapslices(nanstderr,x,dims=y)
 
 """
 """
-function diffLR(data)
+function diffLR(click_data)
     
-    @unpack binned_clicks, clicks, dt = data.input_data
+    @unpack binned_clicks, clicks, dt = click_data
 
     L,R = binLR(binned_clicks, clicks, dt)
-    cumsum(-L + R)
+    cumdiff = cumsum(-L + R)
 
+    return cumdiff[end]
 end
 
 
@@ -25,7 +26,6 @@ function binLR(binned_clicks, clicks, dt)
     @unpack L, R = clicks
     @unpack nT = binned_clicks
 
-    #compute the cumulative diff of clicks
     t = 0:dt:nT*dt;
     L = fit(Histogram,L,t,closed=:left)
     R = fit(Histogram,R,t,closed=:left)
