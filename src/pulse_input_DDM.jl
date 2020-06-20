@@ -126,10 +126,10 @@ neuralinputs(clicks, binned_clicks, λ0::Vector{Vector{Vector{Float64}}}, dt::Fl
 """
 """
 @with_kw mutable struct choiceoptions
-    fit::Vector{Bool} = vcat(trues(dimz+2))
-    lb::Vector{Float64} = vcat([0., 8., -5., 0., 0., 0.01, 0.005], [-30, 0.])
-    ub::Vector{Float64} = vcat([2., 30., 5., 100., 2.5, 1.2, 1.], [30, 1.])
-    x0::Vector{Float64} = vcat([0.1, 15., -0.1, 20., 0.5, 0.8, 0.008], [0.,0.01])
+    fit::Vector{Bool} = vcat(true,true, true, true, true, true, true, true, true, true, false, false)
+    lb::Vector{Float64} = vcat([0.,-4., -5.,-1, .5, -5., 0., 0., 0.01, 0.005], [-30, 0.])
+    ub::Vector{Float64} = vcat([eps(), 4., 5., 1., 30., 5., 100., 2.5, 1.2, 1.], [30, 1.])
+    x0::Vector{Float64} = vcat([0., 0., 2., 0.8, 15., -0.5, 2., 1.5, 0.8, 0.008], [0.,1e-4])
 end
 
 
