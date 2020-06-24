@@ -105,36 +105,37 @@ function compute_initial_pt(ibias::TT,eta::TT,beta::TT,click_data) where {TT <: 
     
     # not respecting session boundaries yet
     
-    # ΔLR = diffLR.(click_data)
-    # correct = map(ΔLR->sign(ΔLR),ΔLR)
-    
-    # i_0 = Array{TT}(undef, length(correct))
-    # i_0[1] = ibias;
-    
-    # for i = 2:length(correct)
-    #     i_0[i] = ibias + eta*correct[i-1] + beta*i_0[i-1]
-    # end
-
-        # return i_0
-
-
     ΔLR = diffLR.(click_data)
     correct = map(ΔLR->sign(ΔLR),ΔLR)
     
-    η_hat = 1/beta
-    β_hat = (ibias*beta)/(1+beta)
-    C = (1-ibias)*eta/(1-beta_hat)
-
-
     i_0 = Array{TT}(undef, length(correct))
-    i_0[1] = eta;
+    i_0[1] = ibias;
     
     for i = 2:length(correct)
-        i_0[i] = C*(1-β_hat) + η_hat*β_hat*correct[i-1] + β_hat*i_0[i-1]
-        ibias + eta*correct[i-1] + beta*i_0[i-1]
+        i_0[i] = ibias + eta*correct[i-1] + beta*i_0[i-1]
     end
 
-    return log.(i_0 ./ (1 .- i_0))
+    return i_0
+
+
+    ## OPTIMAL APPROXIMATION #$    
+
+    # ΔLR = diffLR.(click_data)
+    # correct = map(ΔLR->ΔLR>0,ΔLR)
+    
+    # η_hat = 1/beta
+    # β_hat = (ibias*beta)/(1+beta)
+    # C = (1-ibias)*eta/(1-β_hat)
+
+
+    # i_0 = Array{TT}(undef, length(correct))
+    # i_0[1] = eta;
+    
+    # for i = 2:length(correct)
+    #     i_0[i] = C*(1-β_hat) + η_hat*β_hat*correct[i-1] + β_hat*i_0[i-1]
+    # end
+
+    # return log.(i_0 ./(1 .- i_0))
     
 
 end
