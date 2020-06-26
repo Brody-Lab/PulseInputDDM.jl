@@ -43,6 +43,7 @@ choicedata(inputs, choices)
 @with_kw struct choicedata{T1} <: DDMdata
     click_data::T1
     choice::Bool
+    sessbnd::Bool
 end
 
 

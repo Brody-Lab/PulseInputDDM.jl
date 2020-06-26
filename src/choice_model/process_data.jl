@@ -12,12 +12,13 @@ function load(file::String; centered::Bool=false, dt::Float64=1e-2)
     L = vec(map(x-> vec(collect(x)), data[collect(keys(data))[occursin.("left", collect(keys(data)))][1]]))
     R = vec(map(x-> vec(collect(x)), data[collect(keys(data))[occursin.("right", collect(keys(data)))][1]]))
     choices = vec(convert(BitArray, data["pokedR"]))
+    sessbnd = vec(convert(BitArray, data["sessbnd"]))
 
     click_times = clicks.(L, R, T)
     binned_clicks = bin_clicks.(click_times, centered=centered, dt=dt)
     inputs = choiceinputs.(click_times, binned_clicks, dt, centered)
 
-    choicedata.(inputs, choices)
+    choicedata.(inputs, choices, sessbnd)
 
 end
 

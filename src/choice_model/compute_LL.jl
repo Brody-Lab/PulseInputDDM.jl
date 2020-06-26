@@ -7,7 +7,9 @@ function loglikelihood(θ::θchoice, data, n::Int)
 
     @unpack ibias, eta, beta = θ.θz
     clickdata = map(data->data.click_data,data)
-    i_0 = compute_initial_pt(ibias,eta,beta,clickdata)
+    sessbnd = map(data->data.sessbnd,data)
+
+    i_0 = compute_initial_pt(ibias,eta,beta,clickdata, sessbnd)
 
     sum(pmap((data, i_0) -> loglikelihood!(θ, data, i_0, n), data, i_0))
 

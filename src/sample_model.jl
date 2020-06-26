@@ -101,7 +101,7 @@ function sample_one_step!(a::TT, t::Int, σ2_a::TT, σ2_s::TT, λ::TT,
 end
 
 
-function compute_initial_pt(ibias::TT,eta::TT,beta::TT,click_data) where {TT <: Any}
+function compute_initial_pt(ibias::TT,eta::TT,beta::TT,click_data, sessbnd) where {TT <: Any}
     
     # not respecting session boundaries yet
     
@@ -112,7 +112,11 @@ function compute_initial_pt(ibias::TT,eta::TT,beta::TT,click_data) where {TT <: 
     i_0[1] = ibias;
     
     for i = 2:length(correct)
-        i_0[i] = ibias + eta*correct[i-1] + beta*i_0[i-1]
+        if sessbnd[i] == 1
+            i_0[i] = ibias
+        else
+            i_0[i] = ibias + eta*correct[i-1] + beta*i_0[i-1]
+        end
     end
 
     return i_0
