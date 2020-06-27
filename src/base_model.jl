@@ -80,11 +80,11 @@ are identical for all trials.
 ```jldoctest
 ```
 """
-function initialize_latent_model(σ2_i::TT, i_0::TT, B::TT, λ::TT, σ2_a::TT,
+function initialize_latent_model(σ2_i::TT, ibias::TT, i_0::TT, B::TT, λ::TT, σ2_a::TT,
      n::Int, dt::Float64; lapse::UU=0.) where {TT,UU <: Any}
 
     xc,dx = bins(B,n)
-    P = P0(σ2_i, i_0,n,dx,xc,dt; lapse=lapse)
+    P = P0(σ2_i, ibias,i_0,n,dx,xc,dt; lapse=lapse)
     M = transition_M(σ2_a*dt,λ,zero(TT),dx,xc,n,dt)
 
     return P, M, xc, dx
@@ -96,12 +96,13 @@ end
     P0(σ2_i, n dx, xc, dt; lapse=0.)
 
 """
-function P0(σ2_i::TT,i_0::TT, n::Int, dx::VV, xc::Vector{TT}, dt::Float64;
+function P0(σ2_i::TT, ibias::TT, i_0::TT, n::Int, dx::VV, xc::Vector{TT}, dt::Float64;
     lapse::UU=0.) where {TT,UU,VV <: Any}
 
     P = zeros(TT,n)
     P[ceil(Int,n/2)] = one(TT) - lapse
-    P[1], P[n] = lapse/2., lapse/2.
+    P[1] = lapse*exp(-i_0)/(1. + exp(-i_0))
+    P[n] = lapse/(1. + exp(-i_0))
     M = transition_M(σ2_i,zero(TT),i_0,dx,xc,n,dt)
     P = M * P
 

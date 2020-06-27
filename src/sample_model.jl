@@ -115,7 +115,8 @@ function compute_initial_pt(ibias::TT,eta::TT,beta::TT,click_data, sessbnd) wher
         if sessbnd[i] == 1
             i_0[i] = ibias
         else
-            i_0[i] = ibias + eta*correct[i-1] + beta*i_0[i-1]
+            # i_0[i] = ibias + eta*correct[i-1] + beta*i_0[i-1]
+            i_0[i] = (1. - beta)*ibias + beta*(i_0[i-1] + eta*(correct[i-1] - i_0[i-1]))
         end
     end
 

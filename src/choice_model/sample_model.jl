@@ -52,6 +52,6 @@ function rand(θ::θchoice, inputs::choiceinputs, i_0, rng::Int)
     @unpack θz, bias, lapse = θ
     
     a = rand(θz,inputs,i_0)
-    rand() > lapse ? choice = a[end] >= bias : choice = Bool(round(rand()))
+    rand() > lapse ? choice = a[end] >= bias : choice = Bool(round(rand() < 1/(1+exp(-i_0))))
 
 end
