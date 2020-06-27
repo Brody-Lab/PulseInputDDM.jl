@@ -67,6 +67,7 @@ abstract type DDMθ end
     σ2_s = 1.5
     ϕ = 0.8; @assert ϕ != 1.
     τ_ϕ = 0.05
+    scaling = 2.
 end
 
 
@@ -126,10 +127,10 @@ neuralinputs(clicks, binned_clicks, λ0::Vector{Vector{Vector{Float64}}}, dt::Fl
 """
 """
 @with_kw mutable struct choiceoptions
-    fit::Vector{Bool} = vcat(true,true, true, true, true, true, true, true, true, true, false, false)
-    lb::Vector{Float64} = vcat([0.,-4., -5.,-1, .5, -5., 0., 0., 0.01, 0.005], [-30, 0.])
-    ub::Vector{Float64} = vcat([eps(), 4., 5., 1., 30., 5., 100., 2.5, 1.2, 1.], [30, 1.])
-    x0::Vector{Float64} = vcat([0., 0., 2., 0.8, 15., -0.5, 2., 1.5, 0.8, 0.008], [0.,1e-4])
+    fit::Vector{Bool} = vcat(true,true, true, true, true, true, true, true, true, true, true, false, false)
+    lb::Vector{Float64} = vcat([0.,-4., 0., 1., .5, -5., 0., 0., 0.01, 0.005, 0.], [-30, 0.])
+    ub::Vector{Float64} = vcat([eps(), 4., 1., 1., 30., 5., 100., 2.5, 1.2, 1., 5.], [30, 1.])
+    x0::Vector{Float64} = vcat([0., 0., 0.2, 0.8, 15., -0.5, 2., 1.5, 0.8, 0.008, 2.], [0.,1e-4])
 end
 
 

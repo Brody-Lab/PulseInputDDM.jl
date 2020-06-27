@@ -27,9 +27,9 @@ function rand(θ::θchoice, ntrials::Int; dt::Float64=1e-4, rng::Int = 1, center
 
     ntrials = length(inputs)
 
-    @unpack ibias, eta, beta = θ.θz
+    @unpack ibias, eta, beta, scaling = θ.θz
     sessbnd = [rand()<0.001 for i in 1:ntrials]
-    i_0 = compute_initial_pt(ibias,eta,beta,inputs, sessbnd)
+    i_0 = compute_initial_pt(ibias,eta,beta,scaling,inputs, sessbnd)
 
     rng = sample(Random.seed!(rng), 1:ntrials, ntrials; replace=false)
 

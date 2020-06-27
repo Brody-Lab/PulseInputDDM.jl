@@ -101,7 +101,7 @@ function sample_one_step!(a::TT, t::Int, σ2_a::TT, σ2_s::TT, λ::TT,
 end
 
 
-function compute_initial_pt(ibias::TT,eta::TT,beta::TT,click_data, sessbnd) where {TT <: Any}
+function compute_initial_pt(ibias::TT,eta::TT,beta::TT,scaling::TT,click_data, sessbnd) where {TT <: Any}
     
     # not respecting session boundaries yet
     
@@ -120,7 +120,7 @@ function compute_initial_pt(ibias::TT,eta::TT,beta::TT,click_data, sessbnd) wher
         end
     end
 
-    return i_0
+    return (scaling.*i_0)
 
 
     ## OPTIMAL APPROXIMATION #$    

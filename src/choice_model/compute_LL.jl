@@ -5,11 +5,11 @@ Given parameters θ and data (inputs and choices) computes the LL for all trials
 """
 function loglikelihood(θ::θchoice, data, n::Int)
 
-    @unpack ibias, eta, beta = θ.θz
+    @unpack ibias, eta, beta, scaling = θ.θz
     clickdata = map(data->data.click_data,data)
     sessbnd = map(data->data.sessbnd,data)
 
-    i_0 = compute_initial_pt(ibias,eta,beta,clickdata, sessbnd)
+    i_0 = compute_initial_pt(ibias,eta,beta,scaling,clickdata, sessbnd)
 
     sum(pmap((data, i_0) -> loglikelihood!(θ, data, i_0, n), data, i_0))
 
