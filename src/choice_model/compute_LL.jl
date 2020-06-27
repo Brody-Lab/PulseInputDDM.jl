@@ -33,11 +33,11 @@ function loglikelihood!(θ::θchoice,data::choicedata,
         i_0::UU, n::Int) where {TT,UU <: Real}
 
     @unpack θz, lapse, bias = θ
-    @unpack B, λ, σ2_a, σ2_i, ibias = θz
+    @unpack B, λ, σ2_a, σ2_i, scaling = θz
     @unpack click_data, choice = data
     @unpack dt = click_data
 
-    P,M,xc,dx = initialize_latent_model(σ2_i, ibias, i_0, B, λ, σ2_a, n, dt, lapse=lapse)
+    P,M,xc,dx = initialize_latent_model(σ2_i,scaling, i_0, B, λ, σ2_a, n, dt, lapse=lapse)
 
     P = P_single_trial!(θz,P,M,dx,xc,click_data,n)
     log(sum(choice_likelihood!(bias,xc,P,choice,n,dx)))
