@@ -8,10 +8,11 @@ function loglikelihood(θ::θchoice, data, n::Int)
     @unpack ibias, eta, beta, scaling = θ.θz
     clickdata = map(data->data.click_data,data)
     sessbnd = map(data->data.sessbnd,data)
-
     i_0 = compute_initial_pt(ibias,eta,beta,scaling,clickdata, sessbnd)
 
-    sum(pmap((data, i_0) -> loglikelihood!(θ, data, i_0, n), data, i_0))
+    regularizer = Gamma(2, 0.5);
+
+    sum(pmap((data, i_0) -> loglikelihood!(θ, data, i_0, n), data, i_0)) + log(pdf.(regularizer, 1. - ibias - (eta*beta/(1. - beta))))
 
 end
 

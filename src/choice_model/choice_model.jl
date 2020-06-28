@@ -85,7 +85,7 @@ BACK IN THE DAY TOLS WERE: x_tol::Float64=1e-4, f_tol::Float64=1e-9, g_tol::Floa
 
 """
 function optimize(data, options::choiceoptions, n::Int;
-        x_tol::Float64=1e-16, f_tol::Float64=1e-16, g_tol::Float64=1e-12,
+        x_tol::Float64=1e-12, f_tol::Float64=1e-12, g_tol::Float64=1e-10,
         iterations::Int=Int(5e3), show_trace::Bool=true, outer_iterations::Int=Int(1e1),
         extended_trace::Bool=false, scaled::Bool=false)
 
