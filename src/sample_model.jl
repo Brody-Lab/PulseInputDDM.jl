@@ -103,25 +103,22 @@ end
 
 function compute_initial_pt(ibias::TT,eta::TT,beta::TT,scaling::TT,click_data, sessbnd) where {TT <: Any}
     
-    # not respecting session boundaries yet
     
     ΔLR = diffLR.(click_data)
-    # correct = map(ΔLR->sign(ΔLR),ΔLR)
     correct = map(ΔLR->ΔLR>0,ΔLR)
     
     i_0 = Array{TT}(undef, length(correct))
-    i_0[1] = ibias;
+    i_0[1] = (2*ibias + eta*beta/(1. - beta))/2
     
     for i = 2:length(correct)
         if sessbnd[i] == 1
-            i_0[i] = ibias
+            i_0[i] = (2*ibias + eta*beta/(1-beta))/2
         else
             i_0[i] = ibias*(1. - beta) + eta*beta*correct[i-1] + beta*i_0[i-1]
-            # i_0[i] = (1. - beta)*ibias + beta*(i_0[i-1] + eta*(correct[i-1] - i_0[i-1]))
         end
     end
 
-    return  scaling.*(log.(i_0 ./(1 .- i_0)))
+    return  (log.(i_0 ./(1 .- i_0)))
 
 
     ## OPTIMAL APPROXIMATION #$    

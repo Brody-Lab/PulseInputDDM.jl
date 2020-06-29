@@ -6,6 +6,7 @@
 
 Wrapper for executing an unconstrained optimization based on the objective function ll. x is the initial starting point.
 """
+
 function optimize(x::Vector{TT}, ll, lb, ub;
         g_tol::Float64=1e-12, x_tol::Float64=1e-16, f_tol::Float64=1e-16,
         iterations::Int=Int(5e3), outer_iterations::Int=Int(1e1), 
@@ -26,7 +27,6 @@ function optimize(x::Vector{TT}, ll, lb, ub;
     return output
 
 end
-
 
 """
     stack(x,c)

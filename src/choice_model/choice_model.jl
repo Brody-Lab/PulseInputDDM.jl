@@ -114,6 +114,10 @@ function optimize(data, options::choiceoptions, n::Int;
 end
 
 
+
+
+
+
 """
     loglikelihood(x, data, n)
 

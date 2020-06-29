@@ -8,11 +8,19 @@ function loglikelihood(θ::θchoice, data, n::Int)
     @unpack ibias, eta, beta, scaling = θ.θz
     clickdata = map(data->data.click_data,data)
     sessbnd = map(data->data.sessbnd,data)
-    i_0 = compute_initial_pt(ibias,eta,beta,scaling,clickdata, sessbnd)
 
-    regularizer = Gamma(2, 0.5);
+    reg = InverseGamma(0.001, 0.1);
 
-    sum(pmap((data, i_0) -> loglikelihood!(θ, data, i_0, n), data, i_0)) + log(pdf.(regularizer, 1. - ibias - (eta*beta/(1. - beta))))
+    ep = 0.0001344
+    dum = 1. - ibias - (eta*beta/(1. - beta))
+    if dum < ep
+        dum_slope = -(log(pdf.(reg, ep)) - log(pdf.(reg,2*ep)))/ep
+        dum_intercept = log(pdf.(reg, ep))
+        return dum_slope*(dum-ep) + dum_intercept + length(sessbnd)*log(0.5)
+    else
+        i_0 = compute_initial_pt(ibias,eta,beta,scaling,clickdata, sessbnd)
+        return sum(pmap((data, i_0) -> loglikelihood!(θ, data, i_0, n), data, i_0)) + log(pdf.(reg, dum))
+    end
 
 end
 
@@ -27,20 +35,23 @@ Given parameters θ and data (inputs and choices) computes the LL for all trials
 
 """
     loglikelihood!(θ, data, n)
-
+    
 Given parameters θ and data (inputs and choices) computes the LL for one trial
 """
 function loglikelihood!(θ::θchoice,data::choicedata,
-        i_0::UU, n::Int) where {TT,UU <: Real}
+        i_0::TT, n::Int) where {TT,UU <: Real}
 
     @unpack θz, lapse, bias = θ
-    @unpack B, λ, σ2_a, σ2_i, scaling = θz
+    @unpack B, λ, σ2_a, σ2_i, eta, beta, ibias = θz
     @unpack click_data, choice = data
     @unpack dt = click_data
 
-    P,M,xc,dx = initialize_latent_model(σ2_i,scaling, i_0, B, λ, σ2_a, n, dt, lapse=lapse)
+    # computing mean bias (in probability) to bias lapse probability
+    meanbias = (2. * ibias + eta*beta/(1-beta))/2.
 
-    P = P_single_trial!(θz,P,M,dx,xc,click_data,n)
+    P,M,xc,dx = initialize_latent_model(σ2_i,meanbias, i_0, B, λ, σ2_a, n, dt, lapse=lapse)
+
+    P = P_single_trial!(θz,P,M,dx,xc,click_data,i_0,n)
     log(sum(choice_likelihood!(bias,xc,P,choice,n,dx)))
 
 end
@@ -53,7 +64,7 @@ Given parameters θz progagates P for one trial
 """
 function P_single_trial!(θz,
         P::Vector{TT}, M::Array{TT,2}, dx::UU,
-        xc::Vector{TT}, click_data,
+        xc::Vector{TT}, click_data, i_0::TT,
         n::Int) where {TT,UU <: Real}
 
     @unpack λ,σ2_a,σ2_s,ϕ,τ_ϕ = θz
@@ -70,7 +81,7 @@ function P_single_trial!(θz,
     @inbounds for t = 1:nT
 
         #maybe only pass one L,R,nT?
-        P,F = latent_one_step!(P,F,λ,σ2_a,σ2_s,t,nL,nR,La,Ra,M,dx,xc,n,dt)
+        P,F = latent_one_step!(P,F,λ,σ2_a,σ2_s,t,nL,nR,La,Ra,i_0,M,dx,xc,n,dt)
 
     end
 
