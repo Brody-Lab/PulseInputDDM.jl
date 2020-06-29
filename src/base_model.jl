@@ -115,13 +115,13 @@ end
 """
 function latent_one_step!(P::Vector{TT}, F::Array{TT,2}, λ::TT, σ2_a::TT, σ2_s::TT,
         t::Int, nL::Vector{Int}, nR::Vector{Int},
-        La::Vector{TT}, Ra::Vector{TT}, i_0::TT, M::Array{TT,2},
+        La::Vector{TT}, Ra::Vector{TT}, scaled_i_0::TT, M::Array{TT,2},
         dx::UU, xc::Vector{TT}, n::Int, dt::Float64; backwards::Bool=false) where {TT,UU <: Any}
 
     any(t .== nL) ? sL = sum(La[t .== nL]) : sL = zero(TT)
     any(t .== nR) ? sR = sum(Ra[t .== nR]) : sR = zero(TT)
 
-    σ2 = σ2_s * (sL + sR);   μ = -sL + sR + i_0
+    σ2 = σ2_s * (sL + sR);   μ = -sL + sR + scaled_i_0
 
     if (sL + sR) > zero(TT)
         transition_M!(F,σ2+σ2_a*dt,λ, μ, dx, xc, n, dt)

@@ -42,7 +42,7 @@ function loglikelihood!(θ::θchoice,data::choicedata,
         i_0::TT, n::Int) where {TT,UU <: Real}
 
     @unpack θz, lapse, bias = θ
-    @unpack B, λ, σ2_a, σ2_i, eta, beta, ibias = θz
+    @unpack B, λ, σ2_a, σ2_i, eta, beta, ibias, scaling = θz
     @unpack click_data, choice = data
     @unpack dt = click_data
 
@@ -51,7 +51,7 @@ function loglikelihood!(θ::θchoice,data::choicedata,
 
     P,M,xc,dx = initialize_latent_model(σ2_i,meanbias, i_0, B, λ, σ2_a, n, dt, lapse=lapse)
 
-    P = P_single_trial!(θz,P,M,dx,xc,click_data,i_0,n)
+    P = P_single_trial!(θz,P,M,dx,xc,click_data,i_0*scaling,n)
     log(sum(choice_likelihood!(bias,xc,P,choice,n,dx)))
 
 end
@@ -64,7 +64,7 @@ Given parameters θz progagates P for one trial
 """
 function P_single_trial!(θz,
         P::Vector{TT}, M::Array{TT,2}, dx::UU,
-        xc::Vector{TT}, click_data, i_0::TT,
+        xc::Vector{TT}, click_data, scaled_i_0::TT,
         n::Int) where {TT,UU <: Real}
 
     @unpack λ,σ2_a,σ2_s,ϕ,τ_ϕ = θz
@@ -81,7 +81,7 @@ function P_single_trial!(θz,
     @inbounds for t = 1:nT
 
         #maybe only pass one L,R,nT?
-        P,F = latent_one_step!(P,F,λ,σ2_a,σ2_s,t,nL,nR,La,Ra,i_0,M,dx,xc,n,dt)
+        P,F = latent_one_step!(P,F,λ,σ2_a,σ2_s,t,nL,nR,La,Ra,scaled_i_0,M,dx,xc,n,dt)
 
     end
 
