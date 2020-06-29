@@ -3,34 +3,55 @@
 
 Given parameters θ and data (inputs and choices) computes the LL for all trials
 """
-function loglikelihood(θ::θchoice, data, n::Int)
+function loglikelihood(θ::θ_expfilter, data, n::Int)
 
-    @unpack ibias, eta, beta, scaling = θ.θz
+    @unpack h_C, h_eta, h_beta = θ.θz
     clickdata = map(data->data.click_data,data)
     sessbnd = map(data->data.sessbnd,data)
-
+    # hack to do constrained optimization with an unconstrained algorithm
+    # the prior is set up so that when dum>0 constraint is not met
+    # a gentle slope is introduced to repush the parameters towards the
+    # allowed space, this constraint arises because exponential filtering
+    # happens in probability space
     reg = InverseGamma(0.001, 0.1);
-
     ep = 0.0001344
-    dum = 1. - ibias - (eta*beta/(1. - beta))
+    dum = 1. - h_C - (h_eta*h_beta/(1. - h_beta))
+
     if dum < ep
-        dum_slope = -(log(pdf.(reg, ep)) - log(pdf.(reg,2*ep)))/ep
         dum_intercept = log(pdf.(reg, ep))
+        dum_slope = -(log(pdf.(reg, ep)) - log(pdf.(reg,2*ep)))/ep
         return dum_slope*(dum-ep) + dum_intercept + length(sessbnd)*log(0.5)
     else
-        i_0 = compute_initial_pt(ibias,eta,beta,scaling,clickdata, sessbnd)
+        i_0 = compute_initial_pt(h_C,h_eta,h_beta,clickdata, sessbnd)
         return sum(pmap((data, i_0) -> loglikelihood!(θ, data, i_0, n), data, i_0)) + log(pdf.(reg, dum))
     end
 
 end
 
+"""
+    loglikelihood(θ, data, n)
+
+Given parameters θ and data (inputs and choices) computes the LL for all trials
+"""
+function loglikelihood(θ::θ_expfilter_ce, data, n::Int)
+
+    @unpack h_etaC, h_etaE, h_betaC, h_etaE = θ.θz
+    clickdata = map(data->data.click_data,data)
+    choice = map(data->data.choice,data)
+    sessbnd = map(data->data.sessbnd,data)
+
+    i_0 = compute_initial_pt(h_etaC, h_etaE, h_betaC, h_etaE, clickdata, choice, sessbnd)
+
+    return sum(pmap((data, i_0) -> loglikelihood!(θ, data, i_0, n), data, i_0))
+    
+end
 
 """
     (θ::θchoice)(data)
 
 Given parameters θ and data (inputs and choices) computes the LL for all trials
 """
-(θ::θchoice)(data; n::Int=53) = loglikelihood(θ, data, n)
+(θ::DDMθ)(data; n::Int=53) = loglikelihood(θ, data, n)
 
 
 """
@@ -38,20 +59,17 @@ Given parameters θ and data (inputs and choices) computes the LL for all trials
     
 Given parameters θ and data (inputs and choices) computes the LL for one trial
 """
-function loglikelihood!(θ::θchoice,data::choicedata,
+function loglikelihood!(θ::DDMθ,data::choicedata,
         i_0::TT, n::Int) where {TT,UU <: Real}
 
     @unpack θz, lapse, bias = θ
-    @unpack B, λ, σ2_a, σ2_i, eta, beta, ibias, scaling = θz
+    @unpack B, λ, σ2_a, σ2_i, h_drift_scale = θz
     @unpack click_data, choice = data
     @unpack dt = click_data
 
-    # computing mean bias (in probability) to bias lapse probability
-    meanbias = (2. * ibias + eta*beta/(1-beta))/2.
+    P,M,xc,dx = initialize_latent_model(σ2_i,i_0, B, λ, σ2_a, n, dt, lapse=lapse)
 
-    P,M,xc,dx = initialize_latent_model(σ2_i,meanbias, i_0, B, λ, σ2_a, n, dt, lapse=lapse)
-
-    P = P_single_trial!(θz,P,M,dx,xc,click_data,i_0*scaling,n)
+    P = P_single_trial!(θz,P,M,dx,xc,click_data,i_0*h_drift_scale,n)
     log(sum(choice_likelihood!(bias,xc,P,choice,n,dx)))
 
 end

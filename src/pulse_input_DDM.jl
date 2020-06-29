@@ -2,7 +2,7 @@
     pulse_input_DDM
 
 A julia module for fitting bounded accumlator models using behavioral
-and/or neural data from pulse-based evidence accumlation tasks.
+data from pulse-based evidence accumlation tasks.
 """
 module pulse_input_DDM
 
@@ -18,58 +18,126 @@ import Base.rand
 import Base.Iterators: partition
 import Flatten: flattenable
 
-export choiceDDM, choiceoptions, θchoice, choicedata, θz
-export θneural, neuralDDM, neuraldata, θy, neuraldata
-export Sigmoid, Softplus, neuraloptions
+export choiceDDM, choicedata, createmodel
+export θ_expfilter, θ_expfilter_ce, θz_expfilter, θz_expfilter_ce
+export choiceoptions_expfilter, choiceoptions_expfilter_ce  
 
 export dimz
+export loglikelihood_expfilter, loglikelihood_expfilter_ce
 export loglikelihood, synthetic_data
 export CIs, optimize, Hessian, gradient
 export load, reload, save, flatten, unflatten
-export initialize_θy, neural_null
 export synthetic_clicks, binLR, bin_clicks
 
 export default_parameters_and_data, compute_LL
 
-export mean_exp_rate_per_trial, mean_exp_rate_per_cond
 
-#=
-
-export compute_ΔLL
-
-export choice_null
-export sample_input_and_spikes_multiple_sessions, sample_inputs_and_spikes_single_session
-export sample_spikes_single_session, sample_spikes_single_trial, sample_expected_rates_single_session
-
-export sample_choices_all_trials
-export aggregate_spiking_data, bin_clicks_spikes_and_λ0!
-
-export diffLR
-
-export filter_data_by_cell!
-
-=#
 
 abstract type DDM end
 abstract type DDMdata end
 abstract type DDMθ end
+abstract type DDMθoptions end
 
 """
 """
-@with_kw struct θz{T<:Real} @deftype T
-    σ2_i = 0.
-    ibias = 0.3012
-    eta = 0.9461
-    beta = 0.1929
-    B = 10.
-    λ = -0.5; @assert λ != 0.
-    σ2_a = 2.
-    σ2_s = 1.5
-    ϕ = 0.8; @assert ϕ != 1.
-    τ_ϕ = 0.05
-    scaling = 1.
+function createmodel(modeltype)
+    thetadict = Dict("expfilter" => θ_expfilter,
+                     "expfilter_ce" => θ_expfilter_ce)
+
+    thetazdict = Dict("expfilter" => θz_expfilter,
+                    "expfilter_ce" => θz_expfilter_ce)
+
+    optionsdict = Dict("expfilter" => choiceoptions_expfilter,
+                    "expfilter_ce" => choiceoptions_expfilter_ce)
+
+    if modeltype in keys(thetadict)
+        dims = length(fieldnames(thetazdict[modeltype])) 
+        return dims, thetadict[modeltype](), optionsdict[modeltype]()
+    else
+        error("Unknown model identifier $modeltype")
+    end
 end
 
+"""
+"""
+@with_kw struct θz_expfilter{T<:Real} @deftype T
+    B = 15.
+    λ = -0.5; @assert λ != 0.
+    σ2_i = eps()
+    σ2_a = 0.
+    σ2_s = 2.
+    ϕ = 0.2; @assert ϕ != 1.
+    τ_ϕ = 0.05
+    h_C = 0.3012
+    h_eta = 0.9461
+    h_beta = 0.1929
+    h_drift_scale = 0.  # this turns on drift bias
+end
+
+"""
+"""
+@with_kw struct θz_expfilter_ce{T<:Real} @deftype T
+    B = 15.
+    λ = -0.5; @assert λ != 0.
+    σ2_i = eps()
+    σ2_a = 0.
+    σ2_s = 2.5
+    ϕ = 0.2; @assert ϕ != 1.
+    τ_ϕ = 0.05
+    h_etaC = 0.3012
+    h_etaE = 0.3012
+    h_betaC = 0.1929
+    h_betaE = 0.1929
+    h_drift_scale = 0.  # this turns on drift bias
+end
+
+"""
+    θ_expfilter{T1, T<:Real} <: DDMθ
+
+Fields:
+
+- `θz` is a type that contains the parameters related to the latent variable model.
+- `bias` is the choice bias parameter.
+- `lapse` is the lapse parameter.
+
+Example:
+
+```julia
+θchoice(θz=θz(σ2_i = 0.5, B = 15., λ = -0.5, σ2_a = 50., σ2_s = 1.5,
+    ϕ = 0.8, τ_ϕ = 0.05), bias=1., lapse=0.05)
+```
+"""
+@with_kw struct θ_expfilter{T1, T<:Real} <: DDMθ
+    θz::T1 = θz_expfilter()
+    bias::T = 0.
+    lapse::T = 0.01
+end
+
+"""
+"""
+@with_kw struct θ_expfilter_ce{T1, T<:Real} <: DDMθ
+    θz::T1 = θz_expfilter_ce()
+    bias::T = 0.
+    lapse::T = 0.01
+end
+
+"""
+"""
+@with_kw mutable struct choiceoptions_expfilter <: DDMθoptions
+    fit::Vector{Bool} = vcat(true, true, false, true, true, true, true, true, true, true, false, false, true)
+    lb::Vector{Float64} = vcat([5., -5., 0., 0., 1.5, 0.01, 0.005, 0., 0., 0., 0.], [-30, 0.])
+    ub::Vector{Float64} = vcat([60., 5., 2., 100., 20., 1.2, 1., 1., 1., 1., 1.], [30, 1.])
+    x0::Vector{Float64} = vcat([15., -0.5, eps(), 2., 2.5, 0.2, 0.02, 0.3014, 0.9664, 0.3570, 0.], [0.,1e-4])
+end
+
+"""
+"""
+@with_kw mutable struct choiceoptions_expfilter_ce <: DDMθoptions
+    fit::Vector{Bool} = vcat(true, true, false, true, true, true, true, true, true, true, true, false, true, true)
+    lb::Vector{Float64} = vcat([5., -5., 0., 0., 1.5, 0.01, 0.005, 0., 0., 0., 0., 0.], [-30, 0.])
+    ub::Vector{Float64} = vcat([60., 5., 2., 100., 20., 1.2, 1., 1., 1., 1., 1., 1.], [30, 1.])
+    x0::Vector{Float64} = vcat([15., -0.5, eps(), 2., 2., 0.2, 0.02, 0.3, 0.3, 0.1, 0.1, 0.], [0.,1e-4])
+end
 
 """
 """
@@ -78,7 +146,6 @@ end
     R::Vector{Float64}
     T::Float64
 end
-
 
 """
 """
@@ -89,14 +156,14 @@ end
     nR::Vector{Int}
 end
 
-
+"""
+"""
 @with_kw struct bins
     #clicks::T
     xc::Vector{Real}
     dx::Real
     n::Int
 end
-
 
 """
 """
@@ -107,51 +174,54 @@ end
     centered::Bool
 end
 
+"""
+    choicedata{T1} <: DDMdata
 
+Fields:
+
+- `click_data` is a type that contains all of the parameters related to click input.
+- `choice` is the choice data for a single trial.
+
+Example:
+
+```julia
+ntrials, dt, centered = 1, 1e-2, false
+θ = θchoice()
+clicks, choices = rand(θ, ntrials)
+binned_clicks = bin_clicks(clicks, centered=centered, dt=dt)
+inputs = choiceinputs(clicks, binned_clicks, dt, centered)
+choicedata(inputs, choices)
+```
 """
-"""
-@with_kw struct neuralinputs{T1,T2}
-    clicks::T1
-    binned_clicks::T2
-    λ0::Vector{Vector{Float64}}
-    dt::Float64
-    centered::Bool
+@with_kw struct choicedata{T1} <: DDMdata
+    click_data::T1
+    choice::Bool
+    sessbnd::Bool
 end
 
+"""
+    choiceDDM{T,U} <: DDM
 
-"""
-"""
-neuralinputs(clicks, binned_clicks, λ0::Vector{Vector{Vector{Float64}}}, dt::Float64, centered::Bool) =
-    neuralinputs.(clicks, binned_clicks, λ0, dt, centered)
+Fields:
 
-"""
-"""
-@with_kw mutable struct choiceoptions
-    fit::Vector{Bool} = vcat(true,true, true, true, true, true, true, true, true, true, true, false, false)
-    lb::Vector{Float64} = vcat([0., 0., 0., 1., .5, -5., 0., 0., 0.01, 0.005, 0.], [-30, 0.])
-    ub::Vector{Float64} = vcat([eps(), 1., 1., 1., 30., 5., 100., 2.5, 1.2, 1., 5.], [30, 1.])
-    x0::Vector{Float64} = vcat([0., 0.3014, 0.9664, 0.3570, 15., -0.5, 2., 1.5, 0.8, 0.008, 2.], [0.,1e-4])
-end
+- `θ` is a type that contains all of the model parameters.
+- `data` is a type that contains all of the data (inputs and choices).
 
+Example:
 
+```julia
+ntrials, dt, centered = 1, 1e-2, false
+θ = θchoice()
+clicks, choices = rand(θ, ntrials)
+binned_clicks = bin_clicks(clicks, centered=centered, dt=dt)
+inputs = choiceinputs(clicks, binned_clicks, dt, centered)
+data = choicedata(inputs, choices)
+choiceDDM(θ, data)
+```
 """
-"""
-@with_kw struct neuraloptions
-    ncells::Vector{Int}
-    nparams::Int = 4
-    f::String = "Sigmoid"
-    fit::Vector{Bool} = vcat(trues(dimz+sum(ncells)*nparams))
-    #if f == "Softplus"
-    #    lb::Vector{Float64} = vcat([0., 8., -5., 0., 0., 0.01, 0.005], repeat([eps(),-10.,-10.], sum(ncells)))
-    #    ub::Vector{Float64} = vcat([2., 30., 5., 100., 2.5, 1.2, 1.], repeat([100.,10.,10.], sum(ncells)))
-    #elseif f == "Sigmoid"
-        lb::Vector{Float64} = vcat([0., 8.,  -5., 0.,   0.,  0.01, 0.005], repeat([-100.,0.,-10.,-10.], sum(ncells)))
-        ub::Vector{Float64} = vcat([30., 32., 5., 200., 5.0, 1.2,  1.],    repeat([ 100.,100.,10.,10.], sum(ncells)))
-    #end
-    #x0::Vector{Float64} = vcat([0.1, 15., -0.1, 20., 0.5, 0.8, 0.008],
-    #    repeat(Vector{Float64}(undef,nparams), sum(ncells)))
-    x0::Vector{Float64} = vcat([0.1, 15., -0.1, 20., 0.5, 0.8, 0.008],
-        repeat([10.,10.,1.,0.], sum(ncells)))
+@with_kw struct choiceDDM{T,U} <: DDM
+    θ::T 
+    data::U
 end
 
 
@@ -162,14 +232,62 @@ include("sample_model.jl")
 
 include("choice_model/choice_model.jl")
 include("choice_model/compute_LL.jl")
-include("choice_model/sample_model.jl")
+# include("choice_model/sample_model.jl")
 include("choice_model/process_data.jl")
 
-include("neural_model/neural_model.jl")
-include("neural_model/compute_LL.jl")
-include("neural_model/sample_model.jl")
-include("neural_model/process_data.jl")
-include("neural_model/deterministic_model.jl")
+## NEURAL MODEL STUFF ##
+
+# export mean_exp_rate_per_trial, mean_exp_rate_per_cond
+# export θneural, neuralDDM, neuraldata, θy, neuraldata
+# export initialize_θy, neural_null
+# export Sigmoid, Softplus, neuraloptions
+
+
+# include("neural_model/neural_model.jl")
+# include("neural_model/compute_LL.jl")
+# include("neural_model/sample_model.jl")
+# include("neural_model/process_data.jl")
+# include("neural_model/deterministic_model.jl")
+
+# """
+# """
+# neuralinputs(clicks, binned_clicks, λ0::Vector{Vector{Vector{Float64}}}, dt::Float64, centered::Bool) =
+#     neuralinputs.(clicks, binned_clicks, λ0, dt, centered)
+
+# """
+# """
+# @with_kw struct neuralinputs{T1,T2}
+#     clicks::T1
+#     binned_clicks::T2
+#     λ0::Vector{Vector{Float64}}
+#     dt::Float64
+#     centered::Bool
+# end
+
+
+# """
+# """
+# @with_kw struct neuraloptions
+#     ncells::Vector{Int}
+#     nparams::Int = 4
+#     f::String = "Sigmoid"
+#     fit::Vector{Bool} = vcat(trues(dimz+sum(ncells)*nparams))
+#     #if f == "Softplus"
+#     #    lb::Vector{Float64} = vcat([0., 8., -5., 0., 0., 0.01, 0.005], repeat([eps(),-10.,-10.], sum(ncells)))
+#     #    ub::Vector{Float64} = vcat([2., 30., 5., 100., 2.5, 1.2, 1.], repeat([100.,10.,10.], sum(ncells)))
+#     #elseif f == "Sigmoid"
+#         lb::Vector{Float64} = vcat([0., 8.,  -5., 0.,   0.,  0.01, 0.005], repeat([-100.,0.,-10.,-10.], sum(ncells)))
+#         ub::Vector{Float64} = vcat([30., 32., 5., 200., 5.0, 1.2,  1.],    repeat([ 100.,100.,10.,10.], sum(ncells)))
+#     #end
+#     #x0::Vector{Float64} = vcat([0.1, 15., -0.1, 20., 0.5, 0.8, 0.008],
+#     #    repeat(Vector{Float64}(undef,nparams), sum(ncells)))
+#     x0::Vector{Float64} = vcat([0.1, 15., -0.1, 20., 0.5, 0.8, 0.008],
+#         repeat([10.,10.,1.,0.], sum(ncells)))
+# end
+
+
+
+
 
 #include("neural_model/load_and_optimize.jl")
 #include("neural_model/sample_model_functions_FP.jl")

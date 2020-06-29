@@ -35,7 +35,7 @@ Generate a sample latent trajecgtory,
 given parameters of the latent model θz and clicks for one trial, contained
 within inputs.
 """
-function rand(θz::θz{T}, inputs, i_0) where T <: Real
+function rand(θz, inputs, i_0) where T <: Real
 
     @unpack B, λ, σ2_i, σ2_a, σ2_s, ϕ, τ_ϕ = θz
     @unpack clicks, binned_clicks, centered, dt = inputs
@@ -100,26 +100,26 @@ function sample_one_step!(a::TT, t::Int, σ2_a::TT, σ2_s::TT, λ::TT,
 
 end
 
+"""
+"""
 
-function compute_initial_pt(ibias::TT,eta::TT,beta::TT,scaling::TT,click_data, sessbnd) where {TT <: Any}
-    
+function compute_initial_pt(hC::TT,eta::TT,beta::TT,click_data, sessbnd) where {TT <: Any}
     
     ΔLR = diffLR.(click_data)
     correct = map(ΔLR->ΔLR>0,ΔLR)
     
     i_0 = Array{TT}(undef, length(correct))
-    i_0[1] = (2*ibias + eta*beta/(1. - beta))/2
+    i_0[1] = hC + (eta*beta/(1. - beta))/2.
     
     for i = 2:length(correct)
         if sessbnd[i] == 1
-            i_0[i] = (2*ibias + eta*beta/(1-beta))/2
+            i_0[i] = hC + (eta*beta/(1. - beta))/2.
         else
-            i_0[i] = ibias*(1. - beta) + eta*beta*correct[i-1] + beta*i_0[i-1]
+            i_0[i] = hC*(1. - beta) + eta*beta*correct[i-1] + beta*i_0[i-1]
         end
     end
 
-    return  (log.(i_0 ./(1 .- i_0)))
-
+    return  log.(i_0 ./(1 .- i_0))
 
     ## OPTIMAL APPROXIMATION #$    
 
@@ -130,7 +130,6 @@ function compute_initial_pt(ibias::TT,eta::TT,beta::TT,scaling::TT,click_data, s
     # β_hat = (ibias*beta)/(1+beta)
     # C = (1-ibias)*eta/(1-β_hat)
 
-
     # i_0 = Array{TT}(undef, length(correct))
     # i_0[1] = eta;
     
@@ -139,6 +138,32 @@ function compute_initial_pt(ibias::TT,eta::TT,beta::TT,scaling::TT,click_data, s
     # end
 
     # return log.(i_0 ./(1 .- i_0))
+end
+
+
+"""
+"""
+function compute_initial_pt(etaC::TT,etaE::TT,betaC::TT,betaE::TT, click_data, choice, sessbnd) where {TT <: Any}
     
+    ΔLR = diffLR.(click_data)
+    correct = map(ΔLR->ΔLR>0,ΔLR)
+    hits = correct .== choice
+    sessbnd[1] = 1
+    lim = 1
+
+    i_0 = Array{TT}(undef, length(correct))
+    
+    for i = 1:length(correct)
+        if sessbnd[i] == 1
+            lim = i
+            i_0[i] = 0.
+            rel = []
+         else
+            rel = max(lim, i-10):i-1
+            i_0[i] = sum(hits[rel].*etaC.*betaC.^reverse(0:length(rel)-1)) - sum((1 .- hits[rel]).*etaE.*betaE.^reverse(0:length(rel)-1))
+        end
+    end
+
+    return  i_0
 
 end
