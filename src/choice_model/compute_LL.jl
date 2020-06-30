@@ -51,7 +51,7 @@ end
 
 Given parameters θ and data (inputs and choices) computes the LL for all trials
 """
-(θ::DDMθ)(data; n::Int=53) = loglikelihood(θ, data, n)
+(θ)(data; n::Int=53) = loglikelihood(θ, data, n)
 
 
 """

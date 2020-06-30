@@ -121,6 +121,7 @@ function compute_initial_pt(hC::TT,eta::TT,beta::TT,click_data, sessbnd) where {
 
     return  log.(i_0 ./(1 .- i_0))
 
+
     ## OPTIMAL APPROXIMATION #$    
 
     # ΔLR = diffLR.(click_data)
@@ -160,10 +161,13 @@ function compute_initial_pt(etaC::TT,etaE::TT,betaC::TT,betaE::TT, click_data, c
             rel = []
          else
             rel = max(lim, i-10):i-1
-            i_0[i] = sum(hits[rel].*etaC.*betaC.^reverse(0:length(rel)-1)) - sum((1 .- hits[rel]).*etaE.*betaE.^reverse(0:length(rel)-1))
+            cho = (-1. .*(1 .- choice[rel]) + choice[rel])
+            corr = hits[rel].*etaC.*betaC.^reverse(0:length(rel)-1)
+            err =  -1 .*(1 .- hits[rel]).*etaE.*betaE.^reverse(0:length(rel)-1)
+            i_0[i] = sum(cho .* (corr + err))
         end
     end
-
+   
     return  i_0
 
 end
