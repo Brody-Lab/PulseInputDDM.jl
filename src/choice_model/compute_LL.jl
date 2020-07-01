@@ -13,10 +13,9 @@ function loglikelihood(θ::θ_expfilter, data, n::Int)
 
     @unpack h_eta, h_beta = θ.θz
     clickdata = map(data->data.click_data,data)
-    choice = map(data->data.choice,data)
     sessbnd = map(data->data.sessbnd,data)
 
-    i_0 = compute_initial_pt(h_eta, h_beta, clickdata, choice, sessbnd)
+    i_0 = compute_initial_pt(h_eta, h_beta, clickdata, sessbnd)
 
     return sum(pmap((data, i_0) -> loglikelihood!(θ, data, i_0, n), data, i_0))
     
