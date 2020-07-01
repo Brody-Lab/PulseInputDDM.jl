@@ -125,8 +125,8 @@ end
 """
 @with_kw mutable struct choiceoptions_expfilter <: DDMθoptions
     fit::Vector{Bool} = vcat(true, true, false, true, true, true, true, true, true, false, true, true)
-    lb::Vector{Float64} = vcat([5., -5., 0., 0., 0., 0.01, 0.005, 0., -2., 0.], [-30, 0.])
-    ub::Vector{Float64} = vcat([60., 5., 2., 100., 20., 1.2, 1., 1., 2., 1.], [30, 1.])
+    lb::Vector{Float64} = vcat([5., -5., 0., 0., 0., 0.01, 0.005, -2., 0., 0.], [-30, 0.])
+    ub::Vector{Float64} = vcat([60., 5., 2., 100., 20., 1.2, 1., 2., 1., 1.], [30, 1.])
     x0::Vector{Float64} = vcat([15., -0.5, eps(), 2., 2.5, 0.2, 0.02, 0.3014, 0.3570, 0.], [0.,1e-4])
 end
 
