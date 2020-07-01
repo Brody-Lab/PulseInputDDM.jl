@@ -28,14 +28,22 @@ end
 
 Given a file, model produced by optimize and options, save the results of the optimization to a .MAT file
 """
-function save(file, model, options, CI)
+function save(file, model, options, modeltype, ll; CI = 0)
 
     @unpack lb, ub, fit = options
     @unpack θ = model
 
+    if modeltype == "expfilter"
+        name = ["B", "λ", "σ2_i", "σ2_a", "σ2_s", "ϕ", "τ_ϕ", "h_eta","h_beta","h_drift_scale", "B", "λ", "bias", "lapse"]
+    elseif modeltype == "expfilter_ce"
+        name = ["B", "λ", "σ2_i", "σ2_a", "σ2_s", "ϕ", "τ_ϕ", "h_etaC","h_etaE", "h_betaC", "h_betaE","h_drift_scale", "B", "λ", "bias", "lapse"]
+    else
+        error("Unknown model identifier $modeltype")
+    end
+
     dict = Dict("ML_params"=> collect(Flatten.flatten(θ)),
-        "name" => ["σ2_i","ibias","eta","beta", "B", "λ", "σ2_a", "σ2_s", "ϕ", "τ_ϕ", "bias", "lapse"],
-        "lb"=> lb, "ub"=> ub, "fit"=> fit,
+        "name" => name, "loglikelihood" => ll,
+        "lb"=> lb, "ub"=> ub, "fit"=> fit, "modeltype"=> modeltype,
         "CI" => CI)
 
     matwrite(file, dict)

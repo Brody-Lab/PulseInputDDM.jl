@@ -3,30 +3,25 @@
 
 Given parameters θ and data (inputs and choices) computes the LL for all trials
 """
+
+"""
+    loglikelihood(θ, data, n)
+
+Given parameters θ and data (inputs and choices) computes the LL for all trials
+"""
 function loglikelihood(θ::θ_expfilter, data, n::Int)
 
-    @unpack h_C, h_eta, h_beta = θ.θz
+    @unpack h_eta, h_beta = θ.θz
     clickdata = map(data->data.click_data,data)
+    choice = map(data->data.choice,data)
     sessbnd = map(data->data.sessbnd,data)
-    # hack to do constrained optimization with an unconstrained algorithm
-    # the prior is set up so that when dum>0 constraint is not met
-    # a gentle slope is introduced to repush the parameters towards the
-    # allowed space, this constraint arises because exponential filtering
-    # happens in probability space
-    reg = InverseGamma(0.001, 0.1);
-    ep = 0.0001344
-    dum = 1. - h_C - (h_eta*h_beta/(1. - h_beta))
 
-    if dum < ep
-        dum_intercept = log(pdf.(reg, ep))
-        dum_slope = -(log(pdf.(reg, ep)) - log(pdf.(reg,2*ep)))/ep
-        return dum_slope*(dum-ep) + dum_intercept + length(sessbnd)*log(0.5)
-    else
-        i_0 = compute_initial_pt(h_C,h_eta,h_beta,clickdata, sessbnd)
-        return sum(pmap((data, i_0) -> loglikelihood!(θ, data, i_0, n), data, i_0)) + log(pdf.(reg, dum))
-    end
+    i_0 = compute_initial_pt(h_eta, h_beta, clickdata, choice, sessbnd)
 
+    return sum(pmap((data, i_0) -> loglikelihood!(θ, data, i_0, n), data, i_0))
+    
 end
+
 
 """
     loglikelihood(θ, data, n)
@@ -189,6 +184,31 @@ end
 choice_null(choices) = sum(choices .== true)*log(sum(choices .== true)/length(choices)) +
     sum(choices .== false)*log(sum(choices .== false)/length(choices))
 
+
+# function loglikelihood(θ::θ_expfilter, data, n::Int)
+
+#     @unpack h_C, h_eta, h_beta = θ.θz
+#     clickdata = map(data->data.click_data,data)
+#     sessbnd = map(data->data.sessbnd,data)
+#     # hack to do constrained optimization with an unconstrained algorithm
+#     # the prior is set up so that when dum>0 constraint is not met
+#     # a gentle slope is introduced to repush the parameters towards the
+#     # allowed space, this constraint arises because exponential filtering
+#     # happens in probability space
+#     reg = InverseGamma(0.001, 0.1);
+#     ep = 0.0001344
+#     dum = 1. - h_C - (h_eta*h_beta/(1. - h_beta))
+
+#     if dum < ep
+#         dum_intercept = log(pdf.(reg, ep))
+#         dum_slope = -(log(pdf.(reg, ep)) - log(pdf.(reg,2*ep)))/ep
+#         return dum_slope*(dum-ep) + dum_intercept + length(sessbnd)*log(0.5)
+#     else
+#         i_0 = compute_initial_pt(h_C,h_eta,h_beta,clickdata, sessbnd)
+#         return sum(pmap((data, i_0) -> loglikelihood!(θ, data, i_0, n), data, i_0)) + log(pdf.(reg, dum))
+#     end
+
+# end
 
 # """
 #     bounded_mass(θ, data, n)

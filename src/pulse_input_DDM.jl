@@ -68,7 +68,7 @@ end
     σ2_s = 2.
     ϕ = 0.2; @assert ϕ != 1.
     τ_ϕ = 0.05
-    h_C = 0.3012
+    # h_C = 0.3012
     h_eta = 0.9461
     h_beta = 0.1929
     h_drift_scale = 0.  # this turns on drift bias
@@ -124,11 +124,20 @@ end
 """
 """
 @with_kw mutable struct choiceoptions_expfilter <: DDMθoptions
-    fit::Vector{Bool} = vcat(true, true, false, true, true, true, true, true, true, true, false, false, true)
-    lb::Vector{Float64} = vcat([5., -5., 0., 0., 0., 0.01, 0.005, 0., 0., 0., 0.], [-30, 0.])
-    ub::Vector{Float64} = vcat([60., 5., 2., 100., 20., 1.2, 1., 1., 1., 1., 1.], [30, 1.])
-    x0::Vector{Float64} = vcat([15., -0.5, eps(), 2., 2.5, 0.2, 0.02, 0.3014, 0.9664, 0.3570, 0.], [0.,1e-4])
+    fit::Vector{Bool} = vcat(true, true, false, true, true, true, true, true, true, false, true, true)
+    lb::Vector{Float64} = vcat([5., -5., 0., 0., 0., 0.01, 0.005, 0., -2., 0.], [-30, 0.])
+    ub::Vector{Float64} = vcat([60., 5., 2., 100., 20., 1.2, 1., 1., -2., 1.], [30, 1.])
+    x0::Vector{Float64} = vcat([15., -0.5, eps(), 2., 2.5, 0.2, 0.02, 0.3014, 0.3570, 0.], [0.,1e-4])
 end
+
+# """
+# """
+# @with_kw mutable struct choiceoptions_expfilter <: DDMθoptions
+#     fit::Vector{Bool} = vcat(true, true, false, true, true, true, true, true, true, true, false, false, true)
+#     lb::Vector{Float64} = vcat([5., -5., 0., 0., 0., 0.01, 0.005, 0., 0., 0., 0.], [-30, 0.])
+#     ub::Vector{Float64} = vcat([60., 5., 2., 100., 20., 1.2, 1., 1., 1., 1., 1.], [30, 1.])
+#     x0::Vector{Float64} = vcat([15., -0.5, eps(), 2., 2.5, 0.2, 0.02, 0.3014, 0.9664, 0.3570, 0.], [0.,1e-4])
+# end
 
 """
 """
@@ -228,9 +237,10 @@ end
 include("base_model.jl")
 include("analysis_functions.jl")
 include("optim_funcs.jl")
-include("sample_model.jl")
+# include("sample_model.jl")
 
 include("choice_model/choice_model.jl")
+include("choice_model/compute_initialpt.jl")
 include("choice_model/compute_LL.jl")
 # include("choice_model/sample_model.jl")
 include("choice_model/process_data.jl")

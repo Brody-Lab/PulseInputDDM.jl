@@ -31,11 +31,12 @@ function optimize(data, modeltype, options::DDMθoptions, n::Int;
     x = stack(x,c,fit)
     θ = reconstruct_model(x, modeltype)
     model = choiceDDM(θ, data)
+    ll = loglikelihood(model, n)
     converged = Optim.converged(output)
 
     println("optimization complete. converged: $converged \n")
 
-    return model, output
+    return model, output, ll
 
 end
 
@@ -90,33 +91,33 @@ function reconstruct_model(x::Vector{T1}, modeltype) where {T1 <: Real}
     return θ
 end
 
-"""
-    gradient(model, n)
-
-Given a DDM model (parameters and data), compute the gradient.
 # """
-function gradient(model::T, n::Int) where T <: DDM
+#     gradient(model, n)
 
-    @unpack θ, data = model
-    x = [Flatten.flatten(θ)...]
-    ℓℓ(x) = -loglikelihood(x, data, n)
+# Given a DDM model (parameters and data), compute the gradient.
+# # """
+# function gradient(model::T, n::Int) where T <: DDM
 
-    ForwardDiff.gradient(ℓℓ, x)
+#     @unpack θ, data = model
+#     x = [Flatten.flatten(θ)...]
+#     ℓℓ(x) = -loglikelihood(x, data, n)
 
-end
+#     ForwardDiff.gradient(ℓℓ, x)
+
+# end
 
 
-"""
-    Hessian(model, n)
+# """
+#     Hessian(model, n)
 
-Given a DDM model (parameters and data), compute the Hessian.
-"""
-function Hessian(model::T, n::Int) where T <: DDM
+# Given a DDM model (parameters and data), compute the Hessian.
+# """
+# function Hessian(model::T, n::Int) where T <: DDM
 
-    @unpack θ, data = model
-    x = [Flatten.flatten(θ)...]
-    ℓℓ(x) = -loglikelihood(x, data, n)
+#     @unpack θ, data = model
+#     x = [Flatten.flatten(θ)...]
+#     ℓℓ(x) = -loglikelihood(x, data, n)
 
-    ForwardDiff.hessian(ℓℓ, x)
+#     ForwardDiff.hessian(ℓℓ, x)
 
-end
+# end

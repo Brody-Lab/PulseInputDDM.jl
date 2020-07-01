@@ -1,3 +1,8 @@
+
+#####################
+#### DEPRECATED ##### : need to add modeltype dependence
+#####################
+
 """
     synthetic_data(; θ=θchoice(), ntrials=2000, rng=1)
 
