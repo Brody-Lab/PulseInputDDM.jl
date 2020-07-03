@@ -80,7 +80,7 @@ function prob_right(θ, data, n::Int)
 
     # if choice = 1, then prob_right = p_choice
     # otherwise, prob_right = 1 - p_choice
-    return 1-choice + (2*choice-1)*prob_choice;
+    return -1*choice.+1 + (2*choice.-1).*prob_choice;
 end
 
 
