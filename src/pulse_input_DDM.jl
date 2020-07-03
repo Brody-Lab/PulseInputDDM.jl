@@ -27,9 +27,9 @@ export loglikelihood_expfilter, loglikelihood_expfilter_ce
 export loglikelihood, synthetic_data
 export CIs, optimize, Hessian, gradient
 export load, reload, save, flatten, unflatten
-export synthetic_clicks, prob_right, binLR, bin_clicks,
+export synthetic_clicks, binLR, bin_clicks
 
-export default_parameters_and_data, compute_LL
+export default_parameters_and_data, compute_LL, prob_right
 
 abstract type DDM end
 abstract type DDMdata end
