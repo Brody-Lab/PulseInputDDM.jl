@@ -34,9 +34,9 @@ function save(file, model, options, modeltype, ll; CI = 0)
     @unpack θ = model
 
     if modeltype == "expfilter"
-        name = ["B", "λ", "σ2_i", "σ2_a", "σ2_s", "ϕ", "τ_ϕ", "h_eta","h_beta","h_drift_scale", "B", "λ", "bias", "lapse"]
+        name = ["B", "λ", "σ2_i", "σ2_a", "σ2_s", "ϕ", "τ_ϕ", "h_eta","h_beta","h_drift_scale","bias", "lapse"]
     elseif modeltype == "expfilter_ce"
-        name = ["B", "λ", "σ2_i", "σ2_a", "σ2_s", "ϕ", "τ_ϕ", "h_etaC","h_etaE", "h_betaC", "h_betaE","h_drift_scale", "B", "λ", "bias", "lapse"]
+        name = ["B", "λ", "σ2_i", "σ2_a", "σ2_s", "ϕ", "τ_ϕ", "h_etaC","h_etaE", "h_betaC", "h_betaE","h_drift_scale", "bias", "lapse"]
     else
         error("Unknown model identifier $modeltype")
     end
@@ -62,7 +62,7 @@ end
 
 """
     reload(file)
-    
+
 Given a path and dictionaries, reload the results of a previous optimization saved as a .MAT file and
 place them in the "state" key of the dictionaires that optimize_model() expects.
 """
