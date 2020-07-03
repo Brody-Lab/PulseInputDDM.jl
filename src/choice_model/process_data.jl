@@ -1,151 +1,100 @@
 """
+    load(file)
+Given a path to a .mat file containing data (properly formatted), loads data into
+an acceptable format to use with pulse_input_DDM.
 """
-function load_choice_data(path::String, file::String;
-                use_bin_center::Bool=false, dt::Float64=5e-4)
+function load(file::String; centered::Bool=false, dt::Float64=5e-4)
 
-    println("loading data \n")
-    data = read(matopen(path*file), "rawdata")
+    data = read(matopen(file), "rawdata")
 
-    data = process_click_input_data!(data)
-    data = process_choice_data!(data)
-    data = bin_clicks!(data; use_bin_center=use_bin_center, dt=dt)
-  
-    data["sessidx"] = vec(convert(BitArray, data["sessidx"]))
-    data["ntrials"] = Int(length(data["T"]))
+    T = vec(data["T"])
+    gamma = vec(data["gamma"])
+    L = vec(map(x-> vec(collect(x)), data[collect(keys(data))[occursin.("left", collect(keys(data)))][1]]))
+    R = vec(map(x-> vec(collect(x)), data[collect(keys(data))[occursin.("right", collect(keys(data)))][1]]))
+    choices = vec(convert(BitArray, data["pokedR"]))
+    sessbnd = vec(convert(BitArray, data["sessidx"]))
 
-    return data
+    click_times = clicks.(L, R, T, gamma)
+    binned_clicks = bin_clicks.(click_times, centered=centered, dt=dt)
+    inputs = choiceinputs.(click_times, binned_clicks, dt, centered)
+
+    choicedata.(inputs, choices, sessbnd)
 
 end
 
 
 """
+    bin_clicks(clicks::Vector{T})
+Wrapper to broadcast bin_clicks across a vector of clicks.
 """
-function process_choice_data!(data)
-
-    data["pokedR"] = vec(convert(BitArray, data["pokedR"]))
-    data["correct"] = vec(convert(BitArray, data["correct"]))
-
-    return data
-
-end
+bin_clicks(clicks::Vector{T}; dt::Float64=1e-2, centered::Bool=false) where T <: Any =
+    bin_clicks.(clicks; dt=dt, centered=centered)
 
 
 """
+    bin_clicks(clicks)
+Bins clicks, based on dt (defaults to 1e-2). 'centered' determines if the bin edges
+occur at 0 and dt (and then ever dt after that), or at -dt/2 and dt/2 (and then
+every dt after that). If the former, the bins align with the binning of spikes
+in the neural model. For choice model, the latter is fine.
 """
-function process_click_input_data!(data)
+function bin_clicks(clicks::clicks; dt::Float64=1e-2, centered::Bool=false)
 
-    data["gamma"] = vec(data["gamma"])      
-    data["T"] = vec(data["T"])
-    data["leftbups"] = map(x-> vec(collect(x)), data[collect(keys(data))[occursin.("left", collect(keys(data)))][1]])
-    data["rightbups"] = map(x-> vec(collect(x)), data[collect(keys(data))[occursin.("right", collect(keys(data)))][1]])
+    @unpack T,L,R = clicks
+    nT = ceil(Int, round((T/dt), digits=10))
 
-    return data
-
-end
-
-
-"""
-"""
-function bin_clicks!(data::Dict; use_bin_center::Bool=false, dt::Float64=5e-4)
-
-    data["dt"] = dt
-    data["use_bin_center"] = use_bin_center
-
-    data["leftbups"] = map((x,y) -> x[x.<y], data["leftbups"], data["T"])
-    data["rightbups"] = map((x,y) -> x[x.<y], data["rightbups"], data["T"])
-
-    data["leftbups"] = map((x) -> x[x.>0.025], data["leftbups"])
-    data["rightbups"] = map((x) -> x[x.>0.025], data["rightbups"])
-
-    data["nT"], data["binned_leftbups"], data["binned_rightbups"] =
-        bin_clicks(data["T"], data["leftbups"], data["rightbups"], dt=dt, use_bin_center=use_bin_center)
-
-    data["ΔLR"] = map((nT,L,R)-> diffLR(nT,L,R,data["dt"])[end], data["nT"], data["leftbups"], data["rightbups"])
-    # data["ΔLR"] = map((nT,L,R)-> diffLR(nT,L,R,data["dt"]), data["nT"], data["leftbups"], data["rightbups"])
-
-    return data
-
-end
-
-
-"""
-"""
-function bin_clicks(T,L,R;dt::Float64=5e-4, use_bin_center::Bool=false)
-
-    nT = ceil.(Int, round.((T/dt), digits=10))
-    #added on 6/11/19, to avoid problem, such as 0.28/1e-2 = 28.0000000004, etc.
-
-    if use_bin_center
-
-        #so that a(t) is computed to middle of bin
-        nL =  map((x,y)-> map(z-> searchsortedlast((0. -dt/2):dt:(x -dt/2)*dt,z), y), nT, L)
-        nR = map((x,y)-> map(z-> searchsortedlast((0. -dt/2):dt:(x -dt/2)*dt,z), y), nT, R)
+    if centered
+        nL = searchsortedlast.(Ref((0. -dt/2):dt:(nT -dt/2)*dt), L)
+        nR = searchsortedlast.(Ref((0. -dt/2):dt:(nT -dt/2)*dt), R)
 
     else
-
-        nL =  map((x,y)-> map(z-> searchsortedlast(0.:dt:x*dt,z), y), nT, L)
-        nR = map((x,y)-> map(z-> searchsortedlast(0.:dt:x*dt,z), y), nT, R)
+        nL = searchsortedlast.(Ref(0.:dt:nT*dt), L)
+        nR = searchsortedlast.(Ref(0.:dt:nT*dt), R)
 
     end
 
-    return nT, nL, nR
+    binned_clicks(nT, nL, nR)
+
+end
+
+"""
+    reload(file)
+    
+Given a path and dictionaries, reload the results of a previous optimization saved as a .MAT file and
+place them in the "state" key of the dictionaires that optimize_model() expects.
+"""
+function reload(file)
+
+    read(matopen(file), "ML_params")
 
 end
 
 
 """
-    save_optimization_parameters(path, file, pz, pd; H=[])
-Given a path and dictionaries produced by optimize_model(), save the results of the optimization to a .MAT file
+    save(file, model, options; ll, CI)
+Given a file, model produced by optimize and options, save the results of the optimization to a .MAT file
 """
-function save_optimization_parameters(path, file, pz, pd; H=[])
+function save(file, model, options; ll = 0, CI = 0)
 
-    println("done. saving ML parameters! \n")
-    dict = Dict("ML_params"=> vcat(pz["final"], pd["final"]),
-        "name" => vcat(pz["name"], pd["name"]),
-        "lb"=> vcat(pz["lb"], pd["lb"]),
-        "ub"=> vcat(pz["ub"], pd["ub"]),
-        "fit"=> vcat(pz["fit"], pd["fit"]),
-	    # "generative"=> vcat(pz["generative"], pd["generative"]),
-        "initial"=>vcat(pz["initial"], pd["initial"]))
+    @unpack lb, ub, fit = options
+    @unpack θ = model
 
+    params = get_param_names(θ)
 
-    if haskey(pz,"CI_plus_LRtest")
+    dict = Dict("ML_params"=> collect(Flatten.flatten(θ)),
+        "name" => params, "loglikelihood" => ll,
+        "lb"=> lb, "ub"=> ub, "fit"=> fit, "modeltype"=> typeof(θ),
+        "CI" => CI)
 
-        dict["CI_plus_LRtest"] = vcat(pz["CI_plus_LRtest"], pd["CI_plus_LRtest"])
-        dict["CI_minus_LRtest"] = vcat(pz["CI_minus_LRtest"], pd["CI_minus_LRtest"])
+    matwrite(file, dict)
 
-    end
-
-    if haskey(pz,"CI_plus_hessian")
-
-        dict["CI_plus_hessian"] = vcat(pz["CI_plus_hessian"], pd["CI_plus_hessian"])
-        dict["CI_minus_hessian"] = vcat(pz["CI_minus_hessian"], pd["CI_minus_hessian"])
-
-    end
-
+    #=
     if !isempty(H)
         #dict["H"] = H
         hfile = matopen(path*"hessian_"*file, "w")
         write(hfile, "H", H)
         close(hfile)
     end
-
-    matwrite(path*file, dict)
-
-end
-
-
-"""
-    reload_optimization_parameters(path, file, pz, pd)
-Given a path and dictionaries, reload the results of a previous optimization saved as a .MAT file and
-place them in the "state" key of the dictionaires that optimize_model() expects.
-"""
-function reload_optimization_parameters(path, file, pz, pd)
-
-    println("reloading saved ML params \n")
-    pz["state"] = read(matopen(path*file),"ML_params")[1:dimz]
-    pd["state"] = read(matopen(path*file),"ML_params")[dimz+1:end]
-
-    return pz, pd
+    =#
 
 end

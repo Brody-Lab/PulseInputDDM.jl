@@ -1,18 +1,11 @@
-
-const dimz = 17
-const RTfit = true
-
 """
     initialize_latent_model(σ2_i, B, λ, σ2_a, n, dt)
 
 """
-function initialize_latent_model(σ2_i::TT, B::TT, λ::TT, σ2_a::TT,
+function initialize_latent_model(σ2_i::TT, B0::TT, λ::TT, σ2_a::TT,
      dx::Float64, dt::Float64, a_0::TT) where {TT,UU <: Any}
 
-    #bin centers and number of bins
-    xc,n = bins(B,dx)
-
-    # make initial latent distribution
+    xc,n = bins(B0,dx)
     P = P0(σ2_i,n,a_0,dx,xc,dt)
 
     return P, xc, n
@@ -24,11 +17,9 @@ end
     P0(σ2_i, n dx, xc, dt)
 
 """
-function P0(σ2_i::TT, n::Int, a_0::TT, dx::VV, xc::Vector{TT}, dt::Float64) where {TT,UU,VV <: Any}
+function P0(σ2_i::TT, n::Int, a_0::TT, dx::Float64, xc::Vector{TT}, dt::Float64) where {TT,UU,VV <: Any}
 
     P = zeros(TT,n)
-    
-    # make initial delta function
     P[ceil(Int,n/2)] = one(TT) 
     M = transition_M(σ2_i,zero(TT),a_0,dx,xc,n,dt)
     P = M * P
@@ -42,13 +33,13 @@ end
 """
 function latent_one_step!(P::Vector{TT}, F::Array{TT,2}, λ::TT, σ2_a::TT, σ2_s::TT,
         t::Int, nL::Vector{Int}, nR::Vector{Int},
-        La::Vector{TT}, Ra::Vector{TT},
-        dx::UU, xc::Vector{TT}, xc_pre::Vector{TT}, n::Int, dt::Float64) where {TT,UU <: Any}
+        La::Vector{TT}, Ra::Vector{TT}, scaled_a_0::TT,
+        dx::Float64, xc::Vector{TT}, xc_pre::Vector{TT}, n::Int, dt::Float64) where {TT,UU <: Any}
 
     any(t .== nL) ? sL = sum(La[t .== nL]) : sL = zero(TT)
     any(t .== nR) ? sR = sum(Ra[t .== nR]) : sR = zero(TT)
 
-    σ2 = σ2_s * (sL + sR);   μ = -sL + sR
+    σ2 = σ2_s * (sL + sR);   μ = -sL + sR + scaled_a_0
 
     if size(F,1) == size(F,2)
         transition_M!(F,σ2+σ2_a*dt,λ, μ, dx, xc, n, dt)
@@ -57,7 +48,7 @@ function latent_one_step!(P::Vector{TT}, F::Array{TT,2}, λ::TT, σ2_a::TT, σ2_
     end        
     P = F * P
 
-    return P, F
+    return P
 
 end
 
@@ -66,12 +57,6 @@ end
     bins(B,n)
 
 Computes the bin center locations and bin spacing, given the boundary and number of bins.
-
-### Examples
-```jldoctest
-julia> xc,dx = pulse_input_DDM.bins(25.5,53)
-([-26.0, -25.0, -24.0, -23.0, -22.0, -21.0, -20.0, -19.0, -18.0, -17.0  …  17.0, 18.0, 19.0, 20.0, 21.0, 22.0, 23.0, 24.0, 25.0, 26.0], 1.0)
-```
 """
 # function bins(B::TT, n::Int) where {TT}
 
@@ -84,7 +69,7 @@ julia> xc,dx = pulse_input_DDM.bins(25.5,53)
 
 # end
 
-function bins(B::TT, dx::Float64) where {TT}
+function bins(B::TT, dx::Float64) where {TT <: Any}
 
     xc = collect(0.:dx:floor(value(B)/dx)*dx)
 
@@ -142,8 +127,8 @@ julia> size(M)
 (53, 53)
 ```
 """
-function transition_M(σ2::TT, λ::TT, μ::TT, dx::UU,
-        xc::Vector{TT}, n::Int, dt::Float64) where {TT,UU <: Any}
+function transition_M(σ2::TT, λ::TT, μ::TT, dx::Float64,
+        xc::Vector{TT}, n::Int, dt::Float64) where {TT<: Any}
 
     M = zeros(TT,n,n)
     transition_M!(M,σ2,λ,μ,dx,xc,n,dt)
@@ -158,10 +143,12 @@ end
         xc::Vector{TT}, n::Int, dt::Float64) where {TT <: Any}
 
 """
-function transition_M!(F::Array{TT,2}, σ2::TT, λ::TT, μ::TT, dx::UU,
+function transition_M!(F::Array{TT,2}, σ2::TT, λ::TT, μ::TT, dx::Float64,
         xc::Vector{TT}, n::Int, dt::Float64) where {TT,UU <: Any}
 
-    F[1,1] = one(TT); F[n,n] = one(TT); F[:,2:n-1] = zeros(TT,n,n-2)
+    F[1,1] = one(TT)
+    F[n,n] = one(TT) 
+    F[:,2:n-1] = zeros(TT,n,n-2)
 
     ndeltas = max(70,ceil(Int, 10. *sqrt(σ2)/dx))
 
@@ -232,7 +219,7 @@ end
         xc::Vector{TT}, n::Int, dt::Float64) where {TT <: Any}
 
 """
-function transition_M!(F::Array{TT,2}, σ2::TT, λ::TT, μ::TT, dx::UU,
+function transition_M!(F, σ2::TT, λ::TT, μ::TT, dx::Float64,
         xc::Vector{TT}, xc_pre::Vector{TT}, n::Int, dt::Float64) where {TT,UU <: Any}
 
     n_pre = size(F,2)
@@ -304,18 +291,9 @@ end
     make_adapted_clicks(ϕ, τ_ϕ, L, R)
 
 """
-function make_adapted_clicks(ϕ::TT, τ_ϕ::TT, L::Vector{Float64}, R::Vector{Float64}) where {TT}
+function adapt_clicks(ϕ::TT, τ_ϕ::TT, L::Vector{Float64}, R::Vector{Float64}) where {TT}
 
     La, Ra = ones(TT,length(L)), ones(TT,length(R))
-
-    # magnitude of stereo clicks set to zero
-    # I removed these lines on 8/8/18, because I'm not exactly sure why they are here (from Bing's original model)
-    # and the cause the state to adapt even when phi = 1., which I'd like to spend time fitting simpler models to
-    # check slack discussion with adrian and alex
-
-    #if !isempty(L) && !isempty(R) && abs(L[1]-R[1]) < eps()
-    #    La[1], Ra[1] = eps(), eps()
-    #end
 
     (length(L) > 1 && ϕ != 1.) ? adapt_clicks!(La, L, ϕ, τ_ϕ) : nothing
     (length(R) > 1 && ϕ != 1.) ? adapt_clicks!(Ra, R, ϕ, τ_ϕ) : nothing
@@ -351,7 +329,7 @@ end
     make_adapted_clicks(ϕ, L, R) - just scaling the clicks with no temporal dynamics
 
 """
-function make_adapted_clicks(ϕ::TT, L::Vector{Float64}, R::Vector{Float64}) where {TT}
+function adapt_clicks(ϕ::TT, L::Vector{Float64}, R::Vector{Float64}) where {TT}
 
     La, Ra = ϕ.*ones(TT,length(L)), ϕ.*ones(TT,length(R))
 

@@ -1,106 +1,141 @@
 """
+    synthetic_data(; θ=θchoice(), ntrials=2000, rng=1)
+Returns default parameters and ntrials of synthetic data (clicks and choices) organized into a choicedata type.
 """
-function sample_clicks(ntrials::Int; rng::Int=1)
-    
+function synthetic_data(θ::DDMθ, dt::Float64=5e-4, ntrials::Int=2000, rng::Int=1, centered::Bool=false)
+
+    clicks, choices, sessbnd = rand(θ, ntrials, dt=dt, rng=rng)
+    binned_clicks = bin_clicks.(clicks, centered=centered, dt=dt)
+    inputs = choiceinputs.(clicks, binned_clicks, dt, centered)
+
+    return choicedata.(inputs, choices, sessbnd)
+
+end
+
+
+"""
+    synthetic_clicks(ntrials, rng)
+Computes randomly timed left and right clicks for ntrials.
+rng sets the random seed so that clicks can be consistently produced.
+Output is bundled into an array of 'click' types.
+"""
+function synthetic_clicks(ntrials::Int, rng::Int;
+    tmin::Float64=5.0, tmax::Float64=5.0, clickrate::Int=40)
+
     Random.seed!(rng)
-    
-    data = Dict()
 
-    output = map(generate_stimulus,1:ntrials)
+    T = tmin .+ (tmax-tmin).*rand(ntrials)
+    T = ceil.(T, digits=2)
+    clicktot = clickrate.*Int.(T)
 
-    data["leftbups"] = map(i->output[i][3],1:ntrials)
-    data["rightbups"] = map(i->output[i][2],1:ntrials)
-    data["T"] = map(i->output[i][1],1:ntrials)
-    data["correct"] = map(i->output[i][4], 1:ntrials)
-    data["gamma"] = map(i->output[i][5], 1:ntrials)
-    data["ntrials"] = ntrials
+    rate_vals = [15.10, 24.89, 7.29, 32.7, 3.03, 36.96, 1.17, 38.82]
+    Rbar = rand(rate_vals, ntrials)
+    Lbar = clickrate .- Rbar
 
-    # generating session markers - this is super ugly
-    data["sessidx"] = Vector{Bool}(undef, ntrials)
-    data["sessidx"][:] .= 0
-    idx = 1
-    data["sessidx"][idx] = 1
-    for i = 1:ntrials/800
-        idx = 400+ceil(Int,rand()*(800-400)) + idx
-        data["sessidx"][idx] = 1
+    R = cumsum.(rand.(Exponential.(1 ./Rbar), clicktot))
+    L = cumsum.(rand.(Exponential.(1 ./Lbar), clicktot))
+    R = map((T,R)-> vcat(0,R[R .<= T]), T,R)
+    L = map((T,L)-> vcat(0,L[L .<= T]), T,L)
+
+    gamma = round.(log.(Rbar./Lbar), digits =1)
+
+    clicks.(L, R, T, gamma)
+
+end
+
+
+"""
+    rand(θ, ntrials)
+Produces synthetic clicks and choices for n trials using model parameters θ.
+"""
+function rand(θ::DDMθ, ntrials::Int; dt::Float64=5e-4, rng::Int = 1, centered::Bool=false)
+
+    clicks = synthetic_clicks(ntrials, rng)
+    binned_clicks = bin_clicks.(clicks,centered=centered,dt=dt)
+    inputs = choiceinputs.(clicks, binned_clicks, dt, centered)
+
+    ntrials = length(inputs)
+    sessbnd = [rand()<0.001 for i in 1:ntrials]  
+
+    @unpack bias = θ.base_θz
+    a_0 = compute_initial_pt(θ.hist_θz, bias, inputs, sessbnd)
+
+    rng = sample(Random.seed!(rng), 1:ntrials, ntrials; replace=false)
+    output = pmap((inputs, a_0, rng) -> rand(θ, inputs, a_0, rng), inputs, a_0, rng)
+    choices = map(output->output[1], output)
+    RT = map(output->output[2], output)
+
+    # adding non-decision time
+    @unpack ndtimeL1, ndtimeL2 = θ.ndtime_θz
+    @unpack ndtimeR1, ndtimeR2 = θ.ndtime_θz
+    NDdistL = Gamma(ndtimeL1, ndtimeL2)
+    NDdistR = Gamma(ndtimeR1, ndtimeR2)
+    RT .= RT .+ ((1. .- choices).*vec(rand.(NDdistL,ntrials)) .+ choices.*vec(rand.(NDdistR,ntrials)))
+    map((clicks, RT) -> clicks.T = round(RT, digits =length(string(dt))-2), clicks, RT)
+
+    # adding lapse effects [LEAVING THIS OUT FOR NOW] - since lapses occur with such small prob anyway
+    return clicks, choices, sessbnd
+
+end
+
+
+"""
+    rand(θ, inputs, rng)
+Produces L/R choice for one trial, given model parameters and inputs.
+# """
+function rand(θ::DDMθ, inputs::choiceinputs, a_0::TT, rng::Int) where TT <: Real
+
+    Random.seed!(rng)    
+    choice, RT = rand(θ.base_θz,inputs,a_0)
+
+end
+
+
+
+"""
+    rand(θz, inputs)
+Generate a sample latent trajecgtory,
+given parameters of the latent model θz and clicks for one trial, contained
+within inputs.
+"""
+function rand(base_θz, inputs::choiceinputs, a_0::TT) where TT <: Real
+
+    @unpack Bm, B0, Bλ, h_drift_scale = base_θz
+    @unpack λ, σ2_i, σ2_a, σ2_s, ϕ, τ_ϕ, bias = base_θz
+    @unpack clicks, binned_clicks, centered, dt = inputs
+    @unpack nT, nL, nR = binned_clicks
+    @unpack L, R = clicks
+
+    La, Ra = adapt_clicks(ϕ, τ_ϕ, L, R)
+    B = map(x->B0 + Bλ*sqrt(x), dt .* collect(1:nT))
+    RT = 0.
+
+    if σ2_i > 0.
+        a = sqrt(σ2_i)*randn() + a_0 + bias
+    else
+        a = zero(typeof(σ2_i)) + a_0 + bias
     end
 
-    
-    return data
-    
-end
+    for t = 1:nT
 
-
-"""
-"""
-function generate_stimulus(i::Int; tmin::Float64=10.0,tmax::Float64=10.0,clickrate::Int=40)
-    
-    T = tmin + (tmax-tmin)*rand()
-    clicktot = clickrate*Int(ceil.(T))
-    
-    # these values correspond to a gamma of (-) 0.5, 1.5, 2.5 and 3.5
-    # Rbar = (clickrate*exp(gamma))./(1+exp(gamma))
-    Rbar = rand([15.10, 24.89, 7.29, 32.7, 3.03, 36.96, 1.17, 38.82])
-    Lbar = clickrate - Rbar
-
-    R = cumsum(rand(Exponential(1/Rbar),clicktot))
-    L = cumsum(rand(Exponential(1/Lbar),clicktot))
-    R = vcat(R[R .<= T])
-    L = vcat(L[L .<= T])
-    
-    T = ceil.(T, digits=2)
-    correct = Bool(Rbar > Lbar)
-    gamma = round(log(Rbar/Lbar), digits =1)
-
-    return T,R,L,correct, gamma
-    
-end
-
-
-"""
-"""
-function sample_latent(nT::Int, L::Vector{Float64},R::Vector{Float64},
-        nL::Vector{Int}, nR::Vector{Int}, 
-        pz::Vector{TT}, a_0::TT, use_bin_center::Bool; 
-        dt::Float64=5e-4) where {TT <: Any}
-    
-    σ2_i, B, B_λ, B_Δ, λ, σ2_a, σ2_s, ϕ, τ_ϕ, η, α_prior, β_prior, B_0, γ_shape, γ_scale, γ_shape1, γ_scale1 = pz
-    La, Ra = make_adapted_clicks(ϕ, τ_ϕ, L, R)
-    # La, Ra = make_adapted_clicks(ϕ, L, R)
-
-    # A = Vector{TT}(undef,nT)
-    # Bt = map(x->B*(1. + exp(B_λ*(x-B_Δ)))^(-1.), dt .* collect(1:nT))
-    # Bt = map(x-> sqrt(B_λ+x)*sqrt(2)*erfinv(2*B - 1.), dt .* collect(1:nT))
-    Bt = map(x->B + B_λ*sqrt(x), dt .* collect(1:nT))
-
-    a = sqrt(σ2_i)+ a_0
-    RT = 0 
-
-    for t = 2:nT
-            
-        if use_bin_center && t == 1         
-            a = sample_one_step!(a, t, σ2_a, σ2_s, λ, nL, nR, La, Ra, dt/2)
+        if centered && t == 1
+            a = sample_one_step!(a, t, σ2_a, σ2_s, λ, nL, nR, La, Ra, a_0*h_drift_scale, dt/2)
         else
-            a = sample_one_step!(a, t, σ2_a, σ2_s, λ, nL, nR, La, Ra, dt)
+            a = sample_one_step!(a, t, σ2_a, σ2_s, λ, nL, nR, La, Ra, a_0*h_drift_scale, dt)
         end
-        
-        if abs(a) >= Bt[t]
-            a = Bt[t] * sign(a)
-            RT = t
+
+        if abs(a) >= B[t]
+            a, RT = B[t] * sign(a), t
             break
         end 
 
-        # abs(a) >= Bt[t] ? (a = Bt[t] * sign(a); A[t:nT] .= a; RT = t; break) : A[t] = a
-	
-	   # this should be handles in a better way, but for now to prevent fatal errors
-	   if t == nT
-	       RT = t
-	   end 
+        if t == nT
+           RT = t
+        end 
+    end
 
-    end               
-    
-    return a, RT
-    
+    return a>0., RT*dt
+
 end
 
 
@@ -108,45 +143,22 @@ end
 """
 function sample_one_step!(a::TT, t::Int, σ2_a::TT, σ2_s::TT, λ::TT, 
         nL::Vector{Int}, nR::Vector{Int}, 
-        La, Ra, dt::Float64=5e-4) where {TT <: Any}
+        La, Ra, h_drift::TT, dt::Float64=5e-4) where {TT <: Any}
     
     any(t .== nL) ? sL = sum(La[t .== nL]) : sL = zero(TT)
     any(t .== nR) ? sR = sum(Ra[t .== nR]) : sR = zero(TT)
+    σ2, μ = σ2_s * (sL + sR), -sL + sR + h_drift
     
-    acc_noise = sqrt(dt*σ2_a)*randn()
-    sens_comp = -sL*(1. + randn()*sqrt(σ2_s)) + sR*(1. + randn()*sqrt(σ2_s))
+    # scaling variance
+    ξ = sqrt(σ2_a * dt + σ2) * randn()
     
     if abs(λ) < 1e-150 
-        a += sens_comp + acc_noise
+        a += μ + (ξ)  #
     else
-        dd = exp(dt*λ)
-        a = a*dd + acc_noise + sens_comp    
+        h = μ/(dt*λ)   
+        a = exp(λ*dt)*(a + h) - h + ξ
     end
     
     return a
 
 end
-
-# """
-# """
-# function sample_one_step!(a::TT, t::Int, σ2_a::TT, σ2_s::TT, λ::TT, 
-#         nL::Vector{Int}, nR::Vector{Int}, 
-#         La, Ra, dt::Float64=5e-4) where {TT <: Any}
-    
-#     any(t .== nL) ? sL = sum(La[t .== nL]) : sL = zero(TT)
-#     any(t .== nR) ? sR = sum(Ra[t .== nR]) : sR = zero(TT)
-#     σ2, μ = σ2_s * (sL + sR), -sL + sR  
-    
-#     # scaling variance
-#     ξ = sqrt(σ2_a * dt + σ2) * randn()
-    
-#     if abs(λ) < 1e-150 
-#         a += μ + (ξ)  #
-#     else
-#         h = μ/(dt*λ)   
-#         a = exp(λ*dt)*(a + h) - h + ξ
-#     end
-    
-#     return a
-
-# end
