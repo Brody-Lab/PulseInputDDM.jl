@@ -65,10 +65,10 @@ function prob_right(θ, data, n::Int)
     sessbnd = map(data->data.sessbnd,data)
     choice = map(data->data.choice,data)
 
-    if typeof(θ)==θ_expfilter
+    if typeof(θ)==θ_expfilter{θz_expfilter{Float64},Float64}
         @unpack h_eta, h_beta = θ.θz
         i_0 = compute_initial_pt(h_eta, h_beta, clickdata, sessbnd)
-    elseif typeof(θ)==θ_expfilter_ce
+    elseif typeof(θ)=θ_expfilter_ce{θz_expfilter_ce{Float64},Float64}
         @unpack h_etaC, h_etaE, h_betaC, h_etaE = θ.θz
         i_0 = compute_initial_pt(h_etaC, h_etaE, h_betaC, h_etaE, clickdata, choice, sessbnd)
     else
