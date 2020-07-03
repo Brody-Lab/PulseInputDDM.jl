@@ -49,7 +49,7 @@ function load_and_dprime(path::String, sessids, ratnames;
 end
 
 
-function prob_right(θ, data, n::Int)
+function prob_right(model, data, n::Int)
     """
     Compute the probability of a right choice in each trial
 
@@ -61,10 +61,12 @@ function prob_right(θ, data, n::Int)
         p_right
             A vector indicating the probability of a right choice in each trial
     """
+
     clickdata = map(data->data.click_data,data)
     sessbnd = map(data->data.sessbnd,data)
     choice = map(data->data.choice,data)
 
+    @unpack θ = model
     if typeof(θ)==θ_expfilter{θz_expfilter{Float64},Float64}
         @unpack h_eta, h_beta = θ.θz
         i_0 = compute_initial_pt(h_eta, h_beta, clickdata, sessbnd)

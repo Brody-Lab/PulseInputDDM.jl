@@ -28,7 +28,7 @@ end
 
 Given a file, model produced by optimize and options, save the results of the optimization to a .MAT file
 """
-function save(file, model, options, modeltype, ll; CI = 0)
+function save(file, model, options, modeltype, ll, prob_right = 0, CI = 0)
 
     @unpack lb, ub, fit = options
     @unpack θ = model
@@ -42,9 +42,13 @@ function save(file, model, options, modeltype, ll; CI = 0)
     end
 
     dict = Dict("ML_params"=> collect(Flatten.flatten(θ)),
-        "name" => name, "loglikelihood" => ll,
-        "lb"=> lb, "ub"=> ub, "fit"=> fit, "modeltype"=> modeltype,
-        "CI" => CI)
+                "name" => name, "loglikelihood" => ll,
+                "lb"=> lb,
+                "ub"=> ub,
+                "fit"=> fit,
+                "modeltype"=> modeltype,
+                "prob_right"=prob_right,
+                "CI" => CI)
 
     matwrite(file, dict)
 
