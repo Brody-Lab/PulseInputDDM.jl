@@ -18,7 +18,7 @@ import Base.rand
 import Base.Iterators: partition
 import Flatten: flattenable
 
-export choiceDDM, choicedata, #createmodel
+export choiceDDM, choicedata, createmodel
 export θ_expfilter, θ_expfilter_ce, θz_expfilter, θz_expfilter_ce
 export choiceoptions_expfilter, choiceoptions_expfilter_ce
 
