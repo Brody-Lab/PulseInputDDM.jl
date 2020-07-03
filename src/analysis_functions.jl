@@ -9,7 +9,7 @@ nanstderr(x,y) = mapslices(nanstderr,x,dims=y)
 """
 """
 function diffLR(click_data)
-    
+
     @unpack binned_clicks, clicks, dt = click_data
 
     L,R = binLR(binned_clicks, clicks, dt)
@@ -46,6 +46,41 @@ function load_and_dprime(path::String, sessids, ratnames;
             1:data[d]["N"]),
                 1:length(data))
 
+end
+
+
+function prob_right(θ, data, n::Int)
+    """
+    Compute the probability of a right choice in each trial
+
+    INPUT
+        θ
+        data
+        n
+    OUTPUT
+        p_right
+            A vector indicating the probability of a right choice in each trial
+    """
+    clickdata = map(data->data.click_data,data)
+    sessbnd = map(data->data.sessbnd,data)
+    choice = map(data->data.choice,data)
+
+    if typeof(θ)==θ_expfilter
+        @unpack h_eta, h_beta = θ.θz
+        i_0 = compute_initial_pt(h_eta, h_beta, clickdata, sessbnd)
+    elseif typeof(θ)==θ_expfilter_ce
+        @unpack h_etaC, h_etaE, h_betaC, h_etaE = θ.θz
+        i_0 = compute_initial_pt(h_etaC, h_etaE, h_betaC, h_etaE, clickdata, choice, sessbnd)
+    else
+        throw(TypeError)
+    end
+
+    ll = pmap((data, i_0) -> loglikelihood!(θ, data, i_0, n), data, i_0)
+    prob_choice = exp.(ll)
+
+    # if choice = 1, then prob_right = p_choice
+    # otherwise, prob_right = 1 - p_choice
+    return = 1-choice + (2*choice-1)*prob_choice;
 end
 
 

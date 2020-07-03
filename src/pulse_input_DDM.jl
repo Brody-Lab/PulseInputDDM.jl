@@ -18,20 +18,18 @@ import Base.rand
 import Base.Iterators: partition
 import Flatten: flattenable
 
-export choiceDDM, choicedata, createmodel
+export choiceDDM, choicedata, #createmodel
 export θ_expfilter, θ_expfilter_ce, θz_expfilter, θz_expfilter_ce
-export choiceoptions_expfilter, choiceoptions_expfilter_ce  
+export choiceoptions_expfilter, choiceoptions_expfilter_ce
 
 export dimz
 export loglikelihood_expfilter, loglikelihood_expfilter_ce
 export loglikelihood, synthetic_data
 export CIs, optimize, Hessian, gradient
 export load, reload, save, flatten, unflatten
-export synthetic_clicks, binLR, bin_clicks
+export synthetic_clicks, prob_right, binLR, bin_clicks,
 
 export default_parameters_and_data, compute_LL
-
-
 
 abstract type DDM end
 abstract type DDMdata end
@@ -51,7 +49,7 @@ function createmodel(modeltype)
                     "expfilter_ce" => choiceoptions_expfilter_ce)
 
     if modeltype in keys(thetadict)
-        dims = length(fieldnames(thetazdict[modeltype])) 
+        dims = length(fieldnames(thetazdict[modeltype]))
         return dims, thetadict[modeltype](), optionsdict[modeltype]()
     else
         error("Unknown model identifier $modeltype")
@@ -229,7 +227,7 @@ choiceDDM(θ, data)
 ```
 """
 @with_kw struct choiceDDM{T,U} <: DDM
-    θ::T 
+    θ::T
     data::U
 end
 
