@@ -47,7 +47,7 @@ function save(file, model, options, modeltype, ll, prob_right = 0, CI = 0)
                 "ub"=> ub,
                 "fit"=> fit,
                 "modeltype"=> modeltype,
-                "prob_right"=prob_right,
+                "prob_right"=> prob_right,
                 "CI" => CI)
 
     matwrite(file, dict)
