@@ -19,12 +19,13 @@ function load(file::String; centered::Bool=false, dt::Float64=5e-4)
     inputs = choiceinputs.(click_times, binned_clicks, dt, centered)
     data_pack = choicedata.(inputs, choices, sessbnd)
 
-    return data_pack, make_data_dict(data_pack, dt)
+    return data_pack, make_data_dict(data_pack)
 
 end
 
 
-function make_data_dict(data, dt)
+function make_data_dict(data)
+    dt = data[1].click_data.dt
     correct = map(data->sign(data.click_data.clicks.gamma), data)
     sessbnd = map(data->data.sessbnd,data)
     choice = map(data->data.choice,data)

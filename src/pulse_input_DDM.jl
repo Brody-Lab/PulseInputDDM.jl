@@ -146,16 +146,16 @@ end
 function create_options(θ::DDMθ)
 
 	 paramlims = Dict(
-    	:Bm => [0., 10., 0, 0.], :Bλ => [-5.0, 1.0, 0, 0.], :B0 => [1.0, 5.0, 1, 3.],  	# bound parameters
+    	:Bm => [0., 10., 0, 0.], :Bλ => [-5.0, 1.0, 0, 0.], :B0 => [0.5, 5.0, 1, 2.],  	# bound parameters
     	:λ => [-5.0, 5.0, 0, -0.001],                           					# leak
     	:σ2_i => [0.0, 2.0, 0, eps()], :σ2_a => [0.0, 10., 0, eps()], :σ2_s => [0.0, 20., 1, 2.],  # noise params
     	:ϕ => [0.01, 1.2, 1, 0.2], :τ_ϕ => [0.005, 1.0, 1, 0.02],        	# adaptation params
-    	:bias => [-1.0, 1.0, 1, 0.], :lapse => [0.0, 1.0, 0, 0.],         # bias, lapse params
+    	:bias => [-1.5, 1.5, 1, 0.], :lapse => [0.0, 1.0, 0, 0.],         # bias, lapse params
     	:h_drift_scale => [0.0, 1.0, 0, 0.],                       # history drift scale
     	:ndtimeL1 => [0.0, 10.0, 1, 3.], :ndtimeL2 => [0.0, 5.0, 1, 0.04],  # ndtime left choice
     	:ndtimeR1 => [0.0, 10.0, 1, 3.], :ndtimeR2 => [0.0, 5.0, 1, 0.04],  # ndtime right choice
-    	:h_η => [-1.0, 1.0, 1, 0.3], :h_β => [0., 1., 1, 0.1],				# expfilter params
-    	:h_ηC => [-1.0, 1.0, 1, 0.3], :h_ηE => [-5., 5., 1, 0.3],			# expfilter_ce params
+    	:h_η => [-2.0, 2.0, 1, 0.3], :h_β => [0., 1., 1, 0.1],				# expfilter params
+    	:h_ηC => [-2.0, 2.0, 1, 0.3], :h_ηE => [-2., 2., 1, 0.3],			# expfilter_ce params
     	:h_βC => [0., 1., 1, 0.1], :h_βE => [0., 1., 1, 0.1])				# expfilter_ce params 
 
 	params = get_param_names(θ)
@@ -173,7 +173,6 @@ function create_options(θ::DDMθ)
     	x0[i] = paramlims[params[i]][4]
 	end
 	# x0[fit .== false] .= 0.
-	# x0[4] = -0.001 # setting it for lambda - make this better
 	options = choiceoptions(lb = lb, ub = ub, x0 = x0, fit = fit)
 	return options, params
 

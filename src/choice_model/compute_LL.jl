@@ -30,7 +30,7 @@ function loglikelihood(θ::DDMθ, data, data_dict, dx::Float64)
     dt = data_dict["dt"]
     frac = data_dict["frac"]
 
-    P = map((data, a_0, nT) -> loglikelihood!(θ.base_θz, data, a_0, dx, pdf.(NDdistL, dt.*collect(nT:-1:1)).*dt, 
+    P = pmap((data, a_0, nT) -> loglikelihood!(θ.base_θz, data, a_0, dx, pdf.(NDdistL, dt.*collect(nT:-1:1)).*dt, 
                                         pdf.(NDdistR, dt.*collect(nT:-1:1)).*dt), data, a_0, data_dict["nT"])
     
     return sum(log.((frac .* data_dict["lapse_lik"] .* .5) .+ (1. - frac)
