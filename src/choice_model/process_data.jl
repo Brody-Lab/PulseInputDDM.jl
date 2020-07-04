@@ -28,7 +28,7 @@ end
 
 Given a file, model produced by optimize and options, save the results of the optimization to a .MAT file
 """
-function save(file, model, options, modeltype, ll, prob_right = 0, CI = 0)
+function save(file, model, options, modeltype, ll, prob_right; CI = 0)
 
     @unpack lb, ub, fit = options
     @unpack θ = model
