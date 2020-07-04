@@ -33,13 +33,13 @@ function compute_initial_pt(hist_θz::θz_expfilter_ce, bias::TT, data_dict) whe
     @unpack h_ηC, h_ηE, h_βC, h_βE = hist_θz
     hits = data_dict["correct"] .== data_dict["choice"]
     ntrials = length(hits)
-    sessbnd[1] = 1
+    data_dict["sessbnd"][1] = 1
     lim = 1
 
     i_0 = Array{TT}(undef, ntrials)
     
     for i = 1:ntrials
-        if sessbnd[i] == 1
+        if data_dict["sessbnd"][i] == 1
             lim = i
             i_0[i] = 0.
             rel = []
