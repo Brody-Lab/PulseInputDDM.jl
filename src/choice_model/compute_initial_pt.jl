@@ -3,19 +3,18 @@ exponential filter 2 params
 assumes a single process (stimulus space)
 """
 
-function compute_initial_pt(hist_θz::θz_expfilter, bias::TT, click_data,
-             sessbnd::Vector{Bool}, choice = 0.) where TT <: Any
+function compute_initial_pt(hist_θz::θz_expfilter, bias::TT, data_dict) where TT <: Any
     
     @unpack h_η, h_β = hist_θz
-    correct = map(inputs->sign(inputs.clicks.gamma), click_data)
-    i_0 = Array{TT}(undef, length(correct)) 
+    ntrials = length(data_dict["correct"])
+    i_0 = Array{TT}(undef, ntrials) 
     i_0[1] = 0.
     
-    for i = 2:length(correct)
-        if sessbnd[i] == 1
+    for i = 2:length(ntrials)
+        if data_dict["sessbnd"][i] == 1
             i_0[i] = 0.
         else
-            i_0[i] = h_η*correct[i-1] + h_β*i_0[i-1]
+            i_0[i] = h_η*data_dict["correct"][i-1] + h_β*i_0[i-1]
         end
     end
 
@@ -29,26 +28,24 @@ end
 exponential filter 4 params 
 assumes independent discounting and updating of correct and error trials (stimulus space)
 """
-function compute_initial_pt(hist_θz::θz_expfilter_ce, bias::TT, click_data,
-             sessbnd::Vector{Bool}, choice) where TT <: Any
+function compute_initial_pt(hist_θz::θz_expfilter_ce, bias::TT, data_dict) where TT <: Any
     
     @unpack h_ηC, h_ηE, h_βC, h_βE = hist_θz
-
-    correct = map(inputs->sign(inputs.clicks.gamma), click_data)    
-    hits = correct .== choice
+    hits = data_dict["correct"] .== data_dict["choice"]
+    ntrials = length(hits)
     sessbnd[1] = 1
     lim = 1
 
-    i_0 = Array{TT}(undef, length(correct))
+    i_0 = Array{TT}(undef, ntrials)
     
-    for i = 1:length(correct)
+    for i = 1:ntrials
         if sessbnd[i] == 1
             lim = i
             i_0[i] = 0.
             rel = []
          else
             rel = max(lim, i-10):i-1
-            cho = -1. .*(1 .- choice[rel]) + choice[rel]
+            cho = -1. .*(1 .- data_dict["choice"][rel]) + data_dict["choice"][rel]
             corr = hits[rel].*h_ηC.*h_βC.^reverse(0:length(rel)-1)
             err =  -1 .*(1 .- hits[rel]).*h_ηE.*h_βE.^reverse(0:length(rel)-1)
             i_0[i] = sum(cho .* (corr + err))

@@ -17,9 +17,26 @@ function load(file::String; centered::Bool=false, dt::Float64=5e-4)
     click_times = clicks.(L, R, T, gamma)
     binned_clicks = bin_clicks.(click_times, centered=centered, dt=dt)
     inputs = choiceinputs.(click_times, binned_clicks, dt, centered)
+    data_pack = choicedata.(inputs, choices, sessbnd)
 
-    choicedata.(inputs, choices, sessbnd)
+    return data_pack, make_data_dict(data_pack, dt)
 
+end
+
+
+function make_data_dict(data, dt)
+    correct = map(data->sign(data.click_data.clicks.gamma), data)
+    sessbnd = map(data->data.sessbnd,data)
+    choice = map(data->data.choice,data)
+    nT = map(data->data.click_data.binned_clicks.nT, data)
+
+    # lapse trials 
+    frac = 1e-5
+    lapse_dist = Exponential(mean(nT)*dt)
+    lapse_lik = pdf.(lapse_dist,nT.*dt) .*dt
+
+    data_vec = Dict("correct"=> correct, "sessbnd"=> sessbnd, "frac" => frac, 
+                    "choice"=> choice, "nT" => nT, "lapse_lik" => lapse_lik, "dt"=> dt)
 end
 
 

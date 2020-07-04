@@ -29,6 +29,30 @@ end
 
 """
     latent_one_step!(P, F, λ, σ2_a, σ2_s, t, nL, nR, La, Ra, M, dx, xc, n, dt)
+    for when bound is stationary
+
+"""
+function latent_one_step!(P::Vector{TT}, F::Array{TT,2}, λ::TT, σ2_a::TT, σ2_s::TT,
+        t::Int, nL::Vector{Int}, nR::Vector{Int},
+        La::Vector{TT}, Ra::Vector{TT}, scaled_a_0::TT,
+        dx::Float64, xc::Vector{TT}, n::Int, dt::Float64) where {TT,UU <: Any}
+
+    any(t .== nL) ? sL = sum(La[t .== nL]) : sL = zero(TT)
+    any(t .== nR) ? sR = sum(Ra[t .== nR]) : sR = zero(TT)
+
+    σ2 = σ2_s * (sL + sR);   μ = -sL + sR + scaled_a_0
+
+    transition_M!(F,σ2+σ2_a*dt,λ, μ, dx, xc, n, dt)
+    P = F * P
+
+    return P, F
+
+end
+
+
+"""
+    latent_one_step!(P, F, λ, σ2_a, σ2_s, t, nL, nR, La, Ra, M, dx, xc, n, dt)
+    for when bound is nonstationary
 
 """
 function latent_one_step!(P::Vector{TT}, F::Array{TT,2}, λ::TT, σ2_a::TT, σ2_s::TT,
@@ -48,7 +72,7 @@ function latent_one_step!(P::Vector{TT}, F::Array{TT,2}, λ::TT, σ2_a::TT, σ2_
     end        
     P = F * P
 
-    return P
+    return P, F
 
 end
 

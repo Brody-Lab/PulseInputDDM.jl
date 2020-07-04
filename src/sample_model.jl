@@ -55,10 +55,11 @@ function rand(θ::DDMθ, ntrials::Int; dt::Float64=5e-4, rng::Int = 1, centered:
     inputs = choiceinputs.(clicks, binned_clicks, dt, centered)
 
     ntrials = length(inputs)
-    sessbnd = [rand()<0.001 for i in 1:ntrials]  
 
     @unpack bias = θ.base_θz
-    a_0 = compute_initial_pt(θ.hist_θz, bias, inputs, sessbnd)
+    data_dict = Dict("correct" => map(clicks->sign(clicks.gamma), clicks),
+                    "sessbnd" => [rand()<0.001 for i in 1:ntrials])
+    a_0 = compute_initial_pt(θ.hist_θz, bias, data_dict)
 
     rng = sample(Random.seed!(rng), 1:ntrials, ntrials; replace=false)
     output = pmap((inputs, a_0, rng) -> rand(θ, inputs, a_0, rng), inputs, a_0, rng)
@@ -74,7 +75,7 @@ function rand(θ::DDMθ, ntrials::Int; dt::Float64=5e-4, rng::Int = 1, centered:
     map((clicks, RT) -> clicks.T = round(RT, digits =length(string(dt))-2), clicks, RT)
 
     # adding lapse effects [LEAVING THIS OUT FOR NOW] - since lapses occur with such small prob anyway
-    return clicks, choices, sessbnd
+    return clicks, choices, data_dict["sessbnd"]
 
 end
 

@@ -6,7 +6,7 @@ options is a type that contains the initial values, boundaries,
 and specification of which parameters to fit.
 BACK IN THE DAY TOLS WERE: x_tol::Float64=1e-4, f_tol::Float64=1e-9, g_tol::Float64=1e-2
 """
-function optimize(data, modeltype, options::DDMθoptions, dx::Float64;
+function optimize(data, data_dict, modeltype, options::DDMθoptions, dx::Float64;
         x_tol::Float64=1e-12, f_tol::Float64=1e-12, g_tol::Float64=1e-10,
         iterations::Int=Int(5e3), show_trace::Bool=true, outer_iterations::Int=Int(1e1),
         extended_trace::Bool=false, scaled::Bool=false)
@@ -17,7 +17,7 @@ function optimize(data, modeltype, options::DDMθoptions, dx::Float64;
     ub, = unstack(ub, fit)
     x0,c = unstack(x0, fit)
 
-    ℓℓ(x) = objectivefn(modeltype, stack(x,c,fit), data, dx)
+    ℓℓ(x) = objectivefn(modeltype, stack(x,c,fit), data, data_dict, dx)
 
     output = optimize(x0, ℓℓ, lb, ub; g_tol=g_tol, x_tol=x_tol,
         f_tol=f_tol, iterations=iterations, show_trace=show_trace,
@@ -42,9 +42,9 @@ end
  relevant modeltype    
 
 """
-function objectivefn(modeltype, x::Vector{T1}, data, dx::Float64) where {T1 <: Real}
+function objectivefn(modeltype, x::Vector{T1}, data, data_dict, dx::Float64) where {T1 <: Real}
     θ = reconstruct_model(x, modeltype)
-    -loglikelihood(θ, data, dx)
+    -loglikelihood(θ, data, data_dict,dx)
 end
   
 """
