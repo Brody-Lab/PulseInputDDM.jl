@@ -8,7 +8,7 @@
 
 Returns default parameters and ntrials of synthetic data (clicks and choices) organized into a choicedata type.
 """
-function synthetic_data(; θ::θchoice=θchoice(), ntrials::Int=2000, rng::Int=1, dt::Float64=1e-2, centered::Bool=false)
+function synthetic_data(; θ::DDMθ=θchoice(), ntrials::Int=2000, rng::Int=1, dt::Float64=1e-2, centered::Bool=false)
 
     clicks, choices, sessbnd = rand(θ, ntrials; rng=rng)
     binned_clicks = bin_clicks.(clicks, centered=centered, dt=dt)
@@ -24,7 +24,7 @@ end
 
 Produces synthetic clicks and choices for n trials using model parameters θ.
 """
-function rand(θ::θchoice, ntrials::Int; dt::Float64=1e-4, rng::Int = 1, centered::Bool=false)
+function rand(θ::DDMθ, ntrials::Int; dt::Float64=1e-4, rng::Int = 1, centered::Bool=false)
 
     clicks = synthetic_clicks(ntrials, rng)
     binned_clicks = bin_clicks.(clicks,centered=centered,dt=dt)
@@ -45,18 +45,3 @@ function rand(θ::θchoice, ntrials::Int; dt::Float64=1e-4, rng::Int = 1, center
 
 end
 
-
-"""
-    rand(θ, inputs, rng)
-
-Produces L/R choice for one trial, given model parameters and inputs.
-# """
-function rand(θ::θchoice, inputs::choiceinputs, i_0, rng::Int)
-
-    Random.seed!(rng)
-    @unpack θz, bias, lapse = θ
-    
-    a = rand(θz,inputs,i_0)
-    rand() > lapse ? choice = a[end] >= bias : choice = Bool(round(rand() < 1/(1+exp(-i_0))))
-
-end

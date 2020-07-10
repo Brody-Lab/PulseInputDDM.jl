@@ -29,13 +29,29 @@ end
 
 
 """
+    rand(θ, inputs, rng)
+
+Produces L/R choice for one trial, given model parameters and inputs.
+# """
+function rand(θ, inputs::choiceinputs, i_0::Float64, rng::Int)
+
+    Random.seed!(rng)
+    @unpack θz, bias, lapse = θ
+    
+    a = rand(θz,inputs,i_0)
+    rand() > lapse ? choice = a[end] >= bias : choice = Bool(round(rand() < 1/(1+exp(-i_0))))
+
+end
+
+
+"""
     rand(θz, inputs)
 
 Generate a sample latent trajecgtory,
 given parameters of the latent model θz and clicks for one trial, contained
 within inputs.
 """
-function rand(θz, inputs, i_0) where T <: Real
+function rand(θz, inputs::choiceinputs, i_0::Float64) 
 
     @unpack B, λ, σ2_i, σ2_a, σ2_s, ϕ, τ_ϕ = θz
     @unpack clicks, binned_clicks, centered, dt = inputs
@@ -44,7 +60,7 @@ function rand(θz, inputs, i_0) where T <: Real
 
     La, Ra = adapt_clicks(ϕ, τ_ϕ, L, R)
 
-    A = Vector{T}(undef,nT)
+    A = Vector{Float64}(undef,nT)
 
     if σ2_i > 0.
         a = sqrt(σ2_i)*randn() + i_0

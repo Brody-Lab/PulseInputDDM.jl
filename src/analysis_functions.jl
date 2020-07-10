@@ -36,6 +36,55 @@ function binLR(binned_clicks, clicks, dt)
 
 end
 
+"""
+montecarlo_trialbytrial(model, file, n)
+model: output of optimize, has ML params θ
+file: original file with the data 
+currently assuming expfilter_ce but would be easy to modify for expfilter
+
+Note: we are going to bin clicks with a smaller dt
+for fitting we bin clicks with dt 1e-2, empirically (from Brian) this works okay
+when n=53 (n determines the number of spatial bins for fokker planck). 
+Setting a somehwhat big dt helps reduce running time.
+To learn more, this paper does some simulations and plots MSEs for different dts and dxs with forward Euler
+https://www.biorxiv.org/content/10.1101/2020.03.14.992065v1.abstract
+
+but when we are running in forward model we want the model to run with a finer time resolution
+
+this function generates choices by using predicted choice, and therefore outcomes
+"""
+function montecarlo_trialbytrial(model, file; n::Int=53)
+
+    @unpack θ = model 
+     if typeof(θ)!=θ_expfilter_ce{θz_expfilter_ce{Float64},Float64}
+        throw(TypeError)
+    end
+        
+    data = load(file, dt = 1e-4)
+    clickdata = map(data->data.click_data,data)
+    sessbnd = map(data->data.sessbnd,data)
+    ntrials = length(sessbnd)
+
+    choice = Array{Bool}(undef, length(sessbnd))
+
+    @unpack h_etaC, h_betaC, h_etaE, h_betaE = θ.θz
+    rng = sample(Random.seed!(abs(rand(Int))), 1:ntrials, ntrials; replace=false)
+
+    i_0 = 0.
+    choice[1] = rand(θ, clickdata[1], i_0, rng[1])
+
+    for i = 2:ntrials
+        # ideally there is no need to compute initial pt for all trials until now but this will have to do for now
+        i_0 = compute_initial_pt(h_etaC, h_etaE, h_betaC, h_etaE, clickdata[1:i], choice[1:i], sessbnd[1:i])
+        choice[i] = rand(θ, clickdata[i], i_0[i], rng[i])
+    end
+    
+    return choice
+   
+end
+
+
+
 function load_and_dprime(path::String, sessids, ratnames;
         dt::Float64=1e-3, delay::Float64=0.)
 

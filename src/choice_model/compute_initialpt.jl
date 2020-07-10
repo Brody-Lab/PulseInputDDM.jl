@@ -4,7 +4,7 @@ assumes a single process (stimulus space)
 
 """
 
-function compute_initial_pt(eta::TT,beta::TT,click_data, sessbnd) where {TT <: Any}
+function compute_initial_pt(η::TT,β::TT,click_data, sessbnd) where {TT <: Any}
     
     ΔLR = diffLR.(click_data)
     correct = map(ΔLR->sign(ΔLR),ΔLR)
@@ -16,7 +16,7 @@ function compute_initial_pt(eta::TT,beta::TT,click_data, sessbnd) where {TT <: A
         if sessbnd[i] == 1
             i_0[i] = 0.
         else
-            i_0[i] = eta*correct[i-1] + beta*i_0[i-1]
+            i_0[i] = η*correct[i-1] + β*i_0[i-1]
         end
     end
 
@@ -31,7 +31,7 @@ exponential filter 4 params
 assumes independent discounting and updating of correct and error trials (stimulus space)
 
 """
-function compute_initial_pt(etaC::TT,etaE::TT,betaC::TT,betaE::TT, click_data, choice, sessbnd) where {TT <: Any}
+function compute_initial_pt(ηC::TT,ηE::TT,βC::TT,βE::TT, click_data, choice, sessbnd) where {TT <: Any}
     
     ΔLR = diffLR.(click_data)
     correct = map(ΔLR->ΔLR>0,ΔLR)
@@ -49,8 +49,8 @@ function compute_initial_pt(etaC::TT,etaE::TT,betaC::TT,betaE::TT, click_data, c
          else
             rel = max(lim, i-10):i-1
             cho = -1. .*(1 .- choice[rel]) + choice[rel]
-            corr = hits[rel].*etaC.*betaC.^reverse(0:length(rel)-1)
-            err =  -1 .*(1 .- hits[rel]).*etaE.*betaE.^reverse(0:length(rel)-1)
+            corr = hits[rel].*ηC.*βC.^reverse(0:length(rel)-1)
+            err =  -1 .*(1 .- hits[rel]).*ηE.*βE.^reverse(0:length(rel)-1)
             i_0[i] = sum(cho .* (corr + err))
         end
     end
@@ -58,6 +58,7 @@ function compute_initial_pt(etaC::TT,etaE::TT,betaC::TT,betaE::TT, click_data, c
     return  i_0
 
 end
+
 
 
 # function compute_initial_pt(hC::TT,eta::TT,beta::TT,click_data, sessbnd) where {TT <: Any}
