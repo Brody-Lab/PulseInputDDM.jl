@@ -30,6 +30,7 @@ export load, reload, save, flatten, unflatten
 export synthetic_clicks, binLR, bin_clicks
 
 export default_parameters_and_data, compute_LL, prob_right
+export montecarlo_trialbytrial
 
 abstract type DDM end
 abstract type DDMdata end
