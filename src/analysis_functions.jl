@@ -97,7 +97,7 @@ OUTPUT
     p_right
         A vector indicating the probability of a right choice in each trial
 """
-function prob_right(θ::θ_expfilter, file, mc_reps::Int=44; n::Int=53)
+function prob_right(θ::θ_expfilter, file; n::Int=53)
     data = load(file, dt = 1e-4)
     clickdata = map(data->data.click_data,data)
     sessbnd = map(data->data.sessbnd,data)
