@@ -311,11 +311,27 @@ function transition_M!(F, σ2::TT, λ::TT, μ::TT, dx::Float64,
 end
 
 
-"""
-    make_adapted_clicks(ϕ, τ_ϕ, L, R)
 
 """
-function adapt_clicks(ϕ::TT, τ_ϕ::TT, L::Vector{Float64}, R::Vector{Float64}) where {TT}
+    make_adapted_clicks(ϕ, τ_ϕ, L, R)
+    log-posterior space
+
+"""
+function adapt_clicks(ϕ::TT, τ_ϕ::TT, L::Vector{Float64}, R::Vector{Float64}, C::TT) where {TT}
+
+    La, Ra = C.*ones(TT,length(L)), C.*ones(TT,length(R))
+    return La, Ra
+
+end
+
+
+
+"""
+    make_adapted_clicks(ϕ, τ_ϕ, L, R)
+    Clicks space
+
+"""
+function adapt_clicks(ϕ::TT, τ_ϕ::TT, L::Vector{Float64}, R::Vector{Float64}, C::String) where {TT}
 
     La, Ra = ones(TT,length(L)), ones(TT,length(R))
 

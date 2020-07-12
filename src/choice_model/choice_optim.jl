@@ -28,7 +28,7 @@ function optimize(data, data_dict, modeltype, options::DDMθoptions, dx::Float64
     x = stack(x,c,fit)
     θ = reconstruct_model(x, modeltype)
     model = choiceDDM(θ, data)
-    ll = loglikelihood(model, dx)
+    ll = loglikelihood(θ, data, data_dict, dx)
     converged = Optim.converged(output)
 
     println("optimization complete. converged: $converged \n")

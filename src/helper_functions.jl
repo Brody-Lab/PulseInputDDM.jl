@@ -34,6 +34,31 @@ function binLR(binned_clicks, clicks, dt)
     return L,R
 end
 
+"""
+"""
+function transform_log_space(teps::Float64, σ2_s::TT; nsamples::Int = 80000) where TT <: Any
+
+    d = fit(Normal, -teps .+ (2*teps)*cdf.(Normal(0, σ2_s), rand(Normal(1, sqrt(σ2_s)),nsamples)))
+    return (d.σ)^2, d.μ
+
+end
+
+"""
+"""
+function evidence_no_noise(gamma; dteps::Float64 = 1e-50)
+
+    g = sort(unique(gamma))
+    gprob = round.([count(x->x==i,gamma) for i in g]./length(gamma), digits = 1)
+    
+    R = 40*dteps
+    rrate = R.*exp.(g)./(exp.(g) .+ 1);
+    lrate = R .- rrate;
+  
+    g_nonoise = map((rrate, lrate, gprob)-> rrate*(1-lrate)*gprob, rrate, lrate, gprob)
+    return log.(sum(g_nonoise[g.>0])./sum(g_nonoise[g.<0]))
+
+end
+
 
 
 """
@@ -43,7 +68,8 @@ given a θ <:DDMθ, returns an array with all the param names
 function get_param_names(θ::DDMθ)
     params = vcat(collect(fieldnames(typeof(θ.base_θz))), 
             collect(fieldnames(typeof(θ.ndtime_θz))),
-            collect(fieldnames(typeof(θ.hist_θz))))
+            collect(fieldnames(typeof(θ.hist_θz))),
+            collect(fieldnames(typeof(θ)))[4])  #lpostspace
 end
 
 

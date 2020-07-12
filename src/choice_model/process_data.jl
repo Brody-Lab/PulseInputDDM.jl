@@ -13,6 +13,7 @@ function load(file::String; centered::Bool=false, dt::Float64=5e-4)
     R = vec(map(x-> vec(collect(x)), data[collect(keys(data))[occursin.("right", collect(keys(data)))][1]]))
     choices = vec(convert(BitArray, data["pokedR"]))
     sessbnd = vec(convert(BitArray, data["sessidx"]))
+    sessbnd[1] = true  # first trial ever
 
     click_times = clicks.(L, R, T, gamma)
     binned_clicks = bin_clicks.(click_times, centered=centered, dt=dt)
@@ -26,7 +27,8 @@ end
 
 function make_data_dict(data)
     dt = data[1].click_data.dt
-    correct = map(data->sign(data.click_data.clicks.gamma), data)
+    correct = map(data->sign(data.click_data.clicks.gamma), data)  # correct +1 right -1 left
+    correct_bin = map(data->data.click_data.clicks.gamma>0, data)  # correct 1 right 0 left
     sessbnd = map(data->data.sessbnd,data)
     choice = map(data->data.choice,data)
     nT = map(data->data.click_data.binned_clicks.nT, data)
@@ -36,8 +38,13 @@ function make_data_dict(data)
     lapse_dist = Exponential(mean(nT)*dt)
     lapse_lik = pdf.(lapse_dist,nT.*dt) .*dt
 
-    data_vec = Dict("correct"=> correct, "sessbnd"=> sessbnd, "frac" => frac, 
-                    "choice"=> choice, "nT" => nT, "lapse_lik" => lapse_lik, "dt"=> dt)
+    # teps for converting into log space
+    teps = evidence_no_noise(map(data->data.click_data.clicks.gamma, data), dteps = 1e-50)
+        
+    data_vec = Dict("correct"=> correct, "correct_bin" => correct_bin, 
+                    "sessbnd"=> sessbnd, "frac" => frac, "teps" => teps, 
+                    "choice"=> choice, "nT" => nT, "lapse_lik" => lapse_lik, 
+                    "ntrials" => length(correct), "dt"=> dt)
 end
 
 

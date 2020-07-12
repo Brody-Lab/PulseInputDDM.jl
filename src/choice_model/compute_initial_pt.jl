@@ -1,9 +1,10 @@
 """
-exponential filter 2 params 
-assumes a single process (stimulus space)
+    exponential filter 2 params 
+    assumes a single process (stimulus space)
+
 """
 
-function compute_initial_pt(hist_θz::θz_expfilter, bias::TT, data_dict) where TT <: Any
+function compute_initial_pt(hist_θz::θz_expfilter, σ2_s::TT, data_dict) where TT <: Any
     
     @unpack h_η, h_β = hist_θz
     ntrials = length(data_dict["correct"])
@@ -25,10 +26,11 @@ end
 
 
 """
-exponential filter 4 params 
-assumes independent discounting and updating of correct and error trials (stimulus space)
+    exponential filter 4 params 
+    assumes independent discounting and updating of correct and error trials (stimulus space)
+
 """
-function compute_initial_pt(hist_θz::θz_expfilter_ce, bias::TT, data_dict) where TT <: Any
+function compute_initial_pt(hist_θz::θz_expfilter_ce, σ2_s::TT, data_dict) where TT <: Any
     
     @unpack h_ηC, h_ηE, h_βC, h_βE = hist_θz
     hits = data_dict["correct"] .== data_dict["choice"]
@@ -57,7 +59,58 @@ function compute_initial_pt(hist_θz::θz_expfilter_ce, bias::TT, data_dict) whe
 end
 
 
+"""
+    DBM initial point: returns value in log posterior units
 
+"""
+function compute_initial_pt(hist_θz::θz_DBM, σ2_s::TT, data_dict) where TT <: Any
+
+    @unpack h_α, h_u, h_v = hist_θz
+    α_prior = h_u * h_v
+    β_prior = h_v - α_prior
+
+    prior = Beta(α_prior, β_prior)
+    x = collect(0.001:0.001: 1. - 0.001)
+    prior_0 = pdf.(prior, x)
+    prior_0 = prior_0/sum(prior_0)
+
+    post = Array{Float64}(undef,size(prior_0))
+    cprob = Array{TT}(undef, data_dict["ntrials"])
+
+    for i = 1:data_dict["ntrials"]
+        data_dict["sessbnd"][i] ? prior_i = prior_0 : prior_i = h_α*post + (1-h_α)*prior_0
+        cprob[i] = sum(x.*prior_i)
+        data_dict["correct_bin"][i] ? post = x.*prior_i : post = (1. .- x).*prior_i
+        post = post./sum(post)
+    end
+
+    return log.(cprob ./ (1 .- cprob))
+
+end
+
+
+"""
+    DBMexp initial point: returns value in log posterior units
+
+"""
+function compute_initial_pt(hist_θz::θz_DBMexp, σ2_s::TT, data_dict) where TT <: Any
+
+    @unpack h_α, h_u, h_v = hist_θz
+    η = 1/h_v
+    β = (h_α*h_v)/(1+h_v)
+    C = (1-h_α)*h_u/(1-β)
+
+    cprob = Array{TT}(undef, data_dict["ntrials"])
+    for i = 1:data_dict["ntrials"]
+        data_dict["sessbnd"][i] ? cprob[i] = C : cprob[i] = (1-β)*C + β*(η*data_dict["correct_bin"][i-1] + cprob[i-1])
+    end
+
+    return log.(cprob ./ (1 .- cprob))
+
+end    
+
+
+            
 #=
 function compute_initial_value(data::Dict, η::TT, α_prior::TT, β_prior::TT) where {TT <: Any}
 
