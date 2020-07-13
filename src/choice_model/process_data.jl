@@ -107,8 +107,9 @@ function save(file, model, options, modeltype, ll; CI = 0)
     params = get_param_names(θ)
 
     dict = Dict("ML_params"=> collect(Flatten.flatten(θ)),
-        "name" => params, "loglikelihood" => ll,
-        "lb"=> lb, "ub"=> ub, "fit"=> fit, "modeltype"=> typeof(θ),
+        "name" => params, 
+        "loglikelihood" => ll,
+        "lb"=> lb, "ub"=> ub, "fit"=> fit, "modeltype"=> modeltype,
         "CI" => CI)
 
     matwrite(file, dict)

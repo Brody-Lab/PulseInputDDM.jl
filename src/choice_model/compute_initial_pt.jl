@@ -100,9 +100,31 @@ function compute_initial_pt(hist_θz::θz_DBMexp, σ2_s::TT, data_dict) where TT
     β = (h_α*h_v)/(1+h_v)
     C = (1-h_α)*h_u/(1-β)
 
+    inval = C + (η*β/(2*(1-β)))   # mean value of the exponential filter
     cprob = Array{TT}(undef, data_dict["ntrials"])
+
     for i = 1:data_dict["ntrials"]
-        data_dict["sessbnd"][i] ? cprob[i] = C : cprob[i] = (1-β)*C + β*(η*data_dict["correct_bin"][i-1] + cprob[i-1])
+        data_dict["sessbnd"][i] ? cprob[i] = inval : cprob[i] = (1-β)*C + β*(η*data_dict["correct_bin"][i-1] + cprob[i-1])
+    end
+
+    return log.(cprob ./ (1 .- cprob))
+
+end  
+
+
+"""
+    LPSexp initial point: returns value in log posterior units
+
+"""
+function compute_initial_pt(hist_θz::θz_LPSexp, σ2_s::TT, data_dict) where TT <: Any
+
+    @unpack h_α, h_β, h_C = hist_θz
+
+    inval = (2*h_C + h_α)/(2*(1-h_β))
+    cprob = Array{TT}(undef, data_dict["ntrials"])
+
+    for i = 1:data_dict["ntrials"]
+        data_dict["sessbnd"][i] ? cprob[i] = inval : cprob[i] = h_C + h_α*data_dict["correct_bin"][i-1] + h_β*cprob[i-1]
     end
 
     return log.(cprob ./ (1 .- cprob))

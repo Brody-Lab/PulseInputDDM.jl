@@ -67,6 +67,12 @@ end
     h_v = 2.
 end
 
+@with_kw struct θz_LPSexp{T<:Real} @deftype T
+    h_α = 0.8
+    h_β = 0.05
+    h_C = 0.05
+end
+
 @with_kw struct θz_ndtime{T<:Real} @deftype T
     ndtimeL1 = 0.2
     ndtimeL2 = 0.03
@@ -99,6 +105,13 @@ end
     base_θz = θz_base()
     ndtime_θz = θz_ndtime()
     hist_θz = θz_DBMexp()
+    lpost_space::Bool = true
+end
+
+@with_kw struct θ_LPSexp <: DDMθ
+    base_θz = θz_base()
+    ndtime_θz = θz_ndtime()
+    hist_θz = θz_LPSexp()
     lpost_space::Bool = true
 end
 
@@ -150,14 +163,15 @@ end
 
 export choiceDDM, choicedata, choiceoptions, choiceinputs
 export θ_expfilter, θ_expfilter_ce, θz_base, θz_ndtime
-export θz_expfilter, θz_expfilter_ce
-export θz_DBM, θz_DBMexp, θ_DBM, θ_DBMexp
+export θz_expfilter, θz_expfilter_ce, θ_LPSexp
+export θz_DBM, θz_DBMexp, θ_DBM, θ_DBMexp, θz_LPSexp
 
 
 const modeldict = Dict("expfilter" => θ_expfilter,
 					"expfilter_ce" => θ_expfilter_ce,
                     "DBM"          => θ_DBM,
-                    "DBMexp"       => θ_DBMexp)
+                    "DBMexp"       => θ_DBMexp,
+                    "LPSexp"       => θ_LPSexp)
 
 """
 """
@@ -189,7 +203,8 @@ function create_options(θ::DDMθ)
     	:h_η => [-2.0, 2.0, 1, 0.3], :h_β => [0., 1., 1, 0.1],				# expfilter params
     	:h_ηC => [-2.0, 2.0, 1, 0.3], :h_ηE => [-2., 2., 1, 0.3],			# expfilter_ce params
     	:h_βC => [0., 1., 1, 0.1], :h_βE => [0., 1., 1, 0.1],				# expfilter_ce params 
-        :h_α => [0., 1., 1, 0.8], :h_u => [0., 1., 1, 0.5], :h_v => [0., 20., 1, 2.])    # DBM, DBMexp params
+        :h_α => [0., 1., 1, 0.8], :h_u => [0., 1., 1, 0.5], :h_v => [0., 20., 1, 2.],    # DBM, DBMexp params
+        :h_C => [0., 1., 1, 0.05])                                           # LPSexp along with h_α, h_β                                   
 
 	params = get_param_names(θ)
 

@@ -59,6 +59,35 @@ function evidence_no_noise(gamma; dteps::Float64 = 1e-50)
 
 end
 
+"""
+    constraint_penalty when fitting unconstrained exponential in log-posterior space
+
+"""
+function constraint_penalty(hist_θz::θz_LPSexp, ntrials::Int, meanll::Float64)
+
+    @unpack h_α, h_β, h_C = hist_θz
+
+    reg = InverseGamma(0.001, 0.1)
+    ep = 0.0001344
+    dum = 1. - h_C - h_β - h_α
+
+    if dum < ep
+        intercept = log(pdf(reg, ep))
+        slope = -(log(pdf(reg,ep)) - log(pdf(reg, 2*ep)))/ep
+        return slope*(dum-ep) + intercept + ntrials*log(.5 * meanll)
+    else
+        return log(pdf(reg,dum))
+    end
+end
+
+
+"""
+    constraint_penalty for all other models
+
+"""
+function constraint_penalty(hist_θz, ntrials, meanll)
+    return 0
+end
 
 
 """

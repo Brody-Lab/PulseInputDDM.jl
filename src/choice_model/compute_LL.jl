@@ -41,8 +41,11 @@ function loglikelihood(θ::DDMθ, data, data_dict, dx::Float64)
     P = pmap((data, a_0, nT) -> loglikelihood!(θ.base_θz, data, σ2_s, C, a_0, dx, pdf.(NDdistL, dt.*collect(nT:-1:1)).*dt, 
                                         pdf.(NDdistR, dt.*collect(nT:-1:1)).*dt), data, a_0, data_dict["nT"])
     
+    penalty = constraint_penalty(θ.hist_θz, data_dict["ntrials"], mean(data_dict["lapse_lik"]))
+
     return sum(log.((frac .* data_dict["lapse_lik"] .* .5) .+ (1. - frac)
         .*map((P, choice) -> (choice ? P[2] : P[1]), P, data_dict["choice"])))  
+        + penalty
 
 end
 
