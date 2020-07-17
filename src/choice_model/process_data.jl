@@ -3,7 +3,7 @@
 Given a path to a .mat file containing data (properly formatted), loads data into
 an acceptable format to use with pulse_input_DDM.
 """
-function load(file::String; centered::Bool=false, dt::Float64=5e-4)
+function load(file::String; sim::Bool=false, centered::Bool=false, dt::Float64=1e-3)
 
     data = read(matopen(file), "rawdata")
 
@@ -11,20 +11,30 @@ function load(file::String; centered::Bool=false, dt::Float64=5e-4)
     gamma = vec(data["gamma"])
     L = vec(map(x-> vec(collect(x)), data[collect(keys(data))[occursin.("left", collect(keys(data)))][1]]))
     R = vec(map(x-> vec(collect(x)), data[collect(keys(data))[occursin.("right", collect(keys(data)))][1]]))
-    choices = vec(convert(BitArray, data["pokedR"]))
     sessbnd = vec(convert(BitArray, data["sessidx"]))
     sessbnd[1] = true  # first trial ever
 
     click_times = clicks.(L, R, T, gamma)
     binned_clicks = bin_clicks.(click_times, centered=centered, dt=dt)
     inputs = choiceinputs.(click_times, binned_clicks, dt, centered)
-    data_pack = choicedata.(inputs, choices, sessbnd)
 
-    return data_pack, make_data_dict(data_pack)
+    if sim == false
+        choices = vec(convert(BitArray, data["pokedR"]))
+        data_pack = choicedata.(inputs, choices, sessbnd)
+        return data_pack, make_data_dict(data_pack)
+    else
+        return inputs, make_data_dict(inputs, sessbnd, data["avgT"])
+    end
 
 end
 
 
+"""
+    make_data_dict(data::choicedata)
+makes a convinient data dictionary for fitting initial points, non-decision time
+conversion to lost posterior space etc
+used during data fitting
+"""
 function make_data_dict(data)
     dt = data[1].click_data.dt
     correct = map(data->sign(data.click_data.clicks.gamma), data)  # correct +1 right -1 left
@@ -44,6 +54,26 @@ function make_data_dict(data)
     data_vec = Dict("correct"=> correct, "correct_bin" => correct_bin, 
                     "sessbnd"=> sessbnd, "frac" => frac, "teps" => teps, 
                     "choice"=> choice, "nT" => nT, "lapse_lik" => lapse_lik, 
+                    "ntrials" => length(correct), "dt"=> dt)
+end
+
+"""
+    make_data_dict(data::choiceinputs, sessbnd)
+makes a convinient data dictionary for fitting initial points, non-decision time
+conversion to lost posterior space etc
+used during synthetic data generation
+"""
+function make_data_dict(inputs, sessbnd, avgT)
+    dt = inputs[1].dt
+    correct = map(data->sign(data.clicks.gamma), inputs)  # correct +1 right -1 left
+    correct_bin = map(data->data.clicks.gamma>0, inputs)  # correct 1 right 0 left
+    nT = map(data->data.binned_clicks.nT, inputs)
+
+    # teps for converting into log space
+    teps = evidence_no_noise(map(data->data.clicks.gamma, inputs), dteps = 1e-50)
+        
+    data_vec = Dict("correct"=> correct, "correct_bin" => correct_bin, "sessbnd"=> sessbnd, 
+                    "frac" => 1e-5, "mlapse" => avgT, "teps" => teps, "nT" => nT, 
                     "ntrials" => length(correct), "dt"=> dt)
 end
 
@@ -107,7 +137,6 @@ function save(file, model, options, modeltype, ll; CI = 0)
     params = get_param_names(θ)
 
     dict = Dict("ML_params"=> collect(Flatten.flatten(θ)),
-        "name" => params, 
         "loglikelihood" => ll,
         "lb"=> lb, "ub"=> ub, "fit"=> fit, "modeltype"=> modeltype,
         "CI" => CI)

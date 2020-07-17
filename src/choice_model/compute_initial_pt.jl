@@ -58,6 +58,67 @@ function compute_initial_pt(hist_θz::θz_expfilter_ce, σ2_s::TT, data_dict) wh
 
 end
 
+"""
+    exponential filter 4 params 
+    assumes independent discounting and updating of correct and error trials (stimulus space)
+    takes an additional last trial argument
+"""
+function compute_initial_pt(hist_θz::θz_expfilter_ce, σ2_s::TT, data_dict, tr::Int) where TT <: Any
+    
+    @unpack h_ηC, h_ηE, h_βC, h_βE = hist_θz
+    hits = data_dict["correct"][1:tr] .== data_dict["choice"][1:tr]
+    data_dict["sessbnd"][1] = 1
+    lim = 1
+
+    i_0 = Array{TT}(undef, tr)
+    
+    for i = 1:tr
+        if data_dict["sessbnd"][i] == 1
+            lim = i
+            i_0[i] = 0.
+            rel = []
+         else
+            rel = max(lim, i-10):i-1
+            cho = -1. .*(1 .- data_dict["choice"][rel]) + data_dict["choice"][rel]
+            corr = hits[rel].*h_ηC.*h_βC.^reverse(0:length(rel)-1)
+            err =  -1 .*(1 .- hits[rel]).*h_ηE.*h_βE.^reverse(0:length(rel)-1)
+            i_0[i] = sum(cho .* (corr + err))
+        end
+    end
+   
+    return  i_0
+
+end
+
+
+"""
+"""
+function compute_bnd(θ::θ_DBMexpbnd, σ2_s::TT, data_dict) where TT <: Any
+    @unpack Bc, Be = θ
+    @unpack B0 = θ.base_θz
+
+    hits = data_dict["correct"] .== data_dict["choice"]
+    B = Array{TT}(undef, data_dict["ntrials"])
+
+    for i = 1:data_dict["ntrials"]
+        if data_dict["sessbnd"][i] == 1
+            B[i] = B0
+        else
+            hits[i-1] ? B[i] = B[i-1] + Bc : B[i] = B[i-1] + Be
+        end
+    end
+end
+
+
+
+"""
+"""
+function compute_bnd(θ::DDMθ, σ2_s::TT, data_dict) where TT <: Any
+    @unpack B0 = θ.base_θz
+    B = Array{TT}(undef, data_dict["ntrials"])
+    B .= B0
+end
+
 
 """
     DBM initial point: returns value in log posterior units

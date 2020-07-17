@@ -36,11 +36,16 @@ end
 
 """
 """
-function transform_log_space(teps::Float64, σ2_s::TT; nsamples::Int = 80000) where TT <: Any
+function transform_log_space(θ::DDMθ, teps::Float64; nsamples::Int = 80000) 
 
-    d = fit(Normal, -teps .+ (2*teps)*cdf.(Normal(0, σ2_s), rand(Normal(1, sqrt(σ2_s)),nsamples)))
-    return (d.σ)^2, d.μ
-
+    σ2_s = θ.base_θz.σ2_s
+    if θ.lpost_space == 1
+        d = fit(Normal, -teps .+ (2*teps)*cdf.(Normal(0, σ2_s), rand(Normal(1, sqrt(σ2_s)),nsamples)))
+        return (d.σ)^2, d.μ
+    else
+        return σ2_s, "undef" 
+    end
+ 
 end
 
 """
@@ -74,9 +79,9 @@ function constraint_penalty(hist_θz::θz_LPSexp, ntrials::Int, meanll::Float64)
     if dum < ep
         intercept = log(pdf(reg, ep))
         slope = -(log(pdf(reg,ep)) - log(pdf(reg, 2*ep)))/ep
-        return slope*(dum-ep) + intercept + ntrials*log(.5 * meanll)
+        return slope*(dum-ep) + intercept, false
     else
-        return log(pdf(reg,dum))
+        return log(pdf(reg,dum)), true
     end
 end
 
@@ -86,7 +91,7 @@ end
 
 """
 function constraint_penalty(hist_θz, ntrials, meanll)
-    return 0
+    return 0, true
 end
 
 
@@ -156,6 +161,19 @@ reconstruct_model(x, modeltype)
 given a vector of params and modeltype, reconstructs θ
 """
 function reconstruct_model(x::Vector{T1}, modeltype) where {T1 <: Real}
+    if modeltype in keys(modeldict)
+        return θ = Flatten.reconstruct(modeldict[modeltype](), x) 
+    else
+        error("Unknown model identifier $modeltype")
+    end
+ end
+
+
+"""
+reconstruct_model(x, modeltype)
+given a vector of params and modeltype, reconstructs θ
+"""
+function reconstruct_model(x::Vector{T1}, modeltype::String) where {T1 <: Any}
     if modeltype in keys(modeldict)
         return θ = Flatten.reconstruct(modeldict[modeltype](), x) 
     else

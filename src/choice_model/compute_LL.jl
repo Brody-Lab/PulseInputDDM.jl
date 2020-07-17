@@ -18,35 +18,34 @@ Given parameters θ and data (inputs and choices) computes the LL for all trials
 """
 function loglikelihood(θ::DDMθ, data, data_dict, dx::Float64)
 
-    # initial point computation
-    a_0 = compute_initial_pt(θ.hist_θz, θ.base_θz.σ2_s, data_dict)  
+    penalty, flag = constraint_penalty(θ.hist_θz, data_dict["ntrials"], mean(data_dict["lapse_lik"]))
 
-    # non-decision time distribution computation
-    @unpack ndtimeL1, ndtimeL2 = θ.ndtime_θz
-    @unpack ndtimeR1, ndtimeR2 = θ.ndtime_θz
-    NDdistL = Gamma(ndtimeL1, ndtimeL2)
-    NDdistR = Gamma(ndtimeR1, ndtimeR2)
+    if flag
+        # initial point computation
+        a_0 = compute_initial_pt(θ.hist_θz, θ.base_θz.σ2_s, data_dict)  
+        B   = compute_bnd(θ, θ.base_θz.σ2_s, data_dict)
 
-    dt = data_dict["dt"]
-    frac = data_dict["frac"]
+        # non-decision time distribution computation
+        @unpack ndtimeL1, ndtimeL2 = θ.ndtime_θz
+        @unpack ndtimeR1, ndtimeR2 = θ.ndtime_θz
+        NDdistL = Gamma(ndtimeL1, ndtimeL2)
+        NDdistR = Gamma(ndtimeR1, ndtimeR2)
 
-    # get mean and variance for log posterior space
-    if θ.lpost_space == 1
-        σ2_s, C = transform_log_space(data_dict["teps"], θ.base_θz.σ2_s) 
+        dt = data_dict["dt"]
+        frac = data_dict["frac"]
+
+        # get mean and variance for log posterior space
+        σ2_s, C = transform_log_space(θ, data_dict["teps"] )
+        P = pmap((data, a_0, nT, B) -> loglikelihood!(θ.base_θz, data, σ2_s, C, a_0, B, dx, pdf.(NDdistL, dt.*collect(nT:-1:1)).*dt, 
+                                            pdf.(NDdistR, dt.*collect(nT:-1:1)).*dt), data, a_0, data_dict["nT"], B)
+
+        return sum(log.((frac .* data_dict["lapse_lik"] .* .5) .+ (1. - frac)
+            .*map((P, choice) -> (choice ? P[2] : P[1]), P, data_dict["choice"])))  
+            + penalty
+
     else
-        σ2_s = θ.base_θz.σ2_s
-        C = "undef" 
-    end
-
-    P = pmap((data, a_0, nT) -> loglikelihood!(θ.base_θz, data, σ2_s, C, a_0, dx, pdf.(NDdistL, dt.*collect(nT:-1:1)).*dt, 
-                                        pdf.(NDdistR, dt.*collect(nT:-1:1)).*dt), data, a_0, data_dict["nT"])
-    
-    penalty = constraint_penalty(θ.hist_θz, data_dict["ntrials"], mean(data_dict["lapse_lik"]))
-
-    return sum(log.((frac .* data_dict["lapse_lik"] .* .5) .+ (1. - frac)
-        .*map((P, choice) -> (choice ? P[2] : P[1]), P, data_dict["choice"])))  
-        + penalty
-
+        return penalty
+    end    
 end
 
 """
@@ -55,14 +54,14 @@ end
 Given parameters θ and data (inputs and choices) computes the LL for one trial
 """
 function loglikelihood!(base_θz::θz_base,data::choicedata, σ2_s::TT, C,
-        a_0::TT, dx::Float64, ndL, ndR) where {TT <: Any}
+        a_0::TT, B::TT, dx::Float64, ndL, ndR) where {TT <: Any}
 
     @unpack click_data, choice = data
 
-    if base_θz.Bλ == 0
-        Pbounds = P_single_trial!(base_θz, dx, click_data, a_0, σ2_s, C)
+    if (base_θz.Bλ == 0) & (base_θz.Bm == 0)
+        Pbounds = P_single_trial!(base_θz, dx, click_data, a_0, σ2_s, C, B)
     else
-        Pbounds = P_single_trial!(base_θz, dx, click_data, a_0, σ2_s, C, base_θz.Bλ)
+        Pbounds = P_single_trial!(base_θz, dx, click_data, a_0, σ2_s, C, B, base_θz.Bλ)
     end
 
     # non-decision time 
@@ -81,15 +80,15 @@ Given parameters θz progagates P for one trial
 speed ups for when bound is stationary
 """
 function P_single_trial!(base_θz::θz_base, dx::Float64,
-        click_data, a_0::TT, σ2_s::TT, C) where {TT<: Any}
+        click_data, a_0::TT, σ2_s::TT, C, B::TT) where {TT<: Any}
 
     @unpack λ, σ2_i, σ2_a, bias, h_drift_scale = base_θz
-    @unpack ϕ, τ_ϕ, B0 = base_θz
+    @unpack ϕ, τ_ϕ = base_θz
     @unpack binned_clicks, clicks, dt = click_data
     @unpack nT, nL, nR = binned_clicks
     @unpack L, R = clicks
    
-    P, xc, n = initialize_latent_model(σ2_i, B0, λ, σ2_a, dx, dt, a_0 .+ bias)
+    P, xc, n = initialize_latent_model(σ2_i, B, λ, σ2_a, dx, dt, a_0 .+ bias)
     La, Ra   = adapt_clicks(ϕ,τ_ϕ,L,R,C)
 
     Pbounds = zeros(TT, 2, nT)
@@ -121,10 +120,10 @@ Given parameters θz progagates P for one trial
 when bound is non stationary
 """
 function P_single_trial!(base_θz::θz_base, dx::Float64,
-        click_data, a_0::TT, σ2_s::TT, C, Bλ::TT) where {TT<: Any}
+        click_data, a_0::TT, σ2_s::TT, C, B::TT, Bλ::TT) where {TT<: Any}
 
     @unpack λ, σ2_i, σ2_a, bias, h_drift_scale = base_θz
-    @unpack ϕ, τ_ϕ, B0, Bm = base_θz
+    @unpack ϕ, τ_ϕ, Bm = base_θz
     @unpack binned_clicks, clicks, dt = click_data
     @unpack nT, nL, nR = binned_clicks
     @unpack L, R = clicks
@@ -133,9 +132,9 @@ function P_single_trial!(base_θz::θz_base, dx::Float64,
     B = zeros(TT,nT)
     # Bt = map(x-> sqrt(B_λ+x)*sqrt(2)*erfinv(2*B - 1.), dt .* collect(1:nT))
     # Bt = map(x->B*(1. + exp(B_λ*(x-B_Δ)))^(-1.), dt .* collect(1:nT))
-    B = map(x->B0 + Bλ*sqrt(x), dt .* collect(1:nT))
+    B = map(x->B/(1. + exp(Bλ*(x-Bm))), dt .* collect(1:nT))
 
-    P, xc, n = initialize_latent_model(σ2_i, B0, λ, σ2_a, dx, dt, a_0 .+ bias)
+    P, xc, n = initialize_latent_model(σ2_i, B, λ, σ2_a, dx, dt, a_0 .+ bias)
     La, Ra   = adapt_clicks(ϕ,τ_ϕ,L,R,C)
 
     Pbounds = zeros(TT, 2, nT)

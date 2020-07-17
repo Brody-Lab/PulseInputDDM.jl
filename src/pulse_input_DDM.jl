@@ -29,8 +29,8 @@ abstract type DDMθoptions end
 
 
 @with_kw struct θz_base{T<:Real} @deftype T
-    Bm = 15.
-    Bλ = 0.
+    Bm = 0.; @assert Bm == 0.
+    Bλ = 0.; @assert Bλ == 0.
     B0 = 5.
     λ = -0.01; @assert λ != 0.
     σ2_i = eps()
@@ -108,6 +108,15 @@ end
     lpost_space::Bool = true
 end
 
+@with_kw struct θ_DBMexpbnd <: DDMθ
+    base_θz = θz_base()
+    ndtime_θz = θz_ndtime()
+    hist_θz = θz_DBMexp()
+    Bc::Real = 0.
+    Be::Real = 0.
+    lpost_space::Bool = true
+end
+
 @with_kw struct θ_LPSexp <: DDMθ
     base_θz = θz_base()
     ndtime_θz = θz_ndtime()
@@ -171,6 +180,7 @@ const modeldict = Dict("expfilter" => θ_expfilter,
 					"expfilter_ce" => θ_expfilter_ce,
                     "DBM"          => θ_DBM,
                     "DBMexp"       => θ_DBMexp,
+                    "θ_DBMexpbnd"  => θ_DBMexpbnd,
                     "LPSexp"       => θ_LPSexp)
 
 """
@@ -192,6 +202,7 @@ function create_options(θ::DDMθ)
 
 	 paramlims = Dict(  #:paramname => [lb, ub, fit, initialvalue]
     	:Bm => [0., 10., 0, 0.], :Bλ => [-5.0, 1.0, 0, 0.], :B0 => [0.5, 5.0, 1, 1.5],  	# bound parameters
+        :Bc => [-0.5, 0.5, 1, 0.], :Be => [-0.5, 0.5, 1, 0.],                                 # drifting bound parameters
     	:λ => [-5.0, 5.0, 0, -0.001],                           					# leak
     	:σ2_i => [0.0, 2.0, 0, eps()], :σ2_a => [0.0, 10., 0, eps()], :σ2_s => [0.0, 20., 1, 4.],  # noise params
     	:ϕ => [0.01, 1.2, 0, 1.], :τ_ϕ => [0.005, 1.0, 0, 0.02],        	# adaptation params
