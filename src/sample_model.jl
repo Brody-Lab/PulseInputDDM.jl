@@ -57,9 +57,8 @@ function rand(inputs, data_dict, θ::DDMθ, hist_θz, σ2_s, C, rng::Vector{Int}
     NDdistR = Gamma(ndtimeR1, ndtimeR2)
 
     a_0 = compute_initial_pt(hist_θz, θ.base_θz.σ2_s, data_dict)
-    B   = compute_bnd(θ, θ.base_θz.σ2_s, data_dict)
 
-    output = pmap((inputs, a_0, B, rng) -> rand(inputs, θ.base_θz, σ2_s, C, a_0, B, rng), inputs, a_0, B, rng)
+    output = pmap((inputs, a_0, rng) -> rand(inputs, θ.base_θz, σ2_s, C, a_0, rng), inputs, a_0, rng)
     choices = map(output->output[1], output)
     RT = map(output->output[2], output)
 
@@ -121,7 +120,7 @@ Generate a sample latent trajecgtory,
 given parameters of the latent model θz and clicks for one trial, contained
 within inputs.
 """
-function rand(inputs::choiceinputs, base_θz::θz_base, σ2_s::TT, C, a_0::TT, Bin::TT, rng::Int) where TT <: Real
+function rand(inputs::choiceinputs, base_θz::θz_base, σ2_s::TT, C, a_0::TT, rng::Int) where TT <: Real
 
     Random.seed!(rng)    
 
@@ -133,9 +132,9 @@ function rand(inputs::choiceinputs, base_θz::θz_base, σ2_s::TT, C, a_0::TT, B
 
     La, Ra = adapt_clicks(ϕ, τ_ϕ, L, R, C)
     if (Bλ == 0) & (Bm == 0)
-        B = map(x->Bin + Bλ*sqrt(x), dt .* collect(1:nT))
+        B = map(x->B0 + Bλ*sqrt(x), dt .* collect(1:nT))
     else
-        B = map(x->Bin/(1. + exp(Bλ*(x-Bm))), dt .* collect(1:nT))
+        B = map(x->B0/(1. + exp(Bλ*(x-Bm))), dt .* collect(1:nT))
     end
 
     RT = 0.
