@@ -407,6 +407,7 @@ function θy(ΔLR, spikes, dt, f; nconds::Int=7)
     elseif f == "Softplus"
         #p = vcat(minimum(rate) - mean(rate), (1/dt)*c[2], 0.)
         #p = vcat(eps(), (1/dt)*c[2], 0.)
+        #p = vcat(minimum(rate) - mean(rate), (1/dt)*c[2])
         p = vcat((1/dt)*c[2])
     end
 

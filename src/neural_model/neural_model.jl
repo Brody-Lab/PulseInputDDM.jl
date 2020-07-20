@@ -62,6 +62,7 @@ end
 """
 """
 @with_kw struct Softplus{T1} <: DDMf
+    #a::T1 = 0
     c::T1 = 5.0*rand([-1,1])
 end
 
@@ -70,6 +71,7 @@ end
 """
 function (θ::Softplus)(x::Union{U,Vector{U}}, λ0::Union{T,Vector{T}}) where {U,T <: Real}
 
+    #@unpack a,c = θ
     @unpack c = θ
 
     #y = a .+ softplus.(c*x .+ d) .+ λ0
@@ -138,6 +140,23 @@ end
         repeat([1.], sum(ncells)))
 end
 
+
+#=
+"""
+"""
+@with_kw struct Softplus_options <: neural_options
+    ncells::Vector{Int}
+    nparams::Int = 2
+    f::String = "Softplus"
+    fit::Vector{Bool} = vcat(trues(dimz + sum(ncells)*nparams))
+    lb::Vector{Float64} = vcat([0., 8.,  -10., 0.,   0.,  0., 0.005],
+        repeat([-10.,-10.], sum(ncells)))
+    ub::Vector{Float64} = vcat([Inf, 200., 10., Inf, Inf, 1.2,  1.],
+        repeat([10.,10.], sum(ncells)))
+    x0::Vector{Float64} = vcat([0.1, 15., -0.1, 20., 0.5, 0.8, 0.008],
+        repeat([1.,0.], sum(ncells)))
+end
+=#
 
 """
 """
@@ -209,22 +228,58 @@ function Hessian(model::neuralDDM, n::Int; chuck_size::Int=4)
 
 end
 
+function logprior(x,μ,σ) 
+    
+    #logpdf(Uniform(μ[1], σ[1]), x[1]) + 
+    #logpdf(Laplace(μ[2], σ[2]), x[2]) + 
+    #logpdf(Uniform(μ[3], σ[3]), x[3]) + 
+    #logpdf(Uniform(μ[4], σ[4]), x[4]) + 
+    #logpdf(Uniform(μ[5], σ[5]), x[5]) + 
+    #logpdf(Uniform(μ[6], σ[6]), x[6]) +
+    #logpdf(Uniform(μ[7], σ[7]), x[7])
+    
+    if (x[2] >= μ[2])
+        logpdf(Laplace(μ[2], σ[2]), x[2]) 
+    else
+        0.
+    end
+
+end
+
 #=
+logprior(x,μ,σ) = logpdf(Normal(μ[1], σ[1]), x[1]) + 
+    logpdf(Uniform(μ[2], σ[2]), x[2]) + 
+    logpdf(Uniform(μ[3], σ[3]), x[3]) + 
+    logpdf(Normal(μ[4], σ[4]), x[4]) + 
+    logpdf(Uniform(μ[5], σ[5]), x[5]) + 
+    logpdf(Uniform(μ[6], σ[6]), x[6]) +
+    logpdf(Uniform(μ[7], σ[7]), x[7])
+
 logprior(x,μ,σ) = logpdf(InverseGamma(μ[1], σ[1]), x[1]) + 
     logpdf(Laplace(μ[2], σ[2]), x[2]) + 
-    logpdf(Normal(μ[3], σ[3]), x[3]) + 
+    logpdf(Uniform(μ[3], σ[3]), x[3]) + 
     logpdf(InverseGamma(μ[4], σ[4]), x[4]) + 
     logpdf(InverseGamma(μ[5], σ[5]), x[5]) + 
     logpdf(Laplace(μ[6], σ[6]), x[6]) +
     logpdf(Laplace(μ[7], σ[7]), x[7])
+
+logprior(x,μ,σ) = logpdf(Normal(μ[1], σ[1]), x[1]) + 
+    logpdf(Uniform(μ[2], σ[2]), x[2]) + 
+    logpdf(Uniform(μ[3], σ[3]), x[3]) + 
+    logpdf(Normal(μ[4], σ[4]), x[4]) + 
+    logpdf(Uniform(μ[5], σ[5]), x[5]) + 
+    logpdf(Uniform(μ[6], σ[6]), x[6]) +
+    logpdf(Uniform(μ[7], σ[7]), x[7])
 =#
 
+#=
 #This was that weird prior I used acciently and didn't work very well
 logprior(x,μ,σ) = logpdf(Laplace(μ[1], σ[1]), x[1]) + 
     logpdf(Laplace(μ[2], σ[2]), x[2]) + 
     logpdf(Laplace(μ[4], σ[4]), x[4]) + 
     logpdf(Laplace(μ[6], σ[6]), x[6]) +
     logpdf(Laplace(μ[7], σ[7]), x[7])
+=#
 
 
 """

@@ -94,10 +94,11 @@ BACK IN THE DAY TOLS WERE: x_tol::Float64=1e-4, f_tol::Float64=1e-9, g_tol::Floa
 
 """
 function optimize(data, options::choiceoptions; n::Int=53,
-        x_tol::Float64=1e-10, f_tol::Float64=1e-6, g_tol::Float64=1e-3,
+        x_tol::Float64=1e-10, f_tol::Float64=1e-9, g_tol::Float64=1e-3,
         iterations::Int=Int(2e3), show_trace::Bool=true, outer_iterations::Int=Int(1e1),
         extended_trace::Bool=false, scaled::Bool=false,
-        time_limit::Float64=170000., show_every::Int=10)
+        time_limit::Float64=170000., show_every::Int=10, σ::Vector{Float64}=[0.], 
+        μ::Vector{Float64}=[0.], do_prior::Bool=false)
 
     @unpack fit, lb, ub, x0 = options
 
@@ -106,9 +107,10 @@ function optimize(data, options::choiceoptions; n::Int=53,
     x0,c = unstack(x0, fit)
     #ℓℓ(x) = -loglikelihood(stack(x,c,fit), data; n=n)
  
-    prior(x) = sum(1. ./ [50, 40, 0.4, 0.5] .* stack(x,c,fit)[[1,2,6,7]])
-    ℓℓ(x) = -(loglikelihood(stack(x,c,fit), data; n=n) - prior(x))
-
+    #prior(x) = sum(1. ./ [50, 40, 0.4, 0.5] .* stack(x,c,fit)[[1,2,6,7]])
+    #ℓℓ(x) = -(loglikelihood(stack(x,c,fit), data; n=n) - prior(x))
+    ℓℓ(x) = -(loglikelihood(stack(x,c,fit), data; n=n) + Float64(do_prior) * logprior(stack(x,c,fit)[1:dimz],μ,σ))
+    
     output = optimize(x0, ℓℓ, lb, ub; g_tol=g_tol, x_tol=x_tol,
         f_tol=f_tol, iterations=iterations, show_trace=show_trace,
         outer_iterations=outer_iterations, extended_trace=extended_trace,
