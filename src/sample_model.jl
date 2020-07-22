@@ -56,7 +56,7 @@ function rand(inputs, data_dict, θ::DDMθ, hist_θz, σ2_s, C, rng::Vector{Int}
     NDdistL = Gamma(ndtimeL1, ndtimeL2)
     NDdistR = Gamma(ndtimeR1, ndtimeR2)
 
-    a_0 = compute_initial_pt(hist_θz, θ.base_θz.σ2_s, data_dict)
+    a_0 = compute_initial_pt(hist_θz, θ.base_θz.B0, data_dict)
 
     output = pmap((inputs, a_0, rng) -> rand(inputs, θ.base_θz, σ2_s, C, a_0, rng), inputs, a_0, rng)
     choices = map(output->output[1], output)

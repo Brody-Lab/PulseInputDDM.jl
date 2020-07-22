@@ -82,6 +82,15 @@ end
     h_C = 0.05
 end
 
+@with_kw struct θz_Qlearn{T<:Real} @deftype T
+    h_αr = 0.1
+    h_αf = 0.01
+    h_κlc = .5
+    h_κle = .05
+    h_κrc = .5
+    h_κre = .05
+end
+
 @with_kw struct θz_ndtime{T<:Real} @deftype T
     ndtimeL1 = 0.2
     ndtimeL2 = 0.03
@@ -129,6 +138,13 @@ end
     base_θz = θz_base()
     ndtime_θz = θz_ndtime()
     hist_θz = θz_LPSexp()
+    lpost_space::Bool = true
+end
+
+@with_kw struct θ_Qlearn <: DDMθ
+    base_θz = θz_base()
+    ndtime_θz = θz_ndtime()
+    hist_θz = θz_Qlearn()
     lpost_space::Bool = true
 end
 
@@ -182,6 +198,7 @@ export choiceDDM, choicedata, choiceoptions, choiceinputs
 export θ_expfilter, θ_expfilter_ce, θz_base, θz_ndtime
 export θz_expfilter, θz_expfilter_ce, θ_LPSexp, θ_DBMexpbnd
 export θz_DBM, θz_DBMexp, θ_DBM, θ_DBMexp, θz_LPSexp
+export θz_Qlearn, θ_Qlearn
 
 
 const modeldict = Dict("expfilter" => θ_expfilter,
@@ -189,7 +206,8 @@ const modeldict = Dict("expfilter" => θ_expfilter,
                     "expfilter_ce_bias" => θ_expfilter_ce_bias,
                     "DBM"          => θ_DBM,
                     "DBMexp"       => θ_DBMexp,
-                    "LPSexp"       => θ_LPSexp)
+                    "LPSexp"       => θ_LPSexp,
+                    "Qlearn"       => θ_Qlearn)
 
 """
 """
@@ -210,10 +228,10 @@ function create_options(θ::DDMθ)
 
 	 paramlims = Dict(  #:paramname => [lb, ub, fit, initialvalue]
     	:Bm => [0., 10., 0, 0.], :Bλ => [-5.0, 1.0, 0, 0.], :B0 => [0.5, 5.0, 1, 1.5],  	# bound parameters
-    	:λ => [-5.0, 5.0, 0, -0.001],                           					# leak
+    	:λ => [-5.0, 5.0, 1, -0.001],                           					# leak
     	:σ2_i => [0.0, 2.0, 0, eps()], :σ2_a => [0.0, 10., 0, eps()], :σ2_s => [0.0, 20., 1, 2.],  # noise params
-    	:ϕ => [0.01, 1.2, 1, 1.], :τ_ϕ => [0.005, 1.0, 1, 0.02],        	# adaptation params
-    	:bias => [-1.5, 1.5, 1, 0.], :lapse => [0.0, 1.0, 0, 0.],         # bias, lapse params
+    	:ϕ => [0.01, 1.2, 0, 1.], :τ_ϕ => [0.005, 1.0, 0, 0.02],        	# adaptation params
+    	:bias => [-1.5, 1.5, 0, 0.], :lapse => [0.0, 1.0, 0, 0.],         # bias, lapse params
     	:h_drift_scale => [0.0, 1.0, 0, 0.],                       # history drift scale
         :lpost_space => [0 1 0 0],                                          # NOT A REAL VARIABLE - specifies whether model runs in logpost space
     	:ndtimeL1 => [0.0, 10.0, 1, 3.], :ndtimeL2 => [0.0, 5.0, 1, 0.04],  # ndtime left choice
@@ -223,7 +241,11 @@ function create_options(θ::DDMθ)
     	:h_βC => [0., 1., 1, 0.1], :h_βE => [0., 1., 1, 0.1],				# expfilter_ce params
         :h_Cb => [-1., 1., 1, 0.], :h_Eb => [-1., 1., 1, 0.],             # expfilter_ce_bias params 
         :h_α => [0., 1., 1, 0.8], :h_u => [0., 1., 1, 0.5], :h_v => [0., 20., 1, 2.],    # DBM, DBMexp params
-        :h_C => [0., 1., 1, 0.05])                                           # LPSexp along with h_α, h_β                                   
+        :h_C => [0., 1., 1, 0.05],                                           # LPSexp along with h_α, h_β                                   
+        :h_αr => [0., 1., 1, 0.1], :h_αf => [0., 1., 1, 0.01],               # Qlearning remember, forgetting rates
+        :h_κlc => [0., 1., 1, 0.5], :h_κle => [0., 1., 1, 0.05],              # Qlearning left prediction errors : correct, error  
+        :h_κrc => [0., 1., 1, 0.5], :h_κre => [0., 1., 1, 0.05])              # Q learning right prediction errors : correct, error   
+
 
 	params = get_param_names(θ)
 

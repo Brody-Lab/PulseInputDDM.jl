@@ -4,7 +4,7 @@
 
 """
 
-function compute_initial_pt(hist_θz::θz_expfilter, σ2_s::TT, data_dict) where TT <: Any
+function compute_initial_pt(hist_θz::θz_expfilter, B0::TT, data_dict) where TT <: Any
     
     @unpack h_η, h_β = hist_θz
     ntrials = length(data_dict["correct"])
@@ -30,11 +30,10 @@ end
     assumes independent discounting and updating of correct and error trials (stimulus space)
 
 """
-function compute_initial_pt(hist_θz::θz_expfilter_ce, σ2_s::TT, data_dict) where TT <: Any
+function compute_initial_pt(hist_θz::θz_expfilter_ce, B0::TT, data_dict) where TT <: Any
     
     @unpack h_ηC, h_ηE, h_βC, h_βE = hist_θz
-    hits = data_dict["correct"] .== data_dict["choice"]
-    ntrials = length(hits)
+    ntrials = data_dict["ntrials"]
     data_dict["sessbnd"][1] = 1
     lim = 1
 
@@ -48,8 +47,8 @@ function compute_initial_pt(hist_θz::θz_expfilter_ce, σ2_s::TT, data_dict) wh
          else
             rel = max(lim, i-10):i-1
             cho = -1. .*(1 .- data_dict["choice"][rel]) + data_dict["choice"][rel]
-            corr = hits[rel].*h_ηC.*h_βC.^reverse(0:length(rel)-1)
-            err =  -1 .*(1 .- hits[rel]).*h_ηE.*h_βE.^reverse(0:length(rel)-1)
+            corr = data_dict["hits"][rel].*h_ηC.*h_βC.^reverse(0:length(rel)-1)
+            err =  -1 .*(1 .- data_dict["hits"][rel]).*h_ηE.*h_βE.^reverse(0:length(rel)-1)
             i_0[i] = sum(cho .* (corr + err))
         end
     end
@@ -64,11 +63,10 @@ end
     assumes independent discounting and updating of correct and error trials (stimulus space)
 
 """
-function compute_initial_pt(hist_θz::θz_expfilter_ce_bias, σ2_s::TT, data_dict) where TT <: Any
+function compute_initial_pt(hist_θz::θz_expfilter_ce_bias, B0::TT, data_dict) where TT <: Any
     
     @unpack h_ηC, h_ηE, h_βC, h_βE, h_Cb, h_Eb = hist_θz
-    hits = data_dict["correct"] .== data_dict["choice"]
-    ntrials = length(hits)
+    ntrials = data_dict["ntrials"]
     data_dict["sessbnd"][1] = 1
     lim = 1
 
@@ -82,10 +80,10 @@ function compute_initial_pt(hist_θz::θz_expfilter_ce_bias, σ2_s::TT, data_dic
          else
             rel = max(lim, i-10):i-1
             cho = -1. .*(1 .- data_dict["choice"][rel]) + data_dict["choice"][rel]
-            corr = hits[rel].*h_ηC.*h_βC.^reverse(0:length(rel)-1)
-            err =  -1 .*(1 .- hits[rel]).*h_ηE.*h_βE.^reverse(0:length(rel)-1)
+            corr = data_dict["hits"][rel].*h_ηC.*h_βC.^reverse(0:length(rel)-1)
+            err =  -1 .*(1 .- data_dict["hits"][rel]).*h_ηE.*h_βE.^reverse(0:length(rel)-1)
             i_0[i] = sum(cho .* (corr + err))
-            i_0[i] = i_0[i] + hits[i-1]*h_Cb + (1. - hits[i-1])*h_Eb
+            i_0[i] = i_0[i] + data_dict["hits"][i-1]*h_Cb + (1. - data_dict["hits"][i-1])*h_Eb
         end
     end
    
@@ -98,10 +96,9 @@ end
     assumes independent discounting and updating of correct and error trials (stimulus space)
     takes an additional last trial argument
 """
-function compute_initial_pt(hist_θz::θz_expfilter_ce, σ2_s::TT, data_dict, tr::Int) where TT <: Any
+function compute_initial_pt(hist_θz::θz_expfilter_ce, B0::TT, data_dict, tr::Int) where TT <: Any
     
     @unpack h_ηC, h_ηE, h_βC, h_βE = hist_θz
-    hits = data_dict["correct"][1:tr] .== data_dict["choice"][1:tr]
     data_dict["sessbnd"][1] = 1
     lim = 1
 
@@ -115,8 +112,8 @@ function compute_initial_pt(hist_θz::θz_expfilter_ce, σ2_s::TT, data_dict, tr
          else
             rel = max(lim, i-10):i-1
             cho = -1. .*(1 .- data_dict["choice"][rel]) + data_dict["choice"][rel]
-            corr = hits[rel].*h_ηC.*h_βC.^reverse(0:length(rel)-1)
-            err =  -1 .*(1 .- hits[rel]).*h_ηE.*h_βE.^reverse(0:length(rel)-1)
+            corr = data_dict["hits"][rel].*h_ηC.*h_βC.^reverse(0:length(rel)-1)
+            err =  -1 .*(1 .- data_dict["hits"][rel]).*h_ηE.*h_βE.^reverse(0:length(rel)-1)
             i_0[i] = sum(cho .* (corr + err))
         end
     end
@@ -130,7 +127,7 @@ end
     DBM initial point: returns value in log posterior units
 
 """
-function compute_initial_pt(hist_θz::θz_DBM, σ2_s::TT, data_dict) where TT <: Any
+function compute_initial_pt(hist_θz::θz_DBM, B0::TT, data_dict) where TT <: Any
 
     @unpack h_α, h_u, h_v = hist_θz
     α_prior = h_u * h_v
@@ -147,7 +144,7 @@ function compute_initial_pt(hist_θz::θz_DBM, σ2_s::TT, data_dict) where TT <:
     for i = 1:data_dict["ntrials"]
         data_dict["sessbnd"][i] ? prior_i = prior_0 : prior_i = h_α*post + (1-h_α)*prior_0
         cprob[i] = sum(x.*prior_i)
-        data_dict["correct_bin"][i] ? post = x.*prior_i : post = (1. .- x).*prior_i
+        data_dict["correct"][i] ? post = x.*prior_i : post = (1. .- x).*prior_i
         post = post./sum(post)
     end
 
@@ -160,7 +157,7 @@ end
     DBMexp initial point: returns value in log posterior units
 
 """
-function compute_initial_pt(hist_θz::θz_DBMexp, σ2_s::TT, data_dict) where TT <: Any
+function compute_initial_pt(hist_θz::θz_DBMexp, B0::TT, data_dict) where TT <: Any
 
     @unpack h_α, h_u, h_v = hist_θz
     η = 1/h_v
@@ -171,7 +168,7 @@ function compute_initial_pt(hist_θz::θz_DBMexp, σ2_s::TT, data_dict) where TT
     cprob = Array{TT}(undef, data_dict["ntrials"])
 
     for i = 1:data_dict["ntrials"]
-        data_dict["sessbnd"][i] ? cprob[i] = inval : cprob[i] = (1-β)*C + β*(η*data_dict["correct_bin"][i-1] + cprob[i-1])
+        data_dict["sessbnd"][i] ? cprob[i] = inval : cprob[i] = (1-β)*C + β*(η*data_dict["correct"][i-1] + cprob[i-1])
     end
 
     return log.(cprob ./ (1 .- cprob))
@@ -183,7 +180,7 @@ end
     LPSexp initial point: returns value in log posterior units
 
 """
-function compute_initial_pt(hist_θz::θz_LPSexp, σ2_s::TT, data_dict) where TT <: Any
+function compute_initial_pt(hist_θz::θz_LPSexp, B0::TT, data_dict) where TT <: Any
 
     @unpack h_α, h_β, h_C = hist_θz
 
@@ -191,13 +188,39 @@ function compute_initial_pt(hist_θz::θz_LPSexp, σ2_s::TT, data_dict) where TT
     cprob = Array{TT}(undef, data_dict["ntrials"])
 
     for i = 1:data_dict["ntrials"]
-        data_dict["sessbnd"][i] ? cprob[i] = inval : cprob[i] = h_C + h_α*data_dict["correct_bin"][i-1] + h_β*cprob[i-1]
+        data_dict["sessbnd"][i] ? cprob[i] = inval : cprob[i] = h_C + h_α*data_dict["correct"][i-1] + h_β*cprob[i-1]
     end
 
     return log.(cprob ./ (1 .- cprob))
 
 end    
 
+"""
+    Qlearn with forgetting: returns value in log posterior units
+"""
+function compute_initial_pt(hist_θz::θz_Qlearn, B0::TT, data_dict) where TT <: Any
+
+    @unpack h_αr, h_αf, h_κlc, h_κle, h_κrc, h_κre = hist_θz
+    cprob = Array{TT}(undef, data_dict["ntrials"])
+    
+    Qll, Qrr = 1.,1.
+    cprob[1] = log(Qrr/Qll)
+
+    for i = 2:data_dict["ntrials"]
+        if data_dict["choice"][i-1]   # rightward choice
+            data_dict["hits"][i-1] ? outcome = h_κrc : outcome = h_κre
+            Qrr = (1-h_αr)*Qrr + h_αr*outcome
+            Qll = (1-h_αf)*Qll
+        else
+            data_dict["hits"][i-1] ? outcome = h_κlc : outcome = h_κle
+            Qll = (1-h_αr)*Qll + h_αr*outcome
+            Qrr = (1-h_αf)*Qrr
+        end
+        cprob[i] = log(Qrr/Qll)
+    end
+
+    return cprob
+end
 
             
 #=

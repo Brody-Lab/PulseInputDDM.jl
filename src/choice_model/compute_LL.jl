@@ -22,7 +22,7 @@ function loglikelihood(θ::DDMθ, data, data_dict, dx::Float64)
 
     if flag
         # initial point computation
-        a_0 = compute_initial_pt(θ.hist_θz, θ.base_θz.σ2_s, data_dict)  
+        a_0 = compute_initial_pt(θ.hist_θz, θ.base_θz.B0, data_dict)  
 
         # non-decision time distribution computation
         @unpack ndtimeL1, ndtimeL2 = θ.ndtime_θz

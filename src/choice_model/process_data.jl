@@ -37,10 +37,10 @@ used during data fitting
 """
 function make_data_dict(data)
     dt = data[1].click_data.dt
-    correct = map(data->sign(data.click_data.clicks.gamma), data)  # correct +1 right -1 left
-    correct_bin = map(data->data.click_data.clicks.gamma>0, data)  # correct 1 right 0 left
+    correct = map(data->data.click_data.clicks.gamma>0, data)  # correct 1 right 0 left
     sessbnd = map(data->data.sessbnd,data)
     choice = map(data->data.choice,data)
+    hits = correct .== choice
     nT = map(data->data.click_data.binned_clicks.nT, data)
 
     # lapse trials 
@@ -51,7 +51,7 @@ function make_data_dict(data)
     # teps for converting into log space
     teps = evidence_no_noise(map(data->data.click_data.clicks.gamma, data), dteps = 1e-50)
         
-    data_vec = Dict("correct"=> correct, "correct_bin" => correct_bin, 
+    data_vec = Dict("hits"=> hits, "correct" => correct, 
                     "sessbnd"=> sessbnd, "frac" => frac, "teps" => teps, 
                     "choice"=> choice, "nT" => nT, "lapse_lik" => lapse_lik, 
                     "ntrials" => length(correct), "dt"=> dt)
@@ -65,14 +65,13 @@ used during synthetic data generation
 """
 function make_data_dict(inputs, sessbnd, avgT)
     dt = inputs[1].dt
-    correct = map(data->sign(data.clicks.gamma), inputs)  # correct +1 right -1 left
-    correct_bin = map(data->data.clicks.gamma>0, inputs)  # correct 1 right 0 left
+    correct = map(data->data.clicks.gamma>0, inputs)  # correct 1 right 0 left
     nT = map(data->data.binned_clicks.nT, inputs)
 
     # teps for converting into log space
     teps = evidence_no_noise(map(data->data.clicks.gamma, inputs), dteps = 1e-50)
         
-    data_vec = Dict("correct"=> correct, "correct_bin" => correct_bin, "sessbnd"=> sessbnd, 
+    data_vec = Dict("correct"=> correct, "sessbnd"=> sessbnd, 
                     "frac" => 1e-5, "mlapse" => avgT, "teps" => teps, "nT" => nT, 
                     "ntrials" => length(correct), "dt"=> dt)
 end
