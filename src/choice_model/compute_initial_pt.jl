@@ -24,6 +24,82 @@ function compute_initial_pt(hist_θz::θz_expfilter, B0::TT, data_dict) where TT
 end
 
 
+"""
+    DBM initial point: returns value in log posterior units
+
+"""
+function compute_initial_pt(hist_θz::θz_DBM, B0::TT, data_dict) where TT <: Any
+
+    @unpack h_α, h_u, h_v = hist_θz
+    α_prior = h_u * h_v
+    β_prior = h_v - α_prior
+
+    prior = Beta(α_prior, β_prior)
+    x = collect(0.001:0.001: 1. - 0.001)
+    prior_0 = pdf.(prior, x)
+    prior_0 = prior_0/sum(prior_0)
+
+    post = Array{Float64}(undef,size(prior_0))
+    cprob = Array{TT}(undef, data_dict["ntrials"])
+
+    for i = 1:data_dict["ntrials"]
+        data_dict["sessbnd"][i] ? prior_i = prior_0 : prior_i = h_α*post + (1-h_α)*prior_0
+        cprob[i] = sum(x.*prior_i)
+        data_dict["correct"][i] ? post = x.*prior_i : post = (1. .- x).*prior_i
+        post = post./sum(post)
+    end
+
+    return log.(cprob ./ (1 .- cprob))
+
+end
+
+
+
+"""
+    DBMexp initial point: returns value in log posterior units
+
+"""
+function compute_initial_pt(hist_θz::θz_DBMexp, B0::TT, data_dict) where TT <: Any
+
+    @unpack h_α, h_u, h_v = hist_θz
+    η = 1/h_v
+    β = (h_α*h_v)/(1+h_v)
+    C = (1-h_α)*h_u/(1-β)
+
+    inval = C + (η*β/(2*(1-β)))   # mean value of the exponential filter
+    cprob = Array{TT}(undef, data_dict["ntrials"])
+
+    for i = 1:data_dict["ntrials"]
+        data_dict["sessbnd"][i] ? cprob[i] = inval : cprob[i] = (1-β)*C + β*(η*data_dict["correct"][i-1] + cprob[i-1])
+    end
+
+    return log.(cprob ./ (1 .- cprob))
+
+end  
+
+
+
+"""
+    LPSexp initial point: returns value in log posterior units
+
+"""
+function compute_initial_pt(hist_θz::θz_LPSexp, B0::TT, data_dict) where TT <: Any
+
+    @unpack h_α, h_β, h_C = hist_θz
+
+    inval = (2*h_C + h_α)/(2*(1-h_β))
+    cprob = Array{TT}(undef, data_dict["ntrials"])
+
+    for i = 1:data_dict["ntrials"]
+        data_dict["sessbnd"][i] ? cprob[i] = inval : cprob[i] = h_C + h_α*data_dict["correct"][i-1] + h_β*cprob[i-1]
+    end
+
+    return log.(cprob ./ (1 .- cprob))
+
+end 
+
+
+
 
 """
     exponential filter 4 params 
@@ -59,7 +135,7 @@ end
 
 
 """
-    exponential filter 4 params 
+    exponential filter 4 params with 2 additional post correct/error biases
     assumes independent discounting and updating of correct and error trials (stimulus space)
 
 """
@@ -91,109 +167,6 @@ function compute_initial_pt(hist_θz::θz_expfilter_ce_bias, B0::TT, data_dict) 
 
 end
 
-"""
-    exponential filter 4 params 
-    assumes independent discounting and updating of correct and error trials (stimulus space)
-    takes an additional last trial argument
-"""
-function compute_initial_pt(hist_θz::θz_expfilter_ce, B0::TT, data_dict, tr::Int) where TT <: Any
-    
-    @unpack h_ηC, h_ηE, h_βC, h_βE = hist_θz
-    data_dict["sessbnd"][1] = 1
-    lim = 1
-
-    i_0 = Array{TT}(undef, tr)
-    
-    for i = 1:tr
-        if data_dict["sessbnd"][i] == 1
-            lim = i
-            i_0[i] = 0.
-            rel = []
-         else
-            rel = max(lim, i-10):i-1
-            cho = -1. .*(1 .- data_dict["choice"][rel]) + data_dict["choice"][rel]
-            corr = data_dict["hits"][rel].*h_ηC.*h_βC.^reverse(0:length(rel)-1)
-            err =  -1 .*(1 .- data_dict["hits"][rel]).*h_ηE.*h_βE.^reverse(0:length(rel)-1)
-            i_0[i] = sum(cho .* (corr + err))
-        end
-    end
-   
-    return  i_0
-
-end
-
-
-"""
-    DBM initial point: returns value in log posterior units
-
-"""
-function compute_initial_pt(hist_θz::θz_DBM, B0::TT, data_dict) where TT <: Any
-
-    @unpack h_α, h_u, h_v = hist_θz
-    α_prior = h_u * h_v
-    β_prior = h_v - α_prior
-
-    prior = Beta(α_prior, β_prior)
-    x = collect(0.001:0.001: 1. - 0.001)
-    prior_0 = pdf.(prior, x)
-    prior_0 = prior_0/sum(prior_0)
-
-    post = Array{Float64}(undef,size(prior_0))
-    cprob = Array{TT}(undef, data_dict["ntrials"])
-
-    for i = 1:data_dict["ntrials"]
-        data_dict["sessbnd"][i] ? prior_i = prior_0 : prior_i = h_α*post + (1-h_α)*prior_0
-        cprob[i] = sum(x.*prior_i)
-        data_dict["correct"][i] ? post = x.*prior_i : post = (1. .- x).*prior_i
-        post = post./sum(post)
-    end
-
-    return log.(cprob ./ (1 .- cprob))
-
-end
-
-
-"""
-    DBMexp initial point: returns value in log posterior units
-
-"""
-function compute_initial_pt(hist_θz::θz_DBMexp, B0::TT, data_dict) where TT <: Any
-
-    @unpack h_α, h_u, h_v = hist_θz
-    η = 1/h_v
-    β = (h_α*h_v)/(1+h_v)
-    C = (1-h_α)*h_u/(1-β)
-
-    inval = C + (η*β/(2*(1-β)))   # mean value of the exponential filter
-    cprob = Array{TT}(undef, data_dict["ntrials"])
-
-    for i = 1:data_dict["ntrials"]
-        data_dict["sessbnd"][i] ? cprob[i] = inval : cprob[i] = (1-β)*C + β*(η*data_dict["correct"][i-1] + cprob[i-1])
-    end
-
-    return log.(cprob ./ (1 .- cprob))
-
-end  
-
-
-"""
-    LPSexp initial point: returns value in log posterior units
-
-"""
-function compute_initial_pt(hist_θz::θz_LPSexp, B0::TT, data_dict) where TT <: Any
-
-    @unpack h_α, h_β, h_C = hist_θz
-
-    inval = (2*h_C + h_α)/(2*(1-h_β))
-    cprob = Array{TT}(undef, data_dict["ntrials"])
-
-    for i = 1:data_dict["ntrials"]
-        data_dict["sessbnd"][i] ? cprob[i] = inval : cprob[i] = h_C + h_α*data_dict["correct"][i-1] + h_β*cprob[i-1]
-    end
-
-    return log.(cprob ./ (1 .- cprob))
-
-end    
 
 """
     Qlearn with forgetting: returns value in log posterior units
@@ -221,6 +194,9 @@ function compute_initial_pt(hist_θz::θz_Qlearn, B0::TT, data_dict) where TT <:
 
     return cprob
 end
+
+
+
 
             
 #=

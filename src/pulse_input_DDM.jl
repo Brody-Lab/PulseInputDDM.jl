@@ -25,6 +25,7 @@ paramdefs
 abstract type DDM end
 abstract type DDMdata end
 abstract type DDMθ end
+abstract type θz_ch end
 abstract type DDMθoptions end
 
 
@@ -48,14 +49,14 @@ end
     h_β = 0.1929
 end
 
-@with_kw struct θz_expfilter_ce{T<:Real} @deftype T
+@with_kw struct θz_expfilter_ce{T<:Real} <: θz_ch @deftype T 
     h_ηC = 0.3012
     h_ηE = 0.3012
     h_βC = 0.1929
     h_βE = 0.1929
 end
 
-@with_kw struct θz_expfilter_ce_bias{T<:Real} @deftype T
+@with_kw struct θz_expfilter_ce_bias{T<:Real} <: θz_ch @deftype T
     h_ηC = 0.3012
     h_ηE = 0.3012
     h_βC = 0.1929
@@ -82,7 +83,7 @@ end
     h_C = 0.05
 end
 
-@with_kw struct θz_Qlearn{T<:Real} @deftype T
+@with_kw struct θz_Qlearn{T<:Real} <: θz_ch @deftype T
     h_αr = 0.1
     h_αf = 0.01
     h_κlc = .5
@@ -198,7 +199,8 @@ export choiceDDM, choicedata, choiceoptions, choiceinputs
 export θ_expfilter, θ_expfilter_ce, θz_base, θz_ndtime
 export θz_expfilter, θz_expfilter_ce, θ_LPSexp, θ_DBMexpbnd
 export θz_DBM, θz_DBMexp, θ_DBM, θ_DBMexp, θz_LPSexp
-export θz_Qlearn, θ_Qlearn
+export θz_Qlearn, θ_Qlearn 
+export θ_expfilter_ce_bias, θz_expfilter_ce_bias
 
 
 const modeldict = Dict("expfilter" => θ_expfilter,
@@ -208,6 +210,7 @@ const modeldict = Dict("expfilter" => θ_expfilter,
                     "DBMexp"       => θ_DBMexp,
                     "LPSexp"       => θ_LPSexp,
                     "Qlearn"       => θ_Qlearn)
+
 
 """
 """
@@ -229,10 +232,10 @@ function create_options(θ::DDMθ)
 	 paramlims = Dict(  #:paramname => [lb, ub, fit, initialvalue]
     	:Bm => [0., 10., 0, 0.], :Bλ => [-5.0, 1.0, 0, 0.], :B0 => [0.5, 5.0, 1, 1.5],  	# bound parameters
     	:λ => [-5.0, 5.0, 1, -0.001],                           					# leak
-    	:σ2_i => [0.0, 2.0, 0, eps()], :σ2_a => [0.0, 10., 0, eps()], :σ2_s => [0.0, 20., 1, 2.],  # noise params
-    	:ϕ => [0.01, 1.2, 0, 1.], :τ_ϕ => [0.005, 1.0, 0, 0.02],        	# adaptation params
-    	:bias => [-1.5, 1.5, 0, 0.], :lapse => [0.0, 1.0, 0, 0.],         # bias, lapse params
-    	:h_drift_scale => [0.0, 1.0, 0, 0.],                       # history drift scale
+    	:σ2_i => [0.0, 2.0, 0, eps()], :σ2_a => [0.0, 10., 1, eps()], :σ2_s => [0.0, 20., 1, 2.],  # noise params
+    	:ϕ => [0.01, 1.2, 1, 1.], :τ_ϕ => [0.005, 1.0, 1, 0.02],        	# adaptation params
+    	:bias => [-1.5, 1.5, 1, 0.], :lapse => [0.0, 1.0, 0, 0.],         # bias, lapse params
+    	:h_drift_scale => [0.0, 1.0, 1, 0.],                       # history drift scale
         :lpost_space => [0 1 0 0],                                          # NOT A REAL VARIABLE - specifies whether model runs in logpost space
     	:ndtimeL1 => [0.0, 10.0, 1, 3.], :ndtimeL2 => [0.0, 5.0, 1, 0.04],  # ndtime left choice
     	:ndtimeR1 => [0.0, 10.0, 1, 3.], :ndtimeR2 => [0.0, 5.0, 1, 0.04],  # ndtime right choice

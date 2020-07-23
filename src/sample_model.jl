@@ -42,6 +42,7 @@ function rand(θ::DDMθ, inputs, data_dict; rng::Int = 1, centered::Bool=false)
 end
 
 
+
 """
     rand(θ, inputs, rng)
 Produces L/R choice for one trial, given model parameters and inputs.
@@ -79,8 +80,10 @@ end
 """
     rand(θ, inputs, rng)
 Produces L/R choice for one trial, given model parameters and inputs.
-# """
-function rand(inputs, data_dict, θ::DDMθ, hist_θz::θz_expfilter_ce, σ2_s, C::String, rng::Vector{Int}) 
+"""
+function rand(inputs, data_dict, θ::DDMθ, hist_θz::θz_ch, σ2_s, C::String, rng::Vector{Int}) 
+
+    ntrials = data_dict["ntrials"]
 
     # adding non-decision time
     @unpack ndtimeL1, ndtimeL2 = θ.ndtime_θz
@@ -88,28 +91,135 @@ function rand(inputs, data_dict, θ::DDMθ, hist_θz::θz_expfilter_ce, σ2_s, C
     NDdistL = Gamma(ndtimeL1, ndtimeL2)
     NDdistR = Gamma(ndtimeR1, ndtimeR2)
 
-    # adding lapse effects 
-    @unpack lapse = θ.base_θz
+    choices, RT = rand(inputs, data_dict, θ.base_θz, θ.hist_θz, σ2_s, C, rng)  
+    RT .= RT .+ ((1. .- choices).*vec(rand.(NDdistL,ntrials)) .+ choices.*vec(rand.(NDdistR,ntrials)))
+
+    return choices, RT
+
+end
+
+
+"""
+    choice and RT sim for θz_expfilter_ce
+"""
+function rand(inputs, data_dict, base_θz::θz_base, hist_θz::θz_expfilter_ce, σ2_s, C::String, rng::Vector{Int})
+
+    choices = Array{Bool}(undef, data_dict["ntrials"])
+    hits    = Array{Bool}(undef, data_dict["ntrials"])
+    RT      = Array{Float64}(undef, data_dict["ntrials"])
+
+     # adding lapse effects 
+    @unpack lapse = base_θz
     lapse_dist = Exponential(data_dict["mlapse"])
     lapse == 0 ? lapse_frac = data_dict["frac"] : lapse_frac = lapse
 
-    choices = Array{Bool}(undef, data_dict["ntrials"])
-    RT      = Array{Float64}(undef, data_dict["ntrials"])
+    @unpack h_ηC, h_ηE, h_βC, h_βE = hist_θz
 
+    lim, a_0 = 1, 0.
     for i = 1:data_dict["ntrials"]
-        data_dict["choice"] = choices
-        a_0 = compute_initial_pt(hist_θz, θ.base_θz.σ2_s, data_dict, i)
-        choices[i], RT[i] = rand(inputs[i], θ.base_θz, σ2_s, C, a_0[i], rng[i])
+        if data_dict["sessbnd"][i] == 1
+            lim, a_0, rel = i, 0., []
+         else
+            rel = max(lim, i-10):i-1
+            cho = -1. .*(1 .- choices[rel]) + choices[rel]
+            corr = hits[rel].*h_ηC.*h_βC.^reverse(0:length(rel)-1)
+            err =  -1 .*(1 .- hits[rel]).*h_ηE.*h_βE.^reverse(0:length(rel)-1)
+            a_0 = sum(cho .* (corr + err))
+        end
+        choices[i], RT[i] = rand(inputs[i], base_θz, σ2_s, C, a_0, rng[i])
         if rand() < lapse_frac
             choices[i] = rand() > 0.5
             RT[i] = rand(lapse_dist)
         end
+        hits[i] = choices[i] == data_dict["correct"][i]
     end
 
-    RT .= RT .+ ((1. .- choices).*vec(rand.(NDdistL,data_dict["ntrials"])) .+ choices.*vec(rand.(NDdistR,data_dict["ntrials"])))
+    return choices, RT
+end
+
+
+
+"""
+    choice and RT sim for θz_expfilter_ce_bias
+"""
+function rand(inputs, data_dict, base_θz::θz_base, hist_θz::θz_expfilter_ce_bias, σ2_s, C::String, rng::Vector{Int})
+
+    choices = Array{Bool}(undef, data_dict["ntrials"])
+    hits    = Array{Bool}(undef, data_dict["ntrials"])
+    RT      = Array{Float64}(undef, data_dict["ntrials"])
+
+     # adding lapse effects 
+    @unpack lapse = base_θz
+    lapse_dist = Exponential(data_dict["mlapse"])
+    lapse == 0 ? lapse_frac = data_dict["frac"] : lapse_frac = lapse
+
+    @unpack h_ηC, h_ηE, h_βC, h_βE, h_Cb, h_Eb = hist_θz
+
+    lim, a_0 = 1, 0.
+    for i = 1:data_dict["ntrials"]
+        if data_dict["sessbnd"][i] == 1
+            lim, a_0, rel = i, 0., []
+        else
+            rel = max(lim, i-10):i-1
+            cho = -1. .*(1 .- choices[rel]) + choices[rel]
+            corr = hits[rel].*h_ηC.*h_βC.^reverse(0:length(rel)-1)
+            err =  -1 .*(1 .- hits[rel]).*h_ηE.*h_βE.^reverse(0:length(rel)-1)
+            a_0 = sum(cho .* (corr + err))
+            a_0 = a_0 + hits[i-1]*h_Cb + (1. - hits[i-1])*h_Eb
+        end
+        choices[i], RT[i] = rand(inputs[i], base_θz, σ2_s, C, a_0, rng[i])
+        if rand() < lapse_frac
+            choices[i] = rand() > 0.5
+            RT[i] = rand(lapse_dist)
+        end
+        hits[i] = choices[i] == data_dict["correct"][i]
+    end
 
     return choices, RT
+end
 
+
+
+
+"""
+    choice and RT sim for Qlearn
+"""
+function rand(inputs, data_dict, base_θz::θz_base, hist_θz::θz_Qlearn, σ2_s, C::String,  rng::Vector{Int})
+
+    choices = Array{Bool}(undef, data_dict["ntrials"])
+    hits    = Array{Bool}(undef, data_dict["ntrials"])
+    RT      = Array{Float64}(undef, data_dict["ntrials"])
+
+     # adding lapse effects 
+    @unpack lapse = base_θz
+    lapse_dist = Exponential(data_dict["mlapse"])
+    lapse == 0 ? lapse_frac = data_dict["frac"] : lapse_frac = lapse
+
+    @unpack h_αr, h_αf, h_κlc, h_κle, h_κrc, h_κre = hist_θz
+
+    Qll, Qrr, a_0 = 1.,1., 0.
+    for i = 1:data_dict["ntrials"]
+        if i > 1
+            if choices[i-1]   # rightward choice
+                hits[i-1] ? outcome = h_κrc : outcome = h_κre
+                Qrr = (1-h_αr)*Qrr + h_αr*outcome
+                Qll = (1-h_αf)*Qll
+            else
+                hits[i-1] ? outcome = h_κlc : outcome = h_κle
+                Qll = (1-h_αr)*Qll + h_αr*outcome
+                Qrr = (1-h_αf)*Qrr
+            end
+        end
+        a_0 = log(Qrr/Qll)
+        choices[i], RT[i] = rand(inputs[i], base_θz, σ2_s, C, a_0, rng[i])
+        if rand() < lapse_frac
+            choices[i] = rand() > 0.5
+            RT[i] = rand(lapse_dist)
+        end
+        hits[i] = choices[i] == data_dict["correct"][i]
+    end
+
+    return choices, RT
 end
 
 
