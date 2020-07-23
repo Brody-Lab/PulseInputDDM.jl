@@ -168,6 +168,43 @@ function compute_initial_pt(hist_θz::θz_expfilter_ce_bias, B0::TT, data_dict) 
 end
 
 
+
+"""
+    exponential filter 4 params with indep weights for correct/error left/right
+    assumes independent discounting and updating of correct and error trials (stimulus space)
+
+"""
+function compute_initial_pt(hist_θz::θz_expfilter_ce_lr, B0::TT, data_dict) where TT <: Any
+    
+    @unpack h_ηcr, h_ηcl, h_ηer, h_ηel = hist_θz
+    @unpack h_βcr, h_βcl, h_βer, h_βel = hist_θz
+
+    ntrials = data_dict["ntrials"]
+    data_dict["sessbnd"][1] = 1
+    lim = 1
+
+    i_0 = Array{TT}(undef, ntrials)
+    
+    for i = 1:ntrials
+        if data_dict["sessbnd"][i] == 1
+            lim = i
+            i_0[i] = 0.
+            rel = []
+         else
+            rel = max(lim, i-10):i-1
+            cr = ((data_dict["choice"][rel] .== 1) .& (data_dict["hits"][rel] .== 1)).*h_ηcr.*h_βcr.^reverse(0:length(rel)-1)
+            cl = ((data_dict["choice"][rel] .== 0) .& (data_dict["hits"][rel] .== 1)).*h_ηcl.*h_βcl.^reverse(0:length(rel)-1)
+            er = ((data_dict["choice"][rel] .== 1) .& (data_dict["hits"][rel] .== 0)).*h_ηer.*h_βer.^reverse(0:length(rel)-1)
+            el = ((data_dict["choice"][rel] .== 0) .& (data_dict["hits"][rel] .== 0)).*h_ηel.*h_βel.^reverse(0:length(rel)-1)
+            i_0[i] = sum(cr + cl + er + el)
+        end
+    end
+   
+    return  i_0
+
+end
+
+
 """
     Qlearn with forgetting: returns value in log posterior units
 """

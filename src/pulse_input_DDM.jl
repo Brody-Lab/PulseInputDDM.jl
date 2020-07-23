@@ -65,6 +65,17 @@ end
     h_Eb = 0.
 end
 
+@with_kw struct θz_expfilter_ce_lr{T<:Real} <: θz_ch @deftype T
+    h_ηcr = 0.3012
+    h_ηcl = 0.3012
+    h_ηer = 0.3012
+    h_ηel = 0.3012
+    h_βcr = 0.1929
+    h_βcl = 0.1929
+    h_βer = 0.1929
+    h_βel = 0.1929
+end
+
 @with_kw struct θz_DBM{T<:Real} @deftype T
     h_α = 0.7
     h_u = 0.5
@@ -119,6 +130,15 @@ end
     hist_θz = θz_expfilter_ce_bias()
     lpost_space::Bool = false
 end
+
+
+@with_kw struct θ_expfilter_ce_lr <: DDMθ
+    base_θz = θz_base()
+    ndtime_θz = θz_ndtime()
+    hist_θz = θz_expfilter_ce_lr()
+    lpost_space::Bool = false
+end
+
 
 @with_kw struct θ_DBM <: DDMθ
     base_θz = θz_base()
@@ -199,13 +219,14 @@ export choiceDDM, choicedata, choiceoptions, choiceinputs
 export θ_expfilter, θ_expfilter_ce, θz_base, θz_ndtime
 export θz_expfilter, θz_expfilter_ce, θ_LPSexp, θ_DBMexpbnd
 export θz_DBM, θz_DBMexp, θ_DBM, θ_DBMexp, θz_LPSexp
-export θz_Qlearn, θ_Qlearn 
+export θz_Qlearn, θ_Qlearn, θz_expfilter_ce_bias, θ_expfilter_ce_lr 
 export θ_expfilter_ce_bias, θz_expfilter_ce_bias
 
 
 const modeldict = Dict("expfilter" => θ_expfilter,
 					"expfilter_ce" => θ_expfilter_ce,
                     "expfilter_ce_bias" => θ_expfilter_ce_bias,
+                    "expfilter_ce_lr" => θ_expfilter_ce_lr,
                     "DBM"          => θ_DBM,
                     "DBMexp"       => θ_DBMexp,
                     "LPSexp"       => θ_LPSexp,
@@ -247,7 +268,12 @@ function create_options(θ::DDMθ)
         :h_C => [0., 1., 1, 0.05],                                           # LPSexp along with h_α, h_β                                   
         :h_αr => [0., 1., 1, 0.1], :h_αf => [0., 1., 1, 0.01],               # Qlearning remember, forgetting rates
         :h_κlc => [0., 1., 1, 0.5], :h_κle => [0., 1., 1, 0.05],              # Qlearning left prediction errors : correct, error  
-        :h_κrc => [0., 1., 1, 0.5], :h_κre => [0., 1., 1, 0.05])              # Q learning right prediction errors : correct, error   
+        :h_κrc => [0., 1., 1, 0.5], :h_κre => [0., 1., 1, 0.05],              # Q learning right prediction errors : correct, error 
+        :h_ηcr => [-2.0, 2.0, 1, 0.3], :h_ηcl => [-2., 2., 1, 0.3],           # expfilter_ce_lr params
+        :h_ηer => [-2.0, 2.0, 1, 0.3], :h_ηel => [-2., 2., 1, 0.3],           # expfilter_ce_lr params
+        :h_βcr => [0., 1., 1, 0.1], :h_βcl => [0., 1., 1, 0.1],               # expfilter_ce_lr params
+        :h_βer => [0., 1., 1, 0.1], :h_βel => [0., 1., 1, 0.1])               # expfilter_ce_lr params
+
 
 
 	params = get_param_names(θ)

@@ -93,7 +93,7 @@ function rand(inputs, data_dict, θ::DDMθ, hist_θz::θz_ch, σ2_s, C::String, 
 
     choices, RT = rand(inputs, data_dict, θ.base_θz, θ.hist_θz, σ2_s, C, rng)  
     RT .= RT .+ ((1. .- choices).*vec(rand.(NDdistL,ntrials)) .+ choices.*vec(rand.(NDdistR,ntrials)))
-
+    RT[RT.<=0] .= 0.
     return choices, RT
 
 end
