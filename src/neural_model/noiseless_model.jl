@@ -237,8 +237,9 @@ function optimize(data, options::T1;
     ub, = unstack(ub, fit)
     x0,c = unstack(x0, fit)
     #ℓℓ(x) = -loglikelihood(stack(x,c,fit), data, ncells, nparams, f, npolys)
-    ℓℓ(x) = -(loglikelihood(stack(x,c,fit), data, θ) -
-        α1 * (x[2] - lb[2]).^2)
+    #ℓℓ(x) = -(loglikelihood(stack(x,c,fit), data, θ) -
+    #    α1 * (x[2] - lb[2]).^2)
+    ℓℓ(x) = -(loglikelihood(stack(x,c,fit), data, θ))
 
     output = optimize(x0, ℓℓ, lb, ub; g_tol=g_tol, x_tol=x_tol,
         f_tol=f_tol, iterations=iterations, show_trace=show_trace,
