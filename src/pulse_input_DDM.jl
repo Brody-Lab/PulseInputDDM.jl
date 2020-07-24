@@ -35,6 +35,8 @@ export Softplus_options_noiseless
 
 export θneural_noiseless, Sigmoid_options_noiseless
 
+export θneural_choice, Softplus_choice_options, neural_choice_data
+
 export dimz
 export loglikelihood, synthetic_data
 export CIs, optimize, Hessian, gradient
@@ -157,6 +159,9 @@ include("neural_model/noiseless_model.jl")
 include("neural_model/polynomial/neural_poly_model.jl")
 include("neural_model/polynomial/noiseless_model_poly.jl")
 include("neural_model/filter/filtered.jl")
+
+include("neural-choice_model/neural-choice_model.jl")
+include("neural-choice_model/process_data.jl")
 
 #include("neural_model/load_and_optimize.jl")
 #include("neural_model/sample_model_functions_FP.jl")
