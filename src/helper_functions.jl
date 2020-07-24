@@ -156,17 +156,17 @@ function unstack(v::Vector{TT}, fit::Union{BitArray{1},Vector{Bool}}) where TT
 end
 
 
-"""
-reconstruct_model(x, modeltype)
-given a vector of params and modeltype, reconstructs θ
-"""
-function reconstruct_model(x::Vector{T1}, modeltype) where {T1 <: Real}
-    if modeltype in keys(modeldict)
-        return θ = Flatten.reconstruct(modeldict[modeltype](), x) 
-    else
-        error("Unknown model identifier $modeltype")
-    end
- end
+# """
+# reconstruct_model(x, modeltype)
+# given a vector of params and modeltype, reconstructs θ
+# """
+# function reconstruct_model(x::Vector{T1}, modeltype) where {T1 <: Real}
+#     if modeltype in keys(modeldict)
+#         return θ = Flatten.reconstruct(modeldict[modeltype](), x) 
+#     else
+#         error("Unknown model identifier $modeltype")
+#     end
+#  end
 
 
 """

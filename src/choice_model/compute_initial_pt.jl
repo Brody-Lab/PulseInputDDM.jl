@@ -43,7 +43,11 @@ function compute_initial_pt(hist_θz::θz_DBM, B0::TT, data_dict) where TT <: An
     cprob = Array{TT}(undef, data_dict["ntrials"])
 
     for i = 1:data_dict["ntrials"]
-        data_dict["sessbnd"][i] ? prior_i = prior_0 : prior_i = h_α*post + (1-h_α)*prior_0
+        if data_dict["sessbnd"][i] == 1 
+            prior_i = prior_0 
+        else
+            prior_i = h_α*post + (1-h_α)*prior_0
+        end
         cprob[i] = sum(x.*prior_i)
         data_dict["correct"][i] ? post = x.*prior_i : post = (1. .- x).*prior_i
         post = post./sum(post)
@@ -70,7 +74,11 @@ function compute_initial_pt(hist_θz::θz_DBMexp, B0::TT, data_dict) where TT <:
     cprob = Array{TT}(undef, data_dict["ntrials"])
 
     for i = 1:data_dict["ntrials"]
-        data_dict["sessbnd"][i] ? cprob[i] = inval : cprob[i] = (1-β)*C + β*(η*data_dict["correct"][i-1] + cprob[i-1])
+        if data_dict["sessbnd"][i] == 1 
+            cprob[i] = inval 
+        else
+            cprob[i] = (1-β)*C + β*(η*data_dict["correct"][i-1] + cprob[i-1])
+        end
     end
 
     return log.(cprob ./ (1 .- cprob))
@@ -91,7 +99,11 @@ function compute_initial_pt(hist_θz::θz_LPSexp, B0::TT, data_dict) where TT <:
     cprob = Array{TT}(undef, data_dict["ntrials"])
 
     for i = 1:data_dict["ntrials"]
-        data_dict["sessbnd"][i] ? cprob[i] = inval : cprob[i] = h_C + h_α*data_dict["correct"][i-1] + h_β*cprob[i-1]
+        if data_dict["sessbnd"][i] == 1
+            cprob[i] = inval 
+        else
+            cprob[i] = h_C + h_α*data_dict["correct"][i-1] + h_β*cprob[i-1]
+        end
     end
 
     return log.(cprob ./ (1 .- cprob))
@@ -110,7 +122,6 @@ function compute_initial_pt(hist_θz::θz_expfilter_ce, B0::TT, data_dict) where
     
     @unpack h_ηC, h_ηE, h_βC, h_βE = hist_θz
     ntrials = data_dict["ntrials"]
-    data_dict["sessbnd"][1] = 1
     lim = 1
 
     i_0 = Array{TT}(undef, ntrials)
@@ -143,7 +154,6 @@ function compute_initial_pt(hist_θz::θz_expfilter_ce_bias, B0::TT, data_dict) 
     
     @unpack h_ηC, h_ηE, h_βC, h_βE, h_Cb, h_Eb = hist_θz
     ntrials = data_dict["ntrials"]
-    data_dict["sessbnd"][1] = 1
     lim = 1
 
     i_0 = Array{TT}(undef, ntrials)
@@ -180,7 +190,6 @@ function compute_initial_pt(hist_θz::θz_expfilter_ce_lr, B0::TT, data_dict) wh
     @unpack h_βcr, h_βcl, h_βer, h_βel = hist_θz
 
     ntrials = data_dict["ntrials"]
-    data_dict["sessbnd"][1] = 1
     lim = 1
 
     i_0 = Array{TT}(undef, ntrials)

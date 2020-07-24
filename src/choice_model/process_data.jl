@@ -11,9 +11,13 @@ function load(file::String; sim::Bool=false, centered::Bool=false, dt::Float64=1
     gamma = vec(data["gamma"])
     L = vec(map(x-> vec(collect(x)), data[collect(keys(data))[occursin.("left", collect(keys(data)))][1]]))
     R = vec(map(x-> vec(collect(x)), data[collect(keys(data))[occursin.("right", collect(keys(data)))][1]]))
-    sessbnd = vec(convert(BitArray, data["sessidx"]))
-    sessbnd[1] = true  # first trial ever
-
+    sess = vec(convert(BitArray, data["sessidx"]))
+    sessbnd = Array{Int64}(undef, length(T))
+    sessbnd[1] = 1
+    for i=2:length(T)
+        sess[i] ? sessbnd[i] = 1 :  sessbnd[i] = sessbnd[i-1] + 1
+    end
+    
     click_times = clicks.(L, R, T, gamma)
     binned_clicks = bin_clicks.(click_times, centered=centered, dt=dt)
     inputs = choiceinputs.(click_times, binned_clicks, dt, centered)
@@ -41,6 +45,7 @@ function make_data_dict(data)
     sessbnd = map(data->data.sessbnd,data)
     choice = map(data->data.choice,data)
     hits = correct .== choice
+
     nT = map(data->data.click_data.binned_clicks.nT, data)
 
     # lapse trials 

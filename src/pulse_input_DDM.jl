@@ -110,6 +110,16 @@ end
     ndtimeR2 = 0.02
 end
 
+@with_kw struct θz_ndtime_mod{T<:Real} @deftype T
+    nd_θL = 0.1
+    nd_θR = 0.1
+    nd_vL = 10.
+    nd_vR = 10.
+    nd_tmod = 0.
+    nd_vC = 0.
+    nd_vE = 0.
+end    
+
 @with_kw struct θ_expfilter <: DDMθ
     base_θz = θz_base()
     ndtime_θz = θz_ndtime()
@@ -135,6 +145,13 @@ end
 @with_kw struct θ_expfilter_ce_lr <: DDMθ
     base_θz = θz_base()
     ndtime_θz = θz_ndtime()
+    hist_θz = θz_expfilter_ce_lr()
+    lpost_space::Bool = false
+end
+
+@with_kw struct θ_expfilter_ce_lr_ndmod <: DDMθ
+    base_θz = θz_base()
+    ndtime_θz = θz_ndtime_mod()
     hist_θz = θz_expfilter_ce_lr()
     lpost_space::Bool = false
 end
@@ -207,7 +224,7 @@ end
 @with_kw struct choicedata{T1} <: DDMdata
     click_data::T1
     choice::Bool
-    sessbnd::Bool
+    sessbnd::Int64
 end
 
 @with_kw struct choiceDDM{T,U} <: DDM
@@ -220,13 +237,15 @@ export θ_expfilter, θ_expfilter_ce, θz_base, θz_ndtime
 export θz_expfilter, θz_expfilter_ce, θ_LPSexp, θ_DBMexpbnd
 export θz_DBM, θz_DBMexp, θ_DBM, θ_DBMexp, θz_LPSexp
 export θz_Qlearn, θ_Qlearn, θz_expfilter_ce_bias, θ_expfilter_ce_lr 
-export θ_expfilter_ce_bias, θz_expfilter_ce_bias
+export θ_expfilter_ce_bias
+export θz_ndtime_mod, θ_expfilter_ce_lr_ndmod, θz_expfilter_ce_lr
 
 
 const modeldict = Dict("expfilter" => θ_expfilter,
 					"expfilter_ce" => θ_expfilter_ce,
                     "expfilter_ce_bias" => θ_expfilter_ce_bias,
                     "expfilter_ce_lr" => θ_expfilter_ce_lr,
+                    "expfilter_ce_lr_ndmod" => θ_expfilter_ce_lr_ndmod,
                     "DBM"          => θ_DBM,
                     "DBMexp"       => θ_DBMexp,
                     "LPSexp"       => θ_LPSexp,
@@ -260,6 +279,9 @@ function create_options(θ::DDMθ)
         :lpost_space => [0 1 0 0],                                          # NOT A REAL VARIABLE - specifies whether model runs in logpost space
     	:ndtimeL1 => [0.0, 10.0, 1, 3.], :ndtimeL2 => [0.0, 5.0, 1, 0.04],  # ndtime left choice
     	:ndtimeR1 => [0.0, 10.0, 1, 3.], :ndtimeR2 => [0.0, 5.0, 1, 0.04],  # ndtime right choice
+        :nd_θR => [0., 10., 1, 0.1], :nd_θL => [0., 10., 1, 0.1],               # ndtime mod bounds
+        :nd_vL => [0., 12., 1, 10.], :nd_vR => [0., 12., 1, 10.],               # ndtime mod drifts
+        :nd_tmod => [0., 1., 1, 1e-4], :nd_vC => [-12., 12., 1, 0.], :nd_vE => [-12., 12., 1, 0.],  # ndtime mod trial, and CE mods
     	:h_η => [-2.0, 2.0, 1, 0.3], :h_β => [0., 1., 1, 0.1],				# expfilter params
     	:h_ηC => [-2.0, 2.0, 1, 0.3], :h_ηE => [-2., 2., 1, 0.3],			# expfilter_ce params
     	:h_βC => [0., 1., 1, 0.1], :h_βE => [0., 1., 1, 0.1],				# expfilter_ce params
@@ -273,7 +295,6 @@ function create_options(θ::DDMθ)
         :h_ηer => [-2.0, 2.0, 1, 0.3], :h_ηel => [-2., 2., 1, 0.3],           # expfilter_ce_lr params
         :h_βcr => [0., 1., 1, 0.1], :h_βcl => [0., 1., 1, 0.1],               # expfilter_ce_lr params
         :h_βer => [0., 1., 1, 0.1], :h_βel => [0., 1., 1, 0.1])               # expfilter_ce_lr params
-
 
 
 	params = get_param_names(θ)

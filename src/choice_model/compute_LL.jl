@@ -18,37 +18,71 @@ Given parameters θ and data (inputs and choices) computes the LL for all trials
 """
 function loglikelihood(θ::DDMθ, data, data_dict, dx::Float64)
 
-    penalty, flag = constraint_penalty(θ.hist_θz, data_dict["ntrials"], mean(data_dict["lapse_lik"]))
+    a_0 = compute_initial_pt(θ.hist_θz, θ.base_θz.B0, data_dict)  
+    σ2_s, C = transform_log_space(θ, data_dict["teps"] )
+    dt = data_dict["dt"]
 
-    if flag
-        # initial point computation
-        a_0 = compute_initial_pt(θ.hist_θz, θ.base_θz.B0, data_dict)  
+    if θ.ndtime_θz isa θz_ndtime
 
-        # non-decision time distribution computation
         @unpack ndtimeL1, ndtimeL2 = θ.ndtime_θz
         @unpack ndtimeR1, ndtimeR2 = θ.ndtime_θz
         NDdistL = Gamma(ndtimeL1, ndtimeL2)
         NDdistR = Gamma(ndtimeR1, ndtimeR2)
 
-        dt = data_dict["dt"]
-        frac = data_dict["frac"]
-
-        # get mean and variance for log posterior space
-        σ2_s, C = transform_log_space(θ, data_dict["teps"] )
         P = pmap((data, a_0, nT) -> loglikelihood!(θ.base_θz, data, σ2_s, C, a_0, dx, pdf.(NDdistL, dt.*collect(nT:-1:1)).*dt, 
-                                            pdf.(NDdistR, dt.*collect(nT:-1:1)).*dt), data, a_0, data_dict["nT"])
-
-        return sum(log.((frac .* data_dict["lapse_lik"] .* .5) .+ (1. - frac)
-            .*map((P, choice) -> (choice ? P[2] : P[1]), P, data_dict["choice"])))  
-            + penalty
-
+                                        pdf.(NDdistR, dt.*collect(nT:-1:1)).*dt), data, a_0, data_dict["nT"])
+    
+    elseif θ.ndtime_θz isa θz_ndtime_mod
+    
+        P = pmap((data, a_0, ph_ind, nT) -> loglikelihood!(θ.base_θz, data, σ2_s, C, a_0, dx, θ.ndtime_θz, dt,
+                                        ph_ind, nT), data, a_0, [1; data_dict["hits"][1:end-1]], data_dict["nT"])
     else
-        return penalty
-    end    
+        error("unknown ndtime model")
+    end
+
+    frac = data_dict["frac"]
+    return sum(log.((frac .* data_dict["lapse_lik"] .* .5) .+ (1. - frac)
+        .*map((P, choice) -> (choice ? P[2] : P[1]), P, data_dict["choice"])))       
 end
 
+
 """
-    loglikelihood!(θ, data, i_0, n)
+    loglikelihood!(θ, data, i_0, n) for θz_ndtime_mod
+    
+Given parameters θ and data (inputs and choices) computes the LL for one trial
+"""
+function loglikelihood!(base_θz::θz_base,data::choicedata, σ2_s::TT, C,
+        a_0::TT, dx::Float64, ndtime_θz::θz_ndtime_mod, dt, ph_ind, nT) where {TT <: Any}
+
+    @unpack click_data, choice, sessbnd = data
+    
+    @unpack nd_θL, nd_θR, nd_vL, nd_vR = ndtime_θz
+    @unpack nd_tmod, nd_vC, nd_vE = ndtime_θz
+    nd_driftL = nd_vL - nd_tmod*sessbnd + ph_ind*nd_vC + (1-ph_ind)*nd_vE
+    nd_driftR = nd_vR - nd_tmod*sessbnd + ph_ind*nd_vC + (1-ph_ind)*nd_vE
+    NDdistL = InverseGaussian(nd_θL/nd_driftL, nd_θL^2)
+    NDdistR = InverseGaussian(nd_θR/nd_driftR, nd_θR^2)
+    ndL = pdf.(NDdistL, dt.*collect(nT:-1:1)).*dt
+    ndR = pdf.(NDdistR, dt.*collect(nT:-1:1)).*dt
+
+    if (base_θz.Bλ == 0) & (base_θz.Bm == 0)
+        Pbounds = P_single_trial!(base_θz, dx, click_data, a_0, σ2_s, C)
+    else
+        Pbounds = P_single_trial!(base_θz, dx, click_data, a_0, σ2_s, C, base_θz.Bλ)
+    end
+
+    # non-decision time 
+    pback = zeros(TT,2)
+    pback[1] = transpose(Pbounds[1,:]) * ndL
+    pback[2] = transpose(Pbounds[2,:]) * ndR
+        
+    return pback
+
+end
+
+
+"""
+    loglikelihood!(θ, data, i_0, n) for θz_ndtime
     
 Given parameters θ and data (inputs and choices) computes the LL for one trial
 """

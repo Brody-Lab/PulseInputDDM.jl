@@ -7,7 +7,7 @@ and specification of which parameters to fit.
 BACK IN THE DAY TOLS WERE: x_tol::Float64=1e-4, f_tol::Float64=1e-9, g_tol::Float64=1e-2
 """
 function optimize(data, data_dict, modeltype, options::DDMθoptions, dx::Float64;
-        x_tol::Float64=1e-12, f_tol::Float64=1e-12, g_tol::Float64=1e-10,
+        x_tol::Float64=1e-14, f_tol::Float64=1e-14, g_tol::Float64=1e-12,
         iterations::Int=Int(5e3), show_trace::Bool=true, outer_iterations::Int=Int(1e1),
         extended_trace::Bool=false, scaled::Bool=false)
 
