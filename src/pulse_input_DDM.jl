@@ -171,6 +171,13 @@ end
     lpost_space::Bool = true
 end
 
+@with_kw struct θ_DBMexp_ndmod <: DDMθ
+    base_θz = θz_base()
+    ndtime_θz = θz_ndtime_mod()
+    hist_θz = θz_DBMexp()
+    lpost_space::Bool = true
+end
+
 
 @with_kw struct θ_LPSexp <: DDMθ
     base_θz = θz_base()
@@ -237,7 +244,7 @@ export θ_expfilter, θ_expfilter_ce, θz_base, θz_ndtime
 export θz_expfilter, θz_expfilter_ce, θ_LPSexp, θ_DBMexpbnd
 export θz_DBM, θz_DBMexp, θ_DBM, θ_DBMexp, θz_LPSexp
 export θz_Qlearn, θ_Qlearn, θz_expfilter_ce_bias, θ_expfilter_ce_lr 
-export θ_expfilter_ce_bias
+export θ_expfilter_ce_bias, θ_DBMexp_ndmod
 export θz_ndtime_mod, θ_expfilter_ce_lr_ndmod, θz_expfilter_ce_lr
 
 
@@ -248,6 +255,7 @@ const modeldict = Dict("expfilter" => θ_expfilter,
                     "expfilter_ce_lr_ndmod" => θ_expfilter_ce_lr_ndmod,
                     "DBM"          => θ_DBM,
                     "DBMexp"       => θ_DBMexp,
+                    "DBMexp_ndmod" => θ_DBMexp_ndmod,
                     "LPSexp"       => θ_LPSexp,
                     "Qlearn"       => θ_Qlearn)
 
@@ -273,8 +281,8 @@ function create_options(θ::DDMθ)
     	:Bm => [0., 10., 0, 0.], :Bλ => [-5.0, 1.0, 0, 0.], :B0 => [0.5, 5.0, 1, 1.5],  	# bound parameters
     	:λ => [-15.0, 15.0, 1, -0.001],                           					# leak
     	:σ2_i => [0.0, 2.0, 0, eps()], :σ2_a => [0.0, 10., 0, eps()], :σ2_s => [0.0, 20., 1, 2.],  # noise params
-    	:ϕ => [0.01, 1.2, 1, 1.], :τ_ϕ => [0.005, 1.0, 1, 0.02],        	# adaptation params
-    	:bias => [-1.5, 1.5, 1, 0.], :lapse => [0.0, 1.0, 0, 0.],         # bias, lapse params
+    	:ϕ => [0.01, 1.2, 0, 1.], :τ_ϕ => [0.005, 1.0, 0, 0.02],        	# adaptation params
+    	:bias => [-1.5, 1.5, 0, 0.], :lapse => [0.0, 1.0, 0, 0.],         # bias, lapse params
     	:h_drift_scale => [0.0, 1.0, 0, 0.],                       # history drift scale
         :lpost_space => [0 1 0 0],                                          # NOT A REAL VARIABLE - specifies whether model runs in logpost space
     	:ndtimeL1 => [0.0, 10.0, 1, 3.], :ndtimeL2 => [0.0, 5.0, 1, 0.04],  # ndtime left choice

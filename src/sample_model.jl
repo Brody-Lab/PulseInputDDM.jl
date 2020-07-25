@@ -10,7 +10,12 @@ function synthetic_data(θ::DDMθ, dt::Float64=5e-4, ntrials::Int=2000, rng::Int
     inputs = choiceinputs.(clicks, binned_clicks, dt, centered)
 
     # making data_dict
-    sessbnd = [rand()<0.001 for i in 1:ntrials]
+    sess = [rand()<0.001 for i in 1:ntrials]
+    sessbnd = Array{Int64}(undef, ntrials)
+    sessbnd[1] = 1
+    for i=2:ntrials
+        sess[i] ? sessbnd[i] = 1 :  sessbnd[i] = sessbnd[i-1] + 1
+    end
     data_dict = make_data_dict(inputs, sessbnd)
 
     # simulating choices and recomputing nTs based on RTs
@@ -50,20 +55,11 @@ Produces L/R choice for one trial, given model parameters and inputs.
 function rand(inputs, data_dict, θ::DDMθ, hist_θz, σ2_s, C, rng::Vector{Int}) 
 
     ntrials = data_dict["ntrials"]
-    
-    # adding non-decision time
-    @unpack ndtimeL1, ndtimeL2 = θ.ndtime_θz
-    @unpack ndtimeR1, ndtimeR2 = θ.ndtime_θz
-    NDdistL = Gamma(ndtimeL1, ndtimeL2)
-    NDdistR = Gamma(ndtimeR1, ndtimeR2)
-
     a_0 = compute_initial_pt(hist_θz, θ.base_θz.B0, data_dict)
 
     output = pmap((inputs, a_0, rng) -> rand(inputs, θ.base_θz, σ2_s, C, a_0, rng), inputs, a_0, rng)
     choices = map(output->output[1], output)
-    RT = map(output->output[2], output)
-
-    RT .= RT .+ ((1. .- choices).*vec(rand.(NDdistL,ntrials)) .+ choices.*vec(rand.(NDdistR,ntrials)))
+    RT = add_ndtime(θ.ndtime_θz, choices, map(output->output[2], output), data_dict)
 
     # adding lapse effects 
     @unpack lapse = θ.base_θz
@@ -83,17 +79,9 @@ Produces L/R choice for one trial, given model parameters and inputs.
 """
 function rand(inputs, data_dict, θ::DDMθ, hist_θz::θz_ch, σ2_s, C::String, rng::Vector{Int}) 
 
-    ntrials = data_dict["ntrials"]
+    choices, DT = rand(inputs, data_dict, θ.base_θz, θ.hist_θz, σ2_s, C, rng)  
+    RT = add_ndtime(θ.ndtime_θz, choices, DT, data_dict)
 
-    # adding non-decision time
-    @unpack ndtimeL1, ndtimeL2 = θ.ndtime_θz
-    @unpack ndtimeR1, ndtimeR2 = θ.ndtime_θz
-    NDdistL = Gamma(ndtimeL1, ndtimeL2)
-    NDdistR = Gamma(ndtimeR1, ndtimeR2)
-
-    choices, RT = rand(inputs, data_dict, θ.base_θz, θ.hist_θz, σ2_s, C, rng)  
-    RT .= RT .+ ((1. .- choices).*vec(rand.(NDdistL,ntrials)) .+ choices.*vec(rand.(NDdistR,ntrials)))
-    RT[RT.<=0] .= 0.
     return choices, RT
 
 end
@@ -341,6 +329,41 @@ function sample_one_step!(a::TT, t::Int, σ2_a::TT, σ2_s::TT, λ::TT,
     end
     
     return a
+
+end
+
+
+"""
+"""
+function add_ndtime(ndtime_θz::θz_ndtime, choices, RT, data_dict)
+
+    ntrials = data_dict["ntrials"]
+    @unpack ndtimeL1, ndtimeL2 = ndtime_θz
+    @unpack ndtimeR1, ndtimeR2 = ndtime_θz
+    NDdistL = Gamma(ndtimeL1, ndtimeL2)
+    NDdistR = Gamma(ndtimeR1, ndtimeR2)
+    RT .= RT .+ ((1. .- choices).*vec(rand.(NDdistL,ntrials)) .+ choices.*vec(rand.(NDdistR,ntrials)))   
+    return RT
+
+end
+
+"""
+"""
+function add_ndtime(ndtime_θz::θz_ndtime_mod, choices, DT, data_dict)
+
+    ntrials = data_dict["ntrials"]
+    @unpack nd_θL, nd_θR, nd_vL, nd_vR = ndtime_θz
+    @unpack nd_tmod, nd_vC, nd_vE = ndtime_θz
+    RT = Array{Float64}(undef, ntrials)
+    for i = 2:ntrials     # do something about trial 1!!!!
+        ph = choices[i-1] == data_dict["correct"][i-1]
+        nd_driftL = nd_vL - nd_tmod*data_dict["sessbnd"][i] + ph*nd_vC + (1-ph)*nd_vE
+        nd_driftR = nd_vR - nd_tmod*data_dict["sessbnd"][i] + ph*nd_vC + (1-ph)*nd_vE
+        NDdistL = InverseGaussian(nd_θL/nd_driftL, nd_θL^2)
+        NDdistR = InverseGaussian(nd_θR/nd_driftR, nd_θR^2)
+        RT[i] = DT[i] + (1-choices[i])*rand(NDdistL) + choices[i]*rand(NDdistR)
+    end    
+    return RT
 
 end
 
