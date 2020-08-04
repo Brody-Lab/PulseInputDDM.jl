@@ -292,7 +292,7 @@ function adapt_clicks(ϕ::TT, τ_ϕ::TT, L::Vector{Float64}, R::Vector{Float64};
         
         all = vcat(hcat(L[2:end], -1 * ones(length(L)-1)), hcat(R, ones(length(R))))
         all = all[sortperm(all[:, 1]), :]
-        adapted = ones(size(all,1))
+        adapted = ones(TT, size(all,1))
         adapted[1] = eps()
 
         if (typeof(ϕ) == Float64) && (isapprox(ϕ, 1.0))

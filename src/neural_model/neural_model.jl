@@ -51,10 +51,8 @@ function (θ::Sigmoid)(x::U, λ0::T) where {U,T <: Real}
     @unpack a,b,c,d = θ
 
     y = c * x + d
-    y = a + b * logistic!(y)
-    #y = y + λ0
-    y = softplus(y + λ0)
-    #y = max(eps(), y + λ0)
+    y = a + b * logistic!(y) + λ0
+    y = softplus(y)
 
 end
 
@@ -297,7 +295,8 @@ function optimize(data, options::T1; n::Int=53,
         iterations::Int=Int(2e3), show_trace::Bool=true,
         outer_iterations::Int=Int(1e1), scaled::Bool=false,
         extended_trace::Bool=false, σ::Vector{Float64}=[0.], 
-        μ::Vector{Float64}=[0.],do_prior::Bool=false) where T1 <: neural_options
+        μ::Vector{Float64}=[0.], do_prior::Bool=false, cross::Bool=false,
+        sig_σ::Float64=1.) where T1 <: neural_options
 
     @unpack fit, lb, ub, x0, ncells, f, nparams = options
     
@@ -318,7 +317,14 @@ function optimize(data, options::T1; n::Int=53,
     #prior(x) = sum(α .* (μ .- stack(x,c,fit)[[1,2,4,6,7]]).^2)
     #logprior(x) = sum(logpdf.(Normal.(μ, σ), stack(x,c,fit)[1:dimz]))
     #logprior(x) = sum(logpdf.(Laplace.(μ, σ), stack(x,c,fit)[1:dimz]))
-    ℓℓ(x) = -(loglikelihood(stack(x,c,fit), data, θ; n=n) + Float64(do_prior) * logprior(stack(x,c,fit)[1:dimz],μ,σ))
+    
+    #ℓℓ(x) = -(loglikelihood(stack(x,c,fit), data, θ; n=n, cross=cross) + 
+    #    Float64(do_prior) * logprior(stack(x,c,fit)[1:dimz],μ,σ) + 
+    #    Float64(f == "Sigmoid") * sum(logpdf.(Normal(0., sig_σ), stack(x,c,fit)[dimz+3:nparams:end])))
+    
+    ℓℓ(x) = -(loglikelihood(stack(x,c,fit), data, θ; n=n, cross=cross) + 
+        Float64(f == "Sigmoid") * sum(logpdf.(Normal(0., sig_σ), stack(x,c,fit)[dimz+3:nparams:end])))
+    
     #ℓℓ(x) = -(loglikelihood(stack(x,c,fit), data, θ; n=n) - prior(x))
      #ℓℓ(x) = -(loglikelihood(stack(x,c,fit), data, θ; n=n))
 
@@ -345,11 +351,12 @@ A wrapper function that accepts a vector of mixed parameters, splits the vector
 into two vectors based on the parameter mapping function provided as an input. Used
 in optimization, Hessian and gradient computation.
 """
-function loglikelihood(x::Vector{T}, data::Vector{Vector{T2}}, θ::θneural; n::Int=53) where {T <: Real, T2 <: neuraldata}
+function loglikelihood(x::Vector{T}, data::Vector{Vector{T2}}, θ::θneural; n::Int=53, 
+        cross::Bool=false) where {T <: Real, T2 <: neuraldata}
 
     @unpack ncells, nparams, f = θ
     θ = θneural(x, ncells, nparams, f)
-    loglikelihood(θ, data; n=n)
+    loglikelihood(θ, data; n=n, cross=cross)
 
 end
 
@@ -359,7 +366,7 @@ end
 
 Computes the log likelihood for a set of trials consistent with the observed neural activity on each trial.
 """
-function loglikelihood(θ::θneural, data::Vector{Vector{T1}}; n::Int=53) where {T1 <: neuraldata}
+function loglikelihood(θ::θneural, data::Vector{Vector{T1}}; n::Int=53, cross::Bool=false) where {T1 <: neuraldata}
 
     @unpack θz, θy = θ
     @unpack σ2_i, B, λ, σ2_a = θz
@@ -368,7 +375,7 @@ function loglikelihood(θ::θneural, data::Vector{Vector{T1}}; n::Int=53) where 
     P,M,xc,dx = initialize_latent_model(σ2_i, B, λ, σ2_a, n, dt)
 
     sum(map((data, θy) -> sum(pmap(data -> 
-                    loglikelihood(θz,θy,data, P, M, xc, dx; n=n), data)), data, θy))
+                    loglikelihood(θz,θy,data, P, M, xc, dx; n=n, cross=cross), data)), data, θy))
 
 end
 
@@ -377,7 +384,7 @@ end
 """
 function loglikelihood(θz,θy,data::neuraldata,
         P::Vector{T1}, M::Array{T1,2},
-        xc::Vector{T1}, dx::T3; n::Int=53) where {T1,T3 <: Real}
+        xc::Vector{T1}, dx::T3; n::Int=53, cross::Bool=false) where {T1,T3 <: Real}
 
     @unpack λ, σ2_a, σ2_s, ϕ, τ_ϕ = θz
     @unpack spikes, input_data = data
@@ -386,7 +393,7 @@ function loglikelihood(θz,θy,data::neuraldata,
     @unpack L, R = clicks
 
     #adapt magnitude of the click inputs
-    La, Ra = adapt_clicks(ϕ,τ_ϕ,L,R)
+    La, Ra = adapt_clicks(ϕ,τ_ϕ,L,R;cross=cross)
 
     F = zeros(T1,n,n) #empty transition matrix for time bins with clicks
     

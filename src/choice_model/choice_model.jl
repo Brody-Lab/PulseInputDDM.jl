@@ -98,7 +98,7 @@ function optimize(data, options::choiceoptions; n::Int=53,
         iterations::Int=Int(2e3), show_trace::Bool=true, outer_iterations::Int=Int(1e1),
         extended_trace::Bool=false, scaled::Bool=false,
         time_limit::Float64=170000., show_every::Int=10, σ::Vector{Float64}=[0.], 
-        μ::Vector{Float64}=[0.], do_prior::Bool=false)
+        μ::Vector{Float64}=[0.], do_prior::Bool=false, cross::Bool=false)
 
     @unpack fit, lb, ub, x0 = options
 
@@ -109,7 +109,8 @@ function optimize(data, options::choiceoptions; n::Int=53,
  
     #prior(x) = sum(1. ./ [50, 40, 0.4, 0.5] .* stack(x,c,fit)[[1,2,6,7]])
     #ℓℓ(x) = -(loglikelihood(stack(x,c,fit), data; n=n) - prior(x))
-    ℓℓ(x) = -(loglikelihood(stack(x,c,fit), data; n=n) + Float64(do_prior) * logprior(stack(x,c,fit)[1:dimz],μ,σ))
+    ℓℓ(x) = -(loglikelihood(stack(x,c,fit), data; n=n, cross=cross) + 
+        Float64(do_prior) * logprior(stack(x,c,fit)[1:dimz],μ,σ))
     
     output = optimize(x0, ℓℓ, lb, ub; g_tol=g_tol, x_tol=x_tol,
         f_tol=f_tol, iterations=iterations, show_trace=show_trace,
@@ -136,10 +137,10 @@ Given a vector of parameters and a type containing the data related to the choic
 
 See also: [`loglikelihood`](@ref)
 """
-function loglikelihood(x::Vector{T1}, data; n::Int=53) where {T1 <: Real}
+function loglikelihood(x::Vector{T1}, data; n::Int=53, cross::Bool=false) where {T1 <: Real}
 
     θ = Flatten.reconstruct(θchoice(), x)
-    loglikelihood(θ, data, n=n)
+    loglikelihood(θ, data; n=n, cross=cross)
 
 end
 
@@ -149,11 +150,11 @@ end
 
 Given a DDM model (parameters and data), compute the gradient.
 """
-function gradient(model::T; n::Int=53) where T <: DDM
+function gradient(model::T; n::Int=53, cross::Bool=false) where T <: DDM
 
     @unpack θ, data = model
     x = [Flatten.flatten(θ)...]
-    ℓℓ(x) = -loglikelihood(x, data, n=n)
+    ℓℓ(x) = -loglikelihood(x, data; n=n, cross=cross)
 
     ForwardDiff.gradient(ℓℓ, x)
 
@@ -165,11 +166,11 @@ end
 
 Given a DDM model (parameters and data), compute the Hessian.
 """
-function Hessian(model::T; n::Int=53) where T <: DDM
+function Hessian(model::T; n::Int=53, cross::Bool=false) where T <: DDM
 
     @unpack θ, data = model
     x = [Flatten.flatten(θ)...]
-    ℓℓ(x) = -loglikelihood(x, data, n=n)
+    ℓℓ(x) = -loglikelihood(x, data; n=n, cross=cross)
 
     ForwardDiff.hessian(ℓℓ, x)
 

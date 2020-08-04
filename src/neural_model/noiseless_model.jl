@@ -227,7 +227,8 @@ end
 function optimize(data, options::T1;
         x_tol::Float64=1e-10, f_tol::Float64=1e-6, g_tol::Float64=1e-3,
         iterations::Int=Int(2e3), show_trace::Bool=true,
-        outer_iterations::Int=Int(1e1), α1::Float64=0.) where T1 <: neural_options_noiseless
+        outer_iterations::Int=Int(1e1), α1::Float64=0.,
+        sig_σ::Float64=1.) where T1 <: neural_options_noiseless
 
     @unpack fit, lb, ub, x0, ncells, f, nparams = options
     
@@ -239,7 +240,8 @@ function optimize(data, options::T1;
     #ℓℓ(x) = -loglikelihood(stack(x,c,fit), data, ncells, nparams, f, npolys)
     #ℓℓ(x) = -(loglikelihood(stack(x,c,fit), data, θ) -
     #    α1 * (x[2] - lb[2]).^2)
-    ℓℓ(x) = -(loglikelihood(stack(x,c,fit), data, θ))
+    ℓℓ(x) = -(loglikelihood(stack(x,c,fit), data, θ)  + 
+        sum(Float64(f == "Sigmoid") * logpdf.(Normal(0., sig_σ), stack(x,c,fit)[dimz+3:nparams:end])))
 
     output = optimize(x0, ℓℓ, lb, ub; g_tol=g_tol, x_tol=x_tol,
         f_tol=f_tol, iterations=iterations, show_trace=show_trace,
@@ -403,12 +405,14 @@ function θy(ΔLR, spikes, dt, f; nconds::Int=7)
     c = hcat(ones(size(ΔLR, 1)), ΔLR) \ spikes
 
     if (f == "Sigmoid")
+         #p = vcat(minimum(rate) - mean(rate), maximum(rate)- mean(rate), c[2])
         p = vcat(minimum(rate) - mean(rate), maximum(rate)- mean(rate), c[2], 0.)
         #p = vcat(minimum(rate), maximum(rate)- minimum(rate), c[2], 0.)
     elseif f == "Softplus"
         #p = vcat(minimum(rate) - mean(rate), (1/dt)*c[2], 0.)
         #p = vcat(eps(), (1/dt)*c[2], 0.)
         #p = vcat(minimum(rate) - mean(rate), (1/dt)*c[2])
+        #p = vcat((1/dt)*c[2], 0.)
         p = vcat((1/dt)*c[2])
     end
 
