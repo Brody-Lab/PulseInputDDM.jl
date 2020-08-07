@@ -29,6 +29,8 @@ export Sigmoid, Softplus, Sigmoid_options, Softplus_options
 export θfilt, filtoptions, train_and_test
 export filtinputs, filtdata, sigmoid_filtoptions
 
+export mixed_options_noiseless, θneural_noiseless_mixed, mixed_options, θneural_mixed
+
 export neural_poly_DDM, θneural_poly
 
 export Softplus_options_noiseless

@@ -19,6 +19,17 @@ end
 
 """
 """
+@with_kw struct θneural_mixed{T1, T2} <: DDMθ
+    θz::T1
+    θy::T2
+    ncells::Vector{Int}
+    nparams::Vector{Int}
+    f::Vector{String}
+end
+
+
+"""
+"""
 @with_kw struct θneural{T1, T2} <: DDMθ
     θz::T1
     θy::T2
@@ -139,6 +150,21 @@ end
 end
 
 
+
+"""
+"""
+@with_kw struct mixed_options <: neural_options
+    ncells::Vector{Int}
+    nparams::Vector{Int}
+    f::Vector{String}
+    fit::Vector{Bool}
+    ub::Vector{Float64}
+    x0::Vector{Float64}
+    lb::Vector{Float64}
+end
+
+
+
 #=
 """
 """
@@ -183,12 +209,27 @@ end
 
 
 """
+"""
+function θneural(x::Vector{T}, ncells::Vector{Int}, nparams::Vector{Int}, f::Vector{String}) where {T <: Real}
+    
+    borg = vcat(dimz, dimz.+cumsum(nparams .* ncells))
+    borg = [x[i] for i in [borg[i-1]+1:borg[i] for i in 2:length(borg)]]
+    borg = partition.(borg, nparams);
+            
+    θy = map((x,f)-> map(x-> f(x...), x), borg, getfield.(Ref(@__MODULE__), Symbol.(f)))
+        
+    θneural_mixed(θz(Tuple(x[1:dimz])...), θy, ncells, nparams, f)
+
+end
+
+
+"""
     flatten(θ)
 
 Extract parameters related to the choice model from a struct and returns an ordered vector
 ```
 """
-function flatten(θ::θneural)
+function flatten(θ::Union{θneural, θneural_mixed})
 
     @unpack θy, θz = θ
     @unpack σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ = θz
@@ -322,8 +363,7 @@ function optimize(data, options::T1; n::Int=53,
     #    Float64(do_prior) * logprior(stack(x,c,fit)[1:dimz],μ,σ) + 
     #    Float64(f == "Sigmoid") * sum(logpdf.(Normal(0., sig_σ), stack(x,c,fit)[dimz+3:nparams:end])))
     
-    ℓℓ(x) = -(loglikelihood(stack(x,c,fit), data, θ; n=n, cross=cross) + 
-        Float64(f == "Sigmoid") * sum(logpdf.(Normal(0., sig_σ), stack(x,c,fit)[dimz+3:nparams:end])))
+    ℓℓ(x) = -(loglikelihood(stack(x,c,fit), data, θ; n=n, cross=cross) + sigmoid_prior(stack(x,c,fit), data, θ; sig_σ=sig_σ))
     
     #ℓℓ(x) = -(loglikelihood(stack(x,c,fit), data, θ; n=n) - prior(x))
      #ℓℓ(x) = -(loglikelihood(stack(x,c,fit), data, θ; n=n))
@@ -351,7 +391,8 @@ A wrapper function that accepts a vector of mixed parameters, splits the vector
 into two vectors based on the parameter mapping function provided as an input. Used
 in optimization, Hessian and gradient computation.
 """
-function loglikelihood(x::Vector{T}, data::Vector{Vector{T2}}, θ::θneural; n::Int=53, 
+function loglikelihood(x::Vector{T}, data::Vector{Vector{T2}}, 
+        θ::Union{θneural, θneural_mixed}; n::Int=53, 
         cross::Bool=false) where {T <: Real, T2 <: neuraldata}
 
     @unpack ncells, nparams, f = θ
@@ -366,7 +407,8 @@ end
 
 Computes the log likelihood for a set of trials consistent with the observed neural activity on each trial.
 """
-function loglikelihood(θ::θneural, data::Vector{Vector{T1}}; n::Int=53, cross::Bool=false) where {T1 <: neuraldata}
+function loglikelihood(θ::Union{θneural, θneural_mixed}, 
+        data::Vector{Vector{T1}}; n::Int=53, cross::Bool=false) where {T1 <: neuraldata}
 
     @unpack θz, θy = θ
     @unpack σ2_i, B, λ, σ2_a = θz

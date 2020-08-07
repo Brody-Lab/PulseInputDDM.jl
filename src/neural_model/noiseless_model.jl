@@ -3,6 +3,19 @@ abstract type neural_options_noiseless end
 
 """
 """
+@with_kw struct mixed_options_noiseless <: neural_options_noiseless
+    ncells::Vector{Int}
+    nparams::Vector{Int}
+    f::Vector{String}
+    fit::Vector{Bool}
+    ub::Vector{Float64}
+    x0::Vector{Float64}
+    lb::Vector{Float64}
+end
+
+
+"""
+"""
 @with_kw struct Sigmoid_options_noiseless <: neural_options_noiseless
     ncells::Vector{Int}
     nparams::Int = 4
@@ -30,6 +43,17 @@ end
         repeat([10.], sum(ncells)))
     x0::Vector{Float64} = vcat([0., 15., 0. - eps(), 0., 0., 1.0 - eps(), 0.008],
         repeat([1.], sum(ncells)))
+end
+
+
+"""
+"""
+@with_kw struct θneural_noiseless_mixed{T1, T2} <: DDMθ
+    θz::T1
+    θy::T2
+    ncells::Vector{Int}
+    nparams::Vector{Int}
+    f::Vector{String}
 end
 
 
@@ -222,6 +246,18 @@ function train_and_test(data, options::T1; seed::Int=1, α1s = 10. .^(-6:7)) whe
 end
 
 
+function sigmoid_prior(x::Vector{T1}, data::Union{Vector{Vector{T2}}, Vector{Any}}, 
+        θ::Union{θneural_noiseless, θneural_noiseless_mixed, θneural, θneural_mixed}; 
+        sig_σ::Float64=1.) where {T1 <: Real, T2 <: neuraldata}
+
+    @unpack ncells, nparams, f = θ
+    θ = θneural_noiseless(x, ncells, nparams, f)
+    
+    sum(map(x-> sum(logpdf.(Normal(0., sig_σ), map(x-> x.c, x))), θ.θy[f .== "Sigmoid"]))
+    
+end
+
+
 """
 """
 function optimize(data, options::T1;
@@ -237,11 +273,7 @@ function optimize(data, options::T1;
     lb, = unstack(lb, fit)
     ub, = unstack(ub, fit)
     x0,c = unstack(x0, fit)
-    #ℓℓ(x) = -loglikelihood(stack(x,c,fit), data, ncells, nparams, f, npolys)
-    #ℓℓ(x) = -(loglikelihood(stack(x,c,fit), data, θ) -
-    #    α1 * (x[2] - lb[2]).^2)
-    ℓℓ(x) = -(loglikelihood(stack(x,c,fit), data, θ)  + 
-        sum(Float64(f == "Sigmoid") * logpdf.(Normal(0., sig_σ), stack(x,c,fit)[dimz+3:nparams:end])))
+    ℓℓ(x) = -(loglikelihood(stack(x,c,fit), data, θ) + sigmoid_prior(stack(x,c,fit), data, θ; sig_σ=sig_σ))
 
     output = optimize(x0, ℓℓ, lb, ub; g_tol=g_tol, x_tol=x_tol,
         f_tol=f_tol, iterations=iterations, show_trace=show_trace,
@@ -264,7 +296,7 @@ end
 Extract parameters related to the choice model from a struct and returns an ordered vector
 ```
 """
-function flatten(θ::θneural_noiseless)
+function flatten(θ::Union{θneural_noiseless, θneural_noiseless_mixed})
 
     @unpack θy, θz = θ
     @unpack σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ = θz
@@ -282,11 +314,26 @@ into two vectors based on the parameter mapping function provided as an input. U
 in optimization, Hessian and gradient computation.
 """
 function loglikelihood(x::Vector{T1}, data::Union{Vector{Vector{T2}}, Vector{Any}}, 
-        θ::θneural_noiseless) where {T1 <: Real, T2 <: neuraldata}
+        θ::Union{θneural_noiseless, θneural_noiseless_mixed}) where {T1 <: Real, T2 <: neuraldata}
 
     @unpack ncells, nparams, f = θ
     θ = θneural_noiseless(x, ncells, nparams, f)
     loglikelihood(θ, data)
+
+end
+
+
+"""
+"""
+function θneural_noiseless(x::Vector{T}, ncells::Vector{Int}, nparams::Vector{Int}, f::Vector{String}) where {T <: Real}
+    
+    borg = vcat(dimz, dimz.+cumsum(nparams .* ncells))
+    borg = [x[i] for i in [borg[i-1]+1:borg[i] for i in 2:length(borg)]]
+    borg = partition.(borg, nparams);
+            
+    θy = map((x,f)-> map(x-> f(x...), x), borg, getfield.(Ref(@__MODULE__), Symbol.(f)))
+    
+    θneural_noiseless_mixed(θz(x[1:dimz]...), θy, ncells, nparams, f)
 
 end
 
@@ -329,7 +376,7 @@ end
 
 """
 """
-function loglikelihood(θ::θneural_noiseless, 
+function loglikelihood(θ::Union{θneural_noiseless, θneural_noiseless_mixed}, 
         data::Union{Vector{Vector{T1}}, Vector{Any}}) where T1 <: neuraldata
 
     @unpack θz, θy = θ
