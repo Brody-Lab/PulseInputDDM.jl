@@ -32,15 +32,16 @@ abstract type DDMθoptions end
 @with_kw struct θz_base{T<:Real} @deftype T
     Bm = 0.; @assert Bm == 0.
     Bλ = 0.; @assert Bλ == 0.
-    B0 = 5.
+    B0 = 1.8
     λ = -0.01; @assert λ != 0.
     σ2_i = eps()
     σ2_a = 0.
     σ2_s = 2.
-    ϕ = 0.2; #@assert ϕ != 1.
+    ϕ = 1.; #@assert ϕ != 1.
     τ_ϕ = 0.05
     bias = 0.
     lapse = 0.
+    lapse_u = 0.
     h_drift_scale = 0.  
 end
 
@@ -193,6 +194,13 @@ end
     lpost_space::Bool = true
 end
 
+@with_kw struct θ_Qlearn_ndmod <: DDMθ
+    base_θz = θz_base()
+    ndtime_θz = θz_ndtime_mod()
+    hist_θz = θz_Qlearn()
+    lpost_space::Bool = true
+end
+
 @with_kw struct choiceoptions <: DDMθoptions
 	lb::Vector{Float64}
 	ub::Vector{Float64}
@@ -241,11 +249,12 @@ end
 
 export choiceDDM, choicedata, choiceoptions, choiceinputs
 export θ_expfilter, θ_expfilter_ce, θz_base, θz_ndtime
-export θz_expfilter, θz_expfilter_ce, θ_LPSexp, θ_DBMexpbnd
+export θz_expfilter, θz_expfilter_ce, θ_LPSexp, θ_DBMexpbnd, θ_DBMexp_ndmod
 export θz_DBM, θz_DBMexp, θ_DBM, θ_DBMexp, θz_LPSexp
-export θz_Qlearn, θ_Qlearn, θz_expfilter_ce_bias, θ_expfilter_ce_lr 
-export θ_expfilter_ce_bias, θ_DBMexp_ndmod
-export θz_ndtime_mod, θ_expfilter_ce_lr_ndmod, θz_expfilter_ce_lr
+export θz_Qlearn, θ_Qlearn, θ_Qlearn_ndmod 
+export θz_expfilter_ce_bias, θ_expfilter_ce_bias 
+export θ_expfilter_ce_lr, θ_expfilter_ce_lr_ndmod, θz_expfilter_ce_lr
+export θz_ndtime_mod, θz_ch
 
 
 const modeldict = Dict("expfilter" => θ_expfilter,
@@ -257,7 +266,8 @@ const modeldict = Dict("expfilter" => θ_expfilter,
                     "DBMexp"       => θ_DBMexp,
                     "DBMexp_ndmod" => θ_DBMexp_ndmod,
                     "LPSexp"       => θ_LPSexp,
-                    "Qlearn"       => θ_Qlearn)
+                    "Qlearn"       => θ_Qlearn,
+                    "Qlearn_ndmod" => θ_Qlearn_ndmod)
 
 
 """
@@ -282,7 +292,8 @@ function create_options(θ::DDMθ)
     	:λ => [-15.0, 15.0, 1, -0.001],                           					# leak
     	:σ2_i => [0.0, 2.0, 0, eps()], :σ2_a => [0.0, 10., 0, eps()], :σ2_s => [0.0, 20., 1, 2.],  # noise params
     	:ϕ => [0.01, 1.2, 0, 1.], :τ_ϕ => [0.005, 1.0, 0, 0.02],        	# adaptation params
-    	:bias => [-1.5, 1.5, 0, 0.], :lapse => [0.0, 1.0, 0, 0.],         # bias, lapse params
+    	:bias => [-1.5, 1.5, 0, 0.],                                        # bias
+        :lapse => [0.0, 0.5, 1, 1e-4], :lapse_u => [0.0, 0.8, 1, 0.2],         # lapse prob, mean params
     	:h_drift_scale => [0.0, 1.0, 0, 0.],                       # history drift scale
         :lpost_space => [0 1 0 0],                                          # NOT A REAL VARIABLE - specifies whether model runs in logpost space
     	:ndtimeL1 => [0.0, 10.0, 1, 3.], :ndtimeL2 => [0.0, 5.0, 1, 0.04],  # ndtime left choice
@@ -296,7 +307,7 @@ function create_options(θ::DDMθ)
         :h_Cb => [-1., 1., 1, 0.], :h_Eb => [-1., 1., 1, 0.],             # expfilter_ce_bias params 
         :h_α => [0., 1., 1, 0.8], :h_u => [0., 1., 1, 0.5], :h_v => [0., 20., 1, 2.],    # DBM, DBMexp params
         :h_C => [0., 1., 1, 0.05],                                           # LPSexp along with h_α, h_β                                   
-        :h_αr => [0., 1., 1, 0.1], :h_αf => [0., 1., 1, 0.01],               # Qlearning remember, forgetting rates
+        :h_αr => [0., 1., 1, 0.9], :h_αf => [0., 1., 0, 0.],               # Qlearning remember, forgetting rates
         :h_κlc => [0., 1., 1, 0.5], :h_κle => [0., 1., 1, 0.05],              # Qlearning left prediction errors : correct, error  
         :h_κrc => [0., 1., 1, 0.5], :h_κre => [0., 1., 1, 0.05],              # Q learning right prediction errors : correct, error 
         :h_ηcr => [-2.0, 2.0, 1, 0.3], :h_ηcl => [-2., 2., 1, 0.3],           # expfilter_ce_lr params

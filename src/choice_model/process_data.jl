@@ -49,7 +49,7 @@ function make_data_dict(data)
     nT = map(data->data.click_data.binned_clicks.nT, data)
 
     # lapse trials 
-    frac = 1e-5
+    frac = 1e-3
     lapse_dist = Exponential(mean(nT)*dt)
     lapse_lik = pdf.(lapse_dist,nT.*dt) .*dt
 
@@ -77,7 +77,7 @@ function make_data_dict(inputs, sessbnd, avgT)
     teps = evidence_no_noise(map(data->data.clicks.gamma, inputs), dteps = 1e-50)
         
     data_vec = Dict("correct"=> correct, "sessbnd"=> sessbnd, 
-                    "frac" => 1e-5, "mlapse" => avgT, "teps" => teps, "nT" => nT, 
+                    "frac" => 1e-3, "mlapse" => avgT, "teps" => teps, "nT" => nT, 
                     "ntrials" => length(correct), "dt"=> dt)
 end
 

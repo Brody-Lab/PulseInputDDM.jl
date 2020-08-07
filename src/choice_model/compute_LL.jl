@@ -40,8 +40,16 @@ function loglikelihood(θ::DDMθ, data, data_dict, dx::Float64)
         error("unknown ndtime model")
     end
 
-    frac = data_dict["frac"]
-    return sum(log.((frac .* data_dict["lapse_lik"] .* .5) .+ (1. - frac)
+    # when lapse probability and distribution is not being fit 
+    # frac = data_dict["frac"]
+    # return sum(log.((frac .* data_dict["lapse_lik"] .* .5) .+ (1. - frac)
+    #     .*map((P, choice) -> (choice ? P[2] : P[1]), P, data_dict["choice"])))       
+
+    # adding lapses 
+    @unpack lapse, lapse_u = θ.base_θz
+    lapse_dist = Exponential(lapse_u)
+    lapse_lik = pdf.(lapse_dist, data_dict["nT"].*dt) .*dt
+    return sum(log.((lapse .* lapse_lik .* .5) .+ (1. - lapse)
         .*map((P, choice) -> (choice ? P[2] : P[1]), P, data_dict["choice"])))       
 end
 

@@ -180,8 +180,8 @@ end
 
 
 """
-    exponential filter 4 params with indep weights for correct/error left/right
-    assumes independent discounting and updating of correct and error trials (stimulus space)
+    exponential filter 4 params with indep weights for CL, CR, ER, EL
+    assumes independent discounting and updating (stimulus space)
 
 """
 function compute_initial_pt(hist_θz::θz_expfilter_ce_lr, B0::TT, data_dict) where TT <: Any
@@ -222,11 +222,11 @@ function compute_initial_pt(hist_θz::θz_Qlearn, B0::TT, data_dict) where TT <:
     @unpack h_αr, h_αf, h_κlc, h_κle, h_κrc, h_κre = hist_θz
     cprob = Array{TT}(undef, data_dict["ntrials"])
     
-    Qll, Qrr = 1.,1.
+    Qll, Qrr = 0.5, 0.5
     cprob[1] = log(Qrr/Qll)
 
     for i = 2:data_dict["ntrials"]
-        if data_dict["choice"][i-1]   # rightward choice
+        if data_dict["choice"][i-1] == 1   # rightward choice
             data_dict["hits"][i-1] ? outcome = h_κrc : outcome = h_κre
             Qrr = (1-h_αr)*Qrr + h_αr*outcome
             Qll = (1-h_αf)*Qll
