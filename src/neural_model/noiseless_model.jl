@@ -253,7 +253,15 @@ function sigmoid_prior(x::Vector{T1}, data::Union{Vector{Vector{T2}}, Vector{Any
     @unpack ncells, nparams, f = θ
     θ = θneural_noiseless(x, ncells, nparams, f)
     
-    sum(map(x-> sum(logpdf.(Normal(0., sig_σ), map(x-> x.c, x))), θ.θy[f .== "Sigmoid"]))
+    if typeof(f) == String
+        if f == "Sigmoid"
+            sum(map(x-> sum(logpdf.(Normal(0., sig_σ), map(x-> x.c, x))), θ.θy))
+        else
+            0.
+        end
+    else    
+        sum(map(x-> sum(logpdf.(Normal(0., sig_σ), map(x-> x.c, x))), θ.θy[f .== "Sigmoid"]))
+    end
     
 end
 
