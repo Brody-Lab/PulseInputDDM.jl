@@ -252,7 +252,7 @@ function compute_initial_pt(hist_θz::θz_DBMexp_Qlearn, B0::TT, data_dict) wher
     cprob_Qlearn = Array{TT}(undef, data_dict["ntrials"])
     
     Qll, Qrr = 0.5, 0.5
-    cprob[1] = log(Qrr/Qll)
+    cprob_Qlearn[1] = log(Qrr/Qll)
 
     for i = 2:data_dict["ntrials"]
         if data_dict["choice"][i-1] == 1   # rightward choice
@@ -280,7 +280,7 @@ function compute_initial_pt(hist_θz::θz_DBMexp_Qlearn, B0::TT, data_dict) wher
         if data_dict["sessbnd"][i] == 1 
             cprob_DBMexp[i] = inval 
         else
-            cprob_DBMexp[i] = (1-β)*C + β*(η*data_dict["correct"][i-1] + cprob[i-1])
+            cprob_DBMexp[i] = (1-β)*C + β*(η*data_dict["correct"][i-1] + cprob_DBMexp[i-1])
         end
     end
 
