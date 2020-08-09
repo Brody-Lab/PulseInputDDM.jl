@@ -24,6 +24,8 @@ function loglikelihood(θ::DDMθ, data, data_dict, dx::Float64)
 
     if θ.ndtime_θz isa θz_ndtime
 
+        error("lapse is not implemented with lapses yet")
+
         @unpack ndtimeL1, ndtimeL2 = θ.ndtime_θz
         @unpack ndtimeR1, ndtimeR2 = θ.ndtime_θz
         NDdistL = Gamma(ndtimeL1, ndtimeL2)
@@ -33,9 +35,11 @@ function loglikelihood(θ::DDMθ, data, data_dict, dx::Float64)
                                         pdf.(NDdistR, dt.*collect(nT:-1:1)).*dt), data, a_0, data_dict["nT"])
     
     elseif θ.ndtime_θz isa θz_ndtime_mod
-    
+        
+        lapse_dist = Exponential(θ.base_θz.lapse_u)
         P = pmap((data, a_0, ph_ind, nT) -> loglikelihood!(θ.base_θz, data, σ2_s, C, a_0, dx, θ.ndtime_θz, dt,
-                                        ph_ind, nT), data, a_0, [1; data_dict["hits"][1:end-1]], data_dict["nT"])
+                                                            ph_ind, nT, pdf.(lapse_dist, dt.*collect(1:1:nT)).*dt),
+                                                        data, a_0, [1; data_dict["hits"][1:end-1]], data_dict["nT"])
     else
         error("unknown ndtime model")
     end
@@ -45,12 +49,8 @@ function loglikelihood(θ::DDMθ, data, data_dict, dx::Float64)
     # return sum(log.((frac .* data_dict["lapse_lik"] .* .5) .+ (1. - frac)
     #     .*map((P, choice) -> (choice ? P[2] : P[1]), P, data_dict["choice"])))       
 
-    # adding lapses 
-    @unpack lapse, lapse_u = θ.base_θz
-    lapse_dist = Exponential(lapse_u)
-    lapse_lik = pdf.(lapse_dist, data_dict["nT"].*dt) .*dt
-    return sum(log.((lapse .* lapse_lik .* .5) .+ (1. - lapse)
-        .*map((P, choice) -> (choice ? P[2] : P[1]), P, data_dict["choice"])))       
+    
+    return sum(P)       
 end
 
 
@@ -59,19 +59,10 @@ end
     
 Given parameters θ and data (inputs and choices) computes the LL for one trial
 """
-function loglikelihood!(base_θz::θz_base,data::choicedata, σ2_s::TT, C,
-        a_0::TT, dx::Float64, ndtime_θz::θz_ndtime_mod, dt, ph_ind, nT) where {TT <: Any}
+function loglikelihood!(base_θz::θz_base, data::choicedata, σ2_s::TT, C,
+        a_0::TT, dx::Float64, ndtime_θz::θz_ndtime_mod, dt, ph_ind, nT, lapse_lik) where {TT <: Any}
 
     @unpack click_data, choice, sessbnd = data
-    
-    @unpack nd_θL, nd_θR, nd_vL, nd_vR = ndtime_θz
-    @unpack nd_tmod, nd_vC, nd_vE = ndtime_θz
-    nd_driftL = nd_vL - nd_tmod*sessbnd + ph_ind*nd_vC + (1-ph_ind)*nd_vE
-    nd_driftR = nd_vR - nd_tmod*sessbnd + ph_ind*nd_vC + (1-ph_ind)*nd_vE
-    NDdistL = InverseGaussian(nd_θL/nd_driftL, nd_θL^2)
-    NDdistR = InverseGaussian(nd_θR/nd_driftR, nd_θR^2)
-    ndL = pdf.(NDdistL, dt.*collect(nT:-1:1)).*dt
-    ndR = pdf.(NDdistR, dt.*collect(nT:-1:1)).*dt
 
     if (base_θz.Bλ == 0) & (base_θz.Bm == 0)
         Pbounds = P_single_trial!(base_θz, dx, click_data, a_0, σ2_s, C)
@@ -79,14 +70,63 @@ function loglikelihood!(base_θz::θz_base,data::choicedata, σ2_s::TT, C,
         Pbounds = P_single_trial!(base_θz, dx, click_data, a_0, σ2_s, C, base_θz.Bλ)
     end
 
-    # non-decision time 
-    pback = zeros(TT,2)
-    pback[1] = transpose(Pbounds[1,:]) * ndL
-    pback[2] = transpose(Pbounds[2,:]) * ndR
-        
-    return pback
+    @unpack nd_tmod, nd_vC, nd_vE = ndtime_θz
+    @unpack lapse = base_θz
+    
+    if choice 
+        @unpack nd_θR, nd_vR = ndtime_θz
+        nd_driftR = nd_vR - nd_tmod*sessbnd + ph_ind*nd_vC + (1-ph_ind)*nd_vE
+        NDdistR = InverseGaussian(nd_θR/nd_driftR, nd_θR^2)
+        ndR = pdf.(NDdistR, dt.*collect(nT:-1:1)).*dt
+        pback = transpose(Pbounds[2,:]) * ndR
+        lback = transpose(lapse_lik) * ndR
+    else
+        @unpack nd_θL, nd_vL = ndtime_θz 
+        nd_driftL = nd_vL - nd_tmod*sessbnd + ph_ind*nd_vC + (1-ph_ind)*nd_vE
+        NDdistL = InverseGaussian(nd_θL/nd_driftL, nd_θL^2)
+        ndL = pdf.(NDdistL, dt.*collect(nT:-1:1)).*dt
+        pback = transpose(Pbounds[1,:]) * ndL
+        lback = transpose(lapse_lik) * ndL
+    end
+
+    return log(lapse*0.5*lback + (1-lapse)*pback)
 
 end
+
+
+# """
+#     loglikelihood!(θ, data, i_0, n) for θz_ndtime_mod
+    
+# Given parameters θ and data (inputs and choices) computes the LL for one trial
+# """
+# function loglikelihood!(base_θz::θz_base,data::choicedata, σ2_s::TT, C,
+#         a_0::TT, dx::Float64, ndtime_θz::θz_ndtime_mod, dt, ph_ind, nT) where {TT <: Any}
+
+#     @unpack click_data, choice, sessbnd = data
+    
+#     @unpack nd_θL, nd_θR, nd_vL, nd_vR = ndtime_θz
+#     @unpack nd_tmod, nd_vC, nd_vE = ndtime_θz
+#     nd_driftL = nd_vL - nd_tmod*sessbnd + ph_ind*nd_vC + (1-ph_ind)*nd_vE
+#     nd_driftR = nd_vR - nd_tmod*sessbnd + ph_ind*nd_vC + (1-ph_ind)*nd_vE
+#     NDdistL = InverseGaussian(nd_θL/nd_driftL, nd_θL^2)
+#     NDdistR = InverseGaussian(nd_θR/nd_driftR, nd_θR^2)
+#     ndL = pdf.(NDdistL, dt.*collect(nT:-1:1)).*dt
+#     ndR = pdf.(NDdistR, dt.*collect(nT:-1:1)).*dt
+
+#     if (base_θz.Bλ == 0) & (base_θz.Bm == 0)
+#         Pbounds = P_single_trial!(base_θz, dx, click_data, a_0, σ2_s, C)
+#     else
+#         Pbounds = P_single_trial!(base_θz, dx, click_data, a_0, σ2_s, C, base_θz.Bλ)
+#     end
+
+#     # non-decision time 
+#     pback = zeros(TT,2)
+#     pback[1] = transpose(Pbounds[1,:]) * ndL
+#     pback[2] = transpose(Pbounds[2,:]) * ndR
+        
+#     return pback
+
+# end
 
 
 """
