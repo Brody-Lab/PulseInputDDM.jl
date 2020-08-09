@@ -104,6 +104,18 @@ end
     h_κre = .05
 end
 
+@with_kw struct θz_DBMexp_Qlearn{T<:Real} <: θz_ch @deftype T
+    h_α = 0.7
+    h_u = 0.5
+    h_v = 2.
+    h_αr = 0.1
+    h_αf = 0.01
+    h_κlc = .5
+    h_κle = .05
+    h_κrc = .5
+    h_κre = .05
+end
+
 @with_kw struct θz_ndtime{T<:Real} @deftype T
     ndtimeL1 = 0.2
     ndtimeL2 = 0.03
@@ -201,6 +213,20 @@ end
     lpost_space::Bool = true
 end
 
+@with_kw struct θ_DBMexp_Qlearn <: DDMθ
+    base_θz = θz_base()
+    ndtime_θz = θz_ndtime()
+    hist_θz = θz_DBMexp_Qlearn()
+    lpost_space::Bool = true
+end
+
+@with_kw struct θ_DBMexp_Qlearn_ndmod <: DDMθ
+    base_θz = θz_base()
+    ndtime_θz = θz_ndtime_mod()
+    hist_θz = θz_DBMexp_Qlearn()
+    lpost_space::Bool = true
+end
+
 @with_kw struct choiceoptions <: DDMθoptions
 	lb::Vector{Float64}
 	ub::Vector{Float64}
@@ -255,6 +281,7 @@ export θz_Qlearn, θ_Qlearn, θ_Qlearn_ndmod
 export θz_expfilter_ce_bias, θ_expfilter_ce_bias 
 export θ_expfilter_ce_lr, θ_expfilter_ce_lr_ndmod, θz_expfilter_ce_lr
 export θz_ndtime_mod, θz_ch
+export θz_DBMexp_Qlearn, θ_DBMexp_Qlearn, θ_DBMexp_Qlearn_ndmod
 
 
 const modeldict = Dict("expfilter" => θ_expfilter,
@@ -267,7 +294,9 @@ const modeldict = Dict("expfilter" => θ_expfilter,
                     "DBMexp_ndmod" => θ_DBMexp_ndmod,
                     "LPSexp"       => θ_LPSexp,
                     "Qlearn"       => θ_Qlearn,
-                    "Qlearn_ndmod" => θ_Qlearn_ndmod)
+                    "Qlearn_ndmod" => θ_Qlearn_ndmod,
+                    "DBMexp_Qlearn" => θ_DBMexp_Qlearn,
+                    "DBMexp_Qlearn_ndmod" => θ_DBMexp_Qlearn_ndmod)
 
 
 """
@@ -293,7 +322,7 @@ function create_options(θ::DDMθ)
     	:σ2_i => [0.0, 2.0, 0, eps()], :σ2_a => [0.0, 10., 0, eps()], :σ2_s => [0.0, 20., 1, 2.],  # noise params
     	:ϕ => [0.01, 1.2, 0, 1.], :τ_ϕ => [0.005, 1.0, 0, 0.02],        	# adaptation params
     	:bias => [-1.5, 1.5, 0, 0.],                                        # bias
-        :lapse => [0.0, 0.5, 1, 1e-4], :lapse_u => [0.0, 0.8, 1, 0.2],         # lapse prob, mean params
+        :lapse => [0.0, 0.5, 1, 1e-3], :lapse_u => [0.0, 0.8, 1, 0.02],         # lapse prob, mean params
     	:h_drift_scale => [0.0, 1.0, 0, 0.],                       # history drift scale
         :lpost_space => [0 1 0 0],                                          # NOT A REAL VARIABLE - specifies whether model runs in logpost space
     	:ndtimeL1 => [0.0, 10.0, 1, 3.], :ndtimeL2 => [0.0, 5.0, 1, 0.04],  # ndtime left choice

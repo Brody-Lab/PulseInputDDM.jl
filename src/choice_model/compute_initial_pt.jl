@@ -242,6 +242,53 @@ function compute_initial_pt(hist_θz::θz_Qlearn, B0::TT, data_dict) where TT <:
 end
 
 
+"""
+    DBM exponential approximation and Qlearn with forgetting
+    returns value in log posterior units
+"""
+function compute_initial_pt(hist_θz::θz_DBMexp_Qlearn, B0::TT, data_dict) where TT <: Any
+
+    @unpack h_αr, h_αf, h_κlc, h_κle, h_κrc, h_κre = hist_θz
+    cprob_Qlearn = Array{TT}(undef, data_dict["ntrials"])
+    
+    Qll, Qrr = 0.5, 0.5
+    cprob[1] = log(Qrr/Qll)
+
+    for i = 2:data_dict["ntrials"]
+        if data_dict["choice"][i-1] == 1   # rightward choice
+            data_dict["hits"][i-1] ? outcome = h_κrc : outcome = h_κre
+            Qrr = (1-h_αr)*Qrr + h_αr*outcome
+            Qll = (1-h_αf)*Qll
+        else
+            data_dict["hits"][i-1] ? outcome = h_κlc : outcome = h_κle
+            Qll = (1-h_αr)*Qll + h_αr*outcome
+            Qrr = (1-h_αf)*Qrr
+        end
+        cprob_Qlearn[i] = log(Qrr/Qll)
+    end
+
+
+    @unpack h_α, h_u, h_v = hist_θz
+    η = 1/h_v
+    β = (h_α*h_v)/(1+h_v)
+    C = (1-h_α)*h_u/(1-β)
+
+    inval = C + (η*β/(2*(1-β)))   # mean value of the exponential filter
+    cprob_DBMexp = Array{TT}(undef, data_dict["ntrials"])
+
+    for i = 1:data_dict["ntrials"]
+        if data_dict["sessbnd"][i] == 1 
+            cprob_DBMexp[i] = inval 
+        else
+            cprob_DBMexp[i] = (1-β)*C + β*(η*data_dict["correct"][i-1] + cprob[i-1])
+        end
+    end
+
+    return log.(cprob_DBMexp ./ (1 .- cprob_DBMexp)) .+ cprob_Qlearn
+
+end
+
+
 
 
             
