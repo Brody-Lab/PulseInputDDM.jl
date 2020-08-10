@@ -23,8 +23,8 @@ end
     θz::T1
     θy::T2
     ncells::Vector{Int}
-    nparams::Vector{Int}
-    f::Vector{String}
+    nparams::Union{Vector{Int}, Vector{Vector{Int}}}
+    f::Union{Vector{String}, Vector{Vector{String}}}
 end
 
 
@@ -155,8 +155,8 @@ end
 """
 @with_kw struct mixed_options <: neural_options
     ncells::Vector{Int}
-    nparams::Vector{Int}
-    f::Vector{String}
+    nparams::Union{Vector{Int}, Vector{Vector{Int}}}
+    f::Union{Vector{String}, Vector{Vector{String}}}
     fit::Vector{Bool}
     ub::Vector{Float64}
     x0::Vector{Float64}
@@ -204,6 +204,24 @@ function θneural(x::Vector{T}, ncells::Vector{Int}, nparams::Int, f::String) wh
     θy = map(idx-> blah2[idx], [dims2[i]+1:dims2[i+1] for i in 1:length(dims2)-1]) 
         
     θneural(θz(Tuple(x[1:dimz])...), θy, ncells, nparams, f)
+
+end
+
+
+"""
+"""
+function θneural(x::Vector{T}, ncells::Vector{Int}, nparams::Vector{Vector{Int}}, 
+        f::Vector{Vector{String}}) where {T <: Real}
+    
+    borg = vcat(dimz,dimz.+cumsum(vcat(nparams...)))
+    blah = [x[i] for i in [borg[i-1]+1:borg[i] for i in 2:length(borg)]]
+    
+    blah = map((f,x) -> f(x...), getfield.(Ref(@__MODULE__), Symbol.(vcat(f...))), blah)
+    
+    borg = vcat(0,cumsum(ncells))
+    θy = [blah[i] for i in [borg[i-1]+1:borg[i] for i in 2:length(borg)]]
+    
+    θneural_mixed(θz(x[1:dimz]...), θy, ncells, nparams, f)
 
 end
 

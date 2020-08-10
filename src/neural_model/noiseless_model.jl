@@ -5,8 +5,8 @@ abstract type neural_options_noiseless end
 """
 @with_kw struct mixed_options_noiseless <: neural_options_noiseless
     ncells::Vector{Int}
-    nparams::Vector{Int}
-    f::Vector{String}
+    nparams::Union{Vector{Int}, Vector{Vector{Int}}}
+    f::Union{Vector{String}, Vector{Vector{String}}}
     fit::Vector{Bool}
     ub::Vector{Float64}
     x0::Vector{Float64}
@@ -52,8 +52,8 @@ end
     θz::T1
     θy::T2
     ncells::Vector{Int}
-    nparams::Vector{Int}
-    f::Vector{String}
+    nparams::Union{Vector{Int}, Vector{Vector{Int}}}
+    f::Union{Vector{String}, Vector{Vector{String}}}
 end
 
 
@@ -260,7 +260,7 @@ function sigmoid_prior(x::Vector{T1}, data::Union{Vector{Vector{T2}}, Vector{Any
             0.
         end
     else    
-        sum(map(x-> sum(logpdf.(Normal(0., sig_σ), map(x-> x.c, x))), θ.θy[f .== "Sigmoid"]))
+        sum(map(x-> sum(logpdf.(Normal(0., sig_σ), x.c)), vcat(θ.θy...)[vcat(f...) .== "Sigmoid"]))
     end
     
 end
@@ -327,6 +327,30 @@ function loglikelihood(x::Vector{T1}, data::Union{Vector{Vector{T2}}, Vector{Any
     @unpack ncells, nparams, f = θ
     θ = θneural_noiseless(x, ncells, nparams, f)
     loglikelihood(θ, data)
+
+end
+
+
+"""
+"""
+function θneural_noiseless(x::Vector{T}, ncells::Vector{Int}, nparams::Vector{Vector{Int}}, 
+        f::Vector{Vector{String}}) where {T <: Real}
+    
+    #borg = vcat(dimz, dimz.+cumsum(nparams .* ncells))
+    #borg = [x[i] for i in [borg[i-1]+1:borg[i] for i in 2:length(borg)]]
+    #borg = partition.(borg, nparams);
+            
+    #θy = map((x,f)-> map(x-> f(x...), x), borg, getfield.(Ref(@__MODULE__), Symbol.(f)))
+    
+    borg = vcat(dimz,dimz.+cumsum(vcat(nparams...)))
+    blah = [x[i] for i in [borg[i-1]+1:borg[i] for i in 2:length(borg)]]
+    
+    blah = map((f,x) -> f(x...), getfield.(Ref(@__MODULE__), Symbol.(vcat(f...))), blah)
+    
+    borg = vcat(0,cumsum(ncells))
+    θy = [blah[i] for i in [borg[i-1]+1:borg[i] for i in 2:length(borg)]]
+    
+    θneural_noiseless_mixed(θz(x[1:dimz]...), θy, ncells, nparams, f)
 
 end
 
@@ -434,6 +458,18 @@ function loglikelihood(θz::θz, θy::Vector{T1}, λ0, ΔLR) where T1 <: DDMf
 
 end
 =#
+
+"""
+"""
+function θy(data, f::Vector{String})
+
+    ΔLR = diffLR.(data)
+    spikes = group_by_neuron(data)
+
+    @unpack dt = data[1].input_data
+    map((spikes,f)-> θy(vcat(ΔLR...), vcat(spikes...), dt, f), spikes,f)
+
+end
 
 
 """
