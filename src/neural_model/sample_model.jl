@@ -1,7 +1,7 @@
 """
     Sample rates from latent model with multiple rngs, to average over
 """
-function synthetic_λ(θ::θneural, data, rng)
+function synthetic_λ(θ::Union{θneural, θneural_mixed}, data, rng)
 
     @unpack θz,θy,ncells = θ
     μ_λ = rand.(Ref(θz), θy, data, Ref(rng))
@@ -14,7 +14,7 @@ end
 """
     Sample rates from latent model with multiple rngs, to average over
 """
-function synthetic_λ(θ::θneural, data; num_samples::Int=100, nconds::Int=2, rng1::Int=1)
+function synthetic_λ(θ::Union{θneural, θneural_mixed}, data; num_samples::Int=100, nconds::Int=2, rng1::Int=1)
 
     @unpack θz,θy,ncells = θ
 

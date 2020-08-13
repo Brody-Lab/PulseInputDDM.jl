@@ -107,6 +107,7 @@ end
     input_data::neuralinputs
     spikes::Vector{Vector{Int}}
     ncells::Int
+    choice::Bool
 end
 
 
@@ -184,7 +185,7 @@ end
 
 """
 """
-neuraldata(input_data, spikes::Vector{Vector{Vector{Int}}}, ncells::Int) =  neuraldata.(input_data,spikes,ncells)
+neuraldata(input_data, spikes::Vector{Vector{Vector{Int}}}, ncells::Int, choice) =  neuraldata.(input_data,spikes,ncells,choice)
 
 
 """

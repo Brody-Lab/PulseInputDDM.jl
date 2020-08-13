@@ -51,7 +51,8 @@ Given parameters θz progagates P for one trial
 function P_single_trial!(θz,
         P::Vector{TT}, M::Array{TT,2}, dx::UU,
         xc::Vector{TT}, click_data,
-        n::Int; cross::Bool=false) where {TT,UU <: Real}
+        n::Int; cross::Bool=false,
+        keepP::Bool=false) where {TT,UU <: Real}
 
     @unpack λ,σ2_a,σ2_s,ϕ,τ_ϕ = θz
     @unpack binned_clicks, clicks, dt = click_data
@@ -63,15 +64,28 @@ function P_single_trial!(θz,
 
     #empty transition matrix for time bins with clicks
     F = zeros(TT,n,n)
+    
+    if keepP
+        PS = Vector{Vector{Float64}}(undef, nT)
+    end
 
     @inbounds for t = 1:nT
 
         #maybe only pass one L,R,nT?
         P,F = latent_one_step!(P,F,λ,σ2_a,σ2_s,t,nL,nR,La,Ra,M,dx,xc,n,dt)
+        
+        if keepP
+            PS[t] = P
+        end
+
 
     end
 
-    return P
+    if keepP
+        return PS
+    else
+        return P
+    end
 
 end
 

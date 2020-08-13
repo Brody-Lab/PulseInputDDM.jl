@@ -100,7 +100,7 @@ function load(file::String, break_sim_data::Bool, centered::Bool=true;
                     
                 λ0 = map(nT-> bin_λ0(μ_t[n], nT+2*pad), nT)      
                 input_data = neuralinputs(click_times, binned_clicks, λ0, dt, centered, delay, pad)
-                spike_data[n] = neuraldata(input_data, spikes, 1)
+                spike_data[n] = neuraldata(input_data, spikes, 1, choice)
 
             end
 
@@ -164,7 +164,7 @@ function load(file::String, break_sim_data::Bool, centered::Bool=true;
                 λ0 = map(nT-> pulse_input_DDM.bin_λ0(μ_t[n], nT+2*pad), nT)
 
                 input_data = pulse_input_DDM.neuralinputs(click_times, binned_clicks, λ0, dt, centered, delay, pad)
-                spike_data = pulse_input_DDM.neuraldata(input_data, spikes, 1)
+                spike_data = pulse_input_DDM.neuraldata(input_data, spikes, 1, choice)
 
                 nRBFs=6
                 model, = optimize([spike_data], pulse_input_DDM.μ_RBF_options(ncells=[1], nRBFs=nRBFs); show_trace=false)
@@ -190,7 +190,7 @@ function load(file::String, break_sim_data::Bool, centered::Bool=true;
             
             λ0 = map(nT-> bin_λ0(μ_t, nT+2*pad), nT)
             input_data = neuralinputs(click_times, binned_clicks, λ0, dt, centered, delay, pad)
-            spike_data = neuraldata(input_data, spikes, ncells)
+            spike_data = neuraldata(input_data, spikes, ncells, choice)
 
 
         end

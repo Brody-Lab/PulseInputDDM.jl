@@ -30,6 +30,7 @@ export θfilt, filtoptions, train_and_test
 export filtinputs, filtdata, sigmoid_filtoptions
 
 export mixed_options_noiseless, θneural_noiseless_mixed, mixed_options, θneural_mixed
+export θneural_th, th_options
 
 export neural_poly_DDM, θneural_poly
 
@@ -161,6 +162,7 @@ include("neural_model/noiseless_model.jl")
 include("neural_model/polynomial/neural_poly_model.jl")
 include("neural_model/polynomial/noiseless_model_poly.jl")
 include("neural_model/filter/filtered.jl")
+include("neural_model/neural_model-th.jl")
 
 include("neural-choice_model/neural-choice_model.jl")
 include("neural-choice_model/process_data.jl")
