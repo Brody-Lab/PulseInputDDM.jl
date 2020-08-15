@@ -86,7 +86,7 @@ function load(file::String, break_sim_data::Bool, centered::Bool=true;
                 #λ0 = map(nT-> map(μ_t-> zeros(nT), μ_t), nT)
 
                 input_data = neuralinputs(click_times, binned_clicks, λ0, dt, centered, delay, pad)
-                spike_data[n] = neuraldata(input_data, spikes, 1)
+                spike_data[n] = neuraldata(input_data, spikes, 1, choice)
                 
                 nRBFs=6
                 model, = optimize([spike_data[n]], μ_RBF_options(ncells=[1], nRBFs=nRBFs); show_trace=false)
