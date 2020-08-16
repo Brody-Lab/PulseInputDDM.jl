@@ -1,13 +1,14 @@
 """
 """
-@with_kw struct filtinputs{T1,T2,T3,T4}
+@with_kw struct filtinputs{T1,T2,T3}
     clicks::T1
     binned_clicks::T2
     λ0::Vector{Vector{Float64}}
-    LX::T3
-    RX::T4
+    LR::T3
     dt::Float64
     centered::Bool
+    delay::Int
+    pad::Int
 end
 
 
@@ -17,28 +18,7 @@ end
     input_data::filtinputs
     spikes::Vector{Vector{Int}}
     ncells::Int
-end
-
-
-
-"""
-"""
-@with_kw struct sigmoid_filtoptions <: neural_options
-    ncells::Vector{Int}
-    nparams::Int = 4
-    npolys::Int = 4
-    filt_len::Int = 50
-    f::String = "Sigmoid"
-    fit::Vector{Bool} = vcat(trues(2*filt_len + sum(ncells)*npolys + sum(ncells)*nparams))
-    lb::Vector{Float64} = vcat(-Inf*ones(2*filt_len),
-        repeat(-Inf * ones(npolys), sum(ncells)),
-        repeat([-100.,0.,-10.,-10.], sum(ncells)))
-    ub::Vector{Float64} = vcat(Inf*ones(2*filt_len),
-        repeat(Inf * ones(npolys), sum(ncells)),
-        repeat([100.,100.,10.,10.], sum(ncells)))
-    x0::Vector{Float64} = vcat(0.01 * randn(2*filt_len),
-        repeat(zeros(npolys), sum(ncells)),
-        repeat([10.,10.,1.,0.], sum(ncells)))
+    choice::Bool
 end
 
 
@@ -46,126 +26,86 @@ end
 """
 @with_kw struct filtoptions <: neural_options
     ncells::Vector{Int}
-    nparams::Int = 3
-    npolys::Int = 4
+    nparams::Union{Vector{Int}, Vector{Vector{Int}}}
     filt_len::Int = 50
-    f::String = "Softplus"
-    fit::Vector{Bool} = vcat(trues(2*filt_len + sum(ncells)*npolys + sum(ncells)*nparams))
-    lb::Vector{Float64} = vcat(-Inf*ones(2*filt_len),
-        repeat(-Inf * ones(npolys), sum(ncells)),
-        repeat([eps(), -Inf, -Inf], sum(ncells)))
-    ub::Vector{Float64} = vcat(Inf*ones(2*filt_len),
-        repeat(Inf * ones(npolys), sum(ncells)),
-        repeat([Inf, Inf, Inf], sum(ncells)))
-    x0::Vector{Float64} = vcat(0.01 * randn(2*filt_len),
-        repeat(zeros(npolys), sum(ncells)),
-        repeat([10.,1.,0.], sum(ncells)))
+    shift::Int=0
+    f::Union{Vector{String}, Vector{Vector{String}}}
+    fit::Vector{Bool}
+    ub::Vector{Float64}
+    x0::Vector{Float64}
+    lb::Vector{Float64}
 end
 
 
 """
 """
-@flattenable @with_kw struct θfilt{T1, T2, T3} <: DDMθ
-    θτ::T1 = θτ() | true
-    θμ::T2 | true
-    θy::T3 | true
-    ncells::Vector{Int} | false
-    nparams::Int
-    f::String
-    npolys::Int
+@with_kw struct θneural_filt{T1, T2} <: DDMθ
+    w::Vector{T1}
+    θy::T2
+    ncells::Vector{Int}
+    nparams::Union{Vector{Int}, Vector{Vector{Int}}}
+    f::Union{Vector{String}, Vector{Vector{String}}}
     filt_len::Int
 end
 
 
 """
 """
-@with_kw struct θτ{T1,T2}
-    wL::T1 = 0.01 * randn(filt_len)
-    wR::T2 = 0.01 * randn(filt_len)
-end
-
-
-
-"""
-"""
-function train_and_test(data, options::Union{sigmoid_filtoptions, filtoptions}; seed::Int=1, α1s = 10. .^(-6:7))
+function make_filt_data(data, filt_len; shift=0)
     
-    @unpack filt_len = options
-
-    ntrials = length(data)
-    train = sample(Random.seed!(seed), 1:ntrials, ceil(Int, 0.9 * ntrials), replace=false)
-    test = setdiff(1:ntrials, train)
-    display(test)
-    
-    filt_data = make_filt_data.(data, Ref(filt_len))
-    
-    if length(α1s) > 1
-        model = pmap(α1-> optimize([data[train]], options; α1=α1, show_trace=true), α1s)   
-        testLL = pmap(model-> loglikelihood(model.θ, [filt_data[test]]), model)
-    else
-        model = optimize([data[train]], options; α1=α1s, show_trace=true)
-        testLL = loglikelihood(model.θ, [filt_data[test]])
-    end
-
-    return α1s, model, testLL
-    
-end
-
-
-"""
-"""
-function make_filt_data(data, filt_len)
-    
-    @unpack input_data, spikes, ncells = data
-    @unpack binned_clicks, clicks, dt, centered, λ0 = input_data
+    @unpack input_data, spikes, ncells, choice = data
+    @unpack binned_clicks, clicks, dt, centered, λ0, delay, pad = input_data
 
     L,R = binLR(binned_clicks, clicks, dt)
-    LX = map(i-> vcat(missings(Int, max(0, filt_len - i)), L[max(1,i-filt_len+1):i]), 1:length(L))
-    RX = map(i-> vcat(missings(Int, max(0, filt_len - i)), R[max(1,i-filt_len+1):i]), 1:length(R));
+    LR = -L + R
+    #LRX = map(i-> vcat(missings(Int, max(0, filt_len - i)), LR[max(1,i-filt_len+1):i]), 1:length(LR))
+    LRX = map(i-> vcat(missings(Int, max(0, filt_len - (i+shift))), 
+            LR[max(1,(i+shift)-filt_len+1): min(length(LR), i+shift)], 
+            missings(Int, max(0, -(length(LR) - (i+shift))))), 1:length(LR))
 
-    filtdata(filtinputs(clicks, binned_clicks, λ0, LX, RX, dt, centered), spikes, ncells)
+    filtdata(filtinputs(clicks, binned_clicks, λ0, LRX, dt, centered, delay, pad), spikes, ncells, choice)
     
 end
 
 
+function prior(x::Vector{T1}, filt_len; sig_σ::Float64=1.) where {T1 <: Real}
+    
+    - sig_σ * sum(diff(x[1:filt_len]).^2)
+    
+end
+
 
 """
 """
-function optimize(data, options::Union{sigmoid_filtoptions, filtoptions};
+function optimize(data, options::filtoptions;
         x_tol::Float64=1e-10, f_tol::Float64=1e-9, g_tol::Float64=1e-3,
         iterations::Int=Int(2e3), show_trace::Bool=true,
-        outer_iterations::Int=Int(1e1), α1::Float64=10. .^0)
+        outer_iterations::Int=Int(1e1), scaled::Bool=false,
+        extended_trace::Bool=false, sig_σ::Float64=1.)
 
-    @unpack fit, lb, ub, x0, ncells, f, nparams, npolys, filt_len = options
+    @unpack fit, lb, ub, x0, ncells, f, nparams, filt_len, shift = options
     
-    filt_data = map(data-> make_filt_data.(data, Ref(filt_len)), data)
-    θ = θfilt(x0, ncells, nparams, f, npolys, filt_len)
+    filt_data = map(data-> make_filt_data.(data, Ref(filt_len); shift=shift), data)
+    θ = θneural_filt(x0, ncells, nparams, f, filt_len)
 
     lb, = unstack(lb, fit)
     ub, = unstack(ub, fit)
     x0,c = unstack(x0, fit)
-    #ℓℓ(x) = -(loglikelihood(stack(x,c,fit), filt_data, ncells, nparams, npolys, filt_len, f) - 
-    #        α1 * sum(diff(stack(x,c,fit)[1:2*filt_len]).^2) -
-    #        α1 * sum(diff(diff(stack(x,c,fit)[1:2*filt_len])).^2))
     
-    #ℓℓ(x) = -(loglikelihood(stack(x,c,fit), filt_data, ncells, nparams, npolys, filt_len, f) - 
-    #    α1 * sum(diff(stack(x,c,fit)[1:2*filt_len]).^2) - 
-    #    1e0 * (sum(stack(x,c,fit)[1:2*filt_len]) - 1.))
-    
-    ℓℓ(x) = -(loglikelihood(stack(x,c,fit), filt_data, θ) - 
-        α1 * sum(diff(stack(x,c,fit)[1:2*filt_len]).^2))
+    ℓℓ(x) = -(loglikelihood(stack(x,c,fit), filt_data, θ) + prior(stack(x,c,fit), filt_len; sig_σ=sig_σ))
 
     output = optimize(x0, ℓℓ, lb, ub; g_tol=g_tol, x_tol=x_tol,
         f_tol=f_tol, iterations=iterations, show_trace=show_trace,
-        outer_iterations=outer_iterations)
+        outer_iterations=outer_iterations, scaled=scaled,
+        extended_trace=extended_trace)
 
     x = Optim.minimizer(output)
     x = stack(x,c,fit)
-    θ = θfilt(x, ncells, nparams, f, npolys, filt_len)
+    θ = θneural_filt(x, ncells, nparams, f, filt_len)
     model = neuralDDM(θ, data)
     converged = Optim.converged(output)
 
-    return model
+    return model, output
 
 end
 
@@ -177,10 +117,10 @@ A wrapper function that accepts a vector of mixed parameters, splits the vector
 into two vectors based on the parameter mapping function provided as an input. Used
 in optimization, Hessian and gradient computation.
 """
-function loglikelihood(x::Vector{T1}, data, θ::θfilt) where {T1 <: Real}
+function loglikelihood(x::Vector{T1}, data, θ::θneural_filt) where {T1 <: Real}
 
-    @unpack ncells, nparams, f, npolys, filt_len = θ
-    θ = θfilt(x, ncells, nparams, f, npolys, filt_len)
+    @unpack ncells, nparams, f, filt_len = θ
+    θ = θneural_filt(x, ncells, nparams, f, filt_len)
     loglikelihood(θ, data)
 
 end
@@ -188,63 +128,50 @@ end
 
 """
 """
-function θfilt(x::Vector{T}, ncells::Vector{Int}, nparams::Int, f::String, npolys::Int, filt_len::Int) where {T <: Real}
+function θneural_filt(x::Vector{T}, ncells::Vector{Int}, nparams::Vector{Vector{Int}}, 
+        f::Vector{Vector{String}}, filt_len::Int) where {T <: Real}
     
-    dims2 = vcat(0,cumsum(ncells))
-
-    blah = Tuple.(collect(partition(x[2*filt_len + 
-                npolys*sum(ncells) + 1:2*filt_len + npolys*sum(ncells) + nparams*sum(ncells)], nparams)))
+    borg = vcat(filt_len, filt_len.+cumsum(vcat(nparams...)))
+    blah = [x[i] for i in [borg[i-1]+1:borg[i] for i in 2:length(borg)]]
     
-    if f == "Sigmoid"
-        blah2 = map(x-> Sigmoid(x...), blah)
-    elseif f == "Softplus"
-        blah2 = map(x-> Softplus(x...), blah)
-    end
+    blah = map((f,x) -> f(x...), getfield.(Ref(@__MODULE__), Symbol.(vcat(f...))), blah)
     
-    θy = map(idx-> blah2[idx], [dims2[i]+1:dims2[i+1] for i in 1:length(dims2)-1]) 
+    borg = vcat(0,cumsum(ncells))
+    θy = [blah[i] for i in [borg[i-1]+1:borg[i] for i in 2:length(borg)]]
     
-    blah = Tuple.(collect(partition(x[2*filt_len+1:2*filt_len+npolys*sum(ncells)], npolys)))
-    
-    blah2 = map(x-> Poly(collect(x)), blah)
-    
-    θμ = map(idx-> blah2[idx], [dims2[i]+1:dims2[i+1] for i in 1:length(dims2)-1])
-    
-    θfilt(θτ(x[1:filt_len], x[filt_len+1:2*filt_len]), θμ, θy, ncells, nparams, f, npolys, filt_len)
+    θneural_filt(x[1:filt_len], θy, ncells, nparams, f, filt_len)
 
 end
 
 
 """
 """
-function flatten(θ::θfilt)
+function flatten(θ::θneural_filt)
 
-    @unpack θμ, θτ, θy = θ
-    @unpack wL, wR = θτ
-    vcat(wL, wR, 
-        vcat(coeffs.(vcat(vcat(θμ...)...))...),
-        vcat(collect.(Flatten.flatten.(vcat(θy...)))...))
+    @unpack w, θy = θ
+    vcat(w, vcat(collect.(Flatten.flatten.(vcat(θy...)))...))
 
 end
 
 
 """
 """
-function loglikelihood(θ::θfilt, data)
+function loglikelihood(θ::θneural_filt, data)
 
-    @unpack θτ, θμ, θy = θ
+    @unpack w, θy = θ
 
-    sum(map((θy, θμ, data) -> sum(loglikelihood.(Ref(θτ), Ref(θμ), Ref(θy), data)), θy, θμ, data))
+    sum(map((θy, data) -> sum(loglikelihood.(Ref(w), Ref(θy), data)), θy, data))
 
 end
 
 
 """
 """
-function loglikelihood(θτ::θτ, θμ, θy, data::filtdata)
+function loglikelihood(w, θy, data::filtdata)
 
     @unpack spikes, input_data = data
     @unpack dt = input_data
-    λ, = loglikelihood(θτ,θμ,θy,input_data)
+    λ, = loglikelihood(w,θy,input_data)
     sum(logpdf.(Poisson.(vcat(λ...)*dt), vcat(spikes...)))
 
 end
@@ -253,14 +180,13 @@ end
 
 """
 """
-function loglikelihood(θτ::θτ, θμ, θy, input_data::filtinputs)
+function loglikelihood(w, θy, input_data::filtinputs)
 
     @unpack binned_clicks, λ0, dt = input_data
     @unpack nT = binned_clicks
 
-    a = rand(θτ,input_data)
-    #λ = map((θy,θμ)-> θy(a, θμ(1:nT)), θy, θμ)
-    λ = map((θy,λ0)-> θy(a, λ0), θy, λ0)
+    a = rand(w, input_data)
+    λ = map((θy, λ0)-> θy(a, λ0), θy, λ0)
 
     return λ, a
 
@@ -269,27 +195,21 @@ end
 
 """
 """
-function rand(θτ::θτ, inputs)
+function rand(w, inputs)
 
-    @unpack wL, wR = θτ
-    @unpack LX, RX = inputs
-    #@unpack clicks, binned_clicks, dt = inputs
-    #@unpack nT = binned_clicks
-        
-    #L,R = binLR(binned_clicks, clicks, dt)
+    @unpack LR = inputs
     
-    #LX = map(i-> vcat(missings(Int, max(0, filt_len - i)), L[max(1,i-filt_len+1):i]), 1:length(L))
-    #RX = map(i-> vcat(missings(Int, max(0, filt_len - i)), R[max(1,i-filt_len+1):i]), 1:length(R)) 
-    
-    #a = map((L,R)-> sum(skipmissing(wL .* L)) + sum(skipmissing(wR .* R)), LX, RX)   
-    afilt.(Ref(wL), LX, Ref(wR), RX)      
+    afilt.(Ref(w), LR)      
     
 end
 
 
 """
 """
-afilt(wL, L, wR, R) = sum(skipmissing(wL .* L)) + sum(skipmissing(wR .* R))    
+afilt(w, LR) = sum(skipmissing(w .* LR))
+
+
+#=
 
 
 """
@@ -316,3 +236,5 @@ function rand(θτ::θτ, θμ, θy, data)
     pmap(data -> loglikelihood(θτ,θμ,θy,data.input_data)[1], data)
 
 end
+
+=#

@@ -26,8 +26,8 @@ using BasisFunctionExpansions
 export choiceDDM, choiceoptions, θchoice, choicedata, θz
 export θneural, neuralDDM, neuraldata, θy, neuraldata
 export Sigmoid, Softplus, Sigmoid_options, Softplus_options
-export θfilt, filtoptions, train_and_test
-export filtinputs, filtdata, sigmoid_filtoptions
+
+export θneural_filt, filtoptions, filtdata
 
 export mixed_options_noiseless, θneural_noiseless_mixed, mixed_options, θneural_mixed
 export θneural_th, th_options
