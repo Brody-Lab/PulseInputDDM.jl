@@ -58,15 +58,16 @@ function rand(inputs, data_dict, θ::DDMθ, hist_θz, σ2_s, C, rng::Vector{Int}
 
     output = pmap((inputs, a_0, rng) -> rand(inputs, θ.base_θz, σ2_s, C, a_0, rng), inputs, a_0, rng)
     choices = map(output->output[1], output)
-    RT = add_ndtime(θ.ndtime_θz, choices, map(output->output[2], output), data_dict)
 
     # adding lapse effects 
     @unpack lapse, lapse_u  = θ.base_θz
-    lapse_dist = Exponential(data_dict["mlapse"])
-    lapse == 0 ? flipid = rand(ntrials).< data_dict["frac"] : flipid = rand(ntrials).< lapse
-    lapse == 0 ? lapse_dist = Exponential(data_dict["mlapse"]) : lapse_dist = Exponential(lapse_u)
-    choices[flipid] = rand(sum(flipid)).< 0.5
-    RT[flipid] = rand(lapse_dist, sum(flipid))
+    islapse = rand(ntrials).< lapse
+    lapse_u == 0 ? lapse_dist = Exponential(data_dict["mlapse"]) : lapse_dist = Exponential(lapse_u)
+    choices[islapse] = rand(sum(islapse)).< 0.5
+    RT[islapse] = rand(lapse_dist, sum(islapse))
+
+    RT = add_ndtime(θ.ndtime_θz, choices, map(output->output[2], output), data_dict)
+
 
     return choices, RT
 
@@ -104,10 +105,17 @@ function rand(inputs, data_dict, θ::DDMθ, hist_θz::θz_ch, σ2_s, C, rng::Vec
         @unpack h_βcr, h_βcl, h_βer, h_βel = hist_θz
         lim, a_0 = 1, 0.
 
-    elseif hist_θz isa θz_Qlearn
+    elseif (hist_θz isa θz_Qlearn) 
         @unpack h_αr, h_αf, h_κlc, h_κle, h_κrc, h_κre = hist_θz
-        Qll, Qrr, a_0 = 1.,1., 0.
+        Qll, Qrr, a_0 = 0.5, 0.5, 0.
 
+    elseif hist_θz isa θz_DBMexp_Qlearn
+        @unpack h_αr, h_αf, h_κlc, h_κle, h_κrc, h_κre = hist_θz
+        Qll, Qrr, a_0 = 0.5, 0.5, 0.
+
+        @unpack  h_α, h_u, h_v = hist_θz
+        hist_θ_temp = θz_DBMexp(h_α, h_u, h_v)
+        a_0_DBMexp = compute_initial_pt(hist_θ_temp, θ.base_θz.B0, data_dict) 
     else 
         error("undefined type")
     end
@@ -144,7 +152,7 @@ function rand(inputs, data_dict, θ::DDMθ, hist_θz::θz_ch, σ2_s, C, rng::Vec
                 el = ((choices[rel] .== 0) .& (hits[rel] .== 0)).*h_ηel.*h_βel.^reverse(0:length(rel)-1)
                 a_0 = sum(cr + cl + er + el)
 
-            elseif hist_θz isa θz_Qlearn
+            elseif (hist_θz isa θz_Qlearn) | (hist_θz isa θz_DBMexp_Qlearn)
                  if i > 1
                     if choices[i-1]   # rightward choice
                         hits[i-1] ? outcome = h_κrc : outcome = h_κre
@@ -157,7 +165,13 @@ function rand(inputs, data_dict, θ::DDMθ, hist_θz::θz_ch, σ2_s, C, rng::Vec
                     end
                 end
                 a_0 = log(Qrr/Qll) 
+
+                if hist_θz isa θz_DBMexp_Qlearn
+                    a_0  = a_0 + a_0_DBMexp[i]
+                end
             end
+
+
         end
 
         choices[i], DT[i] = rand(inputs[i], base_θz, σ2_s, C, a_0, rng[i])
@@ -175,7 +189,7 @@ function rand(inputs, data_dict, θ::DDMθ, hist_θz::θz_ch, σ2_s, C, rng::Vec
 
     # no non-decision time is added to lapse trials 
     RT = add_ndtime(θ.ndtime_θz, choices, DT, data_dict)
-    RT[islapse] .= DT[islapse]
+    # RT[islapse] .= DT[islapse]
 
     return choices, RT
 
@@ -245,7 +259,6 @@ function sample_one_step!(a::TT, t::Int, σ2_a::TT, σ2_s::TT, λ::TT,
     any(t .== nR) ? sR = sum(Ra[t .== nR]) : sR = zero(TT)
     σ2, μ = σ2_s * (sL + sR), -sL + sR + h_drift
     
-    # scaling variance
     ξ = sqrt(σ2_a * dt + σ2) * randn()
     
     if abs(λ) < 1e-150 
