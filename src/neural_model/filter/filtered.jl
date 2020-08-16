@@ -28,7 +28,7 @@ end
     ncells::Vector{Int}
     nparams::Union{Vector{Int}, Vector{Vector{Int}}}
     filt_len::Int = 50
-    shift::Int=0
+    half_len::Int=0
     f::Union{Vector{String}, Vector{Vector{String}}}
     fit::Vector{Bool}
     ub::Vector{Float64}
@@ -51,17 +51,28 @@ end
 
 """
 """
-function make_filt_data(data, filt_len; shift=0)
+function make_filt_data(data, filt_len; half_len=0)
     
     @unpack input_data, spikes, ncells, choice = data
     @unpack binned_clicks, clicks, dt, centered, λ0, delay, pad = input_data
+    
+    #    time_bin = (-(pad-1):nT+pad) .- delay
 
     L,R = binLR(binned_clicks, clicks, dt)
-    LR = -L + R
+    #LR = -L + R
+    LR = vcat(zeros(Int, pad), -L + R, zeros(Int, pad));
     #LRX = map(i-> vcat(missings(Int, max(0, filt_len - i)), LR[max(1,i-filt_len+1):i]), 1:length(LR))
-    LRX = map(i-> vcat(missings(Int, max(0, filt_len - (i+shift))), 
-            LR[max(1,(i+shift)-filt_len+1): min(length(LR), i+shift)], 
-            missings(Int, max(0, -(length(LR) - (i+shift))))), 1:length(LR))
+    #LRX = map(i-> vcat(missings(Int, max(0, filt_len - (i+shift))), 
+    #        LR[max(1,(i+shift)-filt_len+1): min(length(LR), i+shift)], 
+    #        missings(Int, max(0, -(length(LR) - (i+shift))))), 1:length(LR))
+    
+    #LRX = map(i-> vcat(missings(Int, max(0, filt_len - (i-delay+half_len))), 
+    #    LR[max(1, i-delay+half_len-filt_len+1): min(length(LR), i-delay+half_len)], 
+    #    missings(Int, max(0, -(length(LR) - (i-delay+half_len))))), 1:length(LR))
+    
+    LRX = map(i-> vcat(missings(Int, max(0, half_len+1 - (i-delay))), 
+        LR[max(1, 1+i-delay-(half_len+1)): min(length(LR), i-delay+half_len)], 
+        missings(Int, max(0, -(length(LR) - (i-delay+half_len))))), 1:length(LR));
 
     filtdata(filtinputs(clicks, binned_clicks, λ0, LRX, dt, centered, delay, pad), spikes, ncells, choice)
     
@@ -83,9 +94,9 @@ function optimize(data, options::filtoptions;
         outer_iterations::Int=Int(1e1), scaled::Bool=false,
         extended_trace::Bool=false, sig_σ::Float64=1.)
 
-    @unpack fit, lb, ub, x0, ncells, f, nparams, filt_len, shift = options
+    @unpack fit, lb, ub, x0, ncells, f, nparams, filt_len, half_len = options
     
-    filt_data = map(data-> make_filt_data.(data, Ref(filt_len); shift=shift), data)
+    filt_data = map(data-> make_filt_data.(data, Ref(filt_len); half_len=half_len), data)
     θ = θneural_filt(x0, ncells, nparams, f, filt_len)
 
     lb, = unstack(lb, fit)
@@ -160,30 +171,38 @@ function loglikelihood(θ::θneural_filt, data)
 
     @unpack w, θy = θ
 
-    sum(map((θy, data) -> sum(loglikelihood.(Ref(w), Ref(θy), data)), θy, data))
+    sum(map((θy, data) -> loglikelihood(w, θy, data), θy, data))
 
 end
 
 
 """
 """
-function loglikelihood(w, θy, data::filtdata)
+function loglikelihood(w, θy, data)
 
-    @unpack spikes, input_data = data
-    @unpack dt = input_data
-    λ, = loglikelihood(w,θy,input_data)
+    #@unpack spikes, input_data = data
+    #@unpack dt = input_data
+    dt = data[1].input_data.dt
+    
+    LR = vcat(map(x-> x.input_data.LR, data)...)
+    spikes = map(i-> vcat(map(x-> x.spikes[i], data)...), 1:data[1].ncells)
+    λ0 = map(i-> vcat(map(x-> x.input_data.λ0[i], data)...), 1:data[1].ncells)
+    
+    #a = pmap(LR-> afilt(w, LR), LR) 
+    a = afilt.(Ref(w), LR) 
+    λ = map((θy, λ0)-> θy(a, λ0), θy, λ0)
+   
     sum(logpdf.(Poisson.(vcat(λ...)*dt), vcat(spikes...)))
 
 end
 
 
-
+#=
 """
 """
 function loglikelihood(w, θy, input_data::filtinputs)
 
-    @unpack binned_clicks, λ0, dt = input_data
-    @unpack nT = binned_clicks
+    @unpack λ0 = input_data
 
     a = rand(w, input_data)
     λ = map((θy, λ0)-> θy(a, λ0), θy, λ0)
@@ -202,6 +221,7 @@ function rand(w, inputs)
     afilt.(Ref(w), LR)      
     
 end
+=#
 
 
 """
