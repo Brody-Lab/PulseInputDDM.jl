@@ -171,7 +171,8 @@ function loglikelihood(θ::θneural_filt, data)
 
     @unpack w, θy = θ
 
-    sum(map((θy, data) -> loglikelihood(w, θy, data), θy, data))
+    #sum(map((θy, data) -> loglikelihood(w, θy, data), θy, data))
+    sum(loglikelihood.(Ref(w), θy, data))
 
 end
 
