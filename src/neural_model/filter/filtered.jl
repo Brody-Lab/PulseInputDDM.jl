@@ -143,7 +143,7 @@ end
 function θneural_filt(x::Vector{T}, ncells::Vector{Int}, nparams::Vector{Vector{Int}}, 
         f::Vector{Vector{String}}, filt_len::Int) where {T <: Real}
     
-    borg = vcat(filt_len+1, filt_len+1.+cumsum(vcat(nparams...)))
+    borg = vcat(filt_len+1, filt_len +1 .+cumsum(vcat(nparams...)))
     blah = [x[i] for i in [borg[i-1]+1:borg[i] for i in 2:length(borg)]]
     
     blah = map((f,x) -> f(x...), getfield.(Ref(@__MODULE__), Symbol.(vcat(f...))), blah)
