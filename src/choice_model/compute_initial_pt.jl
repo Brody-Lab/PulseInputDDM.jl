@@ -98,7 +98,7 @@ function compute_initial_pt(hist_θz::θz_DBMexp_sticky, B0::TT, data_dict) wher
     β = (h_α*h_v)/(1+h_v)
     C = (1-h_α)*h_u/(1-β)
     inval = C + (η*β/(2*(1-β)))   # mean value of the exponential filter
-    
+
     cprob = Array{TT}(undef, data_dict["ntrials"])
     cprob_ch = Array{TT}(undef, data_dict["ntrials"])
 
@@ -108,7 +108,7 @@ function compute_initial_pt(hist_θz::θz_DBMexp_sticky, B0::TT, data_dict) wher
             cprob_ch[i] = 0.5
         else
             cprob[i] = (1-β)*C + β*(η*data_dict["correct"][i-1] + cprob[i-1])
-            cprob_ch[i] = (1-h_βc)*cprob_ch[i-1] + h_βc*data_dict["choice"]
+            cprob_ch[i] = (1-h_βc)*cprob_ch[i-1] + h_βc*data_dict["choice"][i-1]
         end
     end
 
@@ -292,13 +292,13 @@ function compute_initial_pt(hist_θz::θz_Qlearn, B0::TT, data_dict) where TT <:
 
     for i = 2:data_dict["ntrials"]
         if data_dict["choice"][i-1] == 1   # rightward choice
-            data_dict["hits"][i-1] ? outcome = h_κrc : outcome = h_κre
-            Qrr = (1-h_αr)*Qrr + h_αr*outcome
-            Qll = (1-h_αf)*Qll
+            data_dict["hits"][i-1] ? outcome, lrate = h_κrc, h_αr : outcome, lrate = h_κre, h_αf
+            Qrr = (1-lrate)*Qrr + lrate*outcome
+            # Qll = (1-h_αf)*Qll
         else
-            data_dict["hits"][i-1] ? outcome = h_κlc : outcome = h_κle
+            data_dict["hits"][i-1] ? outcome, lrate = h_κlc, h_αr : outcome, lrate = h_κle, h_αf
             Qll = (1-h_αr)*Qll + h_αr*outcome
-            Qrr = (1-h_αf)*Qrr
+            # Qrr = (1-h_αf)*Qrr
         end
         cprob[i] = log(Qrr/Qll)
     end

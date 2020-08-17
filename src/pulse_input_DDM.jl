@@ -371,7 +371,7 @@ function create_options(θ::DDMθ)
         :h_Cb => [-1., 1., 1, 0.], :h_Eb => [-1., 1., 1, 0.],             # expfilter_ce_bias params 
         :h_α => [0., 1., 1, 0.8], :h_u => [0., 1., 1, 0.5], :h_v => [0., 20., 1, 2.],    # DBM, DBMexp params
         :h_C => [0., 1., 1, 0.05],                                           # LPSexp along with h_α, h_β                                   
-        :h_αr => [0., 1., 1, 0.9], :h_αf => [0., 1., 0, 0.],               # Qlearning remember, forgetting rates
+        :h_αr => [0., 1., 1, 0.9], :h_αf => [0., 1., 1, 0.1],               # Qlearning remember, forgetting rates
         :h_κlc => [0., 1., 1, 0.5], :h_κle => [0., 1., 1, 0.05],              # Qlearning left prediction errors : correct, error  
         :h_κrc => [0., 1., 1, 0.5], :h_κre => [0., 1., 1, 0.05],              # Q learning right prediction errors : correct, error 
         :h_ηcr => [-2.5, 2.5, 1, 0.3], :h_ηcl => [-2.5, 2.5, 1, 0.3],           # expfilter_ce_lr params
