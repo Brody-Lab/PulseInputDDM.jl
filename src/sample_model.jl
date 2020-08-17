@@ -110,6 +110,14 @@ function rand(inputs, data_dict, θ::DDMθ, hist_θz::θz_ch, σ2_s, C, rng::Vec
         @unpack h_βc, h_βe = hist_θz
         lim, a_0 = 1, 0.
 
+    elseif hist_θz isa θz_DBMexp_sticky
+        @unpack h_βc = hist_θz
+        cprob_ch = 0.5
+        
+        @unpack  h_α, h_u, h_v = hist_θz
+        hist_θ_temp = θz_DBMexp(h_α, h_u, h_v)
+        a_0_DBMexp = compute_initial_pt(hist_θ_temp, θ.base_θz.B0, data_dict) 
+
     elseif (hist_θz isa θz_Qlearn) 
         @unpack h_αr, h_αf, h_κlc, h_κle, h_κrc, h_κre = hist_θz
         Qll, Qrr, a_0 = 0.5, 0.5, 0.
@@ -128,7 +136,10 @@ function rand(inputs, data_dict, θ::DDMθ, hist_θz::θz_ch, σ2_s, C, rng::Vec
     for i = 1:data_dict["ntrials"]
             
         if data_dict["sessbnd"][i] == 1
-            if ~(hist_θz isa θz_Qlearn)
+
+            if hist_θz isa θz_DBMexp_sticky
+                cprob_ch = 0.5
+            elseif ~(hist_θz isa θz_Qlearn) 
                 lim, a_0, rel = i, 0., []
             end
         
@@ -164,6 +175,10 @@ function rand(inputs, data_dict, θ::DDMθ, hist_θz::θz_ch, σ2_s, C, rng::Vec
                 er = ((choices[rel] .== 1) .& (hits[rel] .== 0)).*h_ηer.*h_βe.^reverse(0:length(rel)-1)
                 el = ((choices[rel] .== 0) .& (hits[rel] .== 0)).*h_ηel.*h_βe.^reverse(0:length(rel)-1)
                 a_0 = sum(cr + cl + er + el)
+
+            elseif hist_θz isa θz_DBMexp_sticky
+                cprob_ch = (1-hβc)*cprob_ch + h_βc*choices[i-1]
+                a_0 = log(cprob_ch/(1-cprob_ch)) + a_0_DBMexp[i]
 
             elseif (hist_θz isa θz_Qlearn) | (hist_θz isa θz_DBMexp_Qlearn)
                  if i > 1

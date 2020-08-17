@@ -98,6 +98,13 @@ end
     h_v = 2.
 end
 
+@with_kw struct θz_DBMexp_sticky{T<:Real} <: θz_ch @deftype T
+    h_α = 0.7
+    h_u = 0.5
+    h_v = 2.
+    h_βc = 0.05 # choice stickiness 
+end
+
 @with_kw struct θz_LPSexp{T<:Real} @deftype T
     h_α = 0.8
     h_β = 0.05
@@ -206,6 +213,13 @@ end
     lpost_space::Bool = true
 end
 
+@with_kw struct θ_DBMexp_sticky_ndmod <: DDMθ
+    base_θz = θz_base()
+    ndtime_θz = θz_ndtime_mod()
+    hist_θz = θz_DBMexp_sticky()
+    lpost_space::Bool = true
+end
+
 
 @with_kw struct θ_LPSexp <: DDMθ
     base_θz = θz_base()
@@ -298,6 +312,7 @@ export θ_expfilter_ce_lr, θ_expfilter_ce_lr_ndmod, θz_expfilter_ce_lr
 export θz_ndtime_mod, θz_ch
 export θz_DBMexp_Qlearn, θ_DBMexp_Qlearn, θ_DBMexp_Qlearn_ndmod
 export θz_expfilter_ce_lr_red, θ_expfilter_ce_lr_red_ndmod
+export θz_DBMexp_sticky, θ_DBMexp_sticky_ndmod
 
 
 const modeldict = Dict("expfilter" => θ_expfilter,
@@ -309,6 +324,7 @@ const modeldict = Dict("expfilter" => θ_expfilter,
                     "DBM"          => θ_DBM,
                     "DBMexp"       => θ_DBMexp,
                     "DBMexp_ndmod" => θ_DBMexp_ndmod,
+                    "DBMexp_sticky_ndmod" => θ_DBMexp_sticky_ndmod,
                     "LPSexp"       => θ_LPSexp,
                     "Qlearn"       => θ_Qlearn,
                     "Qlearn_ndmod" => θ_Qlearn_ndmod,
@@ -337,7 +353,7 @@ function create_options(θ::DDMθ)
     	:Bm => [0., 10., 0, 0.], :Bλ => [-5.0, 1.0, 0, 0.], :B0 => [0.5, 5.0, 1, 2.0],  	# bound parameters
     	:λ => [-30.0, 30.0, 1, -0.001],                           					# leak
     	:σ2_i => [0.0, 2.0, 0, eps()], :σ2_a => [0.0, 10., 0, eps()], :σ2_s => [0.0, 20., 1, 2.],  # noise params
-    	:ϕ => [0.01, 1.2, 1, 1.], :τ_ϕ => [0.005, 1.0, 1, 0.02],        	# adaptation params
+    	:ϕ => [0.01, 1.2, 0, 1.], :τ_ϕ => [0.005, 1.0, 0, 0.02],        	# adaptation params
     	:bias => [-1.5, 1.5, 0, 0.],                                        # bias
         :lapse => [0.0, 0.5, 1, 1e-2], :lapse_u => [0.0, 0.8, 1, 0.02],         # lapse prob, mean params
     	:h_drift_scale => [0.0, 1.0, 0, 0.],                       # history drift scale    
@@ -358,7 +374,7 @@ function create_options(θ::DDMθ)
         :h_αr => [0., 1., 1, 0.9], :h_αf => [0., 1., 0, 0.],               # Qlearning remember, forgetting rates
         :h_κlc => [0., 1., 1, 0.5], :h_κle => [0., 1., 1, 0.05],              # Qlearning left prediction errors : correct, error  
         :h_κrc => [0., 1., 1, 0.5], :h_κre => [0., 1., 1, 0.05],              # Q learning right prediction errors : correct, error 
-        :h_ηcr => [-2.5, 2.5, 1, 0.3], :h_ηcl => [-2.5, 2.5, 1, -0.3],           # expfilter_ce_lr params
+        :h_ηcr => [-2.5, 2.5, 1, 0.3], :h_ηcl => [-2.5, 2.5, 1, 0.3],           # expfilter_ce_lr params
         :h_ηer => [-2.5, 2.5, 1, -0.3], :h_ηel => [-2.5, 2.5, 1, 0.3],           # expfilter_ce_lr params
         :h_βcr => [0., 1., 1, 0.1], :h_βcl => [0., 1., 1, 0.1],               # expfilter_ce_lr params
         :h_βer => [0., 1., 1, 0.1], :h_βel => [0., 1., 1, 0.1],               # expfilter_ce_lr params

@@ -88,6 +88,32 @@ end
 
 
 """
+    DBMexp initial point: returns value in log posterior units
+
+"""
+function compute_initial_pt(hist_θz::θz_DBMexp_sticky, B0::TT, data_dict) where TT <: Any
+
+    @unpack h_α, h_u, h_v = hist_θz
+    hist_θ_temp = θz_DBMexp(h_α, h_u, h_v)
+    cprob = compute_initial_pt(hist_θ_temp, B0, data_dict)
+
+    @unpack h_βc = hist_θz
+    cprob_ch = Array{TT}(undef, data_dict["ntrials"])
+    for i = 1:data_dict["ntrials"]
+        if data_dict["sessbnd"][i] == 1
+            cprob_ch[i] == 0.5
+        else
+            cprob_ch[i] = (1-h_βc)*cprob_ch[i-1] + h_βc*data_dict["choice"]
+        end    
+    end
+
+    return cprob .+ log.(cprob_ch ./ (1 .- cprob_ch))
+
+end  
+
+
+
+"""
     LPSexp initial point: returns value in log posterior units
 
 """
