@@ -105,6 +105,11 @@ function rand(inputs, data_dict, θ::DDMθ, hist_θz::θz_ch, σ2_s, C, rng::Vec
         @unpack h_βcr, h_βcl, h_βer, h_βel = hist_θz
         lim, a_0 = 1, 0.
 
+    elseif hist_θz isa θz_expfilter_ce_lr_red
+        @unpack h_ηcr, h_ηcl, h_ηer, h_ηel = hist_θz
+        @unpack h_βc, h_βe = hist_θz
+        lim, a_0 = 1, 0.
+
     elseif (hist_θz isa θz_Qlearn) 
         @unpack h_αr, h_αf, h_κlc, h_κle, h_κrc, h_κre = hist_θz
         Qll, Qrr, a_0 = 0.5, 0.5, 0.
@@ -150,6 +155,14 @@ function rand(inputs, data_dict, θ::DDMθ, hist_θz::θz_ch, σ2_s, C, rng::Vec
                 cl = ((choices[rel] .== 0) .& (hits[rel] .== 1)).*h_ηcl.*h_βcl.^reverse(0:length(rel)-1)
                 er = ((choices[rel] .== 1) .& (hits[rel] .== 0)).*h_ηer.*h_βer.^reverse(0:length(rel)-1)
                 el = ((choices[rel] .== 0) .& (hits[rel] .== 0)).*h_ηel.*h_βel.^reverse(0:length(rel)-1)
+                a_0 = sum(cr + cl + er + el)
+
+            elseif hist_θz isa θz_expfilter_ce_lr_red
+                rel = max(lim, i-10):i-1
+                cr = ((choices[rel] .== 1) .& (hits[rel] .== 1)).*h_ηcr.*h_βc.^reverse(0:length(rel)-1)
+                cl = ((choices[rel] .== 0) .& (hits[rel] .== 1)).*h_ηcl.*h_βc.^reverse(0:length(rel)-1)
+                er = ((choices[rel] .== 1) .& (hits[rel] .== 0)).*h_ηer.*h_βe.^reverse(0:length(rel)-1)
+                el = ((choices[rel] .== 0) .& (hits[rel] .== 0)).*h_ηel.*h_βe.^reverse(0:length(rel)-1)
                 a_0 = sum(cr + cl + er + el)
 
             elseif (hist_θz isa θz_Qlearn) | (hist_θz isa θz_DBMexp_Qlearn)
@@ -293,12 +306,12 @@ function add_ndtime(ndtime_θz::θz_ndtime_mod, choices, DT, data_dict)
 
     ntrials = data_dict["ntrials"]
     @unpack nd_θL, nd_θR, nd_vL, nd_vR = ndtime_θz
-    @unpack nd_tmod, nd_vC, nd_vE = ndtime_θz
+    @unpack nd_tmod, nd_vE = ndtime_θz
     RT = Array{Float64}(undef, ntrials)
     for i = 2:ntrials     # do something about trial 1!!!!
         ph = choices[i-1] == data_dict["correct"][i-1]
-        nd_driftL = nd_vL - nd_tmod*data_dict["sessbnd"][i] + ph*nd_vC + (1-ph)*nd_vE
-        nd_driftR = nd_vR - nd_tmod*data_dict["sessbnd"][i] + ph*nd_vC + (1-ph)*nd_vE
+        nd_driftL = nd_vL - nd_tmod*data_dict["sessbnd"][i] + (1-ph)*nd_vE
+        nd_driftR = nd_vR - nd_tmod*data_dict["sessbnd"][i] + (1-ph)*nd_vE
         if (nd_θL/nd_driftL <= 0) | (nd_θR/nd_driftR <= 0)
             continue
         end

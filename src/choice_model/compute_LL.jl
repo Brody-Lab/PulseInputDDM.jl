@@ -70,19 +70,19 @@ function loglikelihood!(base_θz::θz_base, data::choicedata, σ2_s::TT, C,
         Pbounds = P_single_trial!(base_θz, dx, click_data, a_0, σ2_s, C, base_θz.Bλ)
     end
 
-    @unpack nd_tmod, nd_vC, nd_vE = ndtime_θz
+    @unpack nd_tmod, nd_vE = ndtime_θz
     @unpack lapse = base_θz
     
     if choice 
         @unpack nd_θR, nd_vR = ndtime_θz
-        nd_driftR = nd_vR - nd_tmod*sessbnd + ph_ind*nd_vC + (1-ph_ind)*nd_vE
+        nd_driftR = nd_vR - nd_tmod*sessbnd + (1-ph_ind)*nd_vE
         NDdistR = InverseGaussian(nd_θR/nd_driftR, nd_θR^2)
         ndR = pdf.(NDdistR, dt.*collect(nT:-1:1)).*dt
         pback = transpose(Pbounds[2,:]) * ndR
         lback = transpose(lapse_lik) * ndR
     else
         @unpack nd_θL, nd_vL = ndtime_θz 
-        nd_driftL = nd_vL - nd_tmod*sessbnd + ph_ind*nd_vC + (1-ph_ind)*nd_vE
+        nd_driftL = nd_vL - nd_tmod*sessbnd + (1-ph_ind)*nd_vE
         NDdistL = InverseGaussian(nd_θL/nd_driftL, nd_θL^2)
         ndL = pdf.(NDdistL, dt.*collect(nT:-1:1)).*dt
         pback = transpose(Pbounds[1,:]) * ndL

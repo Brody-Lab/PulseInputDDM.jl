@@ -77,6 +77,15 @@ end
     h_βel = 0.1929
 end
 
+@with_kw struct θz_expfilter_ce_lr_red{T<:Real} <: θz_ch @deftype T
+    h_ηcr = 0.3012
+    h_ηcl = 0.3012
+    h_ηer = 0.3012
+    h_ηel = 0.3012
+    h_βc  = 0.1929
+    h_βe  = 0.1929
+end
+
 @with_kw struct θz_DBM{T<:Real} @deftype T
     h_α = 0.7
     h_u = 0.5
@@ -129,7 +138,6 @@ end
     nd_vL = 10.
     nd_vR = 10.
     nd_tmod = 0.
-    nd_vC = 0.
     nd_vE = 0.
 end    
 
@@ -166,6 +174,13 @@ end
     base_θz = θz_base()
     ndtime_θz = θz_ndtime_mod()
     hist_θz = θz_expfilter_ce_lr()
+    lpost_space::Bool = false
+end
+
+@with_kw struct θ_expfilter_ce_lr_red_ndmod <: DDMθ
+    base_θz = θz_base()
+    ndtime_θz = θz_ndtime_mod()
+    hist_θz = θz_expfilter_ce_lr_red()
     lpost_space::Bool = false
 end
 
@@ -282,6 +297,7 @@ export θz_expfilter_ce_bias, θ_expfilter_ce_bias
 export θ_expfilter_ce_lr, θ_expfilter_ce_lr_ndmod, θz_expfilter_ce_lr
 export θz_ndtime_mod, θz_ch
 export θz_DBMexp_Qlearn, θ_DBMexp_Qlearn, θ_DBMexp_Qlearn_ndmod
+export θz_expfilter_ce_lr_red, θ_expfilter_ce_lr_red_ndmod
 
 
 const modeldict = Dict("expfilter" => θ_expfilter,
@@ -289,6 +305,7 @@ const modeldict = Dict("expfilter" => θ_expfilter,
                     "expfilter_ce_bias" => θ_expfilter_ce_bias,
                     "expfilter_ce_lr" => θ_expfilter_ce_lr,
                     "expfilter_ce_lr_ndmod" => θ_expfilter_ce_lr_ndmod,
+                    "expfilter_ce_lr_red_ndmod" => θ_expfilter_ce_lr_red_ndmod,
                     "DBM"          => θ_DBM,
                     "DBMexp"       => θ_DBMexp,
                     "DBMexp_ndmod" => θ_DBMexp_ndmod,
@@ -317,20 +334,22 @@ end
 function create_options(θ::DDMθ)
 
 	 paramlims = Dict(  #:paramname => [lb, ub, fit, initialvalue]
-    	:Bm => [0., 10., 0, 0.], :Bλ => [-5.0, 1.0, 0, 0.], :B0 => [0.5, 5.0, 1, 1.5],  	# bound parameters
-    	:λ => [-15.0, 15.0, 1, -0.001],                           					# leak
+    	:Bm => [0., 10., 0, 0.], :Bλ => [-5.0, 1.0, 0, 0.], :B0 => [0.5, 5.0, 1, 2.0],  	# bound parameters
+    	:λ => [-30.0, 30.0, 1, -0.001],                           					# leak
     	:σ2_i => [0.0, 2.0, 0, eps()], :σ2_a => [0.0, 10., 0, eps()], :σ2_s => [0.0, 20., 1, 2.],  # noise params
-    	:ϕ => [0.01, 1.2, 0, 1.], :τ_ϕ => [0.005, 1.0, 0, 0.02],        	# adaptation params
+    	:ϕ => [0.01, 1.2, 1, 1.], :τ_ϕ => [0.005, 1.0, 1, 0.02],        	# adaptation params
     	:bias => [-1.5, 1.5, 0, 0.],                                        # bias
-        :lapse => [0.0, 0.5, 1, 1e-3], :lapse_u => [0.0, 0.8, 1, 0.02],         # lapse prob, mean params
-    	:h_drift_scale => [0.0, 1.0, 0, 0.],                       # history drift scale
+        :lapse => [0.0, 0.5, 1, 1e-2], :lapse_u => [0.0, 0.8, 1, 0.02],         # lapse prob, mean params
+    	:h_drift_scale => [0.0, 1.0, 0, 0.],                       # history drift scale    
         :lpost_space => [0 1 0 0],                                          # NOT A REAL VARIABLE - specifies whether model runs in logpost space
+
     	:ndtimeL1 => [0.0, 10.0, 1, 3.], :ndtimeL2 => [0.0, 5.0, 1, 0.04],  # ndtime left choice
     	:ndtimeR1 => [0.0, 10.0, 1, 3.], :ndtimeR2 => [0.0, 5.0, 1, 0.04],  # ndtime right choice
-        :nd_θR => [0., 10., 1, 0.1], :nd_θL => [0., 10., 1, 0.1],               # ndtime mod bounds
-        :nd_vL => [0., 12., 1, 10.], :nd_vR => [0., 12., 1, 10.],               # ndtime mod drifts
-        :nd_tmod => [0., 1., 1, 1e-4], :nd_vC => [-12., 12., 1, 0.], :nd_vE => [-12., 12., 1, 0.],  # ndtime mod trial, and CE mods
-    	:h_η => [-2.0, 2.0, 1, 0.3], :h_β => [0., 1., 1, 0.1],				# expfilter params
+        :nd_θR => [0., 10., 1, 0.4], :nd_θL => [0., 10., 1, 0.4],               # ndtime mod bounds
+        :nd_vL => [0., 12., 1, 4.], :nd_vR => [0., 12., 1, 4.],               # ndtime C mod drifts
+        :nd_tmod => [0., 0.1, 1, 1e-3], :nd_vE => [-12., 12., 1, -2.],  # ndtime mod trial, and E mod drifts
+    	
+        :h_η => [-2.0, 2.0, 1, 0.3], :h_β => [0., 1., 1, 0.1],				# expfilter params
     	:h_ηC => [-2.0, 2.0, 1, 0.3], :h_ηE => [-2., 2., 1, 0.3],			# expfilter_ce params
     	:h_βC => [0., 1., 1, 0.1], :h_βE => [0., 1., 1, 0.1],				# expfilter_ce params
         :h_Cb => [-1., 1., 1, 0.], :h_Eb => [-1., 1., 1, 0.],             # expfilter_ce_bias params 
@@ -339,11 +358,11 @@ function create_options(θ::DDMθ)
         :h_αr => [0., 1., 1, 0.9], :h_αf => [0., 1., 0, 0.],               # Qlearning remember, forgetting rates
         :h_κlc => [0., 1., 1, 0.5], :h_κle => [0., 1., 1, 0.05],              # Qlearning left prediction errors : correct, error  
         :h_κrc => [0., 1., 1, 0.5], :h_κre => [0., 1., 1, 0.05],              # Q learning right prediction errors : correct, error 
-        :h_ηcr => [-2.0, 2.0, 1, 0.3], :h_ηcl => [-2., 2., 1, 0.3],           # expfilter_ce_lr params
-        :h_ηer => [-2.0, 2.0, 1, 0.3], :h_ηel => [-2., 2., 1, 0.3],           # expfilter_ce_lr params
+        :h_ηcr => [-2.5, 2.5, 1, 0.3], :h_ηcl => [-2.5, 2.5, 1, -0.3],           # expfilter_ce_lr params
+        :h_ηer => [-2.5, 2.5, 1, -0.3], :h_ηel => [-2.5, 2.5, 1, 0.3],           # expfilter_ce_lr params
         :h_βcr => [0., 1., 1, 0.1], :h_βcl => [0., 1., 1, 0.1],               # expfilter_ce_lr params
-        :h_βer => [0., 1., 1, 0.1], :h_βel => [0., 1., 1, 0.1])               # expfilter_ce_lr params
-
+        :h_βer => [0., 1., 1, 0.1], :h_βel => [0., 1., 1, 0.1],               # expfilter_ce_lr params
+        :h_βc => [0., 1., 1, 0.1], :h_βe => [0., 1., 1, 0.1])                 # expfilter_ce_lr_red params
 
 	params = get_param_names(θ)
 
