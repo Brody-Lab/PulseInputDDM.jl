@@ -39,8 +39,9 @@ end
 
 """
 """
-@with_kw struct θneural_filt{T1, T2} <: DDMθ
+@with_kw struct θneural_filt{T1, T2, T3} <: DDMθ
     w::Vector{T1}
+    B::T3
     θy::T2
     ncells::Vector{Int}
     nparams::Union{Vector{Int}, Vector{Vector{Int}}}
@@ -142,7 +143,7 @@ end
 function θneural_filt(x::Vector{T}, ncells::Vector{Int}, nparams::Vector{Vector{Int}}, 
         f::Vector{Vector{String}}, filt_len::Int) where {T <: Real}
     
-    borg = vcat(filt_len, filt_len.+cumsum(vcat(nparams...)))
+    borg = vcat(filt_len+1, filt_len+1.+cumsum(vcat(nparams...)))
     blah = [x[i] for i in [borg[i-1]+1:borg[i] for i in 2:length(borg)]]
     
     blah = map((f,x) -> f(x...), getfield.(Ref(@__MODULE__), Symbol.(vcat(f...))), blah)
@@ -150,7 +151,7 @@ function θneural_filt(x::Vector{T}, ncells::Vector{Int}, nparams::Vector{Vector
     borg = vcat(0,cumsum(ncells))
     θy = [blah[i] for i in [borg[i-1]+1:borg[i] for i in 2:length(borg)]]
     
-    θneural_filt(x[1:filt_len], θy, ncells, nparams, f, filt_len)
+    θneural_filt(x[1:filt_len], x[filt_len+1], θy, ncells, nparams, f, filt_len)
 
 end
 
@@ -159,8 +160,8 @@ end
 """
 function flatten(θ::θneural_filt)
 
-    @unpack w, θy = θ
-    vcat(w, vcat(collect.(Flatten.flatten.(vcat(θy...)))...))
+    @unpack w, θy, B = θ
+    vcat(w, B, vcat(collect.(Flatten.flatten.(vcat(θy...)))...))
 
 end
 
@@ -169,17 +170,17 @@ end
 """
 function loglikelihood(θ::θneural_filt, data)
 
-    @unpack w, θy = θ
+    @unpack w, θy, B = θ
 
     #sum(map((θy, data) -> loglikelihood(w, θy, data), θy, data))
-    sum(loglikelihood.(Ref(w), θy, data))
+    sum(loglikelihood.(Ref(w), B, θy, data))
 
 end
 
 
 """
 """
-function loglikelihood(w, θy, data)
+function loglikelihood(w, B, θy, data)
 
     #@unpack spikes, input_data = data
     #@unpack dt = input_data
@@ -190,7 +191,7 @@ function loglikelihood(w, θy, data)
     λ0 = map(i-> vcat(map(x-> x.input_data.λ0[i], data)...), 1:data[1].ncells)
     
     #a = pmap(LR-> afilt(w, LR), LR) 
-    a = afilt.(Ref(w), LR) 
+    a = afilt.(Ref(w),B, LR) 
     λ = map((θy, λ0)-> θy(a, λ0), θy, λ0)
    
     sum(logpdf.(Poisson.(vcat(λ...)*dt), vcat(spikes...)))
@@ -227,9 +228,8 @@ end
 
 """
 """
-afilt(w, LR) = sum(skipmissing(w .* LR))
-
-
+afilt(w, B, LR) =  max(-B, min(B, sum(skipmissing(w .* LR))))
+    
 #=
 
 
