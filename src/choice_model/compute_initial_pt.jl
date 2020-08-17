@@ -93,21 +93,26 @@ end
 """
 function compute_initial_pt(hist_θz::θz_DBMexp_sticky, B0::TT, data_dict) where TT <: Any
 
-    @unpack h_α, h_u, h_v = hist_θz
-    hist_θ_temp = θz_DBMexp(h_α, h_u, h_v)
-    cprob = compute_initial_pt(hist_θ_temp, B0, data_dict)
-
-    @unpack h_βc = hist_θz
+    @unpack h_α, h_u, h_v, h_βc = hist_θz
+    η = 1/h_v
+    β = (h_α*h_v)/(1+h_v)
+    C = (1-h_α)*h_u/(1-β)
+    inval = C + (η*β/(2*(1-β)))   # mean value of the exponential filter
+    
+    cprob = Array{TT}(undef, data_dict["ntrials"])
     cprob_ch = Array{TT}(undef, data_dict["ntrials"])
+
     for i = 1:data_dict["ntrials"]
-        if data_dict["sessbnd"][i] == 1
-            cprob_ch[i] == 0.5
+        if data_dict["sessbnd"][i] == 1 
+            cprob[i] = inval 
+            cprob_ch[i] = 0.5
         else
+            cprob[i] = (1-β)*C + β*(η*data_dict["correct"][i-1] + cprob[i-1])
             cprob_ch[i] = (1-h_βc)*cprob_ch[i-1] + h_βc*data_dict["choice"]
-        end    
+        end
     end
 
-    return cprob .+ log.(cprob_ch ./ (1 .- cprob_ch))
+    return log.(cprob ./ (1 .- cprob)).+ log.(cprob_ch ./ (1 .- cprob_ch))
 
 end  
 
