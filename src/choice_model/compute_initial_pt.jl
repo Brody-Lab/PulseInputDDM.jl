@@ -292,11 +292,19 @@ function compute_initial_pt(hist_θz::θz_Qlearn, B0::TT, data_dict) where TT <:
 
     for i = 2:data_dict["ntrials"]
         if data_dict["choice"][i-1] == 1   # rightward choice
-            data_dict["hits"][i-1] ? outcome, lrate = h_κrc, h_αr : outcome, lrate = h_κre, h_αf
+            if data_dict["hits"][i-1] 
+                outcome, lrate = h_κrc, h_αr 
+            else
+                outcome, lrate = h_κre, h_αf
+            end
             Qrr = (1-lrate)*Qrr + lrate*outcome
             # Qll = (1-h_αf)*Qll
         else
-            data_dict["hits"][i-1] ? outcome, lrate = h_κlc, h_αr : outcome, lrate = h_κle, h_αf
+            if data_dict["hits"][i-1] 
+                outcome, lrate = h_κlc, h_αr 
+            else
+                outcome, lrate = h_κle, h_αf
+            end
             Qll = (1-h_αr)*Qll + h_αr*outcome
             # Qrr = (1-h_αf)*Qrr
         end
