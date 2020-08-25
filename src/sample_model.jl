@@ -117,6 +117,7 @@ function rand(inputs, data_dict, θ::DDMθ, hist_θz::θz_ch, σ2_s, C, rng::Vec
         @unpack  h_α, h_u, h_v = hist_θz
         hist_θ_temp = θz_DBMexp(h_α, h_u, h_v)
         a_0_DBMexp = compute_initial_pt(hist_θ_temp, θ.base_θz.B0, data_dict) 
+        a_0 = 0.
 
     elseif (hist_θz isa θz_Qlearn) 
         @unpack h_αr, h_αf, h_κlc, h_κle, h_κrc, h_κre = hist_θz
@@ -177,19 +178,27 @@ function rand(inputs, data_dict, θ::DDMθ, hist_θz::θz_ch, σ2_s, C, rng::Vec
                 a_0 = sum(cr + cl + er + el)
 
             elseif hist_θz isa θz_DBMexp_sticky
-                cprob_ch = (1-hβc)*cprob_ch + h_βc*choices[i-1]
+                cprob_ch = (1-h_βc)*cprob_ch + h_βc*choices[i-1]
                 a_0 = log(cprob_ch/(1-cprob_ch)) + a_0_DBMexp[i]
 
             elseif (hist_θz isa θz_Qlearn) | (hist_θz isa θz_DBMexp_Qlearn)
                  if i > 1
                     if choices[i-1]   # rightward choice
-                        hits[i-1] ? outcome = h_κrc : outcome = h_κre
-                        Qrr = (1-h_αr)*Qrr + h_αr*outcome
-                        Qll = (1-h_αf)*Qll
+                        if hits[i-1] 
+                            outcome, lrate = h_κrc, h_αr
+                        else
+                            outcome, lrate = h_κre, h_αf
+                        end
+                        Qrr = (1-lrate)*Qrr + lrate*outcome
+                        # Qll = (1-h_αf)*Qll
                     else
-                        hits[i-1] ? outcome = h_κlc : outcome = h_κle
-                        Qll = (1-h_αr)*Qll + h_αr*outcome
-                        Qrr = (1-h_αf)*Qrr
+                        if hits[i-1] 
+                            outcome, lrate = h_κlc, h_αr
+                        else
+                            outcome, lrate = h_κle, h_αf
+                        end
+                        Qll = (1-lrate)*Qll + lrate*outcome
+                        # Qrr = (1-h_αf)*Qrr
                     end
                 end
                 a_0 = log(Qrr/Qll) 

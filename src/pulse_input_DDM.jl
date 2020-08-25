@@ -350,13 +350,13 @@ end
 function create_options(θ::DDMθ)
 
 	 paramlims = Dict(  #:paramname => [lb, ub, fit, initialvalue]
-    	:Bm => [0., 10., 0, 0.], :Bλ => [-5.0, 1.0, 0, 0.], :B0 => [0.5, 5.0, 1, 2.0],  	# bound parameters
-    	:λ => [-30.0, 30.0, 1, -0.001],                           					# leak
+    	:Bm => [0., 10., 0, 0.], :Bλ => [-5.0, 1.0, 0, 0.], :B0 => [0.5, 8.0, 1, 2.0],  	# bound parameters
+    	:λ => [-30.0, 30.0, 1, 5.],                           					# leak
     	:σ2_i => [0.0, 2.0, 0, eps()], :σ2_a => [0.0, 10., 0, eps()], :σ2_s => [0.0, 20., 1, 2.],  # noise params
-    	:ϕ => [0.01, 1.2, 0, 1.], :τ_ϕ => [0.005, 1.0, 0, 0.02],        	# adaptation params
+    	:ϕ => [0.01, 1.2, 1, 0.2], :τ_ϕ => [0.005, 1.0, 1, 0.02],        	# adaptation params
     	:bias => [-1.5, 1.5, 0, 0.],                                        # bias
         :lapse => [0.0, 0.5, 1, 1e-2], :lapse_u => [0.0, 0.8, 1, 0.02],         # lapse prob, mean params
-    	:h_drift_scale => [0.0, 1.0, 0, 0.],                       # history drift scale    
+    	:h_drift_scale => [0.0, 1.0, 1, 0.],                       # history drift scale    
         :lpost_space => [0 1 0 0],                                          # NOT A REAL VARIABLE - specifies whether model runs in logpost space
 
     	:ndtimeL1 => [0.0, 10.0, 1, 3.], :ndtimeL2 => [0.0, 5.0, 1, 0.04],  # ndtime left choice
