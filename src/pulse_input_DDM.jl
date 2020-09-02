@@ -123,6 +123,8 @@ end
     binned_clicks::T2
     dt::Float64
     centered::Bool
+    delay::Int=0
+    pad::Int=0
 end
 
 """

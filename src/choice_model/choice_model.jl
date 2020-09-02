@@ -97,8 +97,8 @@ function optimize(data, options::choiceoptions; n::Int=53,
         x_tol::Float64=1e-10, f_tol::Float64=1e-9, g_tol::Float64=1e-3,
         iterations::Int=Int(2e3), show_trace::Bool=true, outer_iterations::Int=Int(1e1),
         extended_trace::Bool=false, scaled::Bool=false,
-        time_limit::Float64=170000., show_every::Int=10, σ::Vector{Float64}=[0.], 
-        μ::Vector{Float64}=[0.], do_prior::Bool=false, cross::Bool=false)
+        time_limit::Float64=170000., show_every::Int=10, σ::Vector{Float64}=eps()*ones(dimz), 
+        μ::Vector{Float64}=eps()*ones(dimz), do_prior::Bool=false, cross::Bool=false)
 
     @unpack fit, lb, ub, x0 = options
 

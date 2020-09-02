@@ -7,7 +7,8 @@ function synthetic_data(; θ::θchoice=θchoice(), ntrials::Int=2000, rng::Int=1
 
     clicks, choices = rand(θ, ntrials; rng=rng)
     binned_clicks = bin_clicks.(clicks, centered=centered, dt=dt)
-    inputs = choiceinputs.(clicks, binned_clicks, dt, centered)
+    inputs = map((clicks, binned_clicks)-> choiceinputs(clicks=clicks, binned_clicks=binned_clicks, 
+        dt=dt, centered=centered), clicks, binned_clicks)
 
     return θ, choicedata.(inputs, choices)
 
@@ -23,7 +24,8 @@ function rand(θ::θchoice, ntrials::Int; dt::Float64=1e-4, rng::Int = 1, center
 
     clicks = synthetic_clicks(ntrials, rng)
     binned_clicks = bin_clicks.(clicks,centered=centered,dt=dt)
-    inputs = choiceinputs.(clicks, binned_clicks, dt, centered)
+    inputs = map((clicks, binned_clicks)-> choiceinputs(clicks=clicks, binned_clicks=binned_clicks, 
+        dt=dt, centered=centered), clicks, binned_clicks)
 
     ntrials = length(inputs)
     rng = sample(Random.seed!(rng), 1:ntrials, ntrials; replace=false)
