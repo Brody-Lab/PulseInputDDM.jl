@@ -10,29 +10,49 @@ using StatsBase, Distributions, LineSearches, JLD2
 using ForwardDiff, Distributed, LinearAlgebra
 using Optim, DSP, SpecialFunctions, MAT, Random
 using Discretizers
-import StatsFuns: logistic, logit, softplus, xlogy
 using ImageFiltering
 using ForwardDiff: value
 using PositiveFactorizations, Parameters, Flatten
+using Polynomials, Missings
+using HypothesisTests
+
+import StatsFuns: logistic, logit, softplus, xlogy
 import Base.rand
 import Base.Iterators: partition
 import Flatten: flattenable
-using Polynomials, Missings
+import Polynomials: Poly
+using BasisFunctionExpansions
 
 export choiceDDM, choiceoptions, θchoice, choicedata, θz
 export θneural, neuralDDM, neuraldata, θy, neuraldata
-export Sigmoid, Softplus, Sigmoidoptions, Softplusoptions
+export Sigmoid, Softplus, Sigmoid_options, Softplus_options
+
+export θneural_filt, filtoptions, filtdata
+
+export mixed_options_noiseless, θneural_noiseless_mixed, mixed_options, θneural_mixed
+export θneural_th, th_options
+
+export neural_poly_DDM, θneural_poly
+
+export Softplus_options_noiseless
+
+export θneural_noiseless, Sigmoid_options_noiseless
+
+export θneural_choice, Softplus_choice_options, neural_choice_data
 
 export dimz
 export loglikelihood, synthetic_data
 export CIs, optimize, Hessian, gradient
-export load, reload, save, flatten, unflatten
+export load, reload, save, flatten
 export initialize_θy, neural_null
 export synthetic_clicks, binLR, bin_clicks
+
+export μ_poly_options
 
 export default_parameters_and_data, compute_LL
 
 export mean_exp_rate_per_trial, mean_exp_rate_per_cond
+export logprior
 
 #=
 
@@ -54,8 +74,7 @@ export filter_data_by_cell!
 abstract type DDM end
 abstract type DDMdata end
 abstract type DDMθ end
-abstract type neuraloptions end
-
+abstract type DDMf end
 
 """
 """
@@ -104,8 +123,9 @@ end
     binned_clicks::T2
     dt::Float64
     centered::Bool
+    delay::Int=0
+    pad::Int=0
 end
-
 
 """
 """
@@ -115,23 +135,15 @@ end
     λ0::Vector{Vector{Float64}}
     dt::Float64
     centered::Bool
+    delay::Int
+    pad::Int
 end
 
 
 """
 """
-neuralinputs(clicks, binned_clicks, λ0::Vector{Vector{Vector{Float64}}}, dt::Float64, centered::Bool) =
-    neuralinputs.(clicks, binned_clicks, λ0, dt, centered)
-
-"""
-"""
-@with_kw mutable struct choiceoptions
-    fit::Vector{Bool} = vcat(trues(dimz+2))
-    lb::Vector{Float64} = vcat([0., 8., -5., 0., 0., 0.01, 0.005], [-30, 0.])
-    ub::Vector{Float64} = vcat([2., 30., 5., 100., 2.5, 1.2, 1.], [30, 1.])
-    x0::Vector{Float64} = vcat([0.1, 15., -0.1, 20., 0.5, 0.8, 0.008], [0.,0.01])
-end
-
+neuralinputs(clicks, binned_clicks, λ0::Vector{Vector{Vector{Float64}}}, dt::Float64, centered::Bool, delay::Int, pad::Int) =
+    neuralinputs.(clicks, binned_clicks, λ0, dt, centered, delay, pad)
 
 include("base_model.jl")
 include("analysis_functions.jl")
@@ -147,8 +159,14 @@ include("neural_model/neural_model.jl")
 include("neural_model/compute_LL.jl")
 include("neural_model/sample_model.jl")
 include("neural_model/process_data.jl")
-include("neural_model/deterministic_model.jl")
-include("neural_model/CTA.jl")
+include("neural_model/noiseless_model.jl")
+include("neural_model/polynomial/neural_poly_model.jl")
+include("neural_model/polynomial/noiseless_model_poly.jl")
+include("neural_model/filter/filtered.jl")
+include("neural_model/neural_model-th.jl")
+
+include("neural-choice_model/neural-choice_model.jl")
+include("neural-choice_model/process_data.jl")
 
 #include("neural_model/load_and_optimize.jl")
 #include("neural_model/sample_model_functions_FP.jl")

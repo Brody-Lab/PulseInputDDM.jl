@@ -3,7 +3,7 @@
 
 Given parameters θ and data (inputs and choices) computes the LL for all trials
 """
-function loglikelihood(θ::θchoice, data, n::Int)
+function loglikelihood(θ::θchoice, data; n::Int=53, cross::Bool=false)
 
     @unpack θz, lapse = θ
     @unpack σ2_i, B, λ, σ2_a = θz
@@ -11,7 +11,7 @@ function loglikelihood(θ::θchoice, data, n::Int)
 
     P,M,xc,dx = initialize_latent_model(σ2_i, B, λ, σ2_a, n, dt, lapse=lapse)
 
-    sum(pmap(data -> loglikelihood!(θ, P, M, dx, xc, data, n), data))
+    sum(pmap(data -> loglikelihood!(θ, P, M, dx, xc, data, n=n, cross=cross), data))
 
 end
 
@@ -21,7 +21,7 @@ end
 
 Given parameters θ and data (inputs and choices) computes the LL for all trials
 """
-(θ::θchoice)(data; n::Int=53) = loglikelihood(θ, data, n)
+(θ::θchoice)(data; n::Int=53, cross::Bool=false) = loglikelihood(θ, data; n=n, cross=cross)
 
 
 """
@@ -31,13 +31,13 @@ Given parameters θ and data (inputs and choices) computes the LL for one trial
 """
 function loglikelihood!(θ::θchoice,
         P::Vector{TT}, M::Array{TT,2}, dx::UU,
-        xc::Vector{TT}, data::choicedata,
-        n::Int) where {TT,UU <: Real}
+        xc::Vector{TT}, data::choicedata;
+        n::Int=53, cross::Bool=false) where {TT,UU <: Real}
 
     @unpack θz, bias = θ
     @unpack click_data, choice = data
 
-    P = P_single_trial!(θz,P,M,dx,xc,click_data,n)
+    P = P_single_trial!(θz,P,M,dx,xc,click_data,n; cross=cross)
     log(sum(choice_likelihood!(bias,xc,P,choice,n,dx)))
 
 end
@@ -51,7 +51,8 @@ Given parameters θz progagates P for one trial
 function P_single_trial!(θz,
         P::Vector{TT}, M::Array{TT,2}, dx::UU,
         xc::Vector{TT}, click_data,
-        n::Int) where {TT,UU <: Real}
+        n::Int; cross::Bool=false,
+        keepP::Bool=false) where {TT,UU <: Real}
 
     @unpack λ,σ2_a,σ2_s,ϕ,τ_ϕ = θz
     @unpack binned_clicks, clicks, dt = click_data
@@ -59,19 +60,32 @@ function P_single_trial!(θz,
     @unpack L, R = clicks
 
     #adapt magnitude of the click inputs
-    La, Ra = adapt_clicks(ϕ,τ_ϕ,L,R)
+    La, Ra = adapt_clicks(ϕ,τ_ϕ,L,R; cross=cross)
 
     #empty transition matrix for time bins with clicks
     F = zeros(TT,n,n)
+    
+    if keepP
+        PS = Vector{Vector{Float64}}(undef, nT)
+    end
 
     @inbounds for t = 1:nT
 
         #maybe only pass one L,R,nT?
         P,F = latent_one_step!(P,F,λ,σ2_a,σ2_s,t,nL,nR,La,Ra,M,dx,xc,n,dt)
+        
+        if keepP
+            PS[t] = P
+        end
+
 
     end
 
-    return P
+    if keepP
+        return PS
+    else
+        return P
+    end
 
 end
 
@@ -161,7 +175,7 @@ choice_null(choices) = sum(choices .== true)*log(sum(choices .== true)/length(ch
 """
     bounded_mass(θ, data, n)
 """
-function bounded_mass(θ::θchoice, data, n::Int)
+function bounded_mass(θ::θchoice, data, n::Int; cross::Bool=false)
 
     @unpack θz, lapse = θ
     @unpack σ2_i, B, λ, σ2_a = θz
@@ -169,7 +183,7 @@ function bounded_mass(θ::θchoice, data, n::Int)
 
     P,M,xc,dx = initialize_latent_model(σ2_i, B, λ, σ2_a, n, dt, lapse=lapse)
 
-    pmap(data -> bounded_mass!(θ, P, M, dx, xc, data, n), data)
+    pmap(data -> bounded_mass!(θ, P, M, dx, xc, data, n; cross=cross), data)
 
 end
 
@@ -180,12 +194,12 @@ end
 function bounded_mass!(θ::θchoice,
         P::Vector{TT}, M::Array{TT,2}, dx::UU,
         xc::Vector{TT}, data::choicedata,
-        n::Int) where {TT,UU <: Real}
+        n::Int; cross::Bool=false) where {TT,UU <: Real}
 
     @unpack θz, bias = θ
     @unpack click_data, choice = data
 
-    P = P_single_trial!(θz,P,M,dx,xc,click_data,n)
+    P = P_single_trial!(θz,P,M,dx,xc,click_data,n; cross=cross)
     choice ? P[n] : P[1]
 
 end

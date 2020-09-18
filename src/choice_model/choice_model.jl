@@ -1,4 +1,14 @@
 """
+"""
+@with_kw mutable struct choiceoptions
+    fit::Vector{Bool} = vcat(trues(dimz+2))
+    lb::Vector{Float64} = vcat([0., 8.,  -5., 0.,   0.,  0.01, 0.005], [-30, 0.])
+    ub::Vector{Float64} = vcat([Inf, Inf, 10., Inf, Inf, 1.2,  1.], [30, 1.])
+    x0::Vector{Float64} = vcat([0.1, 15., -0.1, 20., 0.5, 0.8, 0.008], [0.,0.01])
+end
+
+
+"""
     θchoice{T1, T<:Real} <: DDMθ
 
 Fields:
@@ -83,22 +93,29 @@ and specification of which parameters to fit.
 BACK IN THE DAY TOLS WERE: x_tol::Float64=1e-4, f_tol::Float64=1e-9, g_tol::Float64=1e-2
 
 """
-function optimize(data, options::choiceoptions, n::Int;
-        x_tol::Float64=1e-10, f_tol::Float64=1e-6, g_tol::Float64=1e-3,
+function optimize(data, options::choiceoptions; n::Int=53,
+        x_tol::Float64=1e-10, f_tol::Float64=1e-9, g_tol::Float64=1e-3,
         iterations::Int=Int(2e3), show_trace::Bool=true, outer_iterations::Int=Int(1e1),
-        extended_trace::Bool=false, scaled::Bool=false)
+        extended_trace::Bool=false, scaled::Bool=false,
+        time_limit::Float64=170000., show_every::Int=10, σ::Vector{Float64}=eps()*ones(dimz), 
+        μ::Vector{Float64}=eps()*ones(dimz), do_prior::Bool=false, cross::Bool=false)
 
     @unpack fit, lb, ub, x0 = options
 
     lb, = unstack(lb, fit)
     ub, = unstack(ub, fit)
     x0,c = unstack(x0, fit)
-    ℓℓ(x) = -loglikelihood(stack(x,c,fit), data, n)
-
+    #ℓℓ(x) = -loglikelihood(stack(x,c,fit), data; n=n)
+ 
+    #prior(x) = sum(1. ./ [50, 40, 0.4, 0.5] .* stack(x,c,fit)[[1,2,6,7]])
+    #ℓℓ(x) = -(loglikelihood(stack(x,c,fit), data; n=n) - prior(x))
+    ℓℓ(x) = -(loglikelihood(stack(x,c,fit), data; n=n, cross=cross) + 
+        Float64(do_prior) * logprior(stack(x,c,fit)[1:dimz],μ,σ))
+    
     output = optimize(x0, ℓℓ, lb, ub; g_tol=g_tol, x_tol=x_tol,
         f_tol=f_tol, iterations=iterations, show_trace=show_trace,
         outer_iterations=outer_iterations, extended_trace=extended_trace,
-        scaled=scaled)
+        scaled=scaled, time_limit=time_limit, show_every=show_every)
 
     x = Optim.minimizer(output)
     x = stack(x,c,fit)
@@ -120,10 +137,10 @@ Given a vector of parameters and a type containing the data related to the choic
 
 See also: [`loglikelihood`](@ref)
 """
-function loglikelihood(x::Vector{T1}, data, n::Int) where {T1 <: Real}
+function loglikelihood(x::Vector{T1}, data; n::Int=53, cross::Bool=false) where {T1 <: Real}
 
     θ = Flatten.reconstruct(θchoice(), x)
-    loglikelihood(θ, data, n)
+    loglikelihood(θ, data; n=n, cross=cross)
 
 end
 
@@ -133,11 +150,11 @@ end
 
 Given a DDM model (parameters and data), compute the gradient.
 """
-function gradient(model::T, n::Int) where T <: DDM
+function gradient(model::T; n::Int=53, cross::Bool=false) where T <: DDM
 
     @unpack θ, data = model
     x = [Flatten.flatten(θ)...]
-    ℓℓ(x) = -loglikelihood(x, data, n)
+    ℓℓ(x) = -loglikelihood(x, data; n=n, cross=cross)
 
     ForwardDiff.gradient(ℓℓ, x)
 
@@ -149,11 +166,11 @@ end
 
 Given a DDM model (parameters and data), compute the Hessian.
 """
-function Hessian(model::T, n::Int) where T <: DDM
+function Hessian(model::T; n::Int=53, cross::Bool=false) where T <: DDM
 
     @unpack θ, data = model
     x = [Flatten.flatten(θ)...]
-    ℓℓ(x) = -loglikelihood(x, data, n)
+    ℓℓ(x) = -loglikelihood(x, data; n=n, cross=cross)
 
     ForwardDiff.hessian(ℓℓ, x)
 
