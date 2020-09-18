@@ -145,7 +145,6 @@ end
 neuralinputs(clicks, binned_clicks, λ0::Vector{Vector{Vector{Float64}}}, dt::Float64, centered::Bool, delay::Int, pad::Int) =
     neuralinputs.(clicks, binned_clicks, λ0, dt, centered, delay, pad)
 
-
 include("base_model.jl")
 include("analysis_functions.jl")
 include("optim_funcs.jl")

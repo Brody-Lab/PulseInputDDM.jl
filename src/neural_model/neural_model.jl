@@ -88,7 +88,6 @@ function (θ::Softplus)(x::Union{U,Vector{U}}, λ0::Union{T,Vector{T}}) where {U
      y = softplus.(c*x .+ softplusinv.(λ0))
     #y = max.(eps(), y .+ λ0)
     #y = softplus.(y .+ λ0)
-
 end
 
 softplusinv(x) = log(expm1(x))
