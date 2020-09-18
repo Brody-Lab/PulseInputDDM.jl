@@ -56,37 +56,6 @@ function sample_spikes_single_trial(n::Int, pz::Vector{Float64}, py::Vector{Vect
     
 end
 
-function sample_latent_FP(pz::Vector{TT}, P::Vector{TT}, M::Array{TT,2}, dx::VV,
-        xc::Vector{WW},L::Vector{Float64}, R::Vector{Float64}, T::Int,
-        nL::Vector{Int}, nR::Vector{Int},dt::Float64,n::Int,use_bin_center::Bool) where {UU,TT,VV,WW <: Any}
-
-    #adapt magnitude of the click inputs
-    La, Ra = make_adapted_clicks(pz,L,R)
-
-    a = Vector{TT}(undef,T)
-    F = zeros(TT,n,n) #empty transition matrix for time bins with clicks
-
-    @inbounds for t = 1:T
-
-        if use_bin_center && t == 1 
-            P, = latent_one_step!(P,F,pz,t,nL,nR,La,Ra,M,dx,xc,n,dt/2)
-        else
-            P, = latent_one_step!(P,F,pz,t,nL,nR,La,Ra,M,dx,xc,n,dt)
-        end
-        
-        P /= sum(P)
-        
-        a[t] = xc[findfirst(cumsum(P) .> rand())]
-        #P = zeros(TT,n)
-        #P[xc .== a[t]] .= one(TT)
-        #should double check this it some point.
-        P = TT.(xc .== a[t])
-        
-    end
-
-    return a
-
-end
 
 #################################### Expected rates, FP #########################
 
