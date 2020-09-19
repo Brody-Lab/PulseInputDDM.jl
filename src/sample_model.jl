@@ -33,14 +33,19 @@ end
     rand(θ, inputs, data_dict)
 Produces synthetic clicks and choices for n trials using model parameters θ.
 """
-function rand(θ::DDMθ, inputs, data_dict; rng::Int = 1, centered::Bool=false)
+function rand(θ::DDMθ, inputs, data_dict; rng::Int = 1, centered::Bool=false, ipt = nothing)
 
     dt = data_dict["dt"]
     ntrials = data_dict["ntrials"]
 
     σ2_s, C = transform_log_space(θ, data_dict["teps"])
     rng = sample(Random.seed!(rng), 1:ntrials, ntrials; replace=false)
-    choices, RT = rand(inputs, data_dict, θ, θ.hist_θz, σ2_s, C, rng)   
+
+    if ipt == nothing
+        choices, RT = rand(inputs, data_dict, θ, θ.hist_θz, σ2_s, C, rng)   
+    else
+        choices, RT = rand(inputs, data_dict, ipt, θ, θ.hist_θz, σ2_s, C, rng)   
+    end
 
     return choices, RT
 
@@ -49,7 +54,7 @@ end
 
 """
     rand(θ, inputs, rng)
-Produces L/R choice for one trial, given model parameters and inputs.
+Produces L/R choice, given model parameters and inputs.
 # """
 function rand(inputs, data_dict, θ::DDMθ, hist_θz, σ2_s, C, rng::Vector{Int}) 
 
@@ -58,20 +63,52 @@ function rand(inputs, data_dict, θ::DDMθ, hist_θz, σ2_s, C, rng::Vector{Int}
 
     output = pmap((inputs, a_0, rng) -> rand(inputs, θ.base_θz, σ2_s, C, a_0, rng), inputs, a_0, rng)
     choices = map(output->output[1], output)
+    RTtemp = map(output->output[2], output)
 
     # adding lapse effects 
     @unpack lapse, lapse_u  = θ.base_θz
     islapse = rand(ntrials).< lapse
     lapse_u == 0 ? lapse_dist = Exponential(data_dict["mlapse"]) : lapse_dist = Exponential(lapse_u)
     choices[islapse] = rand(sum(islapse)).< 0.5
-    RT[islapse] = rand(lapse_dist, sum(islapse))
+    RTtemp[islapse] = rand(lapse_dist, sum(islapse))
 
-    RT = add_ndtime(θ.ndtime_θz, choices, map(output->output[2], output), data_dict)
+    RT = add_ndtime(θ.ndtime_θz, choices, RTtemp, data_dict)
 
 
     return choices, RT
 
 end
+
+
+
+"""
+    rand(θ, inputs, rng)
+Produces L/R choice, for history models which depend on both choice and outcome,
+given model parameters and inputs and initial points
+
+# """
+function rand(inputs, data_dict, a_0, θ::DDMθ, hist_θz::θz_ch, σ2_s, C, rng::Vector{Int}) 
+
+    ntrials = data_dict["ntrials"]
+
+    output = pmap((inputs, a_0, rng) -> rand(inputs, θ.base_θz, σ2_s, C, a_0, rng), inputs, a_0, rng)
+    choices = map(output->output[1], output)
+    RTtemp = map(output->output[2], output)
+
+    # adding lapse effects 
+    @unpack lapse, lapse_u  = θ.base_θz
+    islapse = rand(ntrials).< lapse
+    lapse_u == 0 ? lapse_dist = Exponential(data_dict["mlapse"]) : lapse_dist = Exponential(lapse_u)
+    choices[islapse] = rand(sum(islapse)).< 0.5
+    RTtemp[islapse] = rand(lapse_dist, sum(islapse))
+
+    RT = add_ndtime(θ.ndtime_θz, choices, RTtemp, data_dict)
+
+
+    return choices, RT
+
+end
+
 
 
 """
