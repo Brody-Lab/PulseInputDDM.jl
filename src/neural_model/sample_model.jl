@@ -63,25 +63,30 @@ end
 """
 function synthetic_data(θ::θneural,
         ntrials::Vector{Int}; centered::Bool=true,
-        dt::Float64=1e-2, rng::Int=1, dt_synthetic::Float64=1e-4, pad::Int=10)
+        dt::Float64=1e-2, rng::Int=1, dt_synthetic::Float64=1e-4, 
+        delay::Int=0, pad::Int=10, pos_ramp::Bool=false)
 
     nsess = length(ntrials)
     rng = sample(Random.seed!(rng), 1:nsess, nsess; replace=false)
 
-    @unpack θz,θμ,θy,ncells = θ
+    @unpack θz,θy,ncells = θ
 
-    output = rand.(Ref(θz), θμ, θy, ntrials, ncells, rng)
+    output = rand.(Ref(θz), θy, ntrials, ncells, rng; delay=delay, pad=0, pos_ramp=pos_ramp)
 
     spikes = getindex.(output, 1)
-    clicks = getindex.(output, 2)
+    #λ0 = getindex.(output, 2)
+    clicks = getindex.(output, 3)
+    choices = getindex.(output, 4)
 
     output = bin_clicks_spikes_λ0.(spikes, clicks;
         centered=centered, dt=dt, dt_synthetic=dt_synthetic, synthetic=true)
+    
+    λ0 = synthetic_λ0.(clicks, ncells; dt=dt, pos_ramp=pos_ramp, pad=0)
 
     spikes = getindex.(output, 1)
     binned_clicks = getindex.(output, 2)
 
-    input_data = neuralinputs.(clicks, binned_clicks, dt, centered)
+    input_data = neuralinputs.(clicks, binned_clicks, λ0, dt, centered, delay, 0)
     
     padded = map(spikes-> map(spikes-> map(SCn-> vcat(rand.(Poisson.((sum(SCn[1:10])/(10*dt))*ones(pad)*dt)), 
                     SCn, rand.(Poisson.((sum(SCn[end-9:end])/(10*dt))*ones(pad)*dt))), spikes), spikes), spikes)
@@ -94,25 +99,51 @@ function synthetic_data(θ::θneural,
         for i in findall(nT .>= t)]))
         for t in 1:(maximum(nT))], 1:ncells), μ_rnt, ncells, nT)
 
-    neuraldata.(input_data, spikes, ncells), μ_rnt, μ_t
+    neuraldata.(input_data, spikes, ncells, choices), μ_rnt, μ_t
 
 end
 
 
 """
 """
-function rand(θz::θz, θy, ntrials, ncells, rng; centered::Bool=false, dt::Float64=1e-4, pos_ramp::Bool=false)
+synthetic_λ0(clicks, N::Int; dt::Float64=1e-4, rng::Int=1, pos_ramp::Bool=false, pad::Int=10) = 
+    synthetic_λ0.(clicks, N; dt=dt, rng=rng, pos_ramp=pos_ramp, pad=pad)
+
+
+"""
+"""
+function synthetic_λ0(clicks::clicks, N::Int; dt::Float64=1e-4, rng::Int=1, pos_ramp::Bool=false, pad::Int=10)
+
+    @unpack T = clicks
+
+    Random.seed!(rng)
+    if pos_ramp
+        λ0 = repeat([collect(range(10. + 5*rand(), stop=20. + 5*rand(), length=Int(ceil(T/dt))))], outer=N)
+    else
+        λ0 = repeat([zeros(Int(ceil(T/dt) + 2*pad))], outer=N)
+    end
+
+end
+
+
+"""
+"""
+function rand(θz::θz, θy, ntrials, ncells, rng; centered::Bool=false, dt::Float64=1e-4, pos_ramp::Bool=false, 
+    delay::Int=0, pad::Int=10)
 
     clicks = synthetic_clicks.(ntrials, rng)
     binned_clicks = bin_clicks.(clicks, centered=centered, dt=dt)
-    λ0 = synthetic_λ0.(clicks, ncells; dt=dt, pos_ramp=pos_ramp)
-    input_data = neuralinputs.(clicks, binned_clicks, λ0, dt, centered)
+    λ0 = synthetic_λ0.(clicks, ncells; dt=dt, pos_ramp=pos_ramp, pad=pad)
+    input_data = neuralinputs.(clicks, binned_clicks, λ0, dt, centered, delay, pad)
 
     rng = sample(Random.seed!(rng), 1:ntrials, ntrials; replace=false)
 
-    spikes = pmap((input_data,rng) -> rand(θz,θy,input_data; rng=rng)[3], input_data, rng)
+    output = pmap((input_data,rng) -> rand(θz,θy,input_data; rng=rng), input_data, rng)
+    
+    spikes = getindex.(output, 3)
+    choices = getindex.(output, 4)
 
-    return spikes, λ0, clicks
+    return spikes, λ0, clicks, choices
 
 end
 
@@ -126,8 +157,9 @@ function rand(θz::θz, θy, input_data::neuralinputs; rng::Int=1)
     Random.seed!(rng)
     a = rand(θz,input_data)
     λ = map((θy,λ0)-> θy(a, λ0), θy, λ0)
-    spikes = map(λ-> rand.(Poisson.(λ*dt)), λ)
+    spikes = map(λ-> rand.(Poisson.(λ*dt)), λ)   
+    choice = a[end] .> 0.
 
-    return λ, a, spikes
+    return λ, a, spikes, choice
 
 end

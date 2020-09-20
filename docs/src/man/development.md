@@ -12,9 +12,9 @@ To jump back to the master branch, type `git checkout master`. Now all of the co
 
 Now, the proper thing to do here is to make _another_ branch, off of the `dev` branch to make some code changes. Once those changes are complete, we can attempt to `merge` them into the `dev` branch, and once the `dev` branch is super-duper stable, we can merge _that_ with `master`. 
 
-To make a new branch, called `brians_dev` off of `dev` type `git checkout -b brians_dev dev` (make sure you are on branch `dev` with `git branch`). Now from here, you can make (`git add`) and commit (`git commit`) changes as you normally would, which will all be confined to this branch. 
+To make a new branch, called `bdd_dev` off of `dev` type `git checkout -b bdd_dev dev` (make sure you are on branch `dev` with `git branch`). Now from here, you can make (`git add`) and commit (`git commit`) changes as you normally would, which will all be confined to this branch. 
 
-To push these new changes to a new remote branch in the repo, type `git push -u origin brians_dev`. The `-u` option will 'sync' up this branch with the newly created `brians_dev` remote branch so that when you `push` and `pull` on this branch it does so from the correct remote branch.
+To push these new changes to a new remote branch in the repo, type `git push -u origin bdd_dev`. The `-u` option will 'sync' up this branch with the newly created `brians_dev` remote branch so that when you `push` and `pull` on this branch it does so from the correct remote branch.
 
 [Here's a useful page of instructions about julia package development](https://tlienart.github.io/pub/julia/dev-pkg.html).
 
