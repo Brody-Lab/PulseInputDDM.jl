@@ -20,7 +20,7 @@ import StatsFuns: logistic, logit, softplus, xlogy
 import Base.rand
 import Base.Iterators: partition
 import Flatten: flattenable
-import Polynomials: Poly
+#import Polynomials: Poly
 using BasisFunctionExpansions
 
 export choiceDDM, choiceoptions, θchoice, choicedata, θz
@@ -32,7 +32,7 @@ export θneural_filt, filtoptions, filtdata
 export mixed_options_noiseless, θneural_noiseless_mixed, mixed_options, θneural_mixed
 export θneural_th, th_options
 
-export neural_poly_DDM, θneural_poly
+#export neural_poly_DDM, θneural_poly
 
 export Softplus_options_noiseless
 
@@ -160,8 +160,8 @@ include("neural_model/compute_LL.jl")
 include("neural_model/sample_model.jl")
 include("neural_model/process_data.jl")
 include("neural_model/noiseless_model.jl")
-include("neural_model/polynomial/neural_poly_model.jl")
-include("neural_model/polynomial/noiseless_model_poly.jl")
+#include("neural_model/polynomial/neural_poly_model.jl")
+#include("neural_model/polynomial/noiseless_model_poly.jl")
 include("neural_model/filter/filtered.jl")
 include("neural_model/neural_model-th.jl")
 
