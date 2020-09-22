@@ -41,6 +41,10 @@ A doctest can be added to a docstring to add additional explanation and to test 
 
 I developed this documentation using [Documenter.jl](https://github.com/JuliaDocs/Documenter.jl). This is a julia package that, once correctly instantiated, will automatically build a html webpage (this very webpage you're reading!) based on markdown files located in a specified directory in a git repo (usually `docs`) using Travis-CI whenever there is a push to that repo, and host that html webpage on the github repo on a `gh-pages` branch. 
 
-To add a new page, you need to add a markdown files (`example.md`) in the `docs/src/man` directory. Once you have you need to include it and its location in the `make.jl` file located in `docs`, so that it appears in the index of the html page.
+To add a new page, you need to add a markdown files (`example.md`) in the `docs/src/man` directory. Or you can modify an existing `.md` file. Once you have you need to include it and its location in the `make.jl` file located in `docs`, so that it appears in the index of the html page.
+
+# Merging branches
+
+Once your branch is looking pretty good, we want to merge it with the `dev` branch, by creating a pull request on github. Several things will be done there, to ensure a robust codebase. First, any merge conflicts will have to be decided on. `travis-ci.com` will run the tests your wrote (see [Adding tests](@ref) Adding tests) above) and build the html documentation. Finally, Brian (or some other administrator) will have to approve the merge.
 
 
