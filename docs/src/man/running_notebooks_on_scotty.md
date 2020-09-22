@@ -6,7 +6,7 @@ From your local machine, make a ssh connection with scotty,
     >> ssh [username]@scotty.princeton.edu
 ```
 
-where `[username]` is your scotty username, assuming you have one. If you do not have a username email [PNI help](mailto:pnihelp@princeton.edu).
+where `[username]` is your scotty username, assuming you have one. If you do not have a username email [PNI help](mailto:pnihelp@princeton.edu). See the [Efficient Remote SSH](@ref) section) about shortcuts to making this quicker.
 
 
 ### Installing the IJulia package

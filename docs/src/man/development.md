@@ -43,4 +43,8 @@ I developed this documentation using [Documenter.jl](https://github.com/JuliaDoc
 
 To add a new page, you need to add a markdown files (`example.md`) in the `docs/src/man` directory. Once you have you need to include it and its location in the `make.jl` file located in `docs`, so that it appears in the index of the html page.
 
+# Merging branches
+
+Once your branch is looking pretty good, we want to merge it with the `dev` branch, by creating a pull request on github. Several things will be done there, to ensure a robust codebase. First, any merge conflicts will have to be decided on. Travis will run the tests and build documentation. Finally, Brian (or some other administrator) will have to approve the merge.
+
 
