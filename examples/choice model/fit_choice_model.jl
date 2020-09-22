@@ -61,12 +61,12 @@ end
 # ### Optimize stuff
 # Blah blah blah
 
-model, = optimize(data, options, n; iterations=5, outer_iterations=1)
+model, = optimize(data, options; iterations=5, outer_iterations=1)
 
 # ### Compute Hessian and the confidence interavls
 # Blah blah blah
 
-H = Hessian(model, n)
+H = Hessian(model)
 CI, HPSD = CIs(H);
 
 # ### Save results
