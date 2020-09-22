@@ -23,7 +23,11 @@ To push these new changes to a new remote branch in the repo, type `git push -u 
 
 ## Adding tests
 
-A useful way to ensure the continued stabilty of code is to include tests within a package. For julia packages, these are located in the file `tests\runtests.jl`. Basically, you include whatever function you care to test, the `@test` 'macro' and the expected output in that file. Whenever code is pushed to the repository, it is build on Travis-CI, according to the specifcations on the `travis.yml` file also located in the repository. If the tests fails, it will be immedaitely reported on the repo landing page. See `runtests.jl` for examples and please consider adding tests when you add functionality.
+A useful way to ensure the continued stabilty of code is to include tests within a package. For julia packages, these are located in the file `tests\runtests.jl`. 
+
+To add to the existing set of tests, add a line to `runtests.jl` something like `@testset "new_changes" begin include("new_changes_tests.jl") end` and a `.jl` file called `new_changes_tests.jl` to the `test` directory. Within `new_changes_tests.jl` include any functions that you want to test, where each function call should be preceded by an `@test`. Each `@test` should include the expected output of each function. See the examples in `runtests.jl` to get going. 
+
+Whenever code is pushed to the repository, it is build on `travis-ci.com`, according to the specifcations on the `travis.yml` file also located in the repository. If the any of your new tests fail or if any of the existing tests fail because of changes you made, it will be immedaitely reported on the repo landing page.
 
 # Developing the documentation
 
