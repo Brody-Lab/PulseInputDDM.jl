@@ -33,10 +33,10 @@ end
 Given a model, computes the log likelihood for a set of trials.
 ```
 """
-function loglikelihood(model::T, n::Int) where T <: DDM
+function loglikelihood(model::T) where T <: DDM
 
     @unpack θ, data = model
-    loglikelihood(θ, data, n)
+    loglikelihood(θ, data)
 
 end
 

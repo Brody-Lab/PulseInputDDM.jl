@@ -22,16 +22,17 @@ n = 53
 
 θy0 = vcat(vcat(initialize_θy.(data, f)...)...)
 
-options0 = neuraloptions(ncells=ncells,
+options0 = Sigmoid_options_noiseless(ncells=ncells,
     fit=vcat(falses(dimz), trues(sum(ncells)*nparams)),
     x0=vcat([0., 30., 0. + eps(), 0., 0., 1. - eps(), 0.008], θy0))
 model, = optimize(data, options0; iterations=2, outer_iterations=1)
 
-options = neuraloptions(ncells=ncells, x0=pulse_input_DDM.flatten(model.θ))
-model, = optimize(data, options, n; iterations=2, outer_iterations=1)
+x0 = vcat([0.1, 15., -0.1, 20., 0.5, 0.8, 0.008], pulse_input_DDM.flatten(model.θ)[dimz+1:end])
+options = Sigmoid_options(ncells=ncells, x0=x0)
+model, = optimize(data, options; iterations=2, outer_iterations=1)
 
 # ### Compute Hessian and the confidence interavls
 # Blah blah blah
 
-H = Hessian(model, n, chuck_size=4)
+H = Hessian(model, n; chuck_size=4)
 CI, HPSD = CIs(H);
