@@ -393,7 +393,7 @@ function create_options(θ::DDMθ)
     	:bias => [-1.5, 1.5, 0, 0.],                                        # bias
         :lapse => [0.0, 0.5, 1, 1e-2], :lapse_u => [0.0, 0.8, 1, 0.02],         # lapse prob, mean params
         :lapse_sig => [0.0, 10., 1, 0.05],                                  # lapse sigmoidal modulation
-    	:h_drift_scale => [0.0, 1.0, 1, 0.],                       # history drift scale    
+    	:h_drift_scale => [0.0, 1.0, 0, 0.],                       # history drift scale    
         :lpost_space => [0 1 0 0],                                          # NOT A REAL VARIABLE - specifies whether model runs in logpost space
 
     	:ndtimeL1 => [0.0, 10.0, 1, 3.], :ndtimeL2 => [0.0, 5.0, 1, 0.04],  # ndtime left choice
