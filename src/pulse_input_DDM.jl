@@ -26,10 +26,11 @@ abstract type DDM end
 abstract type DDMdata end
 abstract type DDMθ end
 abstract type θz_ch end
+abstract type θz_baseprm end
 abstract type DDMθoptions end
 
 
-@with_kw struct θz_base{T<:Real} @deftype T
+@with_kw struct θz_base{T<:Real} <: θz_baseprm @deftype T
     Bm = 0.; @assert Bm == 0.
     Bλ = 0.; @assert Bλ == 0.
     B0 = 1.8
@@ -42,6 +43,24 @@ abstract type DDMθoptions end
     bias = 0.
     lapse = 0.
     lapse_u = 0.
+    h_drift_scale = 0.  
+end
+
+
+@with_kw struct θz_base_mod{T<:Real} <: θz_baseprm @deftype T
+    Bm = 0.; @assert Bm == 0.
+    Bλ = 0.; @assert Bλ == 0.
+    B0 = 1.8
+    λ = -0.01; @assert λ != 0.
+    σ2_i = eps()
+    σ2_a = 0.
+    σ2_s = 2.
+    ϕ = 1.; #@assert ϕ != 1.
+    τ_ϕ = 0.05
+    bias = 0.
+    lapse = 0.
+    lapse_u = 0.
+    lapse_sig = 0.
     h_drift_scale = 0.  
 end
 
@@ -184,8 +203,22 @@ end
     lpost_space::Bool = false
 end
 
+@with_kw struct θ_expfilter_ce_lr_ndmod_lapsemod <: DDMθ
+    base_θz = θz_base_mod()
+    ndtime_θz = θz_ndtime_mod()
+    hist_θz = θz_expfilter_ce_lr()
+    lpost_space::Bool = false
+end
+
 @with_kw struct θ_expfilter_ce_lr_red_ndmod <: DDMθ
     base_θz = θz_base()
+    ndtime_θz = θz_ndtime_mod()
+    hist_θz = θz_expfilter_ce_lr_red()
+    lpost_space::Bool = false
+end
+
+@with_kw struct θ_expfilter_ce_lr_red_ndmod_lapsemod <: DDMθ
+    base_θz = θz_base_mod()
     ndtime_θz = θz_ndtime_mod()
     hist_θz = θz_expfilter_ce_lr_red()
     lpost_space::Bool = false
@@ -303,12 +336,13 @@ end
 end
 
 export choiceDDM, choicedata, choiceoptions, choiceinputs
-export θ_expfilter, θ_expfilter_ce, θz_base, θz_ndtime
+export θ_expfilter, θ_expfilter_ce, θz_base, θz_base_mod, θz_ndtime
 export θz_expfilter, θz_expfilter_ce, θ_LPSexp, θ_DBMexpbnd, θ_DBMexp_ndmod
 export θz_DBM, θz_DBMexp, θ_DBM, θ_DBMexp, θz_LPSexp
 export θz_Qlearn, θ_Qlearn, θ_Qlearn_ndmod 
 export θz_expfilter_ce_bias, θ_expfilter_ce_bias 
 export θ_expfilter_ce_lr, θ_expfilter_ce_lr_ndmod, θz_expfilter_ce_lr
+export θ_expfilter_ce_lr_red_ndmod_lapsemod, θ_expfilter_ce_lr_ndmod_lapsemod 
 export θz_ndtime_mod, θz_ch
 export θz_DBMexp_Qlearn, θ_DBMexp_Qlearn, θ_DBMexp_Qlearn_ndmod
 export θz_expfilter_ce_lr_red, θ_expfilter_ce_lr_red_ndmod
@@ -320,7 +354,9 @@ const modeldict = Dict("expfilter" => θ_expfilter,
                     "expfilter_ce_bias" => θ_expfilter_ce_bias,
                     "expfilter_ce_lr" => θ_expfilter_ce_lr,
                     "expfilter_ce_lr_ndmod" => θ_expfilter_ce_lr_ndmod,
+                    "expfilter_ce_lr_ndmod_lapsemod" => θ_expfilter_ce_lr_ndmod_lapsemod,
                     "expfilter_ce_lr_red_ndmod" => θ_expfilter_ce_lr_red_ndmod,
+                    "expfilter_ce_lr_red_ndmod_lapsemod" => θ_expfilter_ce_lr_red_ndmod_lapsemod,
                     "DBM"          => θ_DBM,
                     "DBMexp"       => θ_DBMexp,
                     "DBMexp_ndmod" => θ_DBMexp_ndmod,
@@ -356,6 +392,7 @@ function create_options(θ::DDMθ)
     	:ϕ => [0.01, 1.2, 1, 0.2], :τ_ϕ => [0.005, 1.0, 1, 0.02],        	# adaptation params
     	:bias => [-1.5, 1.5, 0, 0.],                                        # bias
         :lapse => [0.0, 0.5, 1, 1e-2], :lapse_u => [0.0, 0.8, 1, 0.02],         # lapse prob, mean params
+        :lapse_sig => [0.0, 10., 1, 0.05],                                  # lapse sigmoidal modulation
     	:h_drift_scale => [0.0, 1.0, 1, 0.],                       # history drift scale    
         :lpost_space => [0 1 0 0],                                          # NOT A REAL VARIABLE - specifies whether model runs in logpost space
 

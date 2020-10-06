@@ -59,7 +59,7 @@ end
     
 Given parameters θ and data (inputs and choices) computes the LL for one trial
 """
-function loglikelihood!(base_θz::θz_base, data::choicedata, σ2_s::TT, C,
+function loglikelihood!(base_θz::θz_baseprm, data::choicedata, σ2_s::TT, C,
         a_0::TT, dx::Float64, ndtime_θz::θz_ndtime_mod, dt, ph_ind, nT, lapse_lik) where {TT <: Any}
 
     @unpack click_data, choice, sessbnd = data
@@ -72,6 +72,7 @@ function loglikelihood!(base_θz::θz_base, data::choicedata, σ2_s::TT, C,
 
     @unpack nd_tmod, nd_vE = ndtime_θz
     @unpack lapse = base_θz
+    lapse_r, lapse_l = get_lapse_prob(base_θz, a_0)
     
     if choice 
         @unpack nd_θR, nd_vR = ndtime_θz
@@ -79,19 +80,31 @@ function loglikelihood!(base_θz::θz_base, data::choicedata, σ2_s::TT, C,
         NDdistR = InverseGaussian(nd_θR/nd_driftR, nd_θR^2)
         ndR = pdf.(NDdistR, dt.*collect(nT:-1:1)).*dt
         pback = transpose(Pbounds[2,:]) * ndR
-        lback = transpose(lapse_lik) * ndR
+        lback = lapse_r * (transpose(lapse_lik) * ndR)
     else
         @unpack nd_θL, nd_vL = ndtime_θz 
         nd_driftL = nd_vL - nd_tmod*sessbnd + (1-ph_ind)*nd_vE
         NDdistL = InverseGaussian(nd_θL/nd_driftL, nd_θL^2)
         ndL = pdf.(NDdistL, dt.*collect(nT:-1:1)).*dt
         pback = transpose(Pbounds[1,:]) * ndL
-        lback = transpose(lapse_lik) * ndL
+        lback = lapse_l * (transpose(lapse_lik) * ndL)
     end
 
-    return log(lapse*0.5*lback + (1-lapse)*pback)
+    return log(lapse*lback + (1-lapse)*pback)
 
 end
+
+
+function get_lapse_prob(base_θz::θz_base, a_0)
+    return 0.5, 0.5
+end
+
+
+function get_lapse_prob(base_θz::θz_base_mod, a_0)
+    rbias =  1/(1+exp(-base_θz.lapse_sig*a_0))
+    return rbias, 1. - rbias
+end
+
 
 
 # """
@@ -134,7 +147,7 @@ end
     
 Given parameters θ and data (inputs and choices) computes the LL for one trial
 """
-function loglikelihood!(base_θz::θz_base,data::choicedata, σ2_s::TT, C,
+function loglikelihood!(base_θz::θz_baseprm,data::choicedata, σ2_s::TT, C,
         a_0::TT, dx::Float64, ndL, ndR) where {TT <: Any}
 
     @unpack click_data, choice = data
@@ -160,7 +173,7 @@ end
 Given parameters θz progagates P for one trial
 speed ups for when bound is stationary
 """
-function P_single_trial!(base_θz::θz_base, dx::Float64,
+function P_single_trial!(base_θz::θz_baseprm, dx::Float64,
         click_data, a_0::TT, σ2_s::TT, C) where {TT<: Any}
 
     @unpack λ, σ2_i, σ2_a, bias, h_drift_scale = base_θz
@@ -200,7 +213,7 @@ end
 Given parameters θz progagates P for one trial
 when bound is non stationary
 """
-function P_single_trial!(base_θz::θz_base, dx::Float64,
+function P_single_trial!(base_θz::θz_baseprm, dx::Float64,
         click_data, a_0::TT, σ2_s::TT, C, Bλ::TT) where {TT<: Any}
 
     @unpack λ, σ2_i, σ2_a, bias, h_drift_scale = base_θz
