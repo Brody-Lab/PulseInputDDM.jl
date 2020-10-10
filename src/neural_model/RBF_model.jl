@@ -101,7 +101,6 @@ function loglikelihood(θz::θz, θμ::Vector{Poly{T2}}, θy::Vector{T1},
     return λ, a
 
 end
-=#
 
 
 """
@@ -211,13 +210,21 @@ function loglikelihood(θμ::Vector{Poly{T2}},
     sum(logpdf.(Poisson.(vcat(λ...)*dt), vcat(spikes...)))
 
 end
-
-
+=#
 
 
 """
     RBF
 """
+
+
+"""
+"""
+@with_kw struct neural_poly_DDM{T,U} <: DDM
+    θ::T
+    data::U
+end
+
 
 @with_kw struct μ_RBF_options
     ncells::Vector{Int}

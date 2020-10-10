@@ -24,7 +24,7 @@ end
 
 """
 """
-@with_kw struct filtoptions <: neural_options
+@with_kw struct filtoptions
     ncells::Vector{Int}
     nparams::Union{Vector{Int}, Vector{Vector{Int}}}
     filt_len::Int = 50

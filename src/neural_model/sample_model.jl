@@ -1,9 +1,9 @@
 """
     Sample rates from latent model with multiple rngs, to average over
 """
-function synthetic_λ(θ::Union{θneural, θneural_mixed}, data, rng)
+function synthetic_λ(θ::Union{θneural}, data, rng)
 
-    @unpack θz,θy,ncells = θ
+    @unpack θz,θy = θ
     μ_λ = rand.(Ref(θz), θy, data, Ref(rng))
         
     return μ_λ
@@ -14,15 +14,16 @@ end
 """
     Sample rates from latent model with multiple rngs, to average over
 """
-function synthetic_λ(θ::Union{θneural, θneural_mixed}, data; num_samples::Int=100, nconds::Int=2, rng1::Int=1)
+function synthetic_λ(model; num_samples::Int=100, nconds::Int=2, rng1::Int=1)
 
-    @unpack θz,θy,ncells = θ
-
+    @unpack θ,data = model
+    @unpack θz,θy = θ
+    
     rng = sample(Random.seed!(rng1), 1:num_samples, num_samples; replace=false)
     λ = map(rng-> rand.(Ref(θz), θy, data, Ref(rng)), rng)
     μ_λ = mean(λ)
     
-    μ_c_λ = cond_mean.(μ_λ, data, ncells; nconds=nconds)
+    μ_c_λ = cond_mean.(μ_λ, data; nconds=nconds)
     
     return μ_λ, μ_c_λ, λ
 
@@ -44,7 +45,9 @@ end
 
 """
 """
-function cond_mean(μ_λ, data, ncells; nconds=2)
+function cond_mean(μ_λ, data; nconds=2)
+    
+    ncells = data[1].ncells
         
     pad = data[1].input_data.pad
     nT = map(x-> x.input_data.binned_clicks.nT, data)

@@ -43,15 +43,6 @@ end
 
 """
 """
-@with_kw struct neural_poly_DDM{T,U} <: DDM
-    θ::T
-    data::U
-end
-
-
-
-"""
-"""
 mutable struct θneural_poly{T1, T2, T3} <: DDMθ
     θz::T1
     θμ::T2

@@ -55,7 +55,7 @@ end
 
 
 """
-    synthetic_data(; θ=θchoice(), ntrials=2000, rng=1)
+    synthetic_data(n; θ=θchoice(), ntrials=2000, rng=1)
 
 Returns default parameters and ntrials of synthetic data (clicks and choices) organized into a choicedata type.
 """
@@ -72,7 +72,7 @@ end
 
 
 """
-    rand(θ, ntrials)
+    rand(θ, ntrials, n)
 
 Produces synthetic clicks and choices for n trials using model parameters θ.
 """
@@ -83,7 +83,9 @@ function rand(θ::θchoice, ntrials::Int, n::Int; dt::Float64=1e-2, rng::Int = 1
     inputs = map((clicks, binned_clicks)-> choiceinputs(clicks=clicks, binned_clicks=binned_clicks, 
         dt=dt, centered=centered), clicks, binned_clicks)
     
-    @unpack θz, lapse = θ    
+     θ = θ2(θ)
+
+    @unpack θz, lapse = θ   
     @unpack σ2_i, B, λ, σ2_a = θz
 
     P,M,xc,dx = initialize_latent_model(σ2_i, B, λ, σ2_a, n, dt, lapse=lapse)

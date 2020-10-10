@@ -4,6 +4,9 @@
 A julia module for fitting bounded accumlator models using behavioral
 and/or neural data from pulse-based evidence accumlation tasks.
 """
+
+#__precompile__(false)
+
 module pulse_input_DDM
 
 using StatsBase, Distributions, LineSearches, JLD2
@@ -25,25 +28,26 @@ using BasisFunctionExpansions
 
 export choiceDDM, choiceoptions, θchoice, choicedata, θz
 export θneural, neuralDDM, neuraldata, θy, neuraldata
-export Sigmoid, Softplus, Sigmoid_options, Softplus_options
+export Sigmoid, Softplus
 
 export θneural_filt, filtoptions, filtdata
 
-export mixed_options_noiseless, θneural_noiseless_mixed, mixed_options, θneural_mixed
+export θneural_noiseless
 export θneural_th, th_options
 
-#export neural_poly_DDM, θneural_poly
+export synthetic_λ, reload_neural_data
 
-export Softplus_options_noiseless
+export neural_poly_DDM
+#export θneural_poly
 
-export θneural_noiseless, Sigmoid_options_noiseless
+export θneural_noiseless, neural_options
 
 export θneural_choice, Softplus_choice_options, neural_choice_data
 
 export dimz
 export loglikelihood, synthetic_data
 export CIs, optimize, Hessian, gradient
-export load, reload, save, flatten
+export load_choice_data, load_neural_data, reload, save, flatten
 export initialize_θy, neural_null
 export synthetic_clicks, binLR, bin_clicks
 
@@ -52,7 +56,7 @@ export μ_poly_options
 export default_parameters_and_data, compute_LL
 
 export mean_exp_rate_per_trial, mean_exp_rate_per_cond
-export logprior
+export logprior, process_spike_data
 
 #=
 
@@ -151,7 +155,6 @@ include("optim_funcs.jl")
 include("sample_model.jl")
 
 include("choice_model/choice_model.jl")
-include("choice_model/compute_LL.jl")
 include("choice_model/sample_model.jl")
 include("choice_model/process_data.jl")
 
@@ -160,8 +163,10 @@ include("neural_model/compute_LL.jl")
 include("neural_model/sample_model.jl")
 include("neural_model/process_data.jl")
 include("neural_model/noiseless_model.jl")
+#include("neural_model/null.jl")
 #include("neural_model/polynomial/neural_poly_model.jl")
 #include("neural_model/polynomial/noiseless_model_poly.jl")
+include("neural_model/RBF_model.jl")
 include("neural_model/filter/filtered.jl")
 include("neural_model/neural_model-th.jl")
 
