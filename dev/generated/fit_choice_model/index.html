@@ -9,17 +9,12 @@
 #SBATCH -c 44
 
 module load julia/1.0.0
-julia -p 44 ./fit_choice_model.jl</code></pre><h3><a class="nav-anchor" id="Example-.jl-file-1" href="#Example-.jl-file-1">Example .jl file</a></h3><p>Blah blah blah</p><pre><code class="language-julia">using pulse_input_DDM</code></pre><h3><a class="nav-anchor" id="Load-some-data-1" href="#Load-some-data-1">Load some data</a></h3><p>Blah blah blah</p><pre><code class="language-">data = load(&quot;../examples/choice model/example_matfile.mat&quot;)</code></pre><h3><a class="nav-anchor" id="Set-options-for-optimization-1" href="#Set-options-for-optimization-1">Set options for optimization</a></h3><p>Blah blah blah</p><pre><code class="language-julia">n = 53
+julia -p 44 ./fit_choice_model.jl</code></pre><h3><a class="nav-anchor" id="Example-.jl-file-1" href="#Example-.jl-file-1">Example .jl file</a></h3><p>Blah blah blah</p><pre><code class="language-julia">using pulse_input_DDM</code></pre><h3><a class="nav-anchor" id="Load-some-data-1" href="#Load-some-data-1">Load some data</a></h3><p>Blah blah blah</p><pre><code class="language-">data = load(&quot;../examples/choice model/example_matfile.mat&quot;)</code></pre><h3><a class="nav-anchor" id="Set-options-for-optimization-1" href="#Set-options-for-optimization-1">Set options for optimization</a></h3><p>Blah blah blah</p><pre><code class="language-">n = 53
 
 options = choiceoptions(fit = vcat(trues(9)),
     lb = vcat([0., 8., -5., 0., 0., 0.01, 0.005], [-30, 0.]),
     ub = vcat([2., 30., 5., 100., 2.5, 1.2, 1.], [30, 1.]),
-    x0 = vcat([0.1, 15., -0.1, 20., 0.5, 0.8, 0.008], [0.,0.01]))</code></pre><pre><code class="language-none">choiceoptions
-  fit: Array{Bool}((9,)) Bool[1, 1, 1, 1, 1, 1, 1, 1, 1]
-  lb: Array{Float64}((9,)) [0.0, 8.0, -5.0, 0.0, 0.0, 0.01, 0.005, -30.0, 0.0]
-  ub: Array{Float64}((9,)) [2.0, 30.0, 5.0, 100.0, 2.5, 1.2, 1.0, 30.0, 1.0]
-  x0: Array{Float64}((9,)) [0.1, 15.0, -0.1, 20.0, 0.5, 0.8, 0.008, 0.0, 0.01]
-</code></pre><h3><a class="nav-anchor" id="Load-some-data-2" href="#Load-some-data-2">Load some data</a></h3><p>Blah blah blah</p><pre><code class="language-julia">save_file = &quot;../examples/choice model/example_results.mat&quot;
+    x0 = vcat([0.1, 15., -0.1, 20., 0.5, 0.8, 0.008], [0.,0.01]))</code></pre><h3><a class="nav-anchor" id="Load-some-data-2" href="#Load-some-data-2">Load some data</a></h3><p>Blah blah blah</p><pre><code class="language-julia">save_file = &quot;../examples/choice model/example_results.mat&quot;
 
 #if you&#39;ve already ran the optimization once and want to restart from where you stoped, this will reload those parameters
 if isfile(save_file)
