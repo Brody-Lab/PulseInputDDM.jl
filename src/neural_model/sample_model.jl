@@ -1,9 +1,6 @@
-"""
-    Sample rates from latent model with multiple rngs, to average over
-"""
-function synthetic_λ(θ::Union{θneural, θneural_mixed}, data, rng)
+function simulate_expected_firing_rate(θ::Union{θneural}, data, rng)
 
-    @unpack θz,θy,ncells = θ
+    @unpack θz,θy = θ
     μ_λ = rand.(Ref(θz), θy, data, Ref(rng))
         
     return μ_λ
@@ -12,17 +9,35 @@ end
 
 
 """
-    Sample rates from latent model with multiple rngs, to average over
+    simulate_expected_firing_rate(model)
+
+Given a `model` generate samples of the firing rate `λ` of each neuron.
+
+Arguments:
+
+- `model`: an instance of a `neuralDDM`.
+
+Optional arguments:
+
+- `num_samples`: How many independent samples of the latent to simulate, to average over.
+
+Returns:
+
+- ` λ`: an `array` is length `num_samples`. Each entry an `array` of length number of trials. Each entry of that is an `array` of length number of neurons. Each entry of that is the firing rate of that neuron on that trial for some length of time.
+- `μ_λ`: the mean firing rate for each neuron (averaging across the noise of the latent process for `num_samples` trials). 
+- `μ_c_λ`: the average across trials and across group with similar evidence values (grouped into `nconds` number of groups).
+
 """
-function synthetic_λ(θ::Union{θneural, θneural_mixed}, data; num_samples::Int=100, nconds::Int=2, rng1::Int=1)
+function simulate_expected_firing_rate(model; num_samples::Int=100, nconds::Int=2, rng1::Int=1)
 
-    @unpack θz,θy,ncells = θ
-
+    @unpack θ,data = model
+    @unpack θz,θy = θ
+    
     rng = sample(Random.seed!(rng1), 1:num_samples, num_samples; replace=false)
     λ = map(rng-> rand.(Ref(θz), θy, data, Ref(rng)), rng)
     μ_λ = mean(λ)
     
-    μ_c_λ = cond_mean.(μ_λ, data, ncells; nconds=nconds)
+    μ_c_λ = cond_mean.(μ_λ, data; nconds=nconds)
     
     return μ_λ, μ_c_λ, λ
 
@@ -44,7 +59,9 @@ end
 
 """
 """
-function cond_mean(μ_λ, data, ncells; nconds=2)
+function cond_mean(μ_λ, data; nconds=2)
+    
+    ncells = data[1].ncells
         
     pad = data[1].input_data.pad
     nT = map(x-> x.input_data.binned_clicks.nT, data)
@@ -62,14 +79,14 @@ end
 """
 """
 function synthetic_data(θ::θneural,
-        ntrials::Vector{Int}; centered::Bool=true,
+        ntrials::Vector{Int}, ncells::Vector{Int}; centered::Bool=true,
         dt::Float64=1e-2, rng::Int=1, dt_synthetic::Float64=1e-4, 
         delay::Int=0, pad::Int=10, pos_ramp::Bool=false)
 
     nsess = length(ntrials)
     rng = sample(Random.seed!(rng), 1:nsess, nsess; replace=false)
-
-    @unpack θz,θy,ncells = θ
+    
+    @unpack θz,θy = θ
 
     output = rand.(Ref(θz), θy, ntrials, ncells, rng; delay=delay, pad=0, pos_ramp=pos_ramp)
 

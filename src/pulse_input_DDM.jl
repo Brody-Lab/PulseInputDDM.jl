@@ -4,6 +4,9 @@
 A julia module for fitting bounded accumlator models using behavioral
 and/or neural data from pulse-based evidence accumlation tasks.
 """
+
+#__precompile__(false)
+
 module pulse_input_DDM
 
 using StatsBase, Distributions, LineSearches, JLD2
@@ -23,53 +26,24 @@ import Flatten: flattenable
 #import Polynomials: Poly
 using BasisFunctionExpansions
 
-export choiceDDM, choiceoptions, θchoice, choicedata, θz
-export θneural, neuralDDM, neuraldata, θy, neuraldata
-export Sigmoid, Softplus, Sigmoid_options, Softplus_options
-
-export θneural_filt, filtoptions, filtdata
-
-export mixed_options_noiseless, θneural_noiseless_mixed, mixed_options, θneural_mixed
-export θneural_th, th_options
-
-#export neural_poly_DDM, θneural_poly
-
-export Softplus_options_noiseless
-
-export θneural_noiseless, Sigmoid_options_noiseless
-
-export θneural_choice, Softplus_choice_options, neural_choice_data
+export choiceDDM, θchoice, θz, choiceoptions
+export neuralDDM, θneural, θy, neural_options, neuraldata
+export Sigmoid, Softplus
+export noiseless_neuralDDM, θneural_noiseless, neural_options_noiseless
+export neural_poly_DDM
+export θneural_choice
 
 export dimz
+export simulate_expected_firing_rate, reload_neural_data
 export loglikelihood, synthetic_data
 export CIs, optimize, Hessian, gradient
-export load, reload, save, flatten
+export load_choice_data, load_neural_data, reload_neural_model, save_neural_model, flatten
+export save, load
 export initialize_θy, neural_null
 export synthetic_clicks, binLR, bin_clicks
-
-export μ_poly_options
-
 export default_parameters_and_data, compute_LL
-
 export mean_exp_rate_per_trial, mean_exp_rate_per_cond
-export logprior
-
-#=
-
-export compute_ΔLL
-
-export choice_null
-export sample_input_and_spikes_multiple_sessions, sample_inputs_and_spikes_single_session
-export sample_spikes_single_session, sample_spikes_single_trial, sample_expected_rates_single_session
-
-export sample_choices_all_trials
-export aggregate_spiking_data, bin_clicks_spikes_and_λ0!
-
-export diffLR
-
-export filter_data_by_cell!
-
-=#
+export logprior, process_spike_data
 
 abstract type DDM end
 abstract type DDMdata end
@@ -142,6 +116,41 @@ end
 
 """
 """
+@with_kw struct θneural{T1, T2} <: DDMθ
+    θz::T1
+    θy::T2
+    f::Vector{Vector{String}}
+end
+
+"""
+"""
+@with_kw struct neuralDDM{T,U} <: DDM
+    θ::T
+    data::U
+    n::Int
+    cross::Bool
+end
+
+
+"""
+"""
+@with_kw struct θneural_noiseless{T1, T2} <: DDMθ
+    θz::T1
+    θy::T2
+    f::Vector{Vector{String}}
+end
+
+
+"""
+"""
+@with_kw struct noiseless_neuralDDM{T,U} <: DDM
+    θ::T
+    data::U
+end
+
+
+"""
+"""
 neuralinputs(clicks, binned_clicks, λ0::Vector{Vector{Vector{Float64}}}, dt::Float64, centered::Bool, delay::Int, pad::Int) =
     neuralinputs.(clicks, binned_clicks, λ0, dt, centered, delay, pad)
 
@@ -151,7 +160,6 @@ include("optim_funcs.jl")
 include("sample_model.jl")
 
 include("choice_model/choice_model.jl")
-include("choice_model/compute_LL.jl")
 include("choice_model/sample_model.jl")
 include("choice_model/process_data.jl")
 
@@ -160,8 +168,10 @@ include("neural_model/compute_LL.jl")
 include("neural_model/sample_model.jl")
 include("neural_model/process_data.jl")
 include("neural_model/noiseless_model.jl")
+#include("neural_model/null.jl")
 #include("neural_model/polynomial/neural_poly_model.jl")
 #include("neural_model/polynomial/noiseless_model_poly.jl")
+include("neural_model/RBF_model.jl")
 include("neural_model/filter/filtered.jl")
 include("neural_model/neural_model-th.jl")
 

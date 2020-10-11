@@ -1,10 +1,11 @@
 """
     load(file)
 
-Given a path to a .mat file containing data (properly formatted), loads data into
-an acceptable format to use with pulse_input_DDM.
+Given a path to a `.MAT` file containing data (properly formatted), loads data into
+an acceptable format to use with `pulse_input_DDM` to fit its choice model.
+
 """
-function load(file::String; centered::Bool=false, dt::Float64=1e-2)
+function load_choice_data(file::String; centered::Bool=false, dt::Float64=1e-2)
 
     data = read(matopen(file), "rawdata")
 

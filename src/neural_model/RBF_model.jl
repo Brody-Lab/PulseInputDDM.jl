@@ -101,7 +101,6 @@ function loglikelihood(θz::θz, θμ::Vector{Poly{T2}}, θy::Vector{T1},
     return λ, a
 
 end
-=#
 
 
 """
@@ -211,13 +210,21 @@ function loglikelihood(θμ::Vector{Poly{T2}},
     sum(logpdf.(Poisson.(vcat(λ...)*dt), vcat(spikes...)))
 
 end
-
-
+=#
 
 
 """
     RBF
 """
+
+
+"""
+"""
+@with_kw struct neural_poly_DDM{T,U} <: DDM
+    θ::T
+    data::U
+end
+
 
 @with_kw struct μ_RBF_options
     ncells::Vector{Int}
@@ -254,9 +261,6 @@ function train_and_test(data, options::μ_RBF_options; seed::Int=1, nRBFs = 2:10
 end
 
 
-
-"""
-"""
 function optimize(data, options::μ_RBF_options;
         x_tol::Float64=1e-10, f_tol::Float64=1e-6, g_tol::Float64=1e-3,
         iterations::Int=Int(2e3), show_trace::Bool=true,

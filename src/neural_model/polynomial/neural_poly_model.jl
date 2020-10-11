@@ -43,15 +43,6 @@ end
 
 """
 """
-@with_kw struct neural_poly_DDM{T,U} <: DDM
-    θ::T
-    data::U
-end
-
-
-
-"""
-"""
 mutable struct θneural_poly{T1, T2, T3} <: DDMθ
     θz::T1
     θμ::T2
@@ -162,16 +153,6 @@ function flatten(θ::θneural_poly)
 end
 
 
-"""
-    optimize_model(pz, py, data, f_str; n=53, x_tol=1e-10,
-        f_tol=1e-6, g_tol=1e-3,iterations=Int(2e3), show_trace=true,
-        outer_iterations=Int(2e3), outer_iterations=Int(2e1))
-
-BACK IN THE DAY, TOLS USED TO BE x_tol::Float64=1e-4, f_tol::Float64=1e-9, g_tol::Float64=1e-2
-
-Optimize model parameters. pz and py are dictionaries that contains initial values, boundaries,
-and specification of which parameters to fit.
-"""
 function optimize(data, options::neural_poly_options; n::Int=53,
         x_tol::Float64=1e-10, f_tol::Float64=1e-9, g_tol::Float64=1e-3,
         iterations::Int=Int(2e3), show_trace::Bool=true,

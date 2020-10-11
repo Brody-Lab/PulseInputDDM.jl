@@ -24,7 +24,7 @@ end
 
 """
 """
-@with_kw struct filtoptions <: neural_options
+@with_kw struct filtoptions
     ncells::Vector{Int}
     nparams::Union{Vector{Int}, Vector{Vector{Int}}}
     filt_len::Int = 50
@@ -87,8 +87,6 @@ function prior(x::Vector{T1}, filt_len; sig_σ::Float64=1.) where {T1 <: Real}
 end
 
 
-"""
-"""
 function optimize(data, options::filtoptions;
         x_tol::Float64=1e-10, f_tol::Float64=1e-9, g_tol::Float64=1e-3,
         iterations::Int=Int(2e3), show_trace::Bool=true,
