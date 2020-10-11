@@ -28,20 +28,6 @@ end
 
 
 """
-    loglikelihood(model, n)
-
-Given a model, computes the log likelihood for a set of trials.
-```
-"""
-function loglikelihood(model::T) where T <: DDM
-
-    @unpack θ, data = model
-    loglikelihood(θ, data)
-
-end
-
-
-"""
     P, M, xc, dx = initialize_latent_model(σ2_i, B, λ, σ2_a, n, dt; lapse=0.)
 
 Creates several variables that are required to compute the LL for each trial, but that

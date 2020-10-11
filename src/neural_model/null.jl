@@ -42,8 +42,6 @@ end
 end
 
 
-"""
-"""
 function optimize(data, options::null_options;
         x_tol::Float64=1e-10, f_tol::Float64=1e-6, g_tol::Float64=1e-3,
         iterations::Int=Int(2e3), show_trace::Bool=false,

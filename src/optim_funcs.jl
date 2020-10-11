@@ -1,10 +1,15 @@
 """
-    optimize(x, ll;
-        g_tol=1e-3, x_tol=1e-10, f_tol=1e-6,
-        iterations=Int(5e3),
-        show_trace=true, extended_trace=false)
+    optimize(x, ll, lb, ub)
 
-Wrapper for executing an unconstrained optimization based on the objective function ll. x is the initial starting point.
+Wrapper for executing an constrained optimization.
+
+Arguments:
+
+- `ll`: objective function. 
+- `x`: an `array` of initial point
+- `lb`: lower bounds. `array` the same length as `x`.
+- `ub: upper bounds. `array` the same length as `x`.
+
 """
 function optimize(x::Vector{TT}, ll, lb, ub;
         g_tol::Float64=1e-12, x_tol::Float64=1e-16, f_tol::Float64=1e-16,

@@ -1,13 +1,5 @@
 """
 """
-@with_kw struct noiseless_neuralDDM{T,U} <: DDM
-    θ::T
-    data::U
-end
-
-
-"""
-"""
 @with_kw struct neural_options_noiseless
     fit::Vector{Bool}
     ub::Vector{Float64}
@@ -40,16 +32,6 @@ function neural_options_noiseless(f)
     neural_options_noiseless(fit=fit, ub=ub, lb=lb)
     
 end
-
-
-"""
-"""
-@with_kw struct θneural_noiseless{T1, T2} <: DDMθ
-    θz::T1
-    θy::T2
-    f::Vector{Vector{String}}
-end
-
 
 
 """
@@ -107,19 +89,32 @@ end
 
 
 """
+    optimize(model, options)
+
+Optimize model parameters for a `noiseless_neuralDDM`.
+
+Arguments: 
+
+- `model`: an instance of a `noiseless_neuralDDM`.
+- `options`: some details related to the optimzation, such as which parameters were fit (`fit`), and the upper (`ub`) and lower (`lb`) bounds of those parameters.
+
+Returns:
+
+- `model`: an instance of a `noiseless_neuralDDM`.
+- `output`: results from [`Optim.optimize`](@ref).
+
 """
-function optimize(data, x0_y, f, options::neural_options_noiseless;
+function optimize(model::noiseless_neuralDDM, options::neural_options_noiseless;
         x_tol::Float64=1e-10, f_tol::Float64=1e-6, g_tol::Float64=1e-3,
-        iterations::Int=Int(2e3), show_trace::Bool=true,
-        outer_iterations::Int=Int(1e1), α1::Float64=0.,
-        sig_σ::Float64=1., x0_z::Vector{Float64}=[0., 15., 0. - eps(), 0., 0., 1.0 - eps(), 0.008])
+        iterations::Int=Int(2e3), show_trace::Bool=false,
+        outer_iterations::Int=Int(1e1), sig_σ::Float64=1.)
 
     @unpack fit, lb, ub = options
+    @unpack θ, data = model
+    @unpack f = θ
     
-    x0 = vcat(x0_z, x0_y) 
-    θ = θneural_noiseless(x0, f)
-    model = noiseless_neuralDDM(θ, data)
-
+    x0 = pulse_input_DDM.flatten(θ)    
+    
     lb, = unstack(lb, fit)
     ub, = unstack(ub, fit)
     x0,c = unstack(x0, fit)
@@ -135,36 +130,6 @@ function optimize(data, x0_y, f, options::neural_options_noiseless;
     converged = Optim.converged(output)
 
     return model, output
-
-end
-
-
-"""
-    flatten(θ)
-
-Extract parameters related to the choice model from a struct and returns an ordered vector
-```
-"""
-function flatten(θ::θneural_noiseless)
-
-    @unpack θy, θz = θ
-    @unpack σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ = θz
-    vcat(σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ, 
-        vcat(collect.(Flatten.flatten.(vcat(θy...)))...))
-
-end
-
-
-"""
-    gradient(model)
-"""
-function gradient(model::noiseless_neuralDDM)
-
-    @unpack θ = model
-    x = flatten(θ)
-    ℓℓ(x) = -loglikelihood(x, model)
-
-    ForwardDiff.gradient(ℓℓ, x)
 
 end
 

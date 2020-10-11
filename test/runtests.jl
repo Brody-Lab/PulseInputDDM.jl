@@ -19,8 +19,6 @@ using Test, pulse_input_DDM, LinearAlgebra, Flatten, Parameters
 
         @time @test round(loglikelihood(model_gen), digits=2) ≈ -3.72
 
-        @time @test round(loglikelihood(θ, data), digits=2) ≈ -3.72
-
         @test round(θ(data), digits=2) ≈ -3.72
 
         @test round(norm(gradient(model_gen)), digits=2) ≈ 14.32

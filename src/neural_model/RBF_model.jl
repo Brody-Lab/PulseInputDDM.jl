@@ -261,9 +261,6 @@ function train_and_test(data, options::μ_RBF_options; seed::Int=1, nRBFs = 2:10
 end
 
 
-
-"""
-"""
 function optimize(data, options::μ_RBF_options;
         x_tol::Float64=1e-10, f_tol::Float64=1e-6, g_tol::Float64=1e-3,
         iterations::Int=Int(2e3), show_trace::Bool=true,

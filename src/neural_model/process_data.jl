@@ -1,8 +1,3 @@
-"""
-    save(file, model, options, CI)
-
-Given a file, model produced by optimize and options, save the results of the optimization to a .MAT file
-"""
 function save(file, model::neuralDDM, options, CI)
 
     @unpack lb, ub, fit = options
@@ -27,11 +22,14 @@ end
 
 
 """
-    save(file, model, options)
+    save_neural_model(file, model, options)
 
-Given a file, model produced by optimize and options, save the results of the optimization to a .MAT file
+Given a `file`, `model` and `options` produced by `optimize`, save everything to a `.MAT` file in such a way that `reload_neural_data` can bring these things back into a Julia workspace, or they can be loaded in MATLAB.
+
+See also: [`reload_neural_model`](@ref)
+
 """
-function save(file, model::neuralDDM, options)
+function save_neural_model(file, model::neuralDDM, options)
 
     @unpack lb, ub, fit = options
     @unpack θ, data, n, cross = model
@@ -60,9 +58,24 @@ end
 
 
 """
-    reload_neural_data(file)
+    reload_neural_model(file)
+
+`reload_neural_data` will bring back the parameters from your fit, some details about the optimization (such as the `fit` and bounds vectors) and some details about how you filtered the data. All of the data is not saved in the format that it is loaded by `load_neural_data` because it's too cumbersome to seralize it, so you have to load it again, as above, to re-build `neuralDDM` but you can use some of the stuff that `reload_neural_data` returns to reload the data in the same way (such as `pad` and `dt`)
+
+Returns:
+
+- `θneural`
+- `neural_options`
+- n
+- cross
+- dt
+- delay
+- pad
+
+See also: [`save_neural_model`](@ref)
+
 """
-function reload_neural_data(file)
+function reload_neural_model(file)
 
     xf = read(matopen(file), "ML_params")
     f = string.(read(matopen(file), "f"))
@@ -89,10 +102,16 @@ end
 
 
 """
-    load_neural_data(file::Vector{String}; centered, dt, delay, pad,
-        filtSD, extra_pad, cut, pcut)
+    load_neural_data(file::Vector{String}; centered, dt, delay, pad, filtSD, extra_pad, cut, pcut)
 
-Calls `load_neural_data` for each entry in file
+Calls `load_neural_data` for each entry in `file` and then creates three array outputs—`spike_data`, `μ_rnt`, `μ_t`—where each entry of an array is the relevant data for a single session. 
+
+Returns:
+
+- `data`: an `array` of length number of session. Each entry is for a session, and is another `array`. Each entry of the sub-array is the relevant data for a trial.
+- `μ_rnt`: an `array` of length number of sessions. Each entry is another `array` of length number of trials. Each entry of the sub-array is also an `array`, of length number of cells. Each entry of that array is the filtered single-trial firing rate of each neuron
+- `μ_t`: an `array` of length number of sessions. Each entry is an `array` of length number of cells. Each entry is the trial-averaged firing rate (across all trials).
+
 """
 function load_neural_data(file::Vector{String}; break_sim_data::Bool=false, 
         centered::Bool=true, dt::Float64=1e-2, delay::Int=0, pad::Int=0, filtSD::Int=2,
@@ -114,42 +133,46 @@ function load_neural_data(file::Vector{String}; break_sim_data::Bool=false,
 end
 
 """
-    load_neural_data(file::String; centered, dt, delay, pad,
-        filtSD, extra_pad, cut, pcut)
+    load_neural_data(file::String; centered, dt, delay, pad, filtSD, extra_pad, cut, pcut)
 
-Load neural data `.MAT` file and return a `dict`.
+Load neural data `.MAT` file and return an three `arrays`. The first `array` is the `data` formatted correctly for fitting the model. Each element of `data` is a module-defined class called `neuraldata`.
 
-The package expects your data to live in a single `.MAT` file which should contain a struct called `rawdata`. Each element of rawdata should have data for one behavioral trial and rawdata should contain the following fields with the specified structure:
+The package expects your data to live in a single `.MAT` file which should contain a struct called `rawdata`. Each element of `rawdata` should have data for one behavioral trial and `rawdata` should contain the following fields with the specified structure:
 
-- rawdata.leftbups: row-vector containing the relative timing, in seconds, of left clicks on an individual trial. 0 seconds is the start of the click stimulus
-- rawdata.rightbups: row-vector containing the relative timing in seconds (origin at 0 sec) of right clicks on an individual trial. 0 seconds is the start of the click stimulus.
-- rawdata.T: the duration of the trial, in seconds. The beginning of a trial is defined as the start of the click stimulus. The end of a trial is defined based on the behavioral event “cpoke_end”. This was the Hanks convention.
-- rawdata.pokedR: Bool representing the animal choice (1 = right).
-- rawdata.spike_times: cell array containing the spike times of each neuron on an individual trial. The cell array will be length of the number of neurons recorded on that trial. Each entry of the cell array is a column vector containing the relative timing of spikes, in seconds. Zero seconds is the start of the click stimulus.
+- `rawdata.leftbups`: row-vector containing the relative timing, in seconds, of left clicks on an individual trial. 0 seconds is the start of the click stimulus
+- `rawdata.rightbups`: row-vector containing the relative timing in seconds (origin at 0 sec) of right clicks on an individual trial. 0 seconds is the start of the click stimulus.
+- `rawdata.T`: the duration of the trial, in seconds. The beginning of a trial is defined as the start of the click stimulus. The end of a trial is defined based on the behavioral event “cpoke_end”. This was the Hanks convention.
+- `rawdata.pokedR`: Bool representing the animal choice (1 = right).
+- `rawdata.spike_times`: cell array containing the spike times of each neuron on an individual trial. The cell array will be length of the number of neurons recorded on that trial. Each entry of the cell array is a column vector containing the relative timing of spikes, in seconds. Zero seconds is the start of the click stimulus. Spikes before and after the click inputs should also be included.
 
 Arguments:
 
-- `file`: path to the file you want to load
+- `file`: path to the file you want to load.
 
 Optional arguments;
 
-- `break_sim_data`: this will break up simulatenously recorded neurons, as if they were recorded independently
+- `break_sim_data`: this will break up simulatenously recorded neurons, as if they were recorded independently. Not often used by most users.
 - `centered`: Defaults to true. For the neural model, this aligns the center of the binned spikes, to the beginning of the binned clicks. This was done to fix a numerical problem. Most users will never need to adjust this. 
 - `dt`: Binning of the spikes, in seconds.
 - `delay`: How much to offset the spikes, relative to the accumlator, in units of `dt`.
 - `pad`: How much extra time should spikes be considered before and after the begining of the clicks. Useful especially if delay is large.
-- `filtSD`: standard deviation of a Gaussin (in units of `dt`) to filter the spikes with to generate single trial firing rates, and mean firing rate across all trials.
+- `filtSD`: standard deviation of a Gaussin (in units of `dt`) to filter the spikes with to generate single trial firing rates (`μ_rnt`), and mean firing rate across all trials (`μ_t`).
 - `extra_pad`: Extra padding (in addition to `pad`) to add, for filtering purposes. In units of `dt`.
 - `cut`: How much extra to cut off at the beginning and end of filtered things (should be equal to `extra_pad` in most cases).
 - `pcut`: p-value for selecting cells.
 
+Returns:
+
+- `data`: an `array` of length number of trials. Each element is a module-defined class called `neuraldata`.
+- `μ_rnt`: an `array` of length number of trials. Each entry of the sub-array is also an `array`, of length number of cells. Each entry of that array is the filtered single-trial firing rate of each neuron.
+- `μ_t`: an `array` of length number of cells. Each entry is the trial-averaged firing rate (across all trials).
+
 
 """
 function load_neural_data(file::String; break_sim_data::Bool=false, 
-        centered::Bool=true,
         dt::Float64=1e-2, delay::Int=0, pad::Int=0, filtSD::Int=2,
         extra_pad::Int=10, cut::Int=10, pcut::Float64=0.01, 
-        do_RBF::Bool=false, nRBFs::Int=6)
+        do_RBF::Bool=false, nRBFs::Int=6, centered::Bool=true)
 
     data = read(matopen(file), "rawdata")
     
@@ -408,17 +431,17 @@ end
 
 Arguments:
 
-- `μ_rnt`: `array` of Gaussian-filterd single trial firing rates for all cells and all trials in one session. `μ_rnt` is output from `load`.
-- `data`: `dict` of all data for one session. `data` is output from `load`.
+- `μ_rnt`: `array` of Gaussian-filterd single trial firing rates for all cells and all trials in one session. `μ_rnt` is output from `load_neural_data`.
+- `data`: `array` of all trial data for one session. `data` is output from `load_neural_data`.
 
 Optional arguments: 
 
 - `nconds`: number of groups to make to compute PSTHs
 
-Outputs: 
+Returns: 
 
-- `μ_ct`: mean PSTH for each group
-- `σ_ct`: 1 std PSTH for each group
+- `μ_ct`: mean PSTH for each group.
+- `σ_ct`: 1 std PSTH for each group.
 
 """
 function process_spike_data(μ_rnt, data; nconds::Int=4)

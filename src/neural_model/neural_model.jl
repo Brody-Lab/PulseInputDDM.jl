@@ -33,15 +33,6 @@ function neural_options(f)
     neural_options(fit=fit, ub=ub, lb=lb)
     
 end
-
-
-"""
-"""
-@with_kw struct θneural{T1, T2} <: DDMθ
-    θz::T1
-    θy::T2
-    f::Vector{Vector{String}}
-end
    
 
 """
@@ -71,6 +62,18 @@ end
 
 
 """
+
+    neuraldata
+
+Module-defined class for keeping data organized for the `neuralDDM` model.
+
+Fields:
+
+- `input_data`: stuff related to the input of the accumaltor model, i.e. clicks, etc.
+- `spikes`: the binned spikes
+- `ncells`: numbers of cells on that trial (should be the same for every trial in a session)
+- `choice`: choice on that trial
+
 """
 @with_kw struct neuraldata <: DDMdata
     input_data::neuralinputs
@@ -83,16 +86,6 @@ end
 """
 """
 neuraldata(input_data, spikes::Vector{Vector{Vector{Int}}}, ncells::Int, choice) =  neuraldata.(input_data,spikes,ncells,choice)
-
-
-"""
-"""
-@with_kw struct neuralDDM{T,U} <: DDM
-    θ::T
-    data::U
-    n::Int
-    cross::Bool
-end
 
 
 """
@@ -186,10 +179,10 @@ end
 """
     flatten(θ)
 
-Extract parameters related to the choice model from a struct and returns an ordered vector
+Extract parameters `neuralDDM` or `noiseless_neuralDDM` model and place in the correct order into a 1D `array`
 ```
 """
-function flatten(θ::θneural)
+function flatten(θ::Union{θneural, θneural_noiseless})
 
     @unpack θy, θz = θ
     @unpack σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ = θz
@@ -201,8 +194,10 @@ end
 
 """
     gradient(model)
+
+Compute the gradient of the negative log-likelihood at the current value of the parameters of a `neuralDDM` or a `noiseless_neuralDDM`.
 """
-function gradient(model::neuralDDM)
+function gradient(model::Union{neuralDDM, noiseless_neuralDDM})
 
     @unpack θ = model
     x = flatten(θ)
@@ -215,8 +210,10 @@ end
 
 """
     Hessian(model)
+
+Compute the hessian of the negative log-likelihood at the current value of the parameters of a `neuralDDM` or a `noiseless_neuralDDM`.
 """
-function Hessian(model::neuralDDM; chuck_size::Int=4)
+function Hessian(model::Union{neuralDDM, noiseless_neuralDDM}; chuck_size::Int=4)
 
     @unpack θ = model
     x = flatten(θ)
@@ -242,6 +239,20 @@ end
 
 
 """
+    optimize(data, f)
+
+Optimize model parameters for a `neuralDDM`. Neural tuning parameters ([`θy`](@ref)) are initialized by fitting a the noiseless DDM model first ([`noiseless_neuralDDM`](@ref)).
+
+Arguments:
+
+- `data`: the output of [`load_neural_data`](@ref) with the format as described in its docstring.
+- `f`: an `array` of length number of sessions, where each subarray is length number of cells. Each entry is a string, either `Softplus` or `Sigmoid` to describe the nonlinear map between ``a(t)`` and ``\\lambda(a)``, the expected firing rate.
+
+Returns
+
+- `model`: a module-defined type that organizes the `data` and parameters from the fit (as well as a few other things that are necessary for re-computing things the way they were computed here (e.g. `n`)
+- `options`: some details related to the optimzation, such as which parameters were fit, and the upper and lower bounds of those parameters.
+
 """
 function optimize(data, f::Vector{Vector{String}}; n::Int=53,
         x_tol::Float64=1e-10, f_tol::Float64=1e-9, g_tol::Float64=1e-3,
@@ -250,13 +261,19 @@ function optimize(data, f::Vector{Vector{String}}; n::Int=53,
         extended_trace::Bool=false, cross::Bool=false,
         sig_σ::Float64=1., x0_z::Vector{Float64}=[0.1, 15., -0.1, 20., 0.8, 0.01, 0.008]) 
         
-    θy0 = θy.(data, f)
-    model0, = optimize(data, vcat(vcat(θy0...)...), f, neural_options_noiseless(f), show_trace=false)
+    θy0 = θy.(data, f) 
+    x0 = vcat([0., 15., 0. - eps(), 0., 0., 1.0 - eps(), 0.008], vcat(vcat(θy0...)...)) 
+    θ = θneural_noiseless(x0, f)
+    model0 = noiseless_neuralDDM(θ, data)
+        
+    model0, = optimize(model0, neural_options_noiseless(f), show_trace=false)
        
     x0 = vcat(x0_z, pulse_input_DDM.flatten(model0.θ)[dimz+1:end]) 
     options = neural_options(f)  
-    model, = optimize(data, x0, f, options; 
-        n=n, cross=cross, show_trace=show_trace, f_tol=f_tol, 
+    θ = θneural(x0, f)
+    model = neuralDDM(θ, data, n, cross)
+    
+    model, = optimize(model, options; show_trace=show_trace, f_tol=f_tol, 
         iterations=iterations, outer_iterations=outer_iterations)
 
     return model, options
@@ -266,25 +283,31 @@ end
 
 
 """
-    optimize_model(pz, py, data, f_str; n=53, x_tol=1e-10,
-        f_tol=1e-6, g_tol=1e-3,iterations=Int(2e3), show_trace=true,
-        outer_iterations=Int(2e3), outer_iterations=Int(2e1))
+    optimize(model, options)
 
-BACK IN THE DAY, TOLS USED TO BE x_tol::Float64=1e-4, f_tol::Float64=1e-9, g_tol::Float64=1e-2
+Optimize model parameters for a `neuralDDM`.
 
-Optimize model parameters. pz and py are dictionaries that contains initial values, boundaries,
-and specification of which parameters to fit.
+Arguments: 
+
+- `model`: an instance of a `neuralDDM`.
+- `options`: some details related to the optimzation, such as which parameters were fit (`fit`), and the upper (`ub`) and lower (`lb`) bounds of those parameters.
+
+Returns:
+
+- `model`: an instance of a `neuralDDM`.
+- `output`: results from [`Optim.optimize`](@ref).
+
 """
-function optimize(data, x0, f::Vector{Vector{String}}, options::neural_options; n::Int=53,
+function optimize(model::neuralDDM, options::neural_options;
         x_tol::Float64=1e-10, f_tol::Float64=1e-9, g_tol::Float64=1e-3,
         iterations::Int=Int(2e3), show_trace::Bool=true, outer_iterations::Int=Int(1e1), 
-        scaled::Bool=false, extended_trace::Bool=false, cross::Bool=false, sig_σ::Float64=1.)
+        scaled::Bool=false, extended_trace::Bool=false, sig_σ::Float64=1.)
     
     @unpack fit, lb, ub = options
+    @unpack θ, data, n, cross = model
+    @unpack f = θ
     
-    θ = θneural(x0, f)
-    model = neuralDDM(θ, data, n, cross)
-
+    x0 = pulse_input_DDM.flatten(θ)
     lb, = unstack(lb, fit)
     ub, = unstack(ub, fit)
     x0,c = unstack(x0, fit)

@@ -26,54 +26,24 @@ import Flatten: flattenable
 #import Polynomials: Poly
 using BasisFunctionExpansions
 
-export choiceDDM, choiceoptions, θchoice, choicedata, θz
-export θneural, neuralDDM, neuraldata, θy, neuraldata
+export choiceDDM, θchoice, θz, choiceoptions
+export neuralDDM, θneural, θy, neural_options, neuraldata
 export Sigmoid, Softplus
-
-export θneural_filt, filtoptions, filtdata
-
-export θneural_noiseless
-export θneural_th, th_options
-
-export synthetic_λ, reload_neural_data
-
+export noiseless_neuralDDM, θneural_noiseless, neural_options_noiseless
 export neural_poly_DDM
-#export θneural_poly
-
-export θneural_noiseless, neural_options
-
-export θneural_choice, Softplus_choice_options, neural_choice_data
+export θneural_choice
 
 export dimz
+export simulate_expected_firing_rate, reload_neural_data
 export loglikelihood, synthetic_data
 export CIs, optimize, Hessian, gradient
-export load_choice_data, load_neural_data, reload, save, flatten
+export load_choice_data, load_neural_data, reload_neural_model, save_neural_model, flatten
+export save, load
 export initialize_θy, neural_null
 export synthetic_clicks, binLR, bin_clicks
-
-export μ_poly_options
-
 export default_parameters_and_data, compute_LL
-
 export mean_exp_rate_per_trial, mean_exp_rate_per_cond
 export logprior, process_spike_data
-
-#=
-
-export compute_ΔLL
-
-export choice_null
-export sample_input_and_spikes_multiple_sessions, sample_inputs_and_spikes_single_session
-export sample_spikes_single_session, sample_spikes_single_trial, sample_expected_rates_single_session
-
-export sample_choices_all_trials
-export aggregate_spiking_data, bin_clicks_spikes_and_λ0!
-
-export diffLR
-
-export filter_data_by_cell!
-
-=#
 
 abstract type DDM end
 abstract type DDMdata end
@@ -141,6 +111,41 @@ end
     centered::Bool
     delay::Int
     pad::Int
+end
+
+
+"""
+"""
+@with_kw struct θneural{T1, T2} <: DDMθ
+    θz::T1
+    θy::T2
+    f::Vector{Vector{String}}
+end
+
+"""
+"""
+@with_kw struct neuralDDM{T,U} <: DDM
+    θ::T
+    data::U
+    n::Int
+    cross::Bool
+end
+
+
+"""
+"""
+@with_kw struct θneural_noiseless{T1, T2} <: DDMθ
+    θz::T1
+    θy::T2
+    f::Vector{Vector{String}}
+end
+
+
+"""
+"""
+@with_kw struct noiseless_neuralDDM{T,U} <: DDM
+    θ::T
+    data::U
 end
 
 
