@@ -31,9 +31,12 @@ end
 """
     rand(θz, inputs)
 
-Generate a sample latent trajecgtory,
-given parameters of the latent model θz and clicks for one trial, contained
-within inputs.
+Generate a sample latent trajecgtory, given parameters of the latent model `θz` and `inputs` for one trial.
+
+Returns:
+
+- `A`: an `array` of the latent path.
+
 """
 function rand(θz::θz{T}, inputs) where T <: Real
 

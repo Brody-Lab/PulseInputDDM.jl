@@ -1,4 +1,11 @@
 """
+    choiceoptions(fit, lb, ub)
+
+Fields:
+
+- `fit`: `array` of `Bool` for optimization for `choiceDDM` model.
+- `lb`: `array` of lower bounds for optimization for `choiceDDM` model.
+- `ub`: `array` of upper bounds for optimization for `choiceDDM` model.
 """
 @with_kw mutable struct choiceoptions
     fit::Vector{Bool} = vcat(trues(dimz+2))
@@ -8,7 +15,7 @@ end
 
 
 """
-    θchoice{T1, T<:Real} <: DDMθ
+    θchoice(θz, bias, lapse) <: DDMθ
 
 Fields:
 
@@ -41,12 +48,6 @@ Fields:
 Example:
 
 ```julia
-ntrials, dt, centered = 1, 1e-2, false
-θ = θchoice()
-clicks, choices = rand(θ, ntrials)
-binned_clicks = bin_clicks(clicks, centered=centered, dt=dt)
-inputs = choiceinputs(clicks, binned_clicks, dt, centered)
-choicedata(inputs, choices)
 ```
 """
 @with_kw struct choicedata{T1} <: DDMdata
@@ -56,30 +57,79 @@ end
 
 
 """
-    choiceDDM{T,U} <: DDM
+    choiceDDM(θ, data, n, cross)
 
 Fields:
 
-- `θ` is a type that contains all of the model parameters.
-- `data` is a type that contains all of the data (inputs and choices).
+- `θ`: a instance of the module-defined class `θchoice` that contains all of the model parameters for a `choiceDDM`
+- `data`: an `array` where each entry is the module-defined class `choicedata`, which contains all of the data (inputs and choices).
+- `n`: number of spatial bins to use (defaults to 53).
+- `cross`: whether or not to use cross click adaptation (defaults to false).
 
 Example:
 
 ```julia
-ntrials, dt, centered = 1, 1e-2, false
+ntrials, dt, centered, n  = 1, 1e-2, false, 53
 θ = θchoice()
-clicks, choices = rand(θ, ntrials)
-binned_clicks = bin_clicks(clicks, centered=centered, dt=dt)
-inputs = choiceinputs(clicks, binned_clicks, dt, centered)
-data = choicedata(inputs, choices)
-choiceDDM(θ, data)
+_, data = synthetic_data(n ;θ=θ, ntrials=ntrials, rng=1, dt=dt);
+choiceDDM(θ=θ, data=data, n=n)
 ```
 """
 @with_kw struct choiceDDM{T,U} <: DDM
     θ::T = θchoice()
     data::U
-    n::Int
-    cross::Bool
+    n::Int=53
+    cross::Bool=false
+end
+
+
+"""
+    optimize(θ, data, options)
+
+Optimize model parameters for a `choiceDDM`.
+
+Returns:
+
+- `model`: an instance of a `choiceDDM`.
+- `output`: results from [`Optim.optimize`](@ref).
+
+Arguments:
+
+- `θ`: an instance of `θchoice`
+- `data`: an `array`, each element of which is a module-defined type `choicedata`. `choicedata` contains the click data and the choice for a trial.
+- `options`: module-defind type that contains the upper (`ub`) and lower (`lb`) boundaries and specification of which parameters to fit (`fit`).
+
+"""
+function optimize(θ::θchoice, data, options::choiceoptions; 
+        n::Int=53, cross::Bool=false,
+        x_tol::Float64=1e-10, f_tol::Float64=1e-9, g_tol::Float64=1e-3,
+        iterations::Int=Int(2e3), show_trace::Bool=true, outer_iterations::Int=Int(1e1),
+        extended_trace::Bool=false, scaled::Bool=false, time_limit::Float64=170000., show_every::Int=10)
+
+    @unpack fit, lb, ub = options
+    
+    x0 = collect(Flatten.flatten(θ))
+    model = choiceDDM(θ, data, n, cross)
+
+    lb, = unstack(lb, fit)
+    ub, = unstack(ub, fit)
+    x0,c = unstack(x0, fit)
+
+    ℓℓ(x) = -(loglikelihood(stack(x,c,fit), model))
+    
+    output = optimize(x0, ℓℓ, lb, ub; g_tol=g_tol, x_tol=x_tol,
+        f_tol=f_tol, iterations=iterations, show_trace=show_trace,
+        outer_iterations=outer_iterations, extended_trace=extended_trace,
+        scaled=scaled, time_limit=time_limit, show_every=show_every)
+
+    x = Optim.minimizer(output)
+    x = stack(x,c,fit)
+    θ = Flatten.reconstruct(θchoice(), x)
+    model = choiceDDM(θ, data, n, cross)
+    converged = Optim.converged(output)
+
+    return model, output
+
 end
 
 
@@ -134,7 +184,7 @@ end
 
 
 """
-    loglikelihood(x, data)
+    loglikelihood(x, model)
 
 Given a vector of parameters and a type containing the data related to the choice DDM model, compute the LL.
 

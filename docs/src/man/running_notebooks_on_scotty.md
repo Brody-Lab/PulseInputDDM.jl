@@ -19,11 +19,25 @@ Launch Julia by typing `julia`. From here, you need to add the IJulia package so
     (v1.0) pkg > add IJulia
 ```
 
+After you add the `IJulia` package you have to build it
+
+```
+    (v1.0) pkg > build IJulia
+```
+
 You might now want to add any packages you use, again in the normal way (for example, you can now add the pulse\_input\_DDM package, as we will do eventually, described in the [Getting the pulse input DDM package from GitHub](@ref) section). You're done (with this part)! You can exit Julia.
 
 ```
     > exit()
 ```
+
+### Edit kernel startup file
+
+I'm not entirely sure why this is necessary, but for some reason, the default setting when opening a jupyter notebook located within a directory that is a Julia module is to make that module the current enviorment. Which can happen since I've included some example notebooks within this repository. But we don't want this to happen, we want the base enviorment to be the enviorment. 
+
+So, in order to tell jupyter to be sure to use the base enviornment whenever if opens a notebook, you have to edit a file located here `/usr/people/[USERNAME]/.local/share/jupyter/kernels/julia-1.2`. The file is called `kernel.json` and you have to delete the lines `"--project=@.",`.
+
+To check that this has taken effect, in your next jupyter notebook, type `] st` in the first cell. It should report something like `Status `/mnt/bucket/people/[USERNAME]/.julia/environments/v1.2/Project.toml`.
 
 ### Opening a notebook on scotty and creating a SSH tunnel
 
@@ -51,6 +65,8 @@ where `<port>` is a 4-digit number that you pick. Once it's running you will be 
 where `<port>` is the port assigned by scotty, and the second `<port>` is one on your local machine (you can pick the same one that scotty did, if you don't happen to be already using it).
 
 Now, copy the url that was created when you launched the jupyter notebook into your local browser, and voila! On a mac, you can press the "command" key (⌘), and the url should become underlined, at which point you can click on it with the  mouse and the link should open in your local browser.
+
+Be sure that when you open your first notebook, you use the Julia 1.2 kernel.
 
 Here is a screen shot of what a typical terminal will look like, showing the url (at the bottom) that needs to be copied and pasted or clicked on:
 
@@ -83,8 +99,6 @@ This will request 1 node (44 cores) for 24 hours from the Brody partition. The s
 If you wanted to run a jupyter notebook server on spock-brody, you need to do some fancy SSH tunneling to get it to work. Here's how to do the whole thing, beginning to end.
 
 First, you have to set a bash enviornment variable so that jupyter doesn't try to write some boring runtime files to a place that you don't have write access to. To do this, modify your `.bashrc` file, which should be located in your home directory. Include the following:
-
-
 
 ```
     $ unset XDG_RUNTIME_DIR
