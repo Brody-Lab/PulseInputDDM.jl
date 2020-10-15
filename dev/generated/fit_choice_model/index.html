@@ -9,16 +9,29 @@
 #SBATCH -c 44
 
 module load julia/1.0.0
-julia -p 44 ./fit_choice_model.jl</code></pre><h3><a class="nav-anchor" id="Example-.jl-file-1" href="#Example-.jl-file-1">Example .jl file</a></h3><p>Blah blah blah</p><pre><code class="language-julia">using pulse_input_DDM</code></pre><h3><a class="nav-anchor" id="Load-some-data-1" href="#Load-some-data-1">Load some data</a></h3><p>Blah blah blah</p><pre><code class="language-">data = load(&quot;../examples/choice model/example_matfile.mat&quot;)</code></pre><h3><a class="nav-anchor" id="Set-options-for-optimization-1" href="#Set-options-for-optimization-1">Set options for optimization</a></h3><p>Blah blah blah</p><pre><code class="language-">n = 53
+julia -p 44 ./fit_choice_model.jl</code></pre><h3><a class="nav-anchor" id="Example-.jl-file-1" href="#Example-.jl-file-1">Example .jl file</a></h3><p>Blah blah blah</p><pre><code class="language-">using pulse_input_DDM, Flatten</code></pre><h3><a class="nav-anchor" id="Load-some-data-1" href="#Load-some-data-1">Load some data</a></h3><p>Blah blah blah</p><pre><code class="language-">data = load_choice_data(&quot;../choice model/example_matfile.mat&quot;);
+nothing #hide</code></pre><h3><a class="nav-anchor" id="Set-options-for-optimization-1" href="#Set-options-for-optimization-1">Set options for optimization</a></h3><p>Blah blah blah</p><pre><code class="language-julia">n = 53
 
 options = choiceoptions(fit = vcat(trues(9)),
     lb = vcat([0., 8., -5., 0., 0., 0.01, 0.005], [-30, 0.]),
-    ub = vcat([2., 30., 5., 100., 2.5, 1.2, 1.], [30, 1.]),
-    x0 = vcat([0.1, 15., -0.1, 20., 0.5, 0.8, 0.008], [0.,0.01]))</code></pre><h3><a class="nav-anchor" id="Load-some-data-2" href="#Load-some-data-2">Load some data</a></h3><p>Blah blah blah</p><pre><code class="language-julia">save_file = &quot;../examples/choice model/example_results.mat&quot;
+    ub = vcat([2., 30., 5., 100., 2.5, 1.2, 1.], [30, 1.]))
+
+x0 = vcat([0.1, 15., -0.1, 20., 0.5, 0.8, 0.008], [0.,0.01])</code></pre><pre><code class="language-none">9-element Array{Float64,1}:
+  0.1  
+ 15.0  
+ -0.1  
+ 20.0  
+  0.5  
+  0.8  
+  0.008
+  0.0  
+  0.01 </code></pre><h3><a class="nav-anchor" id="Load-some-data-2" href="#Load-some-data-2">Load some data</a></h3><p>Blah blah blah</p><pre><code class="language-">save_file = &quot;../choice model/example_results.mat&quot;
 
 #if you&#39;ve already ran the optimization once and want to restart from where you stoped, this will reload those parameters
 if isfile(save_file)
-    options.x0 = reload(save_file)
-end</code></pre><h3><a class="nav-anchor" id="Optimize-stuff-1" href="#Optimize-stuff-1">Optimize stuff</a></h3><p>Blah blah blah</p><pre><code class="language-">model, = optimize(data, options; iterations=5, outer_iterations=1)</code></pre><h3><a class="nav-anchor" id="Compute-Hessian-and-the-confidence-interavls-1" href="#Compute-Hessian-and-the-confidence-interavls-1">Compute Hessian and the confidence interavls</a></h3><p>Blah blah blah</p><pre><code class="language-">H = Hessian(model)
-CI, HPSD = CIs(H);
-nothing #hide</code></pre><h3><a class="nav-anchor" id="Save-results-1" href="#Save-results-1">Save results</a></h3><p>Blah blah blah</p><pre><code class="language-">save(save_file, model, options, CI)</code></pre><h3><a class="nav-anchor" id="Getting-help-1" href="#Getting-help-1">Getting help</a></h3><p>To get more details about how any function in this package works, in julia you can type <code>?</code> and then the name of the function. Documentation will display in the REPL.</p><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p><footer><hr/><a class="previous" href="../../man/getting_the_package/"><span class="direction">Previous</span><span class="title">Downloading the package</span></a><a class="next" href="../recover_choice_model/"><span class="direction">Next</span><span class="title">Fitting a choice model</span></a></footer></article></body></html>
+    θ, options = reload_choice_model(save_file)
+else
+    θ = Flatten.reconstruct(θchoice(), x0)
+end</code></pre><h3><a class="nav-anchor" id="Optimize-stuff-1" href="#Optimize-stuff-1">Optimize stuff</a></h3><p>Blah blah blah</p><pre><code class="language-">model, = optimize(θ, data, options; iterations=5, outer_iterations=1)</code></pre><h3><a class="nav-anchor" id="Compute-Hessian-and-the-confidence-interavls-1" href="#Compute-Hessian-and-the-confidence-interavls-1">Compute Hessian and the confidence interavls</a></h3><p>Blah blah blah</p><pre><code class="language-">H = Hessian(model)
+CI, = CIs(H);
+nothing #hide</code></pre><h3><a class="nav-anchor" id="Save-results-1" href="#Save-results-1">Save results</a></h3><p>Blah blah blah</p><pre><code class="language-">save_choice_model(save_file, model, options, CI)</code></pre><h3><a class="nav-anchor" id="Getting-help-1" href="#Getting-help-1">Getting help</a></h3><p>To get more details about how any function in this package works, in julia you can type <code>?</code> and then the name of the function. Documentation will display in the REPL.</p><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p><footer><hr/><a class="previous" href="../../man/getting_the_package/"><span class="direction">Previous</span><span class="title">Downloading the package</span></a><a class="next" href="../recover_choice_model/"><span class="direction">Next</span><span class="title">Fitting a choice model</span></a></footer></article></body></html>
