@@ -96,7 +96,7 @@ function reload_neural_model(file)
     delay = read(matopen(file), "delay")
     pad = read(matopen(file), "pad")       
     
-    θneural(xf, f), neural_options(f), n, cross, dt, delay, pad 
+    θneural(xf, f), neural_options(lb=lb, ub=ub, fit=fit), n, cross, dt, delay, pad 
     
 end
 
@@ -123,6 +123,8 @@ function load_neural_data(file::Vector{String}; break_sim_data::Bool=false,
         dt=dt, delay=delay, pad=pad, filtSD=filtSD,
         extra_pad=extra_pad, cut=cut, pcut=pcut, 
         do_RBF=do_RBF, nRBFs=nRBFs)
+    
+    output = filter(x -> x != nothing, output)
     
     spike_data = getindex.(output, 1)
     μ_rnt = getindex.(output, 2)

@@ -83,7 +83,7 @@ function rand(θ::θchoice, ntrials::Int, n::Int; dt::Float64=1e-2, rng::Int = 1
     inputs = map((clicks, binned_clicks)-> choiceinputs(clicks=clicks, binned_clicks=binned_clicks, 
         dt=dt, centered=centered), clicks, binned_clicks)
     
-     θ = θ2(θ)
+    #θ = θ2(θ)
 
     @unpack θz, lapse = θ   
     @unpack σ2_i, B, λ, σ2_a = θz
@@ -113,7 +113,7 @@ function rand(θ::θchoice, inputs::choiceinputs, rng::Int,
     #a = rand(θz, inputs, P, M, dx, xc; n=n, cross=cross)
     #choice = a[end] >= bias
     
-    P = P_single_trial!(θz,P,M,dx,xc,inputs,n; cross=cross)   
+    P = P_single_trial!(θz,P,M,dx,xc,inputs,n,cross)   
     #P = randP(θz, inputs, P, M, dx, xc; n=n, cross=cross)
     choice = xc[findfirst(cumsum(P) .> rand())] >= bias
 

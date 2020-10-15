@@ -71,39 +71,6 @@ function PY_single_trial(pz::Vector{TT}, P::Vector{TT}, M::Array{TT,2}, dx::TT,
 
 end
 
-function P_all_trials(pz::Vector{TT}, data::Dict;
-        dt::Float64=1e-2, n::Int=53) where {TT <: Any}
-
-    P,M,xc,dx, = initialize_latent_model(pz,n,dt)
-
-    output = pmap((L,R,T,nL,nR) -> P_single_trial(pz, P, M, dx, xc,
-        L, R, T, nL, nR, dt, n), data["leftbups"], data["rightbups"],
-        data["nT"], data["binned_leftbups"], data["binned_rightbups"])
-
-end
-
-function P_single_trial(pz::Vector{TT}, P::Vector{TT}, M::Array{TT,2}, dx::TT,
-        xc::Vector{TT},L::Vector{Float64}, R::Vector{Float64}, T::Int,
-        hereL::Vector{Int}, hereR::Vector{Int},
-        dt::Float64,n::Int) where {UU,TT <: Any}
-
-    #adapt magnitude of the click inputs
-    La, Ra = make_adapted_clicks(pz,L,R)
-
-    PS = Array{TT,2}(undef,n,T)
-    F = zeros(TT,n,n) #empty transition matrix for time bins with clicks
-
-    @inbounds for t = 1:T
-
-        P,F = latent_one_step!(P,F,pz,t,hereL,hereR,La,Ra,M,dx,xc,n,dt)
-        PS[:,t] = P
-
-    end
-
-    return PS
-
-end
-
 function posterior_single_trial(pz::Vector{TT}, P::Vector{TT}, M::Array{TT,2}, dx::TT,
         xc::Vector{TT},L::Vector{Float64}, R::Vector{Float64}, T::Int,
         hereL::Vector{Int}, hereR::Vector{Int},

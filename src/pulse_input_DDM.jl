@@ -38,7 +38,7 @@ export simulate_expected_firing_rate, reload_neural_data
 export loglikelihood, synthetic_data
 export CIs, optimize, Hessian, gradient
 export load_choice_data, load_neural_data, reload_neural_model, save_neural_model, flatten
-export save, load
+export save, load, reload_choice_model, save_choice_model
 export initialize_θy, neural_null
 export synthetic_clicks, binLR, bin_clicks
 export default_parameters_and_data, compute_LL
@@ -122,13 +122,22 @@ end
     f::Vector{Vector{String}}
 end
 
+
 """
+    neuralDDM
+
+Fields:
+- θ
+- data
+- n
+- cross
+
 """
 @with_kw struct neuralDDM{T,U} <: DDM
     θ::T
     data::U
-    n::Int
-    cross::Bool
+    n::Int=53
+    cross::Bool=false
 end
 
 

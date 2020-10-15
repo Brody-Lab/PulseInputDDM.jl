@@ -269,7 +269,25 @@ end
 
 
 """
-    adapted_clicks(ϕ, τ_ϕ, L, R)
+    adapted_clicks(ϕ, τ_ϕ, L, R; cross)
+
+Compute the adapted state of left and right clicks.
+
+Arguments:
+
+- `ϕ`: determines the strength of adaptation after each click.
+- `τ_ϕ`: determines the timescale of adaptation.
+- `L`: `array` of left click times.
+- `R`: `array` of right click times.
+
+Optional arguments:
+
+- cross: `Bool` to perform or not perform cross-click adaptation (default is false).
+
+Returns:
+
+- ` La`: `array` of adapted state of each left click (same length as `L`).
+-  `Ra`: `array` of adapted state of each right click (same length as `R`).
 
 """
 function adapt_clicks(ϕ::TT, τ_ϕ::TT, L::Vector{Float64}, R::Vector{Float64}; cross::Bool=false) where {TT}
@@ -293,18 +311,11 @@ function adapt_clicks(ϕ::TT, τ_ϕ::TT, L::Vector{Float64}, R::Vector{Float64};
     else
 
         La, Ra = ones(TT,length(L)), ones(TT,length(R))
-
-        # magnitude of stereo clicks set to zero
-        # I removed these lines on 8/8/18, because I'm not exactly sure why they are here (from Bing's original model)
-        # and the cause the state to adapt even when phi = 1., which I'd like to spend time fitting simpler models to
-        # check slack discussion with adrian and alex
-
-        #if !isempty(L) && !isempty(R) && abs(L[1]-R[1]) < eps()
-        La[1], Ra[1] = eps(), eps()
-        #end
-
+    
+        #this if statement is for cases when ϕ is 1. and not being learned
         if (typeof(ϕ) == Float64) && (isapprox(ϕ, 1.0))
         else
+            La[1], Ra[1] = eps(), eps()
             (length(L) > 1 && ϕ != 1.) ? adapt_clicks!(ϕ, τ_ϕ, La, L) : nothing
             (length(R) > 1 && ϕ != 1.) ? adapt_clicks!(ϕ, τ_ϕ, Ra, R) : nothing
         end
