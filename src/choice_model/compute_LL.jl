@@ -24,7 +24,7 @@ function loglikelihood(θ::DDMθ, data, data_dict, dx::Float64)
 
     if θ.ndtime_θz isa θz_ndtime
 
-        error("lapse is not implemented with lapses yet")
+        error("lapse is not implemented with just ndtime yet")
 
         @unpack ndtimeL1, ndtimeL2 = θ.ndtime_θz
         @unpack ndtimeR1, ndtimeR2 = θ.ndtime_θz
@@ -36,7 +36,11 @@ function loglikelihood(θ::DDMθ, data, data_dict, dx::Float64)
     
     elseif θ.ndtime_θz isa θz_ndtime_mod
         
-        lapse_dist = Exponential(θ.base_θz.lapse_u)
+        if θ.base_θz.lapse_u == 0.
+            lapse_dist = Uniform(dt*minimum(data_dict["nT"]), dt*maximum(data_dict["nT"]))
+        else
+            lapse_dist = Exponential(θ.base_θz.lapse_u)
+        end
         P = pmap((data, a_0, ph_ind, nT) -> loglikelihood!(θ.base_θz, data, σ2_s, C, a_0, dx, θ.ndtime_θz, dt,
                                                             ph_ind, nT, pdf.(lapse_dist, dt.*collect(1:1:nT)).*dt),
                                                         data, a_0, [1; data_dict["hits"][1:end-1]], data_dict["nT"])
@@ -101,8 +105,8 @@ end
 
 
 function get_lapse_prob(base_θz::θz_base_mod, a_0)
-    rbias =  1/(1+exp(-base_θz.lapse_sig*a_0))
-    return rbias, 1. - rbias
+    rbias =  1. ./(1. .+ exp.(-base_θz.lapse_sig.*a_0))
+    return rbias, 1. .- rbias
 end
 
 

@@ -224,6 +224,20 @@ end
     lpost_space::Bool = false
 end
 
+@with_kw struct θ_expfilter_ce_ndmod_lapsemod <: DDMθ
+    base_θz = θz_base_mod()
+    ndtime_θz = θz_ndtime_mod()
+    hist_θz = θz_expfilter_ce()
+    lpost_space::Bool = false
+end
+
+@with_kw struct θ_expfilter_ce_ndmod <: DDMθ
+    base_θz = θz_base()
+    ndtime_θz = θz_ndtime_mod()
+    hist_θz = θz_expfilter_ce()
+    lpost_space::Bool = false
+end
+
 
 @with_kw struct θ_DBM <: DDMθ
     base_θz = θz_base()
@@ -343,6 +357,7 @@ export θz_Qlearn, θ_Qlearn, θ_Qlearn_ndmod
 export θz_expfilter_ce_bias, θ_expfilter_ce_bias 
 export θ_expfilter_ce_lr, θ_expfilter_ce_lr_ndmod, θz_expfilter_ce_lr
 export θ_expfilter_ce_lr_red_ndmod_lapsemod, θ_expfilter_ce_lr_ndmod_lapsemod 
+export θ_expfilter_ce_ndmod_lapsemod, θ_expfilter_ce_ndmod
 export θz_ndtime_mod, θz_ch
 export θz_DBMexp_Qlearn, θ_DBMexp_Qlearn, θ_DBMexp_Qlearn_ndmod
 export θz_expfilter_ce_lr_red, θ_expfilter_ce_lr_red_ndmod
@@ -351,6 +366,8 @@ export θz_DBMexp_sticky, θ_DBMexp_sticky_ndmod
 
 const modeldict = Dict("expfilter" => θ_expfilter,
 					"expfilter_ce" => θ_expfilter_ce,
+                    "expfilter_ce_ndmod" => θ_expfilter_ce_ndmod,
+                    "expfilter_ce_ndmod_lapsemod" => θ_expfilter_ce_ndmod_lapsemod,
                     "expfilter_ce_bias" => θ_expfilter_ce_bias,
                     "expfilter_ce_lr" => θ_expfilter_ce_lr,
                     "expfilter_ce_lr_ndmod" => θ_expfilter_ce_lr_ndmod,
@@ -389,9 +406,9 @@ function create_options(θ::DDMθ)
     	:Bm => [0., 10., 0, 0.], :Bλ => [-5.0, 1.0, 0, 0.], :B0 => [0.5, 8.0, 1, 2.0],  	# bound parameters
     	:λ => [-30.0, 30.0, 1, 5.],                           					# leak
     	:σ2_i => [0.0, 2.0, 0, eps()], :σ2_a => [0.0, 10., 0, eps()], :σ2_s => [0.0, 20., 1, 2.],  # noise params
-    	:ϕ => [0.01, 1.2, 1, 0.2], :τ_ϕ => [0.005, 1.0, 1, 0.02],        	# adaptation params
+    	:ϕ => [0.01, 1.2, 0, 1.], :τ_ϕ => [0.005, 1.0, 0, 0.02],        	# adaptation params
     	:bias => [-1.5, 1.5, 0, 0.],                                        # bias
-        :lapse => [0.0, 0.5, 1, 1e-2], :lapse_u => [0.0, 0.8, 1, 0.02],         # lapse prob, mean params
+        :lapse => [0.0, 0.5, 1, 1e-2], :lapse_u => [0.0, 0.8, 0, 0.0],         # lapse prob, mean params
         :lapse_sig => [0.0, 10., 1, 0.05],                                  # lapse sigmoidal modulation
     	:h_drift_scale => [0.0, 1.0, 0, 0.],                       # history drift scale    
         :lpost_space => [0 1 0 0],                                          # NOT A REAL VARIABLE - specifies whether model runs in logpost space

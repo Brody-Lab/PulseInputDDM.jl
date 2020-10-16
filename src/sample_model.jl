@@ -69,7 +69,9 @@ function rand(inputs, data_dict, θ::DDMθ, hist_θz, σ2_s, C, rng::Vector{Int}
     @unpack lapse, lapse_u  = θ.base_θz
     islapse = rand(ntrials).< lapse
     lapse_u == 0 ? lapse_dist = Exponential(data_dict["mlapse"]) : lapse_dist = Exponential(lapse_u)
-    choices[islapse] = rand(sum(islapse)).< 0.5
+
+    lapse_r, lapse_l = get_lapse_prob(θ.base_θz, a_0)
+    choices[islapse] = rand(sum(islapse)).< lapse_r
     RTtemp[islapse] = rand(lapse_dist, sum(islapse))
 
     RT = add_ndtime(θ.ndtime_θz, choices, RTtemp, data_dict)
@@ -99,7 +101,9 @@ function rand(inputs, data_dict, a_0, θ::DDMθ, hist_θz::θz_ch, σ2_s, C, rng
     @unpack lapse, lapse_u  = θ.base_θz
     islapse = rand(ntrials).< lapse
     lapse_u == 0 ? lapse_dist = Exponential(data_dict["mlapse"]) : lapse_dist = Exponential(lapse_u)
-    choices[islapse] = rand(sum(islapse)).< 0.5
+
+    lapse_r, lapse_l = get_lapse_prob(θ.base_θz, a_0)
+    choices[islapse] = rand(sum(islapse)).< lapse_r
     RTtemp[islapse] = rand(lapse_dist, sum(islapse))
 
     RT = add_ndtime(θ.ndtime_θz, choices, RTtemp, data_dict)
@@ -251,7 +255,8 @@ function rand(inputs, data_dict, θ::DDMθ, hist_θz::θz_ch, σ2_s, C, rng::Vec
         choices[i], DT[i] = rand(inputs[i], base_θz, σ2_s, C, a_0, rng[i])
         
         if rand() < lapse
-            choices[i] = rand() > 0.5
+            lapse_r, lapse_l = get_lapse_prob(base_θz, a_0)
+            choices[i] = rand() < lapse_r
             DT[i] = rand(lapse_dist)
             islapse[i] = true
         else
@@ -261,9 +266,7 @@ function rand(inputs, data_dict, θ::DDMθ, hist_θz::θz_ch, σ2_s, C, rng::Vec
         hits[i] = choices[i] == data_dict["correct"][i]
     end
 
-    # no non-decision time is added to lapse trials 
     RT = add_ndtime(θ.ndtime_θz, choices, DT, data_dict)
-    # RT[islapse] .= DT[islapse]
 
     return choices, RT
 
@@ -275,7 +278,7 @@ Generate a sample latent trajecgtory,
 given parameters of the latent model θz and clicks for one trial, contained
 within inputs.
 """
-function rand(inputs::choiceinputs, base_θz::θz_base, σ2_s::TT, C, a_0::TT, rng::Int) where TT <: Real
+function rand(inputs::choiceinputs, base_θz, σ2_s::TT, C, a_0::TT, rng::Int) where TT <: Real
 
     Random.seed!(rng)    
 
