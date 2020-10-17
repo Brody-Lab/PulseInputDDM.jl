@@ -363,80 +363,16 @@ function loglikelihood(model::neuralDDM)
     P,M,xc,dx = initialize_latent_model(σ2_i, B, λ, σ2_a, n, dt)
 
     sum(map((data, θy) -> sum(pmap(data -> 
-                    loglikelihood(θz,θy,data, P, M, xc, dx, n, cross), data)), data, θy))
+                    loglikelihood(θz,θy,data, P, M, xc, dx, n, cross)[1], data)), data, θy))
 
 end
-
-
-"""
-    likelihood(model)
-
-Arguments: `neuralDDM` instance
-
-Returns: `array` of `array` of `array` of P(d|θ, Y)
-"""
-function likelihood(model::neuralDDM; bias=0.)
-    
-    @unpack data,θ,n,cross = model
-    @unpack θz, θy = θ
-    @unpack σ2_i, B, λ, σ2_a = θz
-    @unpack dt = data[1][1].input_data
-
-    P,M,xc,dx = initialize_latent_model(σ2_i, B, λ, σ2_a, n, dt)
-
-    map((data, θy) -> pmap(data -> 
-            likelihood(θz,θy,data,P,M,xc,dx,n,cross,bias), data), data, θy)
-    
-end
-
-
-"""
-"""
-function likelihood(θz,θy,data::neuraldata,
-        P::Vector{T1}, M::Array{T1,2},
-        xc::Vector{T1}, dx::T3, n, cross,bias) where {T1,T3 <: Real}
-
-    @unpack λ, σ2_a, σ2_s, ϕ, τ_ϕ = θz
-    @unpack spikes, input_data, choice = data
-    @unpack binned_clicks, clicks, dt, λ0, centered, delay, pad = input_data
-    @unpack nT, nL, nR = binned_clicks
-    @unpack L, R = clicks
-
-    #adapt magnitude of the click inputs
-    La, Ra = adapt_clicks(ϕ,τ_ϕ,L,R;cross=cross)
-
-    F = zeros(T1,n,n) #empty transition matrix for time bins with clicks
-    
-    time_bin = (-(pad-1):nT+pad) .- delay
-    
-    c = Vector{T1}(undef, length(time_bin))
-
-    @inbounds for t = 1:length(time_bin)
-
-        if time_bin[t] >= 1
-            P, F = latent_one_step!(P, F, λ, σ2_a, σ2_s, time_bin[t], nL, nR, La, Ra, M, dx, xc, n, dt)
-        end
-
-        P = P .* (vcat(map(xc-> exp(sum(map((k,θy,λ0)-> logpdf(Poisson(θy(xc,λ0[t]) * dt),
-                        k[t]), spikes, θy, λ0))), xc)...))
-        
-        c[t] = sum(P)
-        P /= c[t]
-
-    end
-    
-    sum(choice_likelihood!(bias,xc,P,choice,n,dx))
-
-end
-
 
 
 """
 """
 function loglikelihood(θz,θy,data::neuraldata,
         P::Vector{T1}, M::Array{T1,2},
-        xc::Vector{T1}, dx::T3, n, cross;
-        keepP::Bool=false) where {T1,T3 <: Real}
+        xc::Vector{T1}, dx::T3, n, cross) where {T1,T3 <: Real}
 
     @unpack λ, σ2_a, σ2_s, ϕ, τ_ϕ = θz
     @unpack spikes, input_data = data
@@ -452,10 +388,6 @@ function loglikelihood(θz,θy,data::neuraldata,
     time_bin = (-(pad-1):nT+pad) .- delay
     
     c = Vector{T1}(undef, length(time_bin))
-    
-    if keepP
-        PS = Vector{Vector{Float64}}(undef, length(time_bin))
-    end
 
     @inbounds for t = 1:length(time_bin)
 
@@ -472,17 +404,9 @@ function loglikelihood(θz,θy,data::neuraldata,
         
         c[t] = sum(P)
         P /= c[t]
-        
-        if keepP
-            PS[t] = P
-        end
 
     end
 
-    if keepP
-        return sum(log.(c)), PS
-    else
-        return sum(log.(c))
-    end
+    return sum(log.(c)), P
 
 end

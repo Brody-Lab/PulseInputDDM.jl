@@ -32,8 +32,10 @@ export Sigmoid, Softplus
 export noiseless_neuralDDM, θneural_noiseless, neural_options_noiseless
 export neural_poly_DDM
 export θneural_choice
+export neural_choiceDDM, θneural_choice, neural_choice_options
 
 export dimz
+export likelihood
 export simulate_expected_firing_rate, reload_neural_data
 export loglikelihood, synthetic_data
 export CIs, optimize, Hessian, gradient
@@ -155,6 +157,35 @@ end
 @with_kw struct noiseless_neuralDDM{T,U} <: DDM
     θ::T
     data::U
+end
+
+
+"""
+    neuralchoiceDDM
+
+Fields:
+- θ
+- data
+- n
+- cross
+
+"""
+@with_kw struct neural_choiceDDM{T,U} <: DDM
+    θ::T
+    data::U
+    n::Int=53
+    cross::Bool=false
+end
+
+
+"""
+"""
+@with_kw struct θneural_choice{T1, T2, T3} <: DDMθ
+    θz::T1
+    bias::T2
+    lapse::T2
+    θy::T3
+    f::Vector{Vector{String}}
 end
 
 
