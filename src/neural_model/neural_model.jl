@@ -370,7 +370,13 @@ end
 
 """
 """
-function loglikelihood(θz,θy,data::neuraldata,
+loglikelihood(θz,θy,data::neuraldata, P::Vector{T1}, M::Array{T1,2},
+    xc::Vector{T1}, dx::T3, n, cross) where {T1,T3 <: Real} = sum(log.(likelihood(θz,θy,data,P,M,xc,dx,n,cross)[1]))
+
+
+"""
+"""
+function likelihood(θz,θy,data::neuraldata,
         P::Vector{T1}, M::Array{T1,2},
         xc::Vector{T1}, dx::T3, n, cross) where {T1,T3 <: Real}
 
@@ -407,6 +413,6 @@ function loglikelihood(θz,θy,data::neuraldata,
 
     end
 
-    return sum(log.(c)), P
+    return c, P
 
 end
