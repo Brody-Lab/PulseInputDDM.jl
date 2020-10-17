@@ -258,11 +258,11 @@ function loglikelihood(model::choiceDDM)
     
     #θ = θ2(θ)
 
-    @unpack θz, lapse = θ
+    @unpack θz = θ
     @unpack σ2_i, B, λ, σ2_a = θz
     @unpack dt = data[1].click_data
 
-    P,M,xc,dx = initialize_latent_model(σ2_i, B, λ, σ2_a, n, dt, lapse=lapse)
+    P,M,xc,dx = initialize_latent_model(σ2_i, B, λ, σ2_a, n, dt)
     sum(pmap(data -> loglikelihood!(θ, P, M, dx, xc, data, n, cross), data))
 
 end
@@ -273,16 +273,49 @@ end
 
 Given parameters θ and data (inputs and choices) computes the LL for one trial
 """
-function loglikelihood!(θ::θchoice,
+loglikelihood!(θ::θchoice,
+        P::Vector{TT}, M::Array{TT,2}, dx::UU,
+        xc::Vector{TT}, data::choicedata,
+        n::Int, cross::Bool) where {TT,UU <: Real} = log(likelihood!(θ, P, M, dx, xc, data, n, cross))
+
+
+"""
+    likelihood(model)
+
+Given parameters θ and data (inputs and choices) computes the LL for all trials
+"""
+function likelihood(model::choiceDDM)
+    
+    @unpack θ, data, n, cross = model
+    
+    #θ = θ2(θ)
+
+    @unpack θz = θ
+    @unpack σ2_i, B, λ, σ2_a = θz
+    @unpack dt = data[1].click_data
+
+    P,M,xc,dx = initialize_latent_model(σ2_i, B, λ, σ2_a, n, dt)
+    pmap(data -> likelihood!(θ, P, M, dx, xc, data, n, cross), data)
+
+end
+
+
+
+"""
+    likelihood!(θ, P, M, dx, xc, data, n, cross)
+
+Given parameters θ and data (inputs and choices) computes the LL for one trial
+"""
+function likelihood!(θ::θchoice,
         P::Vector{TT}, M::Array{TT,2}, dx::UU,
         xc::Vector{TT}, data::choicedata,
         n::Int, cross::Bool) where {TT,UU <: Real}
 
-    @unpack θz, bias = θ
+    @unpack θz, bias, lapse = θ
     @unpack click_data, choice = data
 
     P = P_single_trial!(θz,P,M,dx,xc,click_data,n,cross)
-    log(sum(choice_likelihood!(bias,xc,P,choice,n,dx)))
+    sum(choice_likelihood!(bias,xc,P,choice,n,dx)) * (1 - lapse) + lapse/2
 
 end
 
@@ -369,8 +402,8 @@ julia> round.(pulse_input_DDM.choice_likelihood!(bias, xc, P, pokedR, n, dx), di
  0.02
 ```
 """
-function choice_likelihood!(bias::TT, xc::Vector{TT}, P::Vector{TT},
-                 pokedR::Bool, n::Int, dx::UU) where {TT,UU <: Any}
+function choice_likelihood!(bias::TT, xc::Vector{TT}, P::Vector{VV},
+                 pokedR::Bool, n::Int, dx::UU) where {TT,UU,VV <: Any}
 
     lp = searchsortedlast(xc,bias)
     hp = lp + 1
@@ -421,11 +454,11 @@ choice_null(choices) = sum(choices .== true)*log(sum(choices .== true)/length(ch
 """
 function bounded_mass(θ::θchoice, data, n::Int, cross::Bool)
 
-    @unpack θz, lapse = θ
+    @unpack θz = θ
     @unpack σ2_i, B, λ, σ2_a = θz
     @unpack dt = data[1].click_data
 
-    P,M,xc,dx = initialize_latent_model(σ2_i, B, λ, σ2_a, n, dt, lapse=lapse)
+    P,M,xc,dx = initialize_latent_model(σ2_i, B, λ, σ2_a, n, dt)
 
     pmap(data -> bounded_mass!(θ, P, M, dx, xc, data, n, cross), data)
 
