@@ -124,7 +124,7 @@ function optimize(model::choiceDDM, options::choiceoptions;
     x = Optim.minimizer(output)
     x = stack(x,c,fit)
     θ = Flatten.reconstruct(θchoice(), x)
-    model = choiceDDM(θ, data, n, cross)
+    model = choiceDDM(θ, data, n, cross, θprior)
     converged = Optim.converged(output)
 
     return model, output
@@ -153,10 +153,11 @@ function optimize(data, options::choiceoptions;
         x_tol::Float64=1e-10, f_tol::Float64=1e-9, g_tol::Float64=1e-3,
         iterations::Int=Int(2e3), show_trace::Bool=true, outer_iterations::Int=Int(1e1),
         extended_trace::Bool=false, scaled::Bool=false, time_limit::Float64=170000., show_every::Int=10,
-        x0::Vector{Float64} = vcat([0.1, 15., -0.1, 20., 0.5, 0.8, 0.008], [0.,0.01]))
+        x0::Vector{Float64} = vcat([0.1, 15., -0.1, 20., 0.5, 0.8, 0.008], [0.,0.01]), 
+        θprior::θprior=θprior())
     
     θ = Flatten.reconstruct(θchoice(), x0)
-    model = choiceDDM(θ, data, n, cross)
+    model = choiceDDM(θ, data, n, cross, θprior)
     
     model, output = optimize(model, options; 
         x_tol=x_tol, f_tol=f_tol, g_tol=g_tol, iterations=iterations, show_trace=show_trace, 
@@ -177,9 +178,9 @@ See also: [`loglikelihood`](@ref)
 """
 function loglikelihood(x::Vector{T1}, model::choiceDDM) where {T1 <: Real}
 
-    @unpack n, data, cross = model
+    @unpack n, data, cross, θprior = model
     θ = Flatten.reconstruct(θchoice(), x)
-    model = choiceDDM(θ, data, n, cross)
+    model = choiceDDM(θ, data, n, cross, θprior)
     loglikelihood(model)
 
 end
@@ -192,7 +193,7 @@ Compute the gradient of the negative log-likelihood at the current value of the 
 """
 function gradient(model::choiceDDM)
 
-    @unpack θ, data = model
+    @unpack θ = model
     x = [Flatten.flatten(θ)...]
     ℓℓ(x) = -loglikelihood(x, model)
 
@@ -208,7 +209,7 @@ Compute the hessian of the negative log-likelihood at the current value of the p
 """
 function Hessian(model::choiceDDM)
 
-    @unpack θ, data = model
+    @unpack θ = model
     x = [Flatten.flatten(θ)...]
     ℓℓ(x) = -loglikelihood(x, model)
 

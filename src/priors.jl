@@ -7,13 +7,38 @@ end
 
 
 """
+    logprior(x, θprior)
+
 """
-function logprior(x,μ,σ) 
+function logprior(x::Vector{T}, θprior::θprior) where {T <: Real}
     
-    if (x[2] >= μ[2])
-        logpdf(Laplace(μ[2], σ[2]), x[2]) 
+    @unpack μ_B, σ_B = θprior
+    
+    if (x[2] >= μ_B)
+        logpdf(Laplace(μ_B, σ_B), x[2]) 
     else
-        logpdf(Laplace(μ[2], σ[2]), μ[2])
+        logpdf(Laplace(μ_B, σ_B), μ_B)
     end
 
+end
+
+
+"""
+"""
+function sigmoid_prior(x::Vector{T1}, θ::Union{θneural_noiseless, θneural}; 
+        sig_σ::Float64=1.) where {T1 <: Real}
+
+    @unpack f = θ
+    θ = θneural_noiseless(x, f)
+    
+    if typeof(f) == String
+        if f == "Sigmoid"
+            sum(map(x-> sum(logpdf.(Normal(0., sig_σ), map(x-> x.c, x))), θ.θy))
+        else
+            0.
+        end
+    else    
+        sum(map(x-> sum(logpdf.(Normal(0., sig_σ), x.c)), vcat(θ.θy...)[vcat(f...) .== "Sigmoid"]))
+    end
+    
 end
