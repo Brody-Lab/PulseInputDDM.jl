@@ -226,19 +226,6 @@ end
 
 
 """
-"""
-function logprior(x,μ,σ) 
-    
-    if (x[2] >= μ[2])
-        logpdf(Laplace(μ[2], σ[2]), x[2]) 
-    else
-        0.
-    end
-
-end
-
-
-"""
     optimize(data, f)
 
 Optimize model parameters for a `neuralDDM`. Neural tuning parameters ([`θy`](@ref)) are initialized by fitting a the noiseless DDM model first ([`noiseless_neuralDDM`](@ref)).

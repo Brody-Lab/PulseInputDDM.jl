@@ -219,6 +219,7 @@ include("base_model.jl")
 include("analysis_functions.jl")
 include("optim_funcs.jl")
 include("sample_model.jl")
+include("priors.jl")
 
 include("choice_model/choice_model.jl")
 include("choice_model/sample_model.jl")

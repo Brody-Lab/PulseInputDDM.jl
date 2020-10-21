@@ -69,25 +69,6 @@ function train_and_test(data, x0, options::T1; seed::Int=1, α1s = 10. .^(-6:7))
 end
 
 
-function sigmoid_prior(x::Vector{T1}, θ::Union{θneural_noiseless, θneural}; 
-        sig_σ::Float64=1.) where {T1 <: Real, T2 <: neuraldata}
-
-    @unpack f = θ
-    θ = θneural_noiseless(x, f)
-    
-    if typeof(f) == String
-        if f == "Sigmoid"
-            sum(map(x-> sum(logpdf.(Normal(0., sig_σ), map(x-> x.c, x))), θ.θy))
-        else
-            0.
-        end
-    else    
-        sum(map(x-> sum(logpdf.(Normal(0., sig_σ), x.c)), vcat(θ.θy...)[vcat(f...) .== "Sigmoid"]))
-    end
-    
-end
-
-
 """
     optimize(model, options)
 

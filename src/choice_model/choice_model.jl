@@ -75,16 +75,17 @@ _, data = synthetic_data(n ;θ=θ, ntrials=ntrials, rng=1, dt=dt);
 choiceDDM(θ=θ, data=data, n=n)
 ```
 """
-@with_kw struct choiceDDM{T,U} <: DDM
+@with_kw struct choiceDDM{T,U,V} <: DDM
     θ::T = θchoice()
     data::U
     n::Int=53
     cross::Bool=false
+    θprior::V = θprior()
 end
 
 
 """
-    optimize(θ, data, options)
+    optimize(model, options)
 
 Optimize model parameters for a `choiceDDM`.
 
@@ -95,27 +96,25 @@ Returns:
 
 Arguments:
 
-- `θ`: an instance of `θchoice`
-- `data`: an `array`, each element of which is a module-defined type `choicedata`. `choicedata` contains the click data and the choice for a trial.
+- `model`: an instance of a `choiceDDM`.
 - `options`: module-defind type that contains the upper (`ub`) and lower (`lb`) boundaries and specification of which parameters to fit (`fit`).
 
 """
-function optimize(θ::θchoice, data, options::choiceoptions; 
-        n::Int=53, cross::Bool=false,
+function optimize(model::choiceDDM, options::choiceoptions; 
         x_tol::Float64=1e-10, f_tol::Float64=1e-9, g_tol::Float64=1e-3,
         iterations::Int=Int(2e3), show_trace::Bool=true, outer_iterations::Int=Int(1e1),
         extended_trace::Bool=false, scaled::Bool=false, time_limit::Float64=170000., show_every::Int=10)
 
     @unpack fit, lb, ub = options
+    @unpack θ, data, n, cross, θprior = model
     
     x0 = collect(Flatten.flatten(θ))
-    model = choiceDDM(θ, data, n, cross)
 
     lb, = unstack(lb, fit)
     ub, = unstack(ub, fit)
     x0,c = unstack(x0, fit)
 
-    ℓℓ(x) = -(loglikelihood(stack(x,c,fit), model))
+    ℓℓ(x) = -(loglikelihood(stack(x,c,fit), model) + logprior(stack(x,c,fit), θprior))
     
     output = optimize(x0, ℓℓ, lb, ub; g_tol=g_tol, x_tol=x_tol,
         f_tol=f_tol, iterations=iterations, show_trace=show_trace,
@@ -155,28 +154,14 @@ function optimize(data, options::choiceoptions;
         iterations::Int=Int(2e3), show_trace::Bool=true, outer_iterations::Int=Int(1e1),
         extended_trace::Bool=false, scaled::Bool=false, time_limit::Float64=170000., show_every::Int=10,
         x0::Vector{Float64} = vcat([0.1, 15., -0.1, 20., 0.5, 0.8, 0.008], [0.,0.01]))
-
-    @unpack fit, lb, ub = options
     
     θ = Flatten.reconstruct(θchoice(), x0)
     model = choiceDDM(θ, data, n, cross)
-
-    lb, = unstack(lb, fit)
-    ub, = unstack(ub, fit)
-    x0,c = unstack(x0, fit)
-
-    ℓℓ(x) = -(loglikelihood(stack(x,c,fit), model))
     
-    output = optimize(x0, ℓℓ, lb, ub; g_tol=g_tol, x_tol=x_tol,
-        f_tol=f_tol, iterations=iterations, show_trace=show_trace,
-        outer_iterations=outer_iterations, extended_trace=extended_trace,
+    model, output = optimize(model, options; 
+        x_tol=x_tol, f_tol=f_tol, g_tol=g_tol, iterations=iterations, show_trace=show_trace, 
+        outer_iterations=outer_iterations, extended_trace=extended_trace, 
         scaled=scaled, time_limit=time_limit, show_every=show_every)
-
-    x = Optim.minimizer(output)
-    x = stack(x,c,fit)
-    θ = Flatten.reconstruct(θchoice(), x)
-    model = choiceDDM(θ, data, n, cross)
-    converged = Optim.converged(output)
 
     return model, output
 
