@@ -11,7 +11,7 @@ using Test, pulse_input_DDM, LinearAlgebra, Flatten, Parameters
             bias=1., lapse=0.05)
 
         θ, data = synthetic_data(;θ=θ, ntrials=10, rng=1)
-        model_gen = choiceDDM(θ, data, n, cross)
+        model_gen = choiceDDM(θ, data, n, cross, θprior(μ_B=40., σ_B=1e6))
 
         choices = getfield.(data, :choice)
 
@@ -21,7 +21,8 @@ using Test, pulse_input_DDM, LinearAlgebra, Flatten, Parameters
 
         @test round(norm(gradient(model_gen)), digits=2) ≈ 14.32
 
-        model, = optimize(data, choiceoptions(); iterations=5, outer_iterations=1);
+        model, = optimize(data, choiceoptions(); iterations=5, outer_iterations=1, 
+            θprior=θprior(μ_B=40., σ_B=1e6));
         @test round(norm(Flatten.flatten(model.θ)), digits=2) ≈ 25.05
 
         H = Hessian(model)

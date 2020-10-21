@@ -48,6 +48,7 @@ export synthetic_clicks, binLR, bin_clicks
 export default_parameters_and_data, compute_LL
 export mean_exp_rate_per_trial, mean_exp_rate_per_cond
 export logprior, process_spike_data
+export θprior
 
 abstract type DDM end
 abstract type DDMdata end
