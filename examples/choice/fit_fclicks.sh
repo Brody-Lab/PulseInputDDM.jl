@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-
 #SBATCH -J 'fclicks_%a'
-#SBATCH -o '/scratch/ejdennis/ddm_runs/logs/fclicks_40_%a.out'
-#SBATCH -e '/scratch/ejdennis/ddm_runs/logs/fclicks_40_%a.err'
+#SBATCH -o '/scratch/ejdennis/ddm_runs/logs/fclicks_%a.out'
+#SBATCH -e '/scratch/ejdennis/ddm_runs/logs/fclicks_%a.err'
+#SBATCH -p Brody
 #SBATCH --time=12:00:00
 #SBATCH --mem=64000
 #SBATCH -c 44

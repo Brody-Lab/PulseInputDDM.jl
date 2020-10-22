@@ -1,7 +1,7 @@
 # # Loading data and fitting a choice model
 using pulse_input_DDM, Flatten
 num_array = Base.parse(Int, ENV["SLURM_ARRAY_TASK_ID"])
-src_data_folder="/scratch/ejdennis/fclicks_data/";
+src_data_folder="/scratch/ejdennis/d081_rawdata/";
 fclicks_files=readdir(src_data_folder);
 filename=fclicks_files[num_array]
 string(src_data_folder,filename)

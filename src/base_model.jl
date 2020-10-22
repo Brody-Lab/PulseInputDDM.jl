@@ -309,13 +309,12 @@ function adapt_clicks(ϕ::TT, τ_ϕ::TT, L::Vector{Float64}, R::Vector{Float64};
         La, Ra = adapted[all[:,2] .== -1.], adapted[all[:,2] .== 1.]
         # if you're using cross and do not always have clicks, this can be a problem!        
     else
-
         La, Ra = ones(TT,length(L)), ones(TT,length(R))
         if length(La)==0
-            La=0;
+            La=ones(TT,1);
         end
         if length(Ra)==0
-            Ra=0;
+            Ra=ones(TT,1);
         end
         #this if statement is for cases when ϕ is 1. and not being learned
         if (typeof(ϕ) == Float64) && (isapprox(ϕ, 1.0))
