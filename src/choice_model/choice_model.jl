@@ -85,6 +85,36 @@ end
 
 
 """
+"""
+function train_and_test(data, options::choiceoptions; 
+        n::Int=53, cross::Bool=false,
+        x_tol::Float64=1e-10, f_tol::Float64=1e-9, g_tol::Float64=1e-3,
+        iterations::Int=Int(2e3), show_trace::Bool=true, outer_iterations::Int=Int(1e1),
+        extended_trace::Bool=false, scaled::Bool=false, time_limit::Float64=170000., show_every::Int=10,
+        x0::Vector{Float64} = vcat([0.1, 15., -0.1, 20., 0.5, 0.8, 0.008], [0.,0.01]), 
+        seed::Int=1, σ_B::Float64=1e6)
+        
+    ntrials = length(data)
+    train = sample(Random.seed!(seed), 1:ntrials, ceil(Int, 0.9 * ntrials), replace=false)
+    test = setdiff(1:ntrials, train)
+    
+    θ = Flatten.reconstruct(θchoice(), x0)
+    model = choiceDDM(θ, data[train], n, cross, θprior(μ_B=40., σ_B=σ_B))
+    
+    model, = optimize(model, options; 
+        x_tol=x_tol, f_tol=f_tol, g_tol=g_tol, iterations=iterations, show_trace=show_trace, 
+        outer_iterations=outer_iterations, extended_trace=extended_trace, 
+        scaled=scaled, time_limit=time_limit, show_every=show_every)
+        
+    testLL = loglikelihood(choiceDDM(model.θ, data[test], n, cross, θprior(μ_B=40., σ_B=σ_B)))
+    LL = loglikelihood(choiceDDM(model.θ, data, n, cross, θprior(μ_B=40., σ_B=σ_B)))
+
+    return σ_B, model, testLL, LL
+    
+end
+
+
+"""
     optimize(model, options)
 
 Optimize model parameters for a `choiceDDM`.

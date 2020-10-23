@@ -161,19 +161,37 @@ end
 
 """
 """
-function train_and_test(data, x0, options::neural_options; seed::Int=1, α1s = 10. .^(-3:1))
+function train_and_test(data; 
+        n::Int=53, cross::Bool=false,
+        x_tol::Float64=1e-10, f_tol::Float64=1e-9, g_tol::Float64=1e-3,
+        iterations::Int=Int(2e3), show_trace::Bool=true, outer_iterations::Int=Int(1e1),
+        extended_trace::Bool=false, scaled::Bool=false,
+        x0_z::Vector{Float64}=[0.1, 15., -0.1, 20., 0.8, 0.01, 0.008],
+        seed::Int=1, σ_B::Float64=1e6, sig_σ::Float64=1.)
     
-    ntrials = length(data)
-    train = sample(Random.seed!(seed), 1:ntrials, ceil(Int, 0.9 * ntrials), replace=false)
-    test = setdiff(1:ntrials, train)
-      
-    model = map(α1-> optimize([data[train]], x0, options; α1=α1, show_trace=false)[1], α1s)   
-    testLL = map(model-> loglikelihood(model.θ, [data[test]]), model)
+    ncells = getfield.(first.(data), :ncells)
+    f = repeat(["Softplus"], sum(ncells))
+    borg = vcat(0,cumsum(ncells))
+    f = [f[i] for i in [borg[i-1]+1:borg[i] for i in 2:length(borg)]];
+        
+    ntrials = length.(data)
+    train = map(ntrials -> sample(Random.seed!(seed), 1:ntrials, ceil(Int, 0.9 * ntrials), replace=false), ntrials)
+    test = map((ntrials, train)-> setdiff(1:ntrials, train), ntrials, train)
+    
+    model, options = optimize(map((data, train)-> data[train], data, train), f; 
+        n=n, cross=cross,
+        x_tol=x_tol, f_tol=f_tol, g_tol=g_tol, 
+        iterations=iterations, show_trace=show_trace, 
+        outer_iterations=outer_iterations, extended_trace=extended_trace, 
+        scaled=scaled, sig_σ=sig_σ, x0_z=x0_z, 
+        θprior=θprior(μ_B=40., σ_B=σ_B))
+        
+    testLL = loglikelihood(neuralDDM(model.θ, map((data, test)-> data[test], data, test), n, cross, θprior(μ_B=40., σ_B=σ_B)))
+    LL = loglikelihood(neuralDDM(model.θ, data, n, cross, θprior(μ_B=40., σ_B=σ_B)))
 
-    return α1s, model, testLL
+    return σ_B, model, testLL, LL, options
     
 end
-
 
 
 """
@@ -246,7 +264,8 @@ function optimize(data, f::Vector{Vector{String}}; n::Int=53,
         iterations::Int=Int(2e3), show_trace::Bool=true,
         outer_iterations::Int=Int(1e1), scaled::Bool=false,
         extended_trace::Bool=false, cross::Bool=false,
-        sig_σ::Float64=1., x0_z::Vector{Float64}=[0.1, 15., -0.1, 20., 0.8, 0.01, 0.008]) 
+        sig_σ::Float64=1., x0_z::Vector{Float64}=[0.1, 15., -0.1, 20., 0.8, 0.01, 0.008], 
+        θprior::θprior=θprior()) 
         
     θy0 = θy.(data, f) 
     x0 = vcat([0., 15., 0. - eps(), 0., 0., 1.0 - eps(), 0.008], vcat(vcat(θy0...)...)) 
@@ -258,7 +277,7 @@ function optimize(data, f::Vector{Vector{String}}; n::Int=53,
     x0 = vcat(x0_z, pulse_input_DDM.flatten(model0.θ)[dimz+1:end]) 
     options = neural_options(f)  
     θ = θneural(x0, f)
-    model = neuralDDM(θ, data, n, cross)
+    model = neuralDDM(θ, data, n, cross, θprior)
     
     model, = optimize(model, options; show_trace=show_trace, f_tol=f_tol, 
         iterations=iterations, outer_iterations=outer_iterations)
@@ -291,7 +310,7 @@ function optimize(model::neuralDDM, options::neural_options;
         scaled::Bool=false, extended_trace::Bool=false, sig_σ::Float64=1.)
     
     @unpack fit, lb, ub = options
-    @unpack θ, data, n, cross = model
+    @unpack θ, data, n, cross, θprior = model
     @unpack f = θ
     
     x0 = pulse_input_DDM.flatten(θ)
@@ -299,7 +318,8 @@ function optimize(model::neuralDDM, options::neural_options;
     ub, = unstack(ub, fit)
     x0,c = unstack(x0, fit)
     
-    ℓℓ(x) = -(loglikelihood(stack(x,c,fit), model) + sigmoid_prior(stack(x,c,fit), θ; sig_σ=sig_σ))
+    ℓℓ(x) = -(loglikelihood(stack(x,c,fit), model) + logprior(stack(x,c,fit), θprior) 
+        + sigmoid_prior(stack(x,c,fit), θ; sig_σ=sig_σ))
     
     output = optimize(x0, ℓℓ, lb, ub; g_tol=g_tol, x_tol=x_tol,
         f_tol=f_tol, iterations=iterations, show_trace=show_trace,
@@ -308,7 +328,7 @@ function optimize(model::neuralDDM, options::neural_options;
 
     x = Optim.minimizer(output)
     x = stack(x,c,fit)
-    model = neuralDDM(θneural(x, f), data, n, cross)
+    model = neuralDDM(θneural(x, f), data, n, cross, θprior)
     converged = Optim.converged(output)
 
     return model, output
@@ -325,9 +345,9 @@ in optimization, Hessian and gradient computation.
 """
 function loglikelihood(x::Vector{T}, model::neuralDDM) where {T <: Real}
     
-    @unpack data,θ,n,cross = model
+    @unpack data,θ,n,cross,θprior = model
     @unpack f = θ 
-    model = neuralDDM(θneural(x, f), data, n, cross)
+    model = neuralDDM(θneural(x, f), data, n, cross, θprior)
     loglikelihood(model)
 
 end
