@@ -85,7 +85,7 @@ function reload_choice_model(file)
     ub = read(matopen(file), "ub")
     fit = read(matopen(file), "fit")
     
-    Flatten.reconstruct(θchoice(), x0), choiceoptions(fit=fit, lb=lb, ub=ub)
+    Flatten.reconstruct(θchoice(), x), choiceoptions(fit=fit, lb=lb, ub=ub)
 
 end
 

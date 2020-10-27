@@ -32,8 +32,12 @@ export Sigmoid, Softplus
 export noiseless_neuralDDM, θneural_noiseless, neural_options_noiseless
 export neural_poly_DDM
 export θneural_choice
+export neural_choiceDDM, θneural_choice, neural_choice_options
+export θneural_choice_GLM, neural_choice_GLM_DDM, neural_choice_GLM_options
 
 export dimz
+export likelihood, choice_loglikelihood, joint_loglikelihood
+export choice_optimize, choice_neural_optimize, choice_likelihood
 export simulate_expected_firing_rate, reload_neural_data
 export loglikelihood, synthetic_data
 export CIs, optimize, Hessian, gradient
@@ -44,6 +48,7 @@ export synthetic_clicks, binLR, bin_clicks
 export default_parameters_and_data, compute_LL
 export mean_exp_rate_per_trial, mean_exp_rate_per_cond
 export logprior, process_spike_data
+export θprior, train_and_test
 
 abstract type DDM end
 abstract type DDMdata end
@@ -131,13 +136,15 @@ Fields:
 - data
 - n
 - cross
+- θprior
 
 """
-@with_kw struct neuralDDM{T,U} <: DDM
+@with_kw struct neuralDDM{T,U,V} <: DDM
     θ::T
     data::U
     n::Int=53
     cross::Bool=false
+    θprior::V = θprior()
 end
 
 
@@ -159,6 +166,54 @@ end
 
 
 """
+    neuralchoiceDDM
+
+Fields:
+- θ
+- data
+- n
+- cross
+
+"""
+@with_kw struct neural_choiceDDM{T,U} <: DDM
+    θ::T
+    data::U
+    n::Int=53
+    cross::Bool=false
+end
+
+
+"""
+"""
+@with_kw struct θneural_choice{T1, T2, T3} <: DDMθ
+    θz::T1
+    bias::T2
+    lapse::T2
+    θy::T3
+    f::Vector{Vector{String}}
+end
+
+
+@with_kw struct neural_choice_GLM_DDM{T,U} <: DDM
+    θ::T
+    data::U
+    n::Int=53
+    cross::Bool=false
+end
+
+
+"""
+"""
+@with_kw struct θneural_choice_GLM{T1, T2, T3} <: DDMθ
+    stim::T1
+    bias::T2
+    lapse::T2
+    θy::T3
+    f::Vector{Vector{String}}
+end
+
+
+"""
 """
 neuralinputs(clicks, binned_clicks, λ0::Vector{Vector{Vector{Float64}}}, dt::Float64, centered::Bool, delay::Int, pad::Int) =
     neuralinputs.(clicks, binned_clicks, λ0, dt, centered, delay, pad)
@@ -167,6 +222,7 @@ include("base_model.jl")
 include("analysis_functions.jl")
 include("optim_funcs.jl")
 include("sample_model.jl")
+include("priors.jl")
 
 include("choice_model/choice_model.jl")
 include("choice_model/sample_model.jl")
@@ -185,6 +241,7 @@ include("neural_model/filter/filtered.jl")
 include("neural_model/neural_model-th.jl")
 
 include("neural-choice_model/neural-choice_model.jl")
+include("neural-choice_model/neural-choice_GLM_model.jl")
 include("neural-choice_model/process_data.jl")
 
 #include("neural_model/load_and_optimize.jl")

@@ -1,67 +1,60 @@
-abstract type neural_choice_options end
-
-
 """
 """
-@with_kw struct θneural_choice{T1, T2, T3} <: DDMθ
-    θz::T1
-    bias::T2
-    θy::T3
-    ncells::Vector{Int}
-    nparams::Int
-    f::String
+@with_kw struct neural_choice_options
+    fit::Vector{Bool}
+    ub::Vector{Float64}
+    lb::Vector{Float64}
 end
 
 
 """
 """
-@with_kw struct neural_choice_data <: DDMdata
-    input_data::neuralinputs
-    choice::Bool
-    spikes::Vector{Vector{Int}}
-    ncells::Int
-end
-
-"""
-"""
-neural_choice_data(input_data, choices, spikes::Vector{Vector{Vector{Int}}}, ncells::Int) =  
-    neural_choice_data.(input_data,choices,spikes,ncells)
-
-
-"""
-"""
-@with_kw struct Softplus_choice_options <: neural_choice_options
-    ncells::Vector{Int}
-    nparams::Int = 1
-    f::String = "Softplus"
-    fit::Vector{Bool} = vcat(trues(dimz + 1 + sum(ncells)*nparams))
-    lb::Vector{Float64} = vcat([0., 8.,  -10., 0.,   0.,  0., 0.005],
-        [-30], repeat([-10.], sum(ncells)))
-    ub::Vector{Float64} = vcat([Inf, 200., 10., Inf, Inf, 1.2,  1.],
-        [30], repeat([10.], sum(ncells)))
-    x0::Vector{Float64} = vcat([0.1, 15., -0.1, 20., 0.5, 0.8, 0.008],
-        [0.], repeat([1.], sum(ncells)))
-end
-
-
-"""
-"""
-function θneural_choice(x::Vector{T}, ncells::Vector{Int}, nparams::Int, f::String) where {T <: Real}
+function neural_choice_options(f; remap::Bool=false)
     
-    dims2 = vcat(0,cumsum(ncells))
-
-    blah = Tuple.(collect(partition(x[dimz + 1 + 1:dimz + 1 + nparams*sum(ncells)], nparams)))
+    nparams, ncells = nθparams(f)
+    fit = vcat(trues(dimz+2), trues.(nparams)...)
+        
+    lb = Vector(undef, sum(ncells))
+    ub = Vector(undef, sum(ncells))
     
-    if f == "Sigmoid"
-        blah2 = map(x-> Sigmoid(x...), blah)
-    elseif f == "Softplus"
-        blah2 = map(x-> Softplus(x...), blah)
+    for i in 1:sum(ncells)
+        if vcat(f...)[i] == "Softplus"
+            lb[i] = [-10]
+            ub[i] = [10]
+        elseif vcat(f...)[i] == "Sigmoid"
+            lb[i] = [-100.,0.,-10.,-10.]
+            ub[i] = [100.,100.,10.,10.]
+        end
     end
     
-    θy = map(idx-> blah2[idx], [dims2[i]+1:dims2[i+1] for i in 1:length(dims2)-1]) 
-    bias = x[dimz+1]
-        
-    θneural_choice(θz(Tuple(x[1:dimz])...), bias, θy, ncells, nparams, f)
+    if remap
+        lb = vcat([-10., 8.,  -5., -20.,   -3.,   1e-3, 0.005], [-10, 0.], vcat(lb...))
+        ub = vcat([ 10., 100., 5.,  20.,    3.,   1.2,  1.],    [10, 1.],  vcat(ub...));
+    else
+        lb = vcat([1e-3, 8.,  -5., 1e-3,   1e-3,  1e-3, 0.005], [-10, 0.], vcat(lb...))
+        ub = vcat([100., 100., 5., 400., 10., 1.2,  1.], [10, 1.], vcat(ub...));
+    end
+
+    neural_choice_options(fit=fit, ub=ub, lb=lb)
+    
+end
+   
+
+"""
+"""
+function θneural_choice(x::Vector{T}, f::Vector{Vector{String}}) where {T <: Real}
+    
+    nparams, ncells = nθparams(f)
+    
+    borg = vcat(dimz + 2,dimz + 2 .+cumsum(nparams))
+    blah = [x[i] for i in [borg[i-1]+1:borg[i] for i in 2:length(borg)]]
+    
+    blah = map((f,x) -> f(x...), getfield.(Ref(@__MODULE__), Symbol.(vcat(f...))), blah)
+    
+    borg = vcat(0,cumsum(ncells))
+    θy = [blah[i] for i in [borg[i-1]+1:borg[i] for i in 2:length(borg)]]
+    
+    θneural_choice(θz(x[1:dimz]...), x[dimz+1], x[dimz+2], θy, f)
 
 end
 
@@ -69,35 +62,104 @@ end
 """
     flatten(θ)
 
-Extract parameters related to the choice model from a struct and returns an ordered vector
+Extract parameters related to a `neural_choiceDDM` from an instance of `θneural_choice` and returns an ordered vector.
 ```
 """
 function flatten(θ::θneural_choice)
 
-    @unpack θy, θz, bias = θ
+    @unpack θy, θz, bias, lapse = θ
     @unpack σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ = θz
-    vcat(σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ, bias,
+    vcat(σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ, bias, lapse,
         vcat(collect.(Flatten.flatten.(vcat(θy...)))...))
 
 end
 
 
-function optimize(data, options::T1; n::Int=53,
-        x_tol::Float64=1e-10, f_tol::Float64=1e-9, g_tol::Float64=1e-3,
-        iterations::Int=Int(2e3), show_trace::Bool=true,
-        outer_iterations::Int=Int(1e1), scaled::Bool=false,
-        extended_trace::Bool=false, σ::Vector{Float64}=[0.], 
-        μ::Vector{Float64}=[0.], do_prior::Bool=false) where T1 <: neural_choice_options
+"""
+    all_Softplus(data)
 
-    @unpack fit, lb, ub, x0, ncells, f, nparams = options
+Returns: `array` of `array` of `string`, of all Softplus
+"""
+function all_Softplus(data)
     
-    θ = θneural_choice(x0, ncells, nparams, f)
+    ncells = getfield.(first.(data), :ncells)
+    f = repeat(["Softplus"], sum(ncells))
+    borg = vcat(0,cumsum(ncells))
+    f = [f[i] for i in [borg[i-1]+1:borg[i] for i in 2:length(borg)]]
+    
+end
 
+
+"""
+    choice_neural_optimize(data)
+
+Optimize model parameters for a `neural_choiceDDM`. Neural tuning parameters ([`θy`](@ref)) are initialized by fitting a the noiseless DDM model first ([`noiseless_neuralDDM`](@ref)).
+
+Arguments:
+
+- `data`: the output of [`load_neural_data`](@ref) with the format as described in its docstring.
+
+Returns
+
+- `model`: a module-defined type that organizes the `data` and parameters from the fit (as well as a few other things that are necessary for re-computing things the way they were computed here (e.g. `n`)
+- `options`: some details related to the optimzation, such as which parameters were fit, and the upper and lower bounds of those parameters.
+
+"""
+function choice_neural_optimize(data;
+        x_tol::Float64=1e-10, f_tol::Float64=1e-9, g_tol::Float64=1e-3,
+        show_trace::Bool=true,  extended_trace::Bool=false, scaled::Bool=false,
+        outer_iterations::Int=Int(1e1), iterations::Int=Int(2e3),
+        n::Int=53, cross::Bool=false,
+        x0_z::Vector{Float64}=[0.1, 15., -0.1, 20., 0.8, 0.01, 0.008],
+        f::Vector{Vector{String}}=all_Softplus(data)) 
+               
+    x0 = vcat(x0_z, [0., 1e-1], collect.(Flatten.flatten.(vcat(θy0(data,f)...)))...)
+    nparams, = nθparams(f)    
+    fit = vcat(trues(dimz), trues(2), trues.(nparams)...)
+    options = neural_choice_options(f)
+    options = neural_choice_options(fit=fit, lb=options.lb, ub=options.ub)
+        
+    model = neural_choiceDDM(θneural_choice(x0, f), data, n, cross)  
+    model, = choice_neural_optimize(model, options; show_trace=show_trace, f_tol=f_tol, 
+        iterations=iterations, outer_iterations=outer_iterations)
+
+    return model, options
+
+end
+
+
+"""
+    choice_optimize(model, options)
+
+Optimize choice-related model parameters for a `neural_choiceDDM` using choice data.
+
+Arguments: 
+
+- `model`: an instance of a `neural_choiceDDM`.
+- `options`: some details related to the optimzation, such as which parameters were fit (`fit`), and the upper (`ub`) and lower (`lb`) bounds of those parameters.
+
+Returns:
+
+- `model`: an instance of a `neural_choiceDDM`.
+- `output`: results from [`Optim.optimize`](@ref).
+
+"""
+function choice_optimize(model::neural_choiceDDM, options::neural_choice_options;
+        x_tol::Float64=1e-10, f_tol::Float64=1e-9, g_tol::Float64=1e-3,
+        iterations::Int=Int(2e3), show_trace::Bool=true, outer_iterations::Int=Int(1e1), 
+        scaled::Bool=false, extended_trace::Bool=false, remap::Bool=false)
+    
+    @unpack fit, lb, ub = options
+    @unpack θ, data, n, cross = model
+    @unpack f = θ
+    
+    x0 = pulse_input_DDM.flatten(θ)
     lb, = unstack(lb, fit)
     ub, = unstack(ub, fit)
     x0,c = unstack(x0, fit)
-    ℓℓ(x) = -(loglikelihood(stack(x,c,fit), data, θ; n=n) + Float64(do_prior) * logprior(stack(x,c,fit)[1:dimz],μ,σ))
-
+    
+    ℓℓ(x) = -choice_loglikelihood(stack(x,c,fit), model; remap=remap)
+    
     output = optimize(x0, ℓℓ, lb, ub; g_tol=g_tol, x_tol=x_tol,
         f_tol=f_tol, iterations=iterations, show_trace=show_trace,
         outer_iterations=outer_iterations, scaled=scaled,
@@ -105,8 +167,8 @@ function optimize(data, options::T1; n::Int=53,
 
     x = Optim.minimizer(output)
     x = stack(x,c,fit)
-    θ = θneural_choice(x, ncells, nparams, f)
-    model = neuralDDM(θ, data)
+    
+    model = neural_choiceDDM(θneural_choice(x, f), data, n, cross)
     converged = Optim.converged(output)
 
     return model, output
@@ -115,79 +177,199 @@ end
 
 
 """
-    loglikelihood(x, data; n=53)
+    choice_neural_optimize(model, options)
+
+Optimize (potentially all) model parameters for a `neural_choiceDDM` using choice and neural data.
+
+Arguments: 
+
+- `model`: an instance of a `neural_choiceDDM`.
+- `options`: some details related to the optimzation, such as which parameters were fit (`fit`), and the upper (`ub`) and lower (`lb`) bounds of those parameters.
+
+Returns:
+
+- `model`: an instance of a `neural_choiceDDM`.
+- `output`: results from [`Optim.optimize`](@ref).
+
+"""
+function choice_neural_optimize(model::neural_choiceDDM, options::neural_choice_options;
+        x_tol::Float64=1e-10, f_tol::Float64=1e-9, g_tol::Float64=1e-3,
+        iterations::Int=Int(2e3), show_trace::Bool=true, outer_iterations::Int=Int(1e1), 
+        scaled::Bool=false, extended_trace::Bool=false)
+    
+    @unpack fit, lb, ub = options
+    @unpack θ, data, n, cross = model
+    @unpack f = θ
+    
+    x0 = pulse_input_DDM.flatten(θ)
+    lb, = unstack(lb, fit)
+    ub, = unstack(ub, fit)
+    x0,c = unstack(x0, fit)
+
+    ℓℓ(x) = -joint_loglikelihood(stack(x,c,fit), model)
+    
+    output = optimize(x0, ℓℓ, lb, ub; g_tol=g_tol, x_tol=x_tol,
+        f_tol=f_tol, iterations=iterations, show_trace=show_trace,
+        outer_iterations=outer_iterations, scaled=scaled,
+        extended_trace=extended_trace)
+
+    x = Optim.minimizer(output)
+    x = stack(x,c,fit)
+    
+    model = neural_choiceDDM(θneural_choice(x, f), data, n, cross)
+    converged = Optim.converged(output)
+
+    return model, output
+
+end
+
+
+"""
+"""
+θz2(θ::θz) = θz(σ2_i=θ.σ2_i^2, B=θ.B, λ=θ.λ, 
+        σ2_a=θ.σ2_a^2, σ2_s=θ.σ2_s^2, ϕ=θ.ϕ, τ_ϕ=θ.τ_ϕ)
+
+
+"""
+"""
+θ2(θ::θneural_choice) = θneural_choice(θz=θz2(θ.θz), bias=θ.bias, lapse=θ.lapse, θy=θ.θy, f=θ.f)
+
+
+"""
+"""
+invθz2(θ::θz) = θz(σ2_i=abs(sqrt(θ.σ2_i)), B=θ.B, λ=θ.λ, 
+        σ2_a=abs(sqrt(θ.σ2_a)), σ2_s=abs(sqrt(θ.σ2_s)), ϕ=θ.ϕ, τ_ϕ=θ.τ_ϕ)
+
+
+"""
+"""
+invθ2(θ::θneural_choice) = θneural_choice(θz=invθz2(θ.θz), bias=θ.bias, lapse=θ.lapse, θy=θ.θy, f=θ.f)
+
+
+"""
+    choice_loglikelihood(x, model)
 
 A wrapper function that accepts a vector of mixed parameters, splits the vector
 into two vectors based on the parameter mapping function provided as an input. Used
 in optimization, Hessian and gradient computation.
 """
-function loglikelihood(x::Vector{T}, data::Vector{Vector{T2}}, θ::θneural_choice; n::Int=53) where {T <: Real, T2 <: neural_choice_data}
-
-    @unpack ncells, nparams, f = θ
-    θ = θneural_choice(x, ncells, nparams, f)
-    loglikelihood(θ, data; n=n)
+function choice_loglikelihood(x::Vector{T}, model::neural_choiceDDM; remap::Bool=false) where {T <: Real}
+    
+    @unpack data,θ,n,cross = model
+    @unpack f = θ 
+    if remap
+        model = neural_choiceDDM(θ2(θneural_choice(x, f)), data, n, cross)
+    else
+        model = neural_choiceDDM(θneural_choice(x, f), data, n, cross)
+    end
+    choice_loglikelihood(model)
 
 end
 
 
 """
-    LL_all_trials(pz, py, data; n=53)
+    choice_loglikelihood(model)
 
-Computes the log likelihood for a set of trials consistent with the observed neural activity on each trial.
+Given parameters θ and data (inputs and choices) computes the LL for all trials
 """
-function loglikelihood(θ::θneural_choice, data::Vector{Vector{T1}}; n::Int=53) where {T1 <: neural_choice_data}
+choice_loglikelihood(model::neural_choiceDDM) = sum(log.(vcat(choice_likelihood(model)...)))
 
-    @unpack θz, θy, bias = θ
+
+"""
+    choice_likelihood(model)
+
+Arguments: `neural_choiceDDM` instance
+
+Returns: `array` of `array` of P(d|θ, Y)
+"""
+function choice_likelihood(model::neural_choiceDDM)
+    
+    @unpack data,θ,n,cross = model
+    @unpack θz, θy, bias, lapse = θ
     @unpack σ2_i, B, λ, σ2_a = θz
     @unpack dt = data[1][1].input_data
 
     P,M,xc,dx = initialize_latent_model(σ2_i, B, λ, σ2_a, n, dt)
 
-    sum(map((data, θy) -> sum(pmap(data -> 
-                    loglikelihood(θz,bias,θy,data, P, M, xc, dx; n=n), data)), data, θy))
-
+    map((data, θy) -> pmap(data -> 
+            choice_likelihood(θ,θy,data,P,M,xc,dx,n,cross), data), data, θy)
+    
 end
 
 
 """
 """
-function loglikelihood(θz,bias,θy,data::neural_choice_data,
+function choice_likelihood(θ, θy, data::neuraldata,
         P::Vector{T1}, M::Array{T1,2},
-        xc::Vector{T1}, dx::T3; n::Int=53) where {T1,T3 <: Real}
-
-    @unpack λ, σ2_a, σ2_s, ϕ, τ_ϕ = θz
-    @unpack spikes, input_data, choice = data
-    @unpack binned_clicks, clicks, dt, λ0, centered, delay, pad = input_data
-    @unpack nT, nL, nR = binned_clicks
-    @unpack L, R = clicks
-
-    #adapt magnitude of the click inputs
-    La, Ra = adapt_clicks(ϕ,τ_ϕ,L,R)
-
-    F = zeros(T1,n,n) #empty transition matrix for time bins with clicks
+        xc::Vector{T1}, dx::T3, n, cross) where {T1,T3 <: Real}
     
-    time_bin = (-(pad-1):nT+pad) .- delay
+    @unpack choice = data
+    @unpack θz, bias, lapse = θ
     
-    c = Vector{T1}(undef, length(time_bin))
-
-    @inbounds for t = 1:length(time_bin)
-
-        if time_bin[t] >= 1
-            P, F = latent_one_step!(P, F, λ, σ2_a, σ2_s, time_bin[t], nL, nR, La, Ra, M, dx, xc, n, dt)
-        end
-
-        #weird that this wasn't working....
-        #P .*= vcat(map(xc-> exp(sum(map((k,θy,λ0)-> logpdf(Poisson(θy(xc,λ0[t]) * dt),
-        #                        k[t]), spikes, θy, λ0))), xc)...)
-        
-        P = P .* (vcat(map(xc-> exp(sum(map((k,θy,λ0)-> logpdf(Poisson(θy(xc,λ0[t]) * dt),
-                        k[t]), spikes, θy, λ0))), xc)...))
-        
-        c[t] = sum(P)
-        P /= c[t]
-
-    end
+    P = likelihood(θz, θy, data, P, M, xc, dx, n, cross)[2]
+    sum(choice_likelihood!(bias,xc,P,choice,n,dx)) * (1 - lapse) + lapse/2
     
-    return sum(log.(c)) + log(sum(choice_likelihood!(bias,xc,P,choice,n,dx)))
+end
 
+
+"""
+    joint_loglikelihood(x, model)
+
+A wrapper function that accepts a vector of mixed parameters, splits the vector
+into two vectors based on the parameter mapping function provided as an input. Used
+in optimization, Hessian and gradient computation.
+"""
+function joint_loglikelihood(x::Vector{T}, model::neural_choiceDDM) where {T <: Real}
+    
+    @unpack data,θ,n,cross = model
+    @unpack f = θ 
+    model = neural_choiceDDM(θneural_choice(x, f), data, n, cross)
+    joint_loglikelihood(model)
+
+end
+
+
+"""
+    joint_loglikelihood(model)
+
+Given parameters θ and data (inputs and choices) computes the LL for all trials
+"""
+joint_loglikelihood(model::neural_choiceDDM) = sum(log.(vcat(vcat(joint_likelihood(model)...)...)))
+
+
+"""
+    joint_likelihood(model)
+
+Arguments: `neural_choiceDDM` instance
+
+Returns: `array` of `array` of P(d, Y|θ)
+"""
+function joint_likelihood(model::neural_choiceDDM)
+    
+    @unpack data,θ,n,cross = model
+    @unpack θz, θy, bias, lapse = θ
+    @unpack σ2_i, B, λ, σ2_a = θz
+    @unpack dt = data[1][1].input_data
+
+    P,M,xc,dx = initialize_latent_model(σ2_i, B, λ, σ2_a, n, dt)
+
+    map((data, θy) -> pmap(data -> 
+            joint_likelihood(θ,θy,data,P,M,xc,dx,n,cross), data), data, θy)
+    
+end
+
+
+"""
+"""
+function joint_likelihood(θ, θy, data::neuraldata,
+        P::Vector{T1}, M::Array{T1,2},
+        xc::Vector{T1}, dx::T3, n, cross) where {T1,T3 <: Real}
+    
+    @unpack choice = data
+    @unpack θz, bias, lapse = θ
+    
+    c, P = likelihood(θz, θy, data, P, M, xc, dx, n, cross)
+    
+    return vcat(c, sum(choice_likelihood!(bias,xc,P,choice,n,dx)) * (1 - lapse) + lapse/2)
+     
 end

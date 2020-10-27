@@ -54,6 +54,26 @@ end
 
 
 """
+    θy0(data, f)
+
+Returns: initializition of neural parameters. Module-defined class `θy`.
+
+"""
+function θy0(data, f::Vector{Vector{String}})
+    
+    θy0 = θy.(data, f) 
+    x0 = vcat([0., 15., 0. - eps(), 0., 0., 1.0 - eps(), 0.008], vcat(vcat(θy0...)...)) 
+    θ = θneural_noiseless(x0, f)
+    model0 = noiseless_neuralDDM(θ, data)
+        
+    model0, = optimize(model0, neural_options_noiseless(f), show_trace=false)
+    
+    return model0.θ.θy
+    
+end
+
+
+"""
 """
 function train_and_test(data, x0, options::T1; seed::Int=1, α1s = 10. .^(-6:7)) where T1 <: neural_options_noiseless
     
@@ -65,25 +85,6 @@ function train_and_test(data, x0, options::T1; seed::Int=1, α1s = 10. .^(-6:7))
     testLL = map(model-> loglikelihood(model.θ, [data[test]]), model)
 
     return α1s, model, testLL
-    
-end
-
-
-function sigmoid_prior(x::Vector{T1}, θ::Union{θneural_noiseless, θneural}; 
-        sig_σ::Float64=1.) where {T1 <: Real, T2 <: neuraldata}
-
-    @unpack f = θ
-    θ = θneural_noiseless(x, f)
-    
-    if typeof(f) == String
-        if f == "Sigmoid"
-            sum(map(x-> sum(logpdf.(Normal(0., sig_σ), map(x-> x.c, x))), θ.θy))
-        else
-            0.
-        end
-    else    
-        sum(map(x-> sum(logpdf.(Normal(0., sig_σ), x.c)), vcat(θ.θy...)[vcat(f...) .== "Sigmoid"]))
-    end
     
 end
 
