@@ -19,7 +19,7 @@ end
 
 Fields:
 
-- `θz` is a type that contains the parameters related to the latent variable model.
+- `θz`: is a module-defined type that contains the parameters related to the latent variable model.
 - `bias` is the choice bias parameter.
 - `lapse` is the lapse parameter.
 
@@ -251,9 +251,8 @@ end
 
 """
 """
-θ2(θ) = θchoice(θz=θz(σ2_i = θ.θz.σ2_i^2, B = θ.θz.B, λ = θ.θz.λ, 
-        σ2_a = θ.θz.σ2_a^2, σ2_s = θ.θz.σ2_s^2, 
-        ϕ = θ.θz.ϕ, τ_ϕ = θ.θz.τ_ϕ), bias=θ.bias, lapse=θ.lapse)   
+θ2(θ::θchoice) = θchoice(θz=θz2(θ.θz), bias=θ.bias, lapse=θ.lapse)
+
 
 
 """
@@ -271,9 +270,6 @@ Given parameters θ and data (inputs and choices) computes the LL for all trials
 function loglikelihood(model::choiceDDM)
     
     @unpack θ, data, n, cross = model
-    
-    #θ = θ2(θ)
-
     @unpack θz = θ
     @unpack σ2_i, B, λ, σ2_a = θz
     @unpack dt = data[1].click_data
@@ -298,20 +294,35 @@ loglikelihood!(θ::θchoice,
 """
     likelihood(model)
 
-Given parameters θ and data (inputs and choices) computes the LL for all trials
+Given parameters θ and data (inputs and choices) computes the likehood of the choice for all trials
 """
 function likelihood(model::choiceDDM)
     
     @unpack θ, data, n, cross = model
-    
-    #θ = θ2(θ)
-
     @unpack θz = θ
     @unpack σ2_i, B, λ, σ2_a = θz
     @unpack dt = data[1].click_data
 
     P,M,xc,dx = initialize_latent_model(σ2_i, B, λ, σ2_a, n, dt)
     pmap(data -> likelihood!(θ, P, M, dx, xc, data, n, cross), data)
+
+end
+
+
+"""
+    P_goright(model)
+
+Given an instance of `choiceDDM` computes the probabilty of going right for each trial.
+"""
+function P_goright(model::choiceDDM)
+    
+    @unpack θ, data, n, cross = model
+    @unpack θz = θ
+    @unpack σ2_i, B, λ, σ2_a = θz
+    @unpack dt = data[1].click_data
+       
+    P,M,xc,dx = initialize_latent_model(σ2_i, B, λ, σ2_a, n, dt)
+    pmap(data -> likelihood!(θ, P, M, dx, xc, data, n, cross), map(x-> choicedata(x.click_data, true), data))
 
 end
 

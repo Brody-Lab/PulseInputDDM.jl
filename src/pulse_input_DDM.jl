@@ -136,6 +136,7 @@ Fields:
 - data
 - n
 - cross
+- θprior
 
 """
 @with_kw struct neuralDDM{T,U,V} <: DDM
