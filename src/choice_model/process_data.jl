@@ -1,10 +1,11 @@
 """
-    load(file)
+    load_choice_data(file)
 
-Given a path to a .mat file containing data (properly formatted), loads data into
-an acceptable format to use with pulse_input_DDM.
+Given a path to a `.MAT` file containing data (properly formatted), loads data into
+an acceptable format to use with `pulse_input_DDM` to fit its choice model.
+
 """
-function load(file::String; centered::Bool=false, dt::Float64=1e-2)
+function load_choice_data(file::String; centered::Bool=false, dt::Float64=1e-2)
 
     data = read(matopen(file), "rawdata")
 
@@ -13,9 +14,10 @@ function load(file::String; centered::Bool=false, dt::Float64=1e-2)
     R = vec(map(x-> vec(collect(x)), data[collect(keys(data))[occursin.("right", collect(keys(data)))][1]]))
     choices = vec(convert(BitArray, data["pokedR"]))
 
-    click_times = clicks.(L, R, T)
-    binned_clicks = bin_clicks.(click_times, centered=centered, dt=dt)
-    inputs = choiceinputs.(click_times, binned_clicks, dt, centered)
+    theclicks = clicks.(L, R, T)
+    binned_clicks = bin_clicks.(theclicks, centered=centered, dt=dt)
+    inputs = map((clicks, binned_clicks)-> choiceinputs(clicks=clicks, binned_clicks=binned_clicks, 
+        dt=dt, centered=centered), theclicks, binned_clicks)
 
     choicedata.(inputs, choices)
 
@@ -23,11 +25,30 @@ end
 
 
 """
-    save(file, model, options, CI)
+    save_choice_model(file, model, options)
 
 Given a file, model produced by optimize and options, save the results of the optimization to a .MAT file
 """
-function save(file, model, options, CI)
+function save_choice_model(file, model, options)
+
+    @unpack lb, ub, fit = options
+    @unpack θ = model
+
+    dict = Dict("ML_params"=> collect(Flatten.flatten(θ)),
+        "name" => ["σ2_i", "B", "λ", "σ2_a", "σ2_s", "ϕ", "τ_ϕ", "bias", "lapse"],
+        "lb"=> lb, "ub"=> ub, "fit"=> fit)
+
+    matwrite(file, dict)
+
+end
+
+
+"""
+    save_choice_model(file, model, options, CI)
+
+Given a file, model produced by optimize and options, save the results of the optimization to a .MAT file
+"""
+function save_choice_model(file, model, options, CI)
 
     @unpack lb, ub, fit = options
     @unpack θ = model
@@ -52,14 +73,19 @@ end
 
 
 """
-    reload(file)
+    reload_choice_model(file)
     
-Given a path and dictionaries, reload the results of a previous optimization saved as a .MAT file and
+Given a path, reload the results of a previous optimization saved as a .MAT file and
 place them in the "state" key of the dictionaires that optimize_model() expects.
 """
-function reload(file)
+function reload_choice_model(file)
 
-    read(matopen(file), "ML_params")
+    x = read(matopen(file), "ML_params")
+    lb = read(matopen(file), "lb")
+    ub = read(matopen(file), "ub")
+    fit = read(matopen(file), "fit")
+    
+    Flatten.reconstruct(θchoice(), x), choiceoptions(fit=fit, lb=lb, ub=ub)
 
 end
 

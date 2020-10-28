@@ -28,21 +28,7 @@ end
 
 
 """
-    loglikelihood(model, n)
-
-Given a model, computes the log likelihood for a set of trials.
-```
-"""
-function loglikelihood(model::T, n::Int) where T <: DDM
-
-    @unpack θ, data = model
-    loglikelihood(θ, data, n)
-
-end
-
-
-"""
-    P, M, xc, dx = initialize_latent_model(σ2_i, B, λ, σ2_a, n, dt; lapse=0.)
+    P, M, xc, dx = initialize_latent_model(σ2_i, B, λ, σ2_a, n, dt)
 
 Creates several variables that are required to compute the LL for each trial, but that
 are identical for all trials.
@@ -61,10 +47,6 @@ are identical for all trials.
 
 - dt         temporal bin width
 
-## OPTIONAL PARAMETERS:
-
-- lapse    lapse rate. Optionaly because only required for choice model.
-
 ## RETURNS:
 
 - P    A vector. Discrete approximation to P(a).
@@ -81,10 +63,10 @@ are identical for all trials.
 ```
 """
 function initialize_latent_model(σ2_i::TT, B::TT, λ::TT, σ2_a::TT,
-     n::Int, dt::Float64; lapse::UU=0.) where {TT,UU <: Any}
+     n::Int, dt::Float64) where {TT <: Any}
 
     xc,dx = bins(B,n)
-    P = P0(σ2_i,n,dx,xc,dt; lapse=lapse)
+    P = P0(σ2_i,n,dx,xc,dt)
     M = transition_M(σ2_a*dt,λ,zero(TT),dx,xc,n,dt)
 
     return P, M, xc, dx
@@ -93,15 +75,13 @@ end
 
 
 """
-    P0(σ2_i, n dx, xc, dt; lapse=0.)
+    P0(σ2_i, n dx, xc, dt)
 
 """
-function P0(σ2_i::TT, n::Int, dx::VV, xc::Vector{TT}, dt::Float64;
-    lapse::UU=0.) where {TT,UU,VV <: Any}
+function P0(σ2_i::TT, n::Int, dx::VV, xc::Vector{TT}, dt::Float64) where {TT,VV <: Any}
 
     P = zeros(TT,n)
-    P[ceil(Int,n/2)] = one(TT) - lapse
-    P[1], P[n] = lapse/2., lapse/2.
+    P[ceil(Int,n/2)] = one(TT) 
     M = transition_M(σ2_i,zero(TT),zero(TT),dx,xc,n,dt)
     P = M * P
 
@@ -283,24 +263,58 @@ end
 
 
 """
-    adapted_clicks(ϕ, τ_ϕ, L, R)
+    adapted_clicks(ϕ, τ_ϕ, L, R; cross)
+
+Compute the adapted state of left and right clicks.
+
+Arguments:
+
+- `ϕ`: determines the strength of adaptation after each click.
+- `τ_ϕ`: determines the timescale of adaptation.
+- `L`: `array` of left click times.
+- `R`: `array` of right click times.
+
+Optional arguments:
+
+- cross: `Bool` to perform or not perform cross-click adaptation (default is false).
+
+Returns:
+
+- ` La`: `array` of adapted state of each left click (same length as `L`).
+-  `Ra`: `array` of adapted state of each right click (same length as `R`).
 
 """
-function adapt_clicks(ϕ::TT, τ_ϕ::TT, L::Vector{Float64}, R::Vector{Float64}) where {TT}
+function adapt_clicks(ϕ::TT, τ_ϕ::TT, L::Vector{Float64}, R::Vector{Float64}; cross::Bool=false) where {TT}
+    
+    if cross
+        
+        all = vcat(hcat(L[2:end], -1 * ones(length(L)-1)), hcat(R, ones(length(R))))
+        all = all[sortperm(all[:, 1]), :]
+        adapted = ones(TT, size(all,1))
+        adapted[1] = eps()
 
-    La, Ra = ones(TT,length(L)), ones(TT,length(R))
+        if (typeof(ϕ) == Float64) && (isapprox(ϕ, 1.0))
+        else
+            (length(all) > 1 && ϕ != 1.) ? adapt_clicks!(ϕ, τ_ϕ, adapted, all[:, 1]) : nothing
+        end
+        
+        all = vcat([0., -1.]', all)
+        adapted = vcat(eps(), adapted)
+        La, Ra = adapted[all[:,2] .== -1.], adapted[all[:,2] .== 1.]
+        
+    else
 
-    # magnitude of stereo clicks set to zero
-    # I removed these lines on 8/8/18, because I'm not exactly sure why they are here (from Bing's original model)
-    # and the cause the state to adapt even when phi = 1., which I'd like to spend time fitting simpler models to
-    # check slack discussion with adrian and alex
-
-    #if !isempty(L) && !isempty(R) && abs(L[1]-R[1]) < eps()
-    #    La[1], Ra[1] = eps(), eps()
-    #end
-
-    (length(L) > 1 && ϕ != 1.) ? adapt_clicks!(ϕ, τ_ϕ, La, L) : nothing
-    (length(R) > 1 && ϕ != 1.) ? adapt_clicks!(ϕ, τ_ϕ, Ra, R) : nothing
+        La, Ra = ones(TT,length(L)), ones(TT,length(R))
+    
+        #this if statement is for cases when ϕ is 1. and not being learned
+        if (typeof(ϕ) == Float64) && (isapprox(ϕ, 1.0))
+        else
+            La[1], Ra[1] = eps(), eps()
+            (length(L) > 1 && ϕ != 1.) ? adapt_clicks!(ϕ, τ_ϕ, La, L) : nothing
+            (length(R) > 1 && ϕ != 1.) ? adapt_clicks!(ϕ, τ_ϕ, Ra, R) : nothing
+        end
+        
+    end
 
     return La, Ra
 
@@ -315,7 +329,7 @@ function adapt_clicks!(ϕ::TT, τ_ϕ::TT, Ca::Vector{TT}, C::Vector{Float64}) wh
 
     ici = diff(C)
 
-        for i = 1:length(ici)
+    for i = 1:length(ici)
         
         arg = (1/τ_ϕ) * (-ici[i] + xlogy(τ_ϕ, abs(1. - Ca[i]* ϕ)))
         

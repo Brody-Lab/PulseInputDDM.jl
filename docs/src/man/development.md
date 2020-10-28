@@ -12,9 +12,9 @@ To jump back to the master branch, type `git checkout master`. Now all of the co
 
 Now, the proper thing to do here is to make _another_ branch, off of the `dev` branch to make some code changes. Once those changes are complete, we can attempt to `merge` them into the `dev` branch, and once the `dev` branch is super-duper stable, we can merge _that_ with `master`. 
 
-To make a new branch, called `brians_dev` off of `dev` type `git checkout -b brians_dev dev` (make sure you are on branch `dev` with `git branch`). Now from here, you can make (`git add`) and commit (`git commit`) changes as you normally would, which will all be confined to this branch. 
+To make a new branch, called `bdd_dev` off of `dev` type `git checkout -b bdd_dev dev` (make sure you are on branch `dev` with `git branch`). Now from here, you can make (`git add`) and commit (`git commit`) changes as you normally would, which will all be confined to this branch. 
 
-To push these new changes to a new remote branch in the repo, type `git push -u origin brians_dev`. The `-u` option will 'sync' up this branch with the newly created `brians_dev` remote branch so that when you `push` and `pull` on this branch it does so from the correct remote branch.
+To push these new changes to a new remote branch in the repo, type `git push -u origin bdd_dev`. The `-u` option will 'sync' up this branch with the newly created `brians_dev` remote branch so that when you `push` and `pull` on this branch it does so from the correct remote branch.
 
 [Here's a useful page of instructions about julia package development](https://tlienart.github.io/pub/julia/dev-pkg.html).
 
@@ -23,7 +23,11 @@ To push these new changes to a new remote branch in the repo, type `git push -u 
 
 ## Adding tests
 
-A useful way to ensure the continued stabilty of code is to include tests within a package. For julia packages, these are located in the file `tests\runtests.jl`. Basically, you include whatever function you care to test, the `@test` 'macro' and the expected output in that file. Whenever code is pushed to the repository, it is build on Travis-CI, according to the specifcations on the `travis.yml` file also located in the repository. If the tests fails, it will be immedaitely reported on the repo landing page. See `runtests.jl` for examples and please consider adding tests when you add functionality.
+A useful way to ensure the continued stabilty of code is to include tests within a package. For julia packages, these are located in the file `tests\runtests.jl`. 
+
+To add to the existing set of tests, add a line to `runtests.jl` something like `@testset "new_changes" begin include("new_changes_tests.jl") end` and a `.jl` file called `new_changes_tests.jl` to the `test` directory. Within `new_changes_tests.jl` include any functions that you want to test, where each function call should be preceded by an `@test`. Each `@test` should include the expected output of each function. See the examples in `runtests.jl` to get going. 
+
+Whenever code is pushed to the repository, it is build on `travis-ci.com`, according to the specifcations on the `travis.yml` file also located in the repository. If the any of your new tests fail or if any of the existing tests fail because of changes you made, it will be immedaitely reported on the repo landing page.
 
 # Developing the documentation
 
@@ -41,6 +45,10 @@ A doctest can be added to a docstring to add additional explanation and to test 
 
 I developed this documentation using [Documenter.jl](https://github.com/JuliaDocs/Documenter.jl). This is a julia package that, once correctly instantiated, will automatically build a html webpage (this very webpage you're reading!) based on markdown files located in a specified directory in a git repo (usually `docs`) using Travis-CI whenever there is a push to that repo, and host that html webpage on the github repo on a `gh-pages` branch. 
 
-To add a new page, you need to add a markdown files (`example.md`) in the `docs/src/man` directory. Once you have you need to include it and its location in the `make.jl` file located in `docs`, so that it appears in the index of the html page.
+To add a new page, you need to add a markdown files (`example.md`) in the `docs/src/man` directory. Or you can modify an existing `.md` file. Once you have you need to include it and its location in the `make.jl` file located in `docs`, so that it appears in the index of the html page.
+
+# Merging branches
+
+Once your branch is looking pretty good, we want to merge it with the `dev` branch, by creating a pull request on github. Several things will be done there, to ensure a robust codebase. First, any merge conflicts will have to be decided on. `travis-ci.com` will run the tests your wrote (see [Adding tests](@ref) Adding tests) above) and build the html documentation. Finally, Brian (or some other administrator) will have to approve the merge.
 
 

@@ -1,8 +1,3 @@
-"""
-    save(file, model, options, CI)
-
-Given a file, model produced by optimize and options, save the results of the optimization to a .MAT file
-"""
 function save(file, model::neuralDDM, options, CI)
 
     @unpack lb, ub, fit = options
@@ -26,41 +21,166 @@ function save(file, model::neuralDDM, options, CI)
 end
 
 
+"""
+    save_neural_model(file, model, options)
+
+Given a `file`, `model` and `options` produced by `optimize`, save everything to a `.MAT` file in such a way that `reload_neural_data` can bring these things back into a Julia workspace, or they can be loaded in MATLAB.
+
+See also: [`reload_neural_model`](@ref)
 
 """
-"""
-function train_test_divide(data,frac)
+function save_neural_model(file, model::Union{neuralDDM, neural_choiceDDM}, options)
 
-    train_trials = StatsBase.sample(1:data["ntrials"], Int(ceil(0.8 * data["ntrials"])), replace = false)
-    test_trials = setdiff(1:data["ntrials"], train_trials)
+    @unpack lb, ub, fit = options
+    @unpack θ, data, n, cross = model
+    @unpack f = θ
+    @unpack dt, delay, pad = data[1][1].input_data
+    
+    nparams, ncells = nθparams(f)
+    
+    dict = Dict("ML_params"=> collect(pulse_input_DDM.flatten(θ)),
+        "lb"=> lb, "ub"=> ub, "fit"=> fit, "n"=> n, "cross"=> cross,
+        "dt"=> dt, "delay"=> delay, "pad"=> pad, "f"=> vcat(vcat(f...)...),
+        "nparams" => nparams, "ncells" => ncells)
 
-    train_data, test_data = deepcopy(data), deepcopy(data)
+    matwrite(file, dict)
 
-    for key in collect(keys(data))
-        if length(data[key]) == data["ntrials"]
-            train_data[key] = data[key][train_trials]
-            test_data[key] = data[key][test_trials]
-        end
+    #=
+    if !isempty(H)
+        #dict["H"] = H
+        hfile = matopen(path*"hessian_"*file, "w")
+        write(hfile, "H", H)
+        close(hfile)
     end
-
-    #all of the mus and sigams should be filtered too, but not important for fitting.
-    train_data["ntrials"], test_data["ntrials"] = length(train_trials), length(test_trials)
-
-    return train_data, test_data
+    =#
 
 end
 
 
 """
-    load_neural_data(path, files)
+    reload_neural_model(file)
 
-Load neural data .MAT files and return a Dict.
+`reload_neural_data` will bring back the parameters from your fit, some details about the optimization (such as the `fit` and bounds vectors) and some details about how you filtered the data. All of the data is not saved in the format that it is loaded by `load_neural_data` because it's too cumbersome to seralize it, so you have to load it again, as above, to re-build `neuralDDM` but you can use some of the stuff that `reload_neural_data` returns to reload the data in the same way (such as `pad` and `dt`)
+
+Returns:
+
+- `θneural`
+- `neural_options`
+- n
+- cross
+- dt
+- delay
+- pad
+
+See also: [`save_neural_model`](@ref)
+
 """
-function load(file::String, break_sim_data::Bool, centered::Bool=true;
-        dt::Float64=1e-2, delay::Float64=0., pad::Int=10, filtSD::Int=5,
-        cut::Int=10)
+function reload_neural_model(file)
+
+    xf = read(matopen(file), "ML_params")
+    f = string.(read(matopen(file), "f"))
+    ncells = collect(read(matopen(file), "ncells"))
+    nparams = read(matopen(file), "nparams")
+        
+    borg = vcat(0,cumsum(ncells, dims=1))
+    nparams = [nparams[i] for i in [borg[i-1]+1:borg[i] for i in 2:length(borg)]]
+    f = [f[i] for i in [borg[i-1]+1:borg[i] for i in 2:length(borg)]]   
+    
+    lb = read(matopen(file), "lb")
+    ub = read(matopen(file), "ub")
+    fit = read(matopen(file), "fit")
+    
+    n = read(matopen(file), "n")
+    cross = read(matopen(file), "cross")
+    dt = read(matopen(file), "dt")
+    delay = read(matopen(file), "delay")
+    pad = read(matopen(file), "pad")       
+    
+    θneural(xf, f), neural_options(lb=lb, ub=ub, fit=fit), n, cross, dt, delay, pad 
+    
+end
+
+
+"""
+    load_neural_data(file::Vector{String}; centered, dt, delay, pad, filtSD, extra_pad, cut, pcut)
+
+Calls `load_neural_data` for each entry in `file` and then creates three array outputs—`spike_data`, `μ_rnt`, `μ_t`—where each entry of an array is the relevant data for a single session. 
+
+Returns:
+
+- `data`: an `array` of length number of session. Each entry is for a session, and is another `array`. Each entry of the sub-array is the relevant data for a trial.
+- `μ_rnt`: an `array` of length number of sessions. Each entry is another `array` of length number of trials. Each entry of the sub-array is also an `array`, of length number of cells. Each entry of that array is the filtered single-trial firing rate of each neuron
+- `μ_t`: an `array` of length number of sessions. Each entry is an `array` of length number of cells. Each entry is the trial-averaged firing rate (across all trials).
+
+"""
+function load_neural_data(file::Vector{String}; break_sim_data::Bool=false, 
+        centered::Bool=true, dt::Float64=1e-2, delay::Int=0, pad::Int=0, filtSD::Int=2,
+        extra_pad::Int=10, cut::Int=10, pcut::Float64=0.01, 
+        do_RBF::Bool=false, nRBFs::Int=6)
+    
+    output = load_neural_data.(file; break_sim_data=break_sim_data,
+        centered=centered,
+        dt=dt, delay=delay, pad=pad, filtSD=filtSD,
+        extra_pad=extra_pad, cut=cut, pcut=pcut, 
+        do_RBF=do_RBF, nRBFs=nRBFs)
+    
+    output = filter(x -> x != nothing, output)
+    
+    spike_data = getindex.(output, 1)
+    μ_rnt = getindex.(output, 2)
+    μ_t = getindex.(output, 3)  
+    
+    spike_data, μ_rnt, μ_t
+    
+end
+
+"""
+    load_neural_data(file::String; centered, dt, delay, pad, filtSD, extra_pad, cut, pcut)
+
+Load neural data `.MAT` file and return an three `arrays`. The first `array` is the `data` formatted correctly for fitting the model. Each element of `data` is a module-defined class called `neuraldata`.
+
+The package expects your data to live in a single `.MAT` file which should contain a struct called `rawdata`. Each element of `rawdata` should have data for one behavioral trial and `rawdata` should contain the following fields with the specified structure:
+
+- `rawdata.leftbups`: row-vector containing the relative timing, in seconds, of left clicks on an individual trial. 0 seconds is the start of the click stimulus
+- `rawdata.rightbups`: row-vector containing the relative timing in seconds (origin at 0 sec) of right clicks on an individual trial. 0 seconds is the start of the click stimulus.
+- `rawdata.T`: the duration of the trial, in seconds. The beginning of a trial is defined as the start of the click stimulus. The end of a trial is defined based on the behavioral event “cpoke_end”. This was the Hanks convention.
+- `rawdata.pokedR`: Bool representing the animal choice (1 = right).
+- `rawdata.spike_times`: cell array containing the spike times of each neuron on an individual trial. The cell array will be length of the number of neurons recorded on that trial. Each entry of the cell array is a column vector containing the relative timing of spikes, in seconds. Zero seconds is the start of the click stimulus. Spikes before and after the click inputs should also be included.
+
+Arguments:
+
+- `file`: path to the file you want to load.
+
+Optional arguments;
+
+- `break_sim_data`: this will break up simulatenously recorded neurons, as if they were recorded independently. Not often used by most users.
+- `centered`: Defaults to true. For the neural model, this aligns the center of the binned spikes, to the beginning of the binned clicks. This was done to fix a numerical problem. Most users will never need to adjust this. 
+- `dt`: Binning of the spikes, in seconds.
+- `delay`: How much to offset the spikes, relative to the accumlator, in units of `dt`.
+- `pad`: How much extra time should spikes be considered before and after the begining of the clicks. Useful especially if delay is large.
+- `filtSD`: standard deviation of a Gaussin (in units of `dt`) to filter the spikes with to generate single trial firing rates (`μ_rnt`), and mean firing rate across all trials (`μ_t`).
+- `extra_pad`: Extra padding (in addition to `pad`) to add, for filtering purposes. In units of `dt`.
+- `cut`: How much extra to cut off at the beginning and end of filtered things (should be equal to `extra_pad` in most cases).
+- `pcut`: p-value for selecting cells.
+
+Returns:
+
+- `data`: an `array` of length number of trials. Each element is a module-defined class called `neuraldata`.
+- `μ_rnt`: an `array` of length number of trials. Each entry of the sub-array is also an `array`, of length number of cells. Each entry of that array is the filtered single-trial firing rate of each neuron.
+- `μ_t`: an `array` of length number of cells. Each entry is the trial-averaged firing rate (across all trials).
+
+
+"""
+function load_neural_data(file::String; break_sim_data::Bool=false, 
+        dt::Float64=1e-2, delay::Int=0, pad::Int=0, filtSD::Int=2,
+        extra_pad::Int=10, cut::Int=10, pcut::Float64=0.01, 
+        do_RBF::Bool=false, nRBFs::Int=6, centered::Bool=true)
 
     data = read(matopen(file), "rawdata")
+    
+    if !haskey(data, "spike_times")
+        data["spike_times"] = data["St"]
+    end
 
     T = vec(data["T"])
     L = vec(map(x-> vec(collect(x)), data[collect(keys(data))[occursin.("left", collect(keys(data)))][1]]))
@@ -68,48 +188,168 @@ function load(file::String, break_sim_data::Bool, centered::Bool=true;
 
     click_times = clicks.(L, R, T)
     binned_clicks = bin_clicks(click_times, centered=centered, dt=dt)
-
-    ncells = size(data["spike_times"][1], 2)
-
-    #=
-    if break_sim_data
-
-        rawdata["N"] = 1
-
-        for n = 1:ncells
-
-            subdata = deepcopy(rawdata)
-            subdata["spike_times"] = vec(map(x-> vec(collect([x[n]])), rawdata["spike_times"]))
-            push!(data, subdata)
-
-        end
-
-    else
-    =#
-
-    spikes = vec(map(x-> vec(vec.(collect.(x))), data["spike_times"]))
-
-    #end
-
     nT = map(x-> x.nT, binned_clicks)
 
-    output = map((spikes, nT)-> bin_spikes(spikes, dt, nT; delay=delay, pad=pad), spikes, nT)
-    spikes = getindex.(output, 1)
-    padded = getindex.(output, 2)
+    ncells = size(data["spike_times"][1], 2)
     
-    μ_rnt = filtered_rate.(padded, dt; filtSD=filtSD, cut=cut)
-        
-    μ_t = map(n-> [max(0., mean([μ_rnt[i][n][t]
-        for i in findall(nT .+ (pad - cut) .>= t)]))
-        for t in 1:(maximum(nT) .+ (pad - cut))], 1:ncells)
-    
-    λ0 = map(nT-> bin_λ0(μ_t, nT), nT)
-    #λ0 = map(nT-> map(μ_t-> zeros(nT), μ_t), nT)
+    spikes = vec(map(x-> vec(vec.(collect.(x))), data["spike_times"]))
 
-    input_data = neuralinputs(click_times, binned_clicks, λ0, dt, centered)
+    output = map((spikes, nT)-> bin_spikes(spikes, dt, nT; pad=0), spikes, nT)
+
+    spikes = getindex.(output, 1)     
+    FR = map(i-> map((x,T)-> sum(x[i])/T, spikes, T), 1:ncells)
+    choice = vec(convert(BitArray, data["pokedR"]))
+    pval = map(x-> pvalue(EqualVarianceTTest(x[choice], x[.!choice])), FR)      
+    ptest = pval .< pcut
     
-    return neuraldata(input_data, spikes, ncells), μ_rnt, μ_t
-    
+    if any(ptest)
+        
+        ncells = sum(ptest)
+
+        if break_sim_data
+
+            spike_data = Vector{Vector{neuraldata}}(undef, ncells)
+            μ_rnt = Vector(undef, ncells)
+            μ_t = Vector(undef, ncells)
+
+            for n = 1:ncells
+                             
+                spikes = vec(map(x-> [vec(collect(x[findall(ptest)][n]))], data["spike_times"]))
+
+                output = map((spikes, nT)-> bin_spikes(spikes, dt, nT; pad=pad), spikes, nT)
+
+                spikes = getindex.(output, 1)
+                padded = getindex.(output, 2)  
+
+                μ_rnt[n] = filtered_rate.(padded, dt; filtSD=filtSD, cut=cut)
+
+                μ_t[n] = map(n-> [max(0., mean([μ_rnt[n][i][1][t]
+                    for i in findall(nT .+ 2*pad .>= t)]))
+                    for t in 1:(maximum(nT) .+ 2*pad)], n:n)
+
+                λ0 = map(nT-> bin_λ0(μ_t[n], nT+2*pad), nT)
+                #λ0 = map(nT-> map(μ_t-> zeros(nT), μ_t), nT)
+
+                input_data = neuralinputs(click_times, binned_clicks, λ0, dt, centered, delay, pad)
+                spike_data[n] = neuraldata(input_data, spikes, 1, choice)
+                
+                if do_RBF
+                    model, = optimize([spike_data[n]], μ_RBF_options(ncells=[1], nRBFs=nRBFs); show_trace=false)
+                    maxnT = maximum(nT)
+                    x = 1:maxnT+2*pad   
+                    rbf = UniformRBFE(x, nRBFs, normalize=true)  
+                    μ_t[n] = [rbf(x) * model.θ.θμ[1][1]]
+                end
+                    
+                #model, = optimize([spike_data[n]], μ_poly_options(ncells=[1]); show_trace=false)
+                #μ_t[n] = [model.θ.θμ[1][1](1:length(μ_t[n][1]))]
+                    
+                λ0 = map(nT-> bin_λ0(μ_t[n], nT+2*pad), nT)      
+                input_data = neuralinputs(click_times, binned_clicks, λ0, dt, centered, delay, pad)
+                spike_data[n] = neuraldata(input_data, spikes, 1, choice)
+
+            end
+
+        else
+
+            #=
+            spikes = vec(map(x-> vec(vec.(collect.(x))), data["spike_times"]))
+
+            output = map((spikes, nT)-> bin_spikes(spikes, dt, nT; pad=pad), spikes, nT)
+
+            spikes = getindex.(output, 1)
+            padded = getindex.(output, 2)      
+
+            spikes = map(spikes-> spikes[ptest], spikes)
+            padded = map(padded-> padded[ptest], padded)
+
+            μ_rnt = filtered_rate.(padded, dt; filtSD=filtSD, cut=cut)
+
+            μ_t = map(n-> [max(0., mean([μ_rnt[i][n][t]
+                for i in findall(nT .+ 2*pad .>= t)]))
+                for t in 1:(maximum(nT) .+ 2*pad)], 1:ncells)
+
+            #μ_t = map(n-> [max(0., mean([spikes[i][n][t]/dt
+            #    for i in findall(nT .>= t)]))
+            #    for t in 1:(maximum(nT))], 1:ncells)
+
+            λ0 = map(nT-> bin_λ0(μ_t, nT+2*pad), nT)
+            #λ0 = map(nT-> map(μ_t-> zeros(nT), μ_t), nT)
+
+            input_data = neuralinputs(click_times, binned_clicks, λ0, dt, centered, delay, pad)
+            spike_data = neuraldata(input_data, spikes, ncells)
+            
+            nRBFs=6
+            model, = optimize([spike_data], μ_RBF_options(ncells=[ncells], nRBFs=nRBFs); show_trace=false)
+            maxnT = maximum(nT)
+            x = 1:maxnT+2*pad   
+            rbf = UniformRBFE(x, nRBFs, normalize=true) 
+            μ_t = map(n-> rbf(x) * model.θ.θμ[1][n], 1:ncells)
+            
+            #model, = optimize([spike_data], μ_poly_options(ncells=[ncells]); show_trace=false)
+            #μ_t = map(n-> model.θ.θμ[1][n](1:length(μ_t[n])), 1:ncells)
+            =#
+            
+            μ_t = Vector(undef, ncells)
+
+            for n = 1:ncells
+
+                spikes = vec(map(x-> [vec(collect(x[findall(ptest)][n]))], data["spike_times"]))
+
+                output = map((spikes, nT)-> pulse_input_DDM.bin_spikes(spikes, dt, nT; pad=pad), spikes, nT)
+
+                spikes = getindex.(output, 1)
+                padded = getindex.(output, 2)  
+
+                μ_rnt = pulse_input_DDM.filtered_rate.(padded, dt; filtSD=filtSD, cut=cut)
+
+                μ_t[n] = map(n-> [max(0., mean([μ_rnt[i][1][t]
+                    for i in findall(nT .+ 2*pad .>= t)]))
+                    for t in 1:(maximum(nT) .+ 2*pad)], n:n)
+
+                λ0 = map(nT-> pulse_input_DDM.bin_λ0(μ_t[n], nT+2*pad), nT)
+
+                input_data = pulse_input_DDM.neuralinputs(click_times, binned_clicks, λ0, dt, centered, delay, pad)
+                spike_data = pulse_input_DDM.neuraldata(input_data, spikes, 1, choice)
+
+                if do_RBF
+                    model, = optimize([spike_data], pulse_input_DDM.μ_RBF_options(ncells=[1], nRBFs=nRBFs); show_trace=false)
+                    maxnT = maximum(nT)
+                    x = 1:maxnT+2*pad   
+                    rbf = UniformRBFE(x, nRBFs, normalize=true)  
+                    μ_t[n] = [rbf(x) * model.θ.θμ[1][1]]
+                end
+
+            end
+            
+            μ_t = map(x-> x[1], μ_t);
+            
+            spikes = vec(map(x-> vec(vec.(collect.(x))), data["spike_times"]))
+            output = map((spikes, nT)-> bin_spikes(spikes, dt, nT; pad=pad), spikes, nT)
+
+            spikes = getindex.(output, 1)
+            padded = getindex.(output, 2)      
+
+            spikes = map(spikes-> spikes[ptest], spikes)
+            padded = map(padded-> padded[ptest], padded)
+
+            μ_rnt = filtered_rate.(padded, dt; filtSD=filtSD, cut=cut)
+            
+            λ0 = map(nT-> bin_λ0(μ_t, nT+2*pad), nT)
+            input_data = neuralinputs(click_times, binned_clicks, λ0, dt, centered, delay, pad)
+            spike_data = neuraldata(input_data, spikes, ncells, choice)
+
+
+        end
+        
+        return spike_data, μ_rnt, μ_t
+            
+    else
+
+        return nothing
+
+    end
+ 
 end
 
 
@@ -118,32 +358,14 @@ end
 #function bin_clicks_spikes_λ0(data::Dict; centered::Bool=true,
 #        dt::Float64=1e-2, delay::Float64=0., pad::Int=10, filtSD::Int=5)
 
-function bin_clicks_spikes_λ0(spikes, λ0, clicks; centered::Bool=true,
+function bin_clicks_spikes_λ0(spikes, clicks; centered::Bool=true,
         dt::Float64=1e-2, delay::Float64=0., dt_synthetic::Float64=1e-4,
         synthetic::Bool=false)
 
     spikes = bin_spikes(spikes, dt, dt_synthetic)
-    λ0 = bin_λ0(λ0, dt, dt_synthetic)
     binned_clicks = bin_clicks(clicks, centered=centered, dt=dt)
 
-    return spikes, λ0, binned_clicks
-
-    #T, L, R = data["T"], data["leftbups"], data["rightbups"]
-    #binned_clicks = bin_clicks(clicks(L, R, T, data["ntrials"]), centered=centered, dt=dt)
-    #@unpack nT, nL, nR, dt, centered = binned_clicks
-    #data["nT"] = nT
-    #data["binned_leftbups"] = nL
-    #data["binned_rightbups"] = nR
-    #data["dt"] = dt
-    #data["use_bin_center"] = centered
-
-    #data["spike_counts"] = bin_spikes(data["spike_counts"], dt; delay=delay, synthetic=true)
-    #data = pad_binned_spikes!(data; delay=delay, pad=pad)
-    #data = compute_filtered_rate!(data; filtSD=filtSD)
-    #data["λ0"] = compute_λ0(data["λ0"], dt; synthetic=true)
-    #data = compute_λ0!(data)
-
-    #return data
+    return spikes, binned_clicks
 
 end
 
@@ -172,13 +394,15 @@ bin_spikes(spikes::Vector{Vector{Int}}, dt::Float64, dt_synthetic::Float64) =
 
 """
 """
-function bin_spikes(spike_times::Vector{Vector{Float64}}, dt, nT::Int; delay::Float64=0., pad::Int=10) 
+function bin_spikes(spike_times::Vector{Vector{Float64}}, dt, nT::Int; pad::Int=20, extra_pad::Int=10) 
 
-    trial = map(x-> fit(Histogram, vec(collect(x .- delay)), 
-            collect(range(0, stop=nT*dt, length=nT+1)), closed=:left).weights, spike_times)
+    trial = map(x-> StatsBase.fit(Histogram, vec(collect(x)), 
+            collect(range(-pad*dt, stop=(nT+pad)*dt, 
+                    length=(nT+2*pad)+1)), closed=:left).weights, spike_times)
 
-    padded = map(x-> fit(Histogram, vec(collect(x .- delay)), 
-            collect(range(-pad*dt, stop=(nT+pad)*dt, length=(nT+2*pad)+1)), closed=:left).weights, spike_times)
+    padded = map(x-> StatsBase.fit(Histogram, vec(collect(x)), 
+            collect(range(-(extra_pad+pad)*dt, stop=(nT+pad+extra_pad)*dt, 
+                    length=(nT+2*extra_pad+2*pad)+1)), closed=:left).weights, spike_times)
 
 
     return trial, padded
@@ -204,29 +428,44 @@ end
 
 
 """
-"""
-function process_spike_data(μ_rnt, data, ncells; pad::Int=10, cut::Int=10, nconds::Int=4)
 
+    process_spike_data(μ_rnt, data)
+
+Arguments:
+
+- `μ_rnt`: `array` of Gaussian-filterd single trial firing rates for all cells and all trials in one session. `μ_rnt` is output from `load_neural_data`.
+- `data`: `array` of all trial data for one session. `data` is output from `load_neural_data`.
+
+Optional arguments: 
+
+- `nconds`: number of groups to make to compute PSTHs
+
+Returns: 
+
+- `μ_ct`: mean PSTH for each group.
+- `σ_ct`: 1 std PSTH for each group.
+
+"""
+function process_spike_data(μ_rnt, data; nconds::Int=4)
+    
+    ncells = data[1].ncells
+
+    pad = data[1].input_data.pad
     nT = map(x-> x.input_data.binned_clicks.nT, data)
     μ_rn = map(n-> map(μ_rnt-> mean(μ_rnt[n]), μ_rnt), 1:ncells)
 
-    #if haskey(data,"pokedR")
-    #    data["d'"] = map(n-> dprime(data["μ_rn"][n], data["pokedR"]), 1:data["N"])
-    #end
-
-    ΔLRT = last.(diffLR.(data))
-    #data["nconds"] = nconds
+    ΔLRT = map((data,nT) -> getindex(diffLR(data), pad+nT), data, nT)
     conds = encode(LinearDiscretizer(binedges(DiscretizeUniformWidth(nconds), ΔLRT)), ΔLRT)
 
     μ_ct = map(n-> map(c-> [mean([μ_rnt[conds .== c][i][n][t]
-        for i in findall(nT[conds .== c] .+ (pad - cut) .>= t)])
-        for t in 1:(maximum(nT[conds .== c]) .+ (pad - cut))], 1:nconds), 1:ncells)
+        for i in findall(nT[conds .== c] .+ (2*pad) .>= t)])
+        for t in 1:(maximum(nT[conds .== c]) .+ (2*pad))], 1:nconds), 1:ncells)
 
     σ_ct = map(n-> map(c-> [std([μ_rnt[conds .== c][i][n][t]
-        for i in findall(nT[conds .== c] .+ (pad - cut) .>= t)]) /
+        for i in findall(nT[conds .== c] .+ (2*pad) .>= t)]) /
             sqrt(length([μ_rnt[conds .== c][i][n][t]
-                for i in findall(nT[conds .== c] .+ (pad - cut) .>= t)]))
-        for t in 1:(maximum(nT[conds .== c]) .+ (pad - cut))], 1:nconds), 1:ncells)
+                for i in findall(nT[conds .== c] .+ (2*pad) .>= t)]))
+        for t in 1:(maximum(nT[conds .== c]) .+ (2*pad))], 1:nconds), 1:ncells)
 
     return μ_ct, σ_ct, μ_rn
 
@@ -563,148 +802,6 @@ end
     #return data
 
 #end
-
-function train_test_divide(data,λ,frac)
-
-    divided_data = Dict("train" => Dict(), "test" => Dict())
-    divided_λ = Dict("train" => Dict(), "test" => Dict())
-
-    tot_trials = vcat(data["trial"]...)
-
-    train_trials = StatsBase.sample(tot_trials, Int(ceil(frac * length(tot_trials))), replace = false)
-    test_trials = setdiff(tot_trials, train_trials)
-
-    my_keys = collect(keys(divided_data))
-
-    for i = 1:length(my_keys)
-
-        my_keys[i] == "train" ? trials = train_trials : trials = test_trials
-
-        divided_data[my_keys[i]]["trial"] = [1:length(trials)]
-
-        divided_data[my_keys[i]]["binned_leftbups"] = data["binned_leftbups"][trials]
-        divided_data[my_keys[i]]["binned_rightbups"] = data["binned_rightbups"][trials]
-        divided_data[my_keys[i]]["rightbups"] = data["rightbups"][trials]
-        divided_data[my_keys[i]]["leftbups"] = data["leftbups"][trials]
-        divided_data[my_keys[i]]["T"] = data["T"][trials]
-        divided_data[my_keys[i]]["nT"] = data["nT"][trials]
-        divided_data[my_keys[i]]["pokedR"] = data["pokedR"][trials]
-        divided_data[my_keys[i]]["correct_dir"] = data["correct_dir"][trials]
-        divided_data[my_keys[i]]["sessID"] = data["sessID"][trials]
-        divided_data[my_keys[i]]["ratID"] = data["ratID"][trials]
-        divided_data[my_keys[i]]["stim_start"] = data["stim_start"][trials]
-        divided_data[my_keys[i]]["N"] = data["N"][trials]
-        divided_data[my_keys[i]]["spike_counts"] = data["spike_counts"][trials]
-        divided_data[my_keys[i]]["cellID"] = data["cellID"][trials]
-        divided_data[my_keys[i]]["N0"] = data["N0"]
-        divided_data[my_keys[i]]["dt"] = data["dt"]
-
-        divided_data[my_keys[i]]["spike_counts_by_neuron"] = map(x-> x[trials], data["spike_counts_by_neuron"])
-
-        divided_λ[my_keys[i]]["by_neuron"] = map(x-> x[trials], λ["by_neuron"])
-        divided_λ[my_keys[i]]["by_trial"] = λ["by_trial"][trials]
-
-    end
-
-    return divided_data, divided_λ
-
-end
-
-function train_test_divide_multi(data,λ,frac)
-
-    divided_data = Dict("train" => Dict(), "test" => Dict())
-    divided_λ = Dict("train" => Dict(), "test" => Dict())
-
-    my_keys = collect(keys(divided_data))
-
-    #tot_trials = 1:data["trial0"]
-
-    #train_trials = sort(StatsBase.sample(tot_trials, Int(ceil(frac * length(tot_trials))), replace = false))
-    #test_trials = sort(setdiff(tot_trials, train_trials))
-
-    blah = fill!(Array{Float64,2}(undef,data["N0"],2),0.)
-    tot_trials = 1:data["trial0"]
-
-    while any(blah .== 0)
-
-        #not sure abou this...
-        global train_trials = sort(StatsBase.sample(tot_trials, Int(ceil(frac * length(tot_trials))), replace = false))
-        global test_trials = sort(setdiff(tot_trials, train_trials));
-
-        for i = 1:data["N0"]
-            blah[i,1] = length(intersect(data["trial"][i], train_trials))
-            blah[i,2] = length(intersect(data["trial"][i], test_trials))
-        end
-    end
-
-    for i = 1:length(my_keys)
-
-        my_keys[i] == "train" ? trials = train_trials : trials = test_trials
-
-        divided_data[my_keys[i]]["trial0"] = 0
-
-        divided_data[my_keys[i]]["binned_leftbups"] = data["binned_leftbups"][trials]
-        divided_data[my_keys[i]]["binned_rightbups"] = data["binned_rightbups"][trials]
-        divided_data[my_keys[i]]["rightbups"] = data["rightbups"][trials]
-        divided_data[my_keys[i]]["leftbups"] = data["leftbups"][trials]
-        divided_data[my_keys[i]]["T"] = data["T"][trials]
-        divided_data[my_keys[i]]["nT"] = data["nT"][trials]
-        divided_data[my_keys[i]]["pokedR"] = data["pokedR"][trials]
-        divided_data[my_keys[i]]["correct_dir"] = data["correct_dir"][trials]
-        divided_data[my_keys[i]]["sessID"] = data["sessID"][trials]
-        divided_data[my_keys[i]]["ratID"] = data["ratID"][trials]
-        divided_data[my_keys[i]]["stim_start"] = data["stim_start"][trials]
-        divided_data[my_keys[i]]["N"] = data["N"][trials]
-        divided_data[my_keys[i]]["spike_counts"] = data["spike_counts"][trials]
-        divided_data[my_keys[i]]["cellID"] = data["cellID"][trials]
-        divided_data[my_keys[i]]["N0"] = data["N0"]
-        divided_data[my_keys[i]]["dt"] = data["dt"]
-
-        divided_λ[my_keys[i]]["by_trial"] = λ["by_trial"][trials]
-
-        temp = Vector{Vector{Int}}(undef,  divided_data[my_keys[i]]["N0"])
-        map(k-> temp[k] = Vector{Int}(), 1:divided_data[my_keys[i]]["N0"]);
-
-        for k = 1:length(divided_data[my_keys[i]]["N"])
-            for j = 1:length(divided_data[my_keys[i]]["N"][k])
-                push!(temp[divided_data[my_keys[i]]["N"][k][j]], Int(k))
-            end
-        end
-
-        divided_data[my_keys[i]]["trial"] = Vector{UnitRange{Int64}}(undef, divided_data[my_keys[i]]["N0"])
-
-        for k = 1:divided_data[my_keys[i]]["N0"]
-           divided_data[my_keys[i]]["trial"][k] = temp[k][1]:temp[k][end]
-        end
-
-        divided_data[my_keys[i]]["spike_counts_by_neuron"] = Vector{Vector{Vector{Int64}}}()
-        divided_λ[my_keys[i]]["by_neuron"] = Vector{Vector{Vector{Float64}}}()
-
-        map(x-> push!(divided_data[my_keys[i]]["spike_counts_by_neuron"],
-                Vector{Vector{Int}}(undef,0)), 1:divided_data[my_keys[i]]["N0"])
-        map(x-> push!(divided_λ[my_keys[i]]["by_neuron"],
-                Vector{Vector{Float64}}(undef,0)), 1:divided_data[my_keys[i]]["N0"])
-
-        for j = 1:divided_data[my_keys[i]]["N0"]
-
-            ntrials = length(intersect(data["trial"][j],trials))
-            divided_data[my_keys[i]]["trial0"] += ntrials
-
-            map(t-> append!(divided_data[my_keys[i]]["spike_counts_by_neuron"][j],
-                divided_data[my_keys[i]]["spike_counts"][t][divided_data[my_keys[i]]["N"][t] .== j]),
-                divided_data[my_keys[i]]["trial"][j])
-
-            map(t-> append!(divided_λ[my_keys[i]]["by_neuron"][j],
-                divided_λ[my_keys[i]]["by_trial"][t][divided_data[my_keys[i]]["N"][t] .== j]),
-                divided_data[my_keys[i]]["trial"][j])
-
-        end
-
-    end
-
-    return divided_data, divided_λ
-
-end
 
 function package_extended_data!(data,rawdata,model_type::String,ratname,ts::Float64;dt::Float64=2e-2,organize::String="by_trial")
 

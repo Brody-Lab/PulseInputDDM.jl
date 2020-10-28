@@ -1,71 +1,4 @@
 """
-    LL_all_trials(pz, py, data; n=53)
-
-Computes the log likelihood for a set of trials consistent with the observed neural activity on each trial.
-"""
-function loglikelihood(θ::θneural, data, n::Int)
-
-    @unpack θy, θz = θ
-    @unpack σ2_i, B, λ, σ2_a = θz
-    @unpack dt = data[1][1].input_data
-
-    P,M,xc,dx = initialize_latent_model(σ2_i, B, λ, σ2_a, n, dt)
-
-    sum(map((data, θy) -> loglikelihood(θz, θy, data, P, M, xc, dx; n=n), data, θy))
-    #sum(pmap((data, θy) -> loglikelihood(θz,θy,data,P, M, xc, dx, n),
-    #    vcat(data...), vcat(map((x,y)-> repeat([x],y), θy, length.(data))...)))
-
-end
-
-
-function loglikelihood(θz, θy, data, P, M, xc, dx; n::Int=53) where {TT <: Any}
-
-    #sum(pmap(data -> loglikelihood(θz,θy,data,P, M, xc, dx, n), data, batch_size=1))
-    sum(pmap(data -> loglikelihood(θz,θy,data,P, M, xc, dx, n), data))
-
-end
-
-
-"""
-"""
-function loglikelihood(θz,θy,data,
-        P::Vector{TT}, M::Array{TT,2},
-        xc::Vector{TT}, dx::VV, n::Int) where {TT,UU,VV <: Any}
-
-    @unpack λ, σ2_a, σ2_s, ϕ, τ_ϕ = θz
-    @unpack spikes, input_data = data
-    @unpack binned_clicks, clicks, dt, λ0, centered = input_data
-    @unpack nT, nL, nR = binned_clicks
-    @unpack L, R = clicks
-
-    #adapt magnitude of the click inputs
-    La, Ra = adapt_clicks(ϕ,τ_ϕ,L,R)
-
-    c = Vector{TT}(undef,nT)
-    F = zeros(TT,n,n) #empty transition matrix for time bins with clicks
-
-    @inbounds for t = 1:nT
-
-        if centered && t == 1
-            P,F = latent_one_step!(P,F,λ,σ2_a,σ2_s,t,nL,nR,La,Ra,M,dx,xc,n,dt/2)
-        else
-            P,F = latent_one_step!(P,F,λ,σ2_a,σ2_s,t,nL,nR,La,Ra,M,dx,xc,n,dt)
-        end
-
-        P .*= vcat(map(xc-> exp(sum(map((k,θy,λ0)-> logpdf(Poisson(θy(xc,λ0[t]) * dt),
-                                k[t]), spikes, θy, λ0))), xc)...)
-
-        c[t] = sum(P)
-        P /= c[t]
-
-    end
-
-    return sum(log.(c))
-
-end
-
-
-"""
 """
 function logistic!(x::T) where {T <: Any}
 
@@ -87,56 +20,6 @@ end
 neural_null(k,λ,dt) = sum(logpdf.(Poisson.(λ*dt),k))
 
 #=
-
-function LL_all_trials_dx(pz::Vector{TT}, py::Vector{Vector{TT}}, data::Dict,
-        dx::Float64, f_str) where {TT <: Any}
-
-    dt = data["dt"]
-    P,M,xc,n, = initialize_latent_model_dx(pz,dx,dt)
-
-    output = pmap((L,R,T,nL,nR,SC,λ0) -> LL_single_trial(pz, P, M, dx, xc,
-        L, R, T, nL, nR, py, SC, dt, n, λ0, f_str),
-        data["leftbups"], data["rightbups"], data["nT"], data["binned_leftbups"],
-        data["binned_rightbups"], data["spike_counts"], data["λ0"])
-
-end
-
-#for testing
-function LL_single_trial_dx(pz::Vector{TT}, P::Vector{TT}, M::Array{TT,2}, dx::VV,
-        xc::Vector{TT},L::Vector{Float64}, R::Vector{Float64}, T::Int,
-        nL::Vector{Int}, nR::Vector{Int},
-        py::Vector{Vector{TT}}, k::Vector{Vector{Int}},dt::Float64,n::Int,
-        λ0::Vector{Vector{UU}},
-        f_str::String) where {UU,TT,VV <: Any}
-
-    #adapt magnitude of the click inputs
-    La, Ra = make_adapted_clicks(pz,L,R)
-
-    c = Vector{TT}(undef,T)
-    #PS = Array{TT,2}(undef,n,T)
-    F = zeros(TT,n,n) #empty transition matrix for time bins with clicks
-
-    #construct T x N mean firing rate array and spike count array
-    #λ0 = hcat(λ0...)
-    #k = hcat(k...)
-
-    @inbounds for t = 1:T
-
-        P, = latent_one_step!(P,F,pz,t,nL,nR,La,Ra,M,dx,xc,n,dt)
-
-        P .*= vcat(map(xc-> exp(sum(map((k,py,λ0)-> logpdf(Poisson(f_py(xc,λ0[t],py,f_str) * dt),
-                                k[t]), k, py, λ0))), xc)...)
-
-        c[t] = sum(P)
-        #PS[:,t] = P
-        P /= c[t]
-
-    end
-
-    #return PS, c #sum(log.(c))
-    return sum(log.(c))
-
-end
 
 function PY_all_trials(pz::Vector{TT},py::Vector{Vector{TT}},
         data::Dict; dt::Float64=1e-2, n::Int=53, f_str::String="softplus", comp_posterior::Bool=false,
@@ -188,39 +71,6 @@ function PY_single_trial(pz::Vector{TT}, P::Vector{TT}, M::Array{TT,2}, dx::TT,
 
 end
 
-function P_all_trials(pz::Vector{TT}, data::Dict;
-        dt::Float64=1e-2, n::Int=53) where {TT <: Any}
-
-    P,M,xc,dx, = initialize_latent_model(pz,n,dt)
-
-    output = pmap((L,R,T,nL,nR) -> P_single_trial(pz, P, M, dx, xc,
-        L, R, T, nL, nR, dt, n), data["leftbups"], data["rightbups"],
-        data["nT"], data["binned_leftbups"], data["binned_rightbups"])
-
-end
-
-function P_single_trial(pz::Vector{TT}, P::Vector{TT}, M::Array{TT,2}, dx::TT,
-        xc::Vector{TT},L::Vector{Float64}, R::Vector{Float64}, T::Int,
-        hereL::Vector{Int}, hereR::Vector{Int},
-        dt::Float64,n::Int) where {UU,TT <: Any}
-
-    #adapt magnitude of the click inputs
-    La, Ra = make_adapted_clicks(pz,L,R)
-
-    PS = Array{TT,2}(undef,n,T)
-    F = zeros(TT,n,n) #empty transition matrix for time bins with clicks
-
-    @inbounds for t = 1:T
-
-        P,F = latent_one_step!(P,F,pz,t,hereL,hereR,La,Ra,M,dx,xc,n,dt)
-        PS[:,t] = P
-
-    end
-
-    return PS
-
-end
-
 function posterior_single_trial(pz::Vector{TT}, P::Vector{TT}, M::Array{TT,2}, dx::TT,
         xc::Vector{TT},L::Vector{Float64}, R::Vector{Float64}, T::Int,
         hereL::Vector{Int}, hereR::Vector{Int},
@@ -265,41 +115,6 @@ function posterior_single_trial(pz::Vector{TT}, P::Vector{TT}, M::Array{TT,2}, d
 
 end
 
-=#
-
-########################## Model with RBF #################################################################
-
-#=
-
-function LL_all_trials(pz::Vector{TT}, py::Vector{Vector{TT}}, pRBF::Vector{Vector{TT}},
-        data::Dict; dt::Float64=1e-2, n::Int=53,
-        f_str::String="softplus", comp_posterior::Bool=false,
-        numRBF::Int=20) where {TT <: Any}
-
-    P,M,xc,dx, = initialize_latent_model(pz,n,dt)
-
-    λ = hcat(fy.(py,[xc],f_str=f_str)...)
-    #c = map(x->dt:dt:maximum(data["nT"][x])*dt,data["trial"])
-    #rbf = map(x->UniformRBFE(x,numRBF),c);
-    #λ0 = map((x,y,z)->x(y)*z, rbf, c, pRBF)
-
-    λ0 = λ0_from_RBFs(pRBF,data;dt=dt,numRBF=numRBF)
-
-    output = pmap((L,R,T,nL,nR,N,SC) -> LL_single_trial(pz, P, M, dx, xc,
-        L, R, T, nL, nR, λ[:,N], SC, dt, n, λ0=λ0[N]),
-        data["leftbups"], data["rightbups"], data["nT"], data["binned_leftbups"],
-        data["binned_rightbups"], data["N"],data["spike_counts"])
-
-end
-
-function λ0_from_RBFs(pRBF::Vector{Vector{TT}},data::Dict;
-        dt::Float64=1e-2,numRBF::Int=20) where {TT <: Any}
-
-    c = map(x->dt:dt:maximum(data["nT"][x])*dt,data["trial"])
-    rbf = map(x->UniformRBFE(x,numRBF),c);
-    λ0 = map((x,y,z)->x(y)*z, rbf, c, pRBF)
-
-end
 =#
 
 #=
