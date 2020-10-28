@@ -37,7 +37,8 @@ function loglikelihood(θ::DDMθ, data, data_dict, dx::Float64)
     elseif θ.ndtime_θz isa θz_ndtime_mod
         
         if θ.base_θz.lapse_u == 0.
-            lapse_dist = Uniform(dt*minimum(data_dict["nT"]), dt*maximum(data_dict["nT"]))
+            # lapse_dist = Uniform(dt*minimum(data_dict["nT"]), dt*maximum(data_dict["nT"]))
+            lapse_dist = Uniform(0, dt)
         else
             lapse_dist = Exponential(θ.base_θz.lapse_u)
         end

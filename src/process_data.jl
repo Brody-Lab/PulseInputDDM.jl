@@ -77,7 +77,8 @@ function make_data_dict(inputs, sessbnd, avgT)
     teps = evidence_no_noise(map(data->data.clicks.gamma, inputs), dteps = 1e-50)
         
     data_vec = Dict("correct"=> correct, "sessbnd"=> sessbnd, 
-                    "frac" => 1e-3, "mlapse" => avgT, "teps" => teps, "nT" => nT, 
+                    "frac" => 1e-3, "mlapse" => avgT, 
+                    "teps" => teps, "nT" => nT, 
                     "ntrials" => length(correct), "dt"=> dt)
 end
 

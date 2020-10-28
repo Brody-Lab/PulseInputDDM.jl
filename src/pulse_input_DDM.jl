@@ -13,10 +13,13 @@ using Discretizers, PositiveFactorizations
 using ImageFiltering
 using ForwardDiff: value
 using Parameters, Flatten
+using Colors, Bootstrap, PyPlot
+
 import Base.rand
 import Base.Iterators: partition
 import Flatten: flattenable
 import StatsFuns: logistic, logit, softplus, xlogy
+import Statistics: mean, median, std, quantile
 
 """
 paramdefs
@@ -459,11 +462,11 @@ end
 include("base_model.jl")
 include("sample_model.jl")
 include("helper_functions.jl")
-
-include("choice_model/compute_LL.jl")
-include("choice_model/process_data.jl")
-include("choice_model/choice_optim.jl")
-include("choice_model/compute_initial_pt.jl")
+include("compute_LL.jl")
+include("process_data.jl")
+include("choice_optim.jl")
+include("compute_initial_pt.jl")
+include("analysis_functions.jl")
 
 
 export create_θ, create_options, get_param_names, reconstruct_model
@@ -472,6 +475,8 @@ export CIs, optimize, Hessian, gradient, objectivefn
 export load, reload, save, flatten, unflatten
 export synthetic_clicks, binLR, bin_clicks
 export compute_initial_pt, compute_bnd
+
+export return_fit_params, load_data_and_param, compute_and_plot
 
 
 end

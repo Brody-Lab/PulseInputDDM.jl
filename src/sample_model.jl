@@ -67,8 +67,13 @@ function rand(inputs, data_dict, θ::DDMθ, hist_θz, σ2_s, C, rng::Vector{Int}
 
     # adding lapse effects 
     @unpack lapse, lapse_u  = θ.base_θz
+    if θ.base_θz.lapse_u == 0.
+        lapse_dist = Uniform(0., 1.)
+    else
+        lapse_dist = Exponential(θ.base_θz.lapse_u)
+    end
     islapse = rand(ntrials).< lapse
-    lapse_u == 0 ? lapse_dist = Exponential(data_dict["mlapse"]) : lapse_dist = Exponential(lapse_u)
+    # lapse_u == 0 ? lapse_dist = Exponential(data_dict["mlapse"]) : lapse_dist = Exponential(lapse_u)
 
     lapse_r, lapse_l = get_lapse_prob(θ.base_θz, a_0)
     choices[islapse] = rand(sum(islapse)).< lapse_r
@@ -92,6 +97,7 @@ given model parameters and inputs and initial points
 function rand(inputs, data_dict, a_0, θ::DDMθ, hist_θz::θz_ch, σ2_s, C, rng::Vector{Int}) 
 
     ntrials = data_dict["ntrials"]
+    @unpack dt = inputs[1]
 
     output = pmap((inputs, a_0, rng) -> rand(inputs, θ.base_θz, σ2_s, C, a_0, rng), inputs, a_0, rng)
     choices = map(output->output[1], output)
@@ -99,8 +105,13 @@ function rand(inputs, data_dict, a_0, θ::DDMθ, hist_θz::θz_ch, σ2_s, C, rng
 
     # adding lapse effects 
     @unpack lapse, lapse_u  = θ.base_θz
+    if θ.base_θz.lapse_u == 0.
+        lapse_dist = Uniform(0., dt)
+    else
+        lapse_dist = Exponential(θ.base_θz.lapse_u)
+    end
     islapse = rand(ntrials).< lapse
-    lapse_u == 0 ? lapse_dist = Exponential(data_dict["mlapse"]) : lapse_dist = Exponential(lapse_u)
+    # lapse_u == 0 ? lapse_dist = Exponential(data_dict["mlapse"]) : lapse_dist = Exponential(lapse_u)
 
     lapse_r, lapse_l = get_lapse_prob(θ.base_θz, a_0)
     choices[islapse] = rand(sum(islapse)).< lapse_r
@@ -126,12 +137,17 @@ function rand(inputs, data_dict, θ::DDMθ, hist_θz::θz_ch, σ2_s, C, rng::Vec
     hits    = Array{Bool}(undef, data_dict["ntrials"])
     islapse = Array{Bool}(undef, data_dict["ntrials"])
     DT      = Array{Float64}(undef, data_dict["ntrials"])
+    @unpack dt = inputs[1]
 
 
     @unpack base_θz = θ
     @unpack lapse, lapse_u = base_θz
-    lapse_u == 0 ? lapse_dist = Exponential(data_dict["mlapse"]) : lapse_dist = Exponential(lapse_u)
-
+    # lapse_u == 0 ? lapse_dist = Exponential(data_dict["mlapse"]) : lapse_dist = Exponential(lapse_u)
+    if θ.base_θz.lapse_u == 0.
+        lapse_dist = Uniform(0., dt)        
+    else
+        lapse_dist = Exponential(θ.base_θz.lapse_u)
+    end
 
     if hist_θz isa θz_expfilter_ce
         @unpack h_ηC, h_ηE, h_βC, h_βE = hist_θz
