@@ -11,7 +11,7 @@ using Test, pulse_input_DDM, LinearAlgebra, Flatten, Parameters
             bias=1., lapse=0.05)
 
         θ, data = synthetic_data(;θ=θ, ntrials=10, rng=1)
-        model_gen = choiceDDM(θ, data, n, cross)
+        model_gen = choiceDDM(θ, data, n, cross, θprior(μ_B=40., σ_B=1e6))
 
         choices = getfield.(data, :choice)
 
@@ -21,7 +21,8 @@ using Test, pulse_input_DDM, LinearAlgebra, Flatten, Parameters
 
         @test round(norm(gradient(model_gen)), digits=2) ≈ 14.32
 
-        model, = optimize(data, choiceoptions(); iterations=5, outer_iterations=1);
+        model, = optimize(data, choiceoptions(); iterations=5, outer_iterations=1, 
+            θprior=θprior(μ_B=40., σ_B=1e6));
         @test round(norm(Flatten.flatten(model.θ)), digits=2) ≈ 25.05
 
         H = Hessian(model)
@@ -43,7 +44,7 @@ using Test, pulse_input_DDM, LinearAlgebra, Flatten, Parameters
             θy=[[Sigmoid() for n in 1:N] for N in ncells], f=f);
 
         data, = synthetic_data(θ, ntrials, ncells);
-        model_gen = neuralDDM(θ, data, n, cross);
+        model_gen = neuralDDM(θ, data, n, cross, θprior(μ_B=40., σ_B=1e6));
 
         spikes = map(x-> sum.(x), getfield.(vcat(data...), :spikes))
 
@@ -80,7 +81,7 @@ using Test, pulse_input_DDM, LinearAlgebra, Flatten, Parameters
         x0 = vcat([0.1, 15., -0.1, 20., 0.5, 0.8, 0.008], pulse_input_DDM.flatten(model.θ)[dimz+1:end])
         options = neural_options(f)  
 
-        model = neuralDDM(θneural(x0, f), data, n, cross)
+        model = neuralDDM(θneural(x0, f), data, n, cross, θprior(μ_B=40., σ_B=1e6))
         model, = optimize(model, options; iterations=2, outer_iterations=1)
         @test round(norm(pulse_input_DDM.flatten(model.θ)), digits=2) ≈ 85.73
 
