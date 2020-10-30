@@ -26,7 +26,7 @@ import Flatten: flattenable
 #import Polynomials: Poly
 using BasisFunctionExpansions
 
-export choiceDDM, θchoice, θz, choiceoptions
+export choiceDDM, θchoice, θz, choiceoptions, θlapse, θtrialhist
 export neuralDDM, θneural, θy, neural_options, neuraldata
 export Sigmoid, Softplus
 export noiseless_neuralDDM, θneural_noiseless, neural_options_noiseless
@@ -40,6 +40,7 @@ export likelihood, choice_loglikelihood, joint_loglikelihood
 export choice_optimize, choice_neural_optimize, choice_likelihood
 export simulate_expected_firing_rate, reload_neural_data
 export loglikelihood, synthetic_data
+export get_param_names, create_options_and_x0
 export CIs, optimize, Hessian, gradient
 export load_choice_data, load_neural_data, reload_neural_model, save_neural_model, flatten
 export save, load, reload_choice_model, save_choice_model
@@ -67,6 +68,22 @@ abstract type DDMf end
     τ_ϕ = 0.05
 end
 
+"""
+"""
+@with_kw struct θlapse{T<:Real} @deftype T
+    lapse_prob = 0.5
+    lapse_bias = 0.1
+    lapse_modbeta = 0. 
+end
+
+"""
+"""
+@with_kw struct θtrialhist{T<:Real} @deftype T
+    h_ηc = -0.3
+    h_ηe = -0.1
+    h_βc = 0.8
+    h_βe = 0.1
+end
 
 """
 """
@@ -97,9 +114,10 @@ end
 
 """
 """
-@with_kw struct choiceinputs{T1,T2}
+@with_kw struct choiceinputs{T1,T2,T3}
     clicks::T1
     binned_clicks::T2
+    sessbnd::T3
     dt::Float64
     centered::Bool
     delay::Int=0

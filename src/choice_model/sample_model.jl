@@ -3,12 +3,13 @@
 
 Returns default parameters and ntrials of synthetic data (clicks and choices) organized into a choicedata type.
 """
-function synthetic_data(; θ::θchoice=θchoice(), ntrials::Int=2000, rng::Int=1, dt::Float64=1e-2, centered::Bool=false)
+function synthetic_data(; θ::θchoice=θchoice(), ntrials::Int=2000, rng::Int=1, dt::Float64=1e-2, 
+                            centered::Bool=false, initpt_mod::Bool=false)
 
-    clicks, choices = rand(θ, ntrials; rng=rng)
+    clicks, choices, sessbnd = rand(θ, ntrials; rng=rng, initpt_mod=initpt_mod)
     binned_clicks = bin_clicks.(clicks, centered=centered, dt=dt)
-    inputs = map((clicks, binned_clicks)-> choiceinputs(clicks=clicks, binned_clicks=binned_clicks, 
-        dt=dt, centered=centered), clicks, binned_clicks)
+    inputs = map((clicks, binned_clicks, sessbnd)-> choiceinputs(clicks=clicks, binned_clicks=binned_clicks, 
+        sessbnd=sessbnd, dt=dt, centered=centered), clicks, binned_clicks, sessbnd)
 
     return θ, choicedata.(inputs, choices)
 
@@ -18,40 +19,47 @@ end
 """
     rand(θ, ntrials)
 
-Produces synthetic clicks and choices for n trials using model parameters θ.
+Produces synthetic clicks and choices for ntrials using model parameters θ.
 """
-function rand(θ::θchoice, ntrials::Int; dt::Float64=1e-4, rng::Int = 1, centered::Bool=false)
+function rand(θ::θchoice, ntrials::Int; dt::Float64=1e-4, rng::Int = 1, centered::Bool=false, initpt_mod::Bool=false)
 
     clicks = synthetic_clicks(ntrials, rng)
     binned_clicks = bin_clicks.(clicks,centered=centered,dt=dt)
-    inputs = map((clicks, binned_clicks)-> choiceinputs(clicks=clicks, binned_clicks=binned_clicks, 
-        dt=dt, centered=centered), clicks, binned_clicks)
+    sessbnd = [rand()<0.001 for i in 1:ntrials]
+    sessbnd[1] = true
+    inputs = map((clicks, binned_clicks, sessbnd)-> choiceinputs(clicks=clicks, binned_clicks=binned_clicks, 
+        sessbnd=sessbnd, dt=dt, centered=centered), clicks, binned_clicks, sessbnd)
 
-    ntrials = length(inputs)
     rng = sample(Random.seed!(rng), 1:ntrials, ntrials; replace=false)
 
     #choices = rand.(Ref(θ), inputs, rng)
-    choices = pmap((inputs, rng) -> rand(θ, inputs, rng), inputs, rng)
+    choices = Array{Bool}(undef, ntrials)
+    hits = Array{Bool}(undef, ntrials)
+    correct = map(inputs -> Δclicks(inputs) > 0, inputs)
 
-    return clicks, choices
+    @unpack θz, θlapse, θhist, bias = θ
+    lim = 1
+
+    for i = 1:ntrials
+        Random.seed!(rng[i])
+
+        if sessbnd[i] == true
+            lim, i_0 = i, 0.
+        else
+            i_0 = compute_history(i, θhist, choices, hits, lim)                   
+        end
+
+        initpt_mod ? a = rand(θz,inputs[i]) : a = rand(θz,inputs[i], a_0 = i_0)
+        rlapse = get_rightlapse_prob(θlapse, i_0)
+        rand() > θlapse.lapse_prob ? choices[i] = a[end] >= bias : choices[i] = rand()<rlapse
+        hits[i] = choices[i] == correct[i]
+    end
+
+    return clicks, choices, sessbnd
 
 end
 
 
-"""
-    rand(θ, inputs, rng)
-
-Produces L/R choice for one trial, given model parameters and inputs.
-"""
-function rand(θ::θchoice, inputs::choiceinputs, rng::Int)
-
-    Random.seed!(rng)
-    @unpack θz, bias, lapse = θ
-
-    a = rand(θz,inputs)
-    rand() > lapse ? choice = a[end] >= bias : choice = Bool(round(rand()))
-
-end
 
 
 """
@@ -59,12 +67,13 @@ end
 
 Returns default parameters and ntrials of synthetic data (clicks and choices) organized into a choicedata type.
 """
-function synthetic_data(n::Int; θ::θchoice=θchoice(), ntrials::Int=2000, rng::Int=1, dt::Float64=1e-2, centered::Bool=false)
+function synthetic_data(n::Int; θ::θchoice=θchoice(), ntrials::Int=2000, rng::Int=1, 
+                        dt::Float64=1e-2, centered::Bool=false, initpt_mod::Bool=false)
 
-    clicks, choices = rand(θ, ntrials, n; rng=rng)
+    clicks, choices, sessbnd = rand(θ, ntrials, n; rng=rng, initpt_mod = initpt_mod, centered=centered, dt=dt)
     binned_clicks = bin_clicks.(clicks, centered=centered, dt=dt)
-    inputs = map((clicks, binned_clicks)-> choiceinputs(clicks=clicks, binned_clicks=binned_clicks, 
-        dt=dt, centered=centered), clicks, binned_clicks)
+    inputs = map((clicks, binned_clicks, sessbnd)-> choiceinputs(clicks=clicks, binned_clicks=binned_clicks, 
+        sessbnd = sessbnd, dt=dt, centered=centered), clicks, binned_clicks, sessbnd)
 
     return θ, choicedata.(inputs, choices)
 
@@ -74,47 +83,67 @@ end
 """
     rand(θ, ntrials, n)
 
-Produces synthetic clicks and choices for n trials using model parameters θ.
+Produces synthetic clicks and choices for ntrials using model parameters θ.
 """
-function rand(θ::θchoice, ntrials::Int, n::Int; dt::Float64=1e-2, rng::Int = 1, centered::Bool=false)
+function rand(θ::θchoice, ntrials::Int, n::Int; 
+                dt::Float64=1e-2, rng::Int = 1, centered::Bool=false, initpt_mod::Bool=false)
 
     clicks = synthetic_clicks(ntrials, rng)
     binned_clicks = bin_clicks.(clicks,centered=centered,dt=dt)
-    inputs = map((clicks, binned_clicks)-> choiceinputs(clicks=clicks, binned_clicks=binned_clicks, 
-        dt=dt, centered=centered), clicks, binned_clicks)
+    sessbnd = [rand()<0.001 for i in 1:ntrials]
+    sessbnd[1] = true
+    inputs = map((clicks, binned_clicks, sessbnd)-> choiceinputs(clicks=clicks, binned_clicks=binned_clicks, 
+        sessbnd = sessbnd, dt=dt, centered=centered), clicks, binned_clicks, sessbnd)
     
     #θ = θ2(θ)
 
-    @unpack θz, lapse = θ   
+    @unpack θz, θhist, θlapse, bias = θ   
     @unpack σ2_i, B, λ, σ2_a = θz
 
-    P,M,xc,dx = initialize_latent_model(σ2_i, B, λ, σ2_a, n, dt, lapse=lapse)
+    choices = Array{Bool}(undef, ntrials)
+    hits = Array{Bool}(undef, ntrials)
+    correct = map(inputs -> Δclicks(inputs) > 0, inputs)
 
-    ntrials = length(inputs)
+    M,xc,dx = initialize_latent_model(σ2_i, B, λ, σ2_a, n, dt)
     rng = sample(Random.seed!(rng), 1:ntrials, ntrials; replace=false)
-    choices = pmap((inputs, rng) -> rand(θ, inputs, rng, P, M, dx, xc; n=n), inputs, rng)
+
+    for i = 1:ntrials
+        Random.seed!(rng[i])
+    
+        if sessbnd[i] == true
+            lim, i_0 = i, 0.
+        else
+            i_0 = compute_history(i, θhist, choices, hits, lim)                   
+        end
+
+        initpt_mod ? a_0 = i_0 : a_0 = 0.
+        P = P0(σ2_i, a_0, n, dx, xc, dt)
+        P = P_single_trial!(θz,P,M,dx,xc,inputs[i],n,cross)   
+        
+        rlapse = get_rightlapse_prob(θlapse, i_0)
+        aend = xc[findfirst(cumsum(P) .> rand())]
+        rand() > θlapse.lapse_prob ? choice[i] = aend >= bias : choice[i] = rand()<rlapse
+
+        hits[i] = choices[i] == correct[i]
+    end
 
     return clicks, choices
 
 end
 
 
-"""
-    rand(θ, inputs, rng)
+function compute_history(i::Int, θhist::θtrialhist, choices, hits, lim::Int)
 
-Produces L/R choice for one trial, given model parameters and inputs.
-"""
-function rand(θ::θchoice, inputs::choiceinputs, rng::Int,
-    P::Vector{TT}, M::Array{TT,2}, dx::UU, xc::Vector{TT}; n::Int=53, cross::Bool=false) where {TT,UU <: Real}
-
-    @unpack θz, bias = θ    
-    Random.seed!(rng)
-
-    #a = rand(θz, inputs, P, M, dx, xc; n=n, cross=cross)
-    #choice = a[end] >= bias
+    @unpack h_ηc, h_ηe, h_βc, h_βe = θhist
     
-    P = P_single_trial!(θz,P,M,dx,xc,inputs,n,cross)   
-    #P = randP(θz, inputs, P, M, dx, xc; n=n, cross=cross)
-    choice = xc[findfirst(cumsum(P) .> rand())] >= bias
+    rel = max(lim, i-20):i-1
+    rc = ((choices[rel] .== 1) .& (hits[rel] .== 1)).*h_ηc.*h_βc.^reverse(0:length(rel)-1)
+    re = ((choices[rel] .== 1) .& (hits[rel] .== 0)).*h_ηe.*h_βe.^reverse(0:length(rel)-1)
+    lc = ((choices[rel] .== 0) .& (hits[rel] .== 1)).*h_ηc.*h_βc.^reverse(0:length(rel)-1)
+    le = ((choices[rel] .== 0) .& (hits[rel] .== 0)).*h_ηe.*h_βe.^reverse(0:length(rel)-1)
+    i_0 = sum(rc - lc + re - le)
 
+    return i_0
 end
+
+

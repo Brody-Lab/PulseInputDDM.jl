@@ -13,11 +13,13 @@ function load_choice_data(file::String; centered::Bool=false, dt::Float64=1e-2)
     L = vec(map(x-> vec(collect(x)), data[collect(keys(data))[occursin.("left", collect(keys(data)))][1]]))
     R = vec(map(x-> vec(collect(x)), data[collect(keys(data))[occursin.("right", collect(keys(data)))][1]]))
     choices = vec(convert(BitArray, data["pokedR"]))
-
+    sessbnd = vec(convert(BitArray, data["sessbnd"]))
+    sessbnd[1] = true  # marking the first trial
+        
     theclicks = clicks.(L, R, T)
     binned_clicks = bin_clicks.(theclicks, centered=centered, dt=dt)
-    inputs = map((clicks, binned_clicks)-> choiceinputs(clicks=clicks, binned_clicks=binned_clicks, 
-        dt=dt, centered=centered), theclicks, binned_clicks)
+    inputs = map((clicks, binned_clicks)-> choiceinputs(clicks=clicks, binned_clicks=binned_clicks, sessbnd=sessbnd, 
+        dt=dt, centered=centered), theclicks, binned_clicks, sessbnd)
 
     choicedata.(inputs, choices)
 
@@ -35,7 +37,7 @@ function save_choice_model(file, model, options)
     @unpack θ = model
 
     dict = Dict("ML_params"=> collect(Flatten.flatten(θ)),
-        "name" => ["σ2_i", "B", "λ", "σ2_a", "σ2_s", "ϕ", "τ_ϕ", "bias", "lapse"],
+        "name" => get_param_names(θ),
         "lb"=> lb, "ub"=> ub, "fit"=> fit)
 
     matwrite(file, dict)
@@ -54,7 +56,7 @@ function save_choice_model(file, model, options, CI)
     @unpack θ = model
 
     dict = Dict("ML_params"=> collect(Flatten.flatten(θ)),
-        "name" => ["σ2_i", "B", "λ", "σ2_a", "σ2_s", "ϕ", "τ_ϕ", "bias", "lapse"],
+        "name" => get_param_names(θ),
         "lb"=> lb, "ub"=> ub, "fit"=> fit,
         "CI" => CI)
 

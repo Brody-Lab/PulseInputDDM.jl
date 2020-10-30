@@ -28,7 +28,7 @@ end
 
 
 """
-    P, M, xc, dx = initialize_latent_model(σ2_i, B, λ, σ2_a, n, dt)
+    M, xc, dx = initialize_latent_model(σ2_i, a_0, B, λ, σ2_a, n, dt)
 
 Creates several variables that are required to compute the LL for each trial, but that
 are identical for all trials.
@@ -49,8 +49,6 @@ are identical for all trials.
 
 ## RETURNS:
 
-- P    A vector. Discrete approximation to P(a).
-
 - M    A n x n matrix. The transition matrix of P(a_t | a_{t-1})
 
 - xc   A vector. Spatial bin centers
@@ -66,23 +64,23 @@ function initialize_latent_model(σ2_i::TT, B::TT, λ::TT, σ2_a::TT,
      n::Int, dt::Float64) where {TT <: Any}
 
     xc,dx = bins(B,n)
-    P = P0(σ2_i,n,dx,xc,dt)
+    # P = P0(σ2_i, a_0, n,dx,xc,dt)
     M = transition_M(σ2_a*dt,λ,zero(TT),dx,xc,n,dt)
 
-    return P, M, xc, dx
+    return M, xc, dx
 
 end
 
 
 """
-    P0(σ2_i, n dx, xc, dt)
+    P0(σ2_i, a_0, n dx, xc, dt)
 
 """
-function P0(σ2_i::TT, n::Int, dx::VV, xc::Vector{TT}, dt::Float64) where {TT,VV <: Any}
+function P0(σ2_i::TT, a_0::TT, n::Int, dx::VV, xc::Vector{TT}, dt::Float64) where {TT,VV <: Any}
 
     P = zeros(TT,n)
     P[ceil(Int,n/2)] = one(TT) 
-    M = transition_M(σ2_i,zero(TT),zero(TT),dx,xc,n,dt)
+    M = transition_M(σ2_i,zero(TT),a_0,dx,xc,n,dt)
     P = M * P
 
 end

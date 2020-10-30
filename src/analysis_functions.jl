@@ -12,6 +12,19 @@ end
 
 """
 """
+function Δclicks(inputs)
+    
+    @unpack binned_clicks, clicks, dt = inputs
+    L,R = binLR(binned_clicks, clicks, dt)
+    cumdiff = cumsum(-L + R)
+
+    return cumdiff[end]
+end
+
+
+
+"""
+"""
 function binLR(binned_clicks, clicks, dt)
 
     @unpack L, R = clicks

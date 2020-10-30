@@ -38,7 +38,7 @@ Returns:
 - `A`: an `array` of the latent path.
 
 """
-function rand(θz::θz{T}, inputs) where T <: Real
+function rand(θz::θz{T}, inputs; a_0::Float64 = 0.) where T <: Real
 
     @unpack σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ = θz
     @unpack clicks, binned_clicks, centered, dt, delay, pad = inputs
@@ -52,9 +52,9 @@ function rand(θz::θz{T}, inputs) where T <: Real
     A = Vector{T}(undef, length(time_bin))
     
     if σ2_i > 0.
-        a = sqrt(σ2_i)*randn()
+        a = sqrt(σ2_i)*randn() + a_0
     else
-        a = zero(typeof(σ2_i))
+        a = zero(typeof(σ2_i)) + a_0
     end
 
     for t = 1:length(time_bin)
@@ -62,9 +62,9 @@ function rand(θz::θz{T}, inputs) where T <: Real
          if time_bin[t] < 1
                     
             if σ2_i > 0.
-                a = sqrt(σ2_i)*randn()
+                a = sqrt(σ2_i)*randn() + a_0
             else
-                a = zero(typeof(σ2_i))
+                a = zero(typeof(σ2_i)) + a_0
             end
             
         else
