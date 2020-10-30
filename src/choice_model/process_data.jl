@@ -13,9 +13,14 @@ function load_choice_data(file::String; centered::Bool=false, dt::Float64=1e-2)
     L = vec(map(x-> vec(collect(x)), data[collect(keys(data))[occursin.("left", collect(keys(data)))][1]]))
     R = vec(map(x-> vec(collect(x)), data[collect(keys(data))[occursin.("right", collect(keys(data)))][1]]))
     choices = vec(convert(BitArray, data["pokedR"]))
-    sessbnd = vec(convert(BitArray, data["sessbnd"]))
+
+    if haskey(data, "sessbnd")
+        sessbnd = vec(convert(BitArray, data["sessbnd"]))
+    else
+        sessbnd = [rand()<0.001 for i in 1:length(choices)]
+    end    
     sessbnd[1] = true  # marking the first trial
-        
+
     theclicks = clicks.(L, R, T)
     binned_clicks = bin_clicks.(theclicks, centered=centered, dt=dt)
     inputs = map((clicks, binned_clicks, sessbnd)-> choiceinputs(clicks=clicks, binned_clicks=binned_clicks, sessbnd=sessbnd, 
