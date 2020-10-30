@@ -30,7 +30,7 @@ Returns:
 
 Keyword Arguments:
 
-- `modeltype`: could be `bing`, `hist_inipt`, `hist_initpt_lapse`
+- `modeltype`: could be `bing`, `hist_initpt`, `hist_initpt_lapse`
                returns `options.fit` and `x0` to be be consistent with 
                these classes of model 
                default is `bing`
@@ -638,7 +638,7 @@ function bounded_mass(θ::θchoice, data, n::Int, cross::Bool, initpt_mod::Bool)
     @unpack dt = data[1].click_data
 
     i_0 = compute_history(θhist, data, B)
-    initpt_mod ? a_0 = i_0 : a_0 = 0.*i_0
+    initpt_mod ? a_0 = i_0 : a_0 = 0. * i_0
     P,M,xc,dx = initialize_latent_model(σ2_i, a_0, B, λ, σ2_a, n, dt)
 
     pmap(data -> bounded_mass!(θ, P, M, dx, xc, data, n, cross), data)

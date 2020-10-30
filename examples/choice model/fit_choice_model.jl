@@ -6,6 +6,7 @@
 # - `rawdata.rightbups`: row-vector containing the relative timing in seconds (origin at 0 sec) of right clicks on an individual trial. 0 seconds is the start of the click stimulus.
 # - `rawdata.T`: the duration of the trial, in seconds. The beginning of a trial is defined as the start of the click stimulus. The end of a trial is defined based on the behavioral event “cpoke_end”. This was the Hanks convention.
 # - `rawdata.pokedR`: `Bool` representing the animal choice (1 = right).
+# - `rawdata.sessbnd`: `Bool` representing the first trial of every session
 
 # ## Fitting the model
 
@@ -44,11 +45,7 @@ data = load_choice_data("../choice model/example_matfile.mat");
 
 n = 53
 
-options = choiceoptions(fit = vcat(trues(9)),
-    lb = vcat([0., 8., -5., 0., 0., 0.01, 0.005], [-30, 0.]),
-    ub = vcat([2., 30., 5., 100., 2.5, 1.2, 1.], [30, 1.]))
-
-x0 = vcat([0.1, 15., -0.1, 20., 0.5, 0.8, 0.008], [0.,0.01])
+options, x0 = create_options_and_x0(modeltype="bing")
 
 # ### Load some data
 # Blah blah blah

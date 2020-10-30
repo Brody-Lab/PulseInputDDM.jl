@@ -13,10 +13,7 @@ using pulse_input_DDM
 
 n = 53
 
-options = choiceoptions(fit = vcat(trues(9)),
-    lb = vcat([0., 8., -5., 0., 0., 0.01, 0.005], [-30, 0.]),
-    ub = vcat([2., 30., 5., 100., 2.5, 1.2, 1.], [30, 1.]),
-    x0 = vcat([0.1, 15., -0.1, 20., 0.5, 0.8, 0.008], [0.,0.01]))
+options, x0 = create_options_and_x0()
 
 model, = optimize(data, options; iterations=5, outer_iterations=1)
 

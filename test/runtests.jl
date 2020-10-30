@@ -2,16 +2,17 @@ using Test, pulse_input_DDM, LinearAlgebra, Flatten, Parameters
 
 @testset "pulse_input_DDM" begin
 
-    n, cross = 53, false
+    n, cross, initpt_mod = 53, false, false
     
     @testset "choice_model" begin
 
         θ = θchoice(θz=θz(σ2_i = 0.5, B = 15., λ = -0.5, σ2_a = 50., σ2_s = 1.5,
-            ϕ = 0.8, τ_ϕ = 0.05),
-            bias=1., lapse=0.05)
+                    ϕ = 0.8, τ_ϕ = 0.05), bias=1., 
+                    θlapse=θlapse(lapse_prob=0.05,lapse_bias=0., lapse_modbeta=0.), 
+                    θhist=θtrialhist(h_βc = 0., h_βe= 0., h_ηc =0., h_ηe= 0.))
 
-        θ, data = synthetic_data(;θ=θ, ntrials=10, rng=1)
-        model_gen = choiceDDM(θ, data, n, cross, θprior(μ_B=40., σ_B=1e6))
+        θ, data = synthetic_data(;θ=θ, ntrials=10, rng=1, initpt_mod=initpt_mod)
+        model_gen = choiceDDM(θ, data, n, cross, initpt_mod, θprior(μ_B=40., σ_B=1e6))
 
         choices = getfield.(data, :choice)
 
@@ -21,7 +22,8 @@ using Test, pulse_input_DDM, LinearAlgebra, Flatten, Parameters
 
         @test round(norm(gradient(model_gen)), digits=2) ≈ 14.32
 
-        model, = optimize(data, choiceoptions(); iterations=5, outer_iterations=1, 
+        options, x0 = create_options_and_x0()    
+        model, = optimize(data, options; iterations=5, outer_iterations=1, 
             θprior=θprior(μ_B=40., σ_B=1e6));
         @test round(norm(Flatten.flatten(model.θ)), digits=2) ≈ 25.05
 
