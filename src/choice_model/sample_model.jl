@@ -49,7 +49,7 @@ function rand(θ::θchoice, ntrials::Int; dt::Float64=1e-4, rng::Int = 1, center
             i_0 = compute_history(i, θhist, choices, hits, lim)                   
         end
 
-        initpt_mod ? a = rand(θz,inputs[i]) : a = rand(θz,inputs[i], a_0 = i_0)
+        initpt_mod ? a = rand(θz,inputs[i], a_0 = i_0) : a = rand(θz,inputs[i])
         rlapse = get_rightlapse_prob(θlapse, i_0)
         rand() > θlapse.lapse_prob ? choices[i] = a[end] >= bias : choices[i] = rand()<rlapse
         hits[i] = choices[i] == correct[i]
@@ -119,9 +119,9 @@ function rand(θ::θchoice, ntrials::Int, n::Int;
         initpt_mod ? a_0 = i_0 : a_0 = 0.
         P = P0(σ2_i, a_0, n, dx, xc, dt)
         P = P_single_trial!(θz,P,M,dx,xc,inputs[i],n,cross)   
+        aend = xc[findfirst(cumsum(P) .> rand())]
         
         rlapse = get_rightlapse_prob(θlapse, i_0)
-        aend = xc[findfirst(cumsum(P) .> rand())]
         rand() > θlapse.lapse_prob ? choice[i] = aend >= bias : choice[i] = rand()<rlapse
 
         hits[i] = choices[i] == correct[i]
@@ -136,7 +136,7 @@ function compute_history(i::Int, θhist::θtrialhist, choices, hits, lim::Int)
 
     @unpack h_ηc, h_ηe, h_βc, h_βe = θhist
     
-    rel = max(lim, i-20):i-1
+    rel = max(lim, i-30):i-1
     rc = ((choices[rel] .== 1) .& (hits[rel] .== 1)).*h_ηc.*h_βc.^reverse(0:length(rel)-1)
     re = ((choices[rel] .== 1) .& (hits[rel] .== 0)).*h_ηe.*h_βe.^reverse(0:length(rel)-1)
     lc = ((choices[rel] .== 0) .& (hits[rel] .== 1)).*h_ηc.*h_βc.^reverse(0:length(rel)-1)

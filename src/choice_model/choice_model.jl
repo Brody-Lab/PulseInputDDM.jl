@@ -6,6 +6,8 @@ Fields:
 - `fit`: `array` of `Bool` for optimization for `choiceDDM` model.
 - `lb`: `array` of lower bounds for optimization for `choiceDDM` model.
 - `ub`: `array` of upper bounds for optimization for `choiceDDM` model.
+
+also see function `create_options_and_x0`
 """
 @with_kw mutable struct choiceoptions
     fit::Vector{Bool} 
@@ -100,7 +102,7 @@ Example:
     θz=θz(σ2_i = 0.5, B = 15., λ = -0.5, σ2_a = 50., σ2_s = 1.5, ϕ = 0.8, τ_ϕ = 0.05), 
     bias=1., 
     θlapse=θlapse(lapse_prob = 0.05, lapse_bias = 0.5, lapse_modbeta = 2.),
-    θhist=θtrialhist(h_ηrc = 0.3, h_ηlc = -0.3, h_ηre = -0.1, h_ηle = 0.1, h_βc = 0.9, h_βe = 0.1))
+    θhist=θtrialhist(h_ηc = 0.3, h_ηe = -0.1, h_βc = 0.9, h_βe = 0.1))
 ```
 """
 @with_kw struct θchoice{T1, T2, T3, T<:Real} <: DDMθ
@@ -114,7 +116,7 @@ end
 """
 get_param_names(θ)
 given θ, returns an array with all the param names as strings
-currently written only for θchoice but can be extended for other types
+currently written only for θchoice but should be extended to other types
 """
 function get_param_names(θ::θchoice)
     params = vcat(collect(map(x-> string(x), fieldnames(typeof(θ.θz)))), 
@@ -588,7 +590,7 @@ end
 
 
 """
-    compute_history(θhist, data)
+    compute_history(θhist, data, B)
 
 computes the bias due to trial history on initial point/lapse probability
 """
@@ -636,7 +638,7 @@ function bounded_mass(θ::θchoice, data, n::Int, cross::Bool, initpt_mod::Bool)
     @unpack dt = data[1].click_data
 
     i_0 = compute_history(θhist, data, B)
-    initpt_mod ? a_0 = i_0 : a_0 = 0.
+    initpt_mod ? a_0 = i_0 : a_0 = 0.*i_0
     P,M,xc,dx = initialize_latent_model(σ2_i, a_0, B, λ, σ2_a, n, dt)
 
     pmap(data -> bounded_mass!(θ, P, M, dx, xc, data, n, cross), data)

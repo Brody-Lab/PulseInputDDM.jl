@@ -1,5 +1,5 @@
 
-const dimz = 7
+const dimz = 7   # is this used anywhere?
 
 
 """

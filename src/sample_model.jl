@@ -31,7 +31,8 @@ end
 """
     rand(θz, inputs)
 
-Generate a sample latent trajecgtory, given parameters of the latent model `θz` and `inputs` for one trial.
+Generate a sample latent trajectory, given parameters of the latent model `θz` and `inputs` for one trial.
+if `a_0` is provided, that sets the initial values of the latent. Default value for `a_0` is 0
 
 Returns:
 
