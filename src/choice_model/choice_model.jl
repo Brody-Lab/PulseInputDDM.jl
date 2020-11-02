@@ -30,9 +30,10 @@ Returns:
 
 Keyword Arguments:
 
-- `modeltype`: could be `bing`, `hist_initpt`, `hist_initpt_lapse`
+- `modeltype`: could be `bing`, `hist_initpt`, `hist_initpt_lapse`, `hist_lapse`
                returns `options.fit` and `x0` to be be consistent with 
                these classes of model 
+               if fitting `hist_initpt_*` set `initpt_mod` to `true` while optimizing
                default is `bing`
 
 """
@@ -40,26 +41,27 @@ function create_options_and_x0(; modeltype = "bing")
 
      paramlims = Dict( 
       #:paramname => [lb, ub, fit_bing, fit_hist_initpt, hist_initpt_lapse, nofit_default]
-        :σ2_i =>        [0., 2., true, false, false, eps()], 
-        :B =>           [8., 30., true, true, true, 100.],      
-        :λ =>           [-5., 5., true, true, true, 1. + eps()],                                            
-        :σ2_a =>        [0., 100., true, true, true, eps()], 
-        :σ2_s =>        [0., 2.5, true, true, true, eps()],  
-        :ϕ =>           [0.01, 1.2, true, true, true, 1. + eps()], 
-        :τ_ϕ =>         [0.005, 1., true, true, true, eps()],   
-        :lapse_prob =>  [0., 1., true, true, true, 0.],                  
-        :lapse_bias =>  [0., 10., false, false, true, 0.], 
-        :lapse_modbeta=>[0., 20., false, false, true, 0.],                                 
-        :h_ηc =>       [-2.5, 2.5, false, true, true, 0.], 
-        :h_ηe =>       [-2.5, 2.5, false, true, true, 0.], 
-        :h_βc =>        [0., 1., false, true, true, 0.], 
-        :h_βe =>        [0., 1., false, true, true, 0.],
-        :bias =>        [-30, 30, true, true, true, 0.])        
+        :σ2_i =>        [0., 2., true, false, false, true, eps()], 
+        :B =>           [8., 200., true, true, true, true, 100.],      
+        :λ =>           [-5., 5., true, true, true, true, 1. + eps()],                                            
+        :σ2_a =>        [0., 100., true, true, true, true, eps()], 
+        :σ2_s =>        [0., 8, true, true, true, true, eps()],  
+        :ϕ =>           [0.01, 1.2, true, true, true, true, 1. + eps()], 
+        :τ_ϕ =>         [0.005, 1., true, true, true, true, eps()],   
+        :lapse_prob =>  [0., 0.5, true, true, true, true, 0.],                  
+        :lapse_bias =>  [0., 20., false, true, true, true, 0.], 
+        :lapse_modbeta=>[0., 2., false, false, true, true, 0.],                                 
+        :h_ηc =>       [-5,. 5., false, true, true, true, 0.], 
+        :h_ηe =>       [-5., 5., false, true, true, true, 0.], 
+        :h_βc =>        [0., 1., false, true, true, true, 0.], 
+        :h_βe =>        [0., 1., false, true, true, true, 0.],
+        :bias =>        [-30, 30, true, true, true, true, 0.])        
 
     modeltype_idx = Dict(
         "bing"              => 3,
         "hist_initpt"       => 4,
-        "hist_initpt_lapse" => 5)
+        "hist_initpt_lapse" => 5,
+        "hist_lapse"        => 6)
 
     params = get_param_names(θchoice())
 
@@ -75,7 +77,7 @@ function create_options_and_x0(; modeltype = "bing")
         if fit[i]
             x0[i] = lb[i] + (ub[i] - lb[i]) * rand()
         else
-            x0[i] = paramlims[Symbol(params[i])][6]
+            x0[i] = paramlims[Symbol(params[i])][7]
         end
     end
 
@@ -610,6 +612,7 @@ function compute_history(θhist::θtrialhist, data, B::TT) where TT <: Any
             lim, i_0[i] = i, 0.
         else
             i_0[i] = compute_history(i, θhist, choices, hits, lim)     
+            # abs(k) > B ? i_0[i] = k * sign(B) : i_0[i] = k
         end
     end
 

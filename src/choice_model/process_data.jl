@@ -17,7 +17,7 @@ function load_choice_data(file::String; centered::Bool=false, dt::Float64=1e-2)
     if haskey(data, "sessbnd")
         sessbnd = vec(convert(BitArray, data["sessbnd"]))
     else
-        sessbnd = [rand()<0.001 for i in 1:length(choices)]
+        sessbnd = [rand()< eps() for i in 1:length(choices)]
     end    
     sessbnd[1] = true  # marking the first trial
 
