@@ -36,13 +36,13 @@ end
 
 Given a file, model produced by optimize and options, save the results of the optimization to a .MAT file
 """
-function save_choice_model(file, model, options)
+function save_choice_model(file, model, options, ll)
 
     @unpack lb, ub, fit = options
     @unpack θ = model
 
     dict = Dict("ML_params"=> collect(Flatten.flatten(θ)),
-        "name" => get_param_names(θ),
+        "name" => get_param_names(θ), "loglik" => ll, 
         "lb"=> lb, "ub"=> ub, "fit"=> fit)
 
     matwrite(file, dict)
@@ -55,13 +55,13 @@ end
 
 Given a file, model produced by optimize and options, save the results of the optimization to a .MAT file
 """
-function save_choice_model(file, model, options, CI)
+function save_choice_model(file, model, options, ll, CI)
 
     @unpack lb, ub, fit = options
     @unpack θ = model
 
     dict = Dict("ML_params"=> collect(Flatten.flatten(θ)),
-        "name" => get_param_names(θ),
+        "name" => get_param_names(θ), "loglik" => ll, 
         "lb"=> lb, "ub"=> ub, "fit"=> fit,
         "CI" => CI)
 
