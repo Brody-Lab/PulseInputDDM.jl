@@ -285,8 +285,8 @@ Returns:
 function adapt_clicks(ϕ::TT, τ_ϕ::TT, L::Vector{Float64}, R::Vector{Float64}; cross::Bool=false) where {TT}
     
     if length(L) == length(R) == 0
-        return 0., 0.
-        
+        return zeros(TT, 1), zeros(TT, 1)
+
     elseif length(L) == 0
         Ra = ones(TT,length(R))
     
@@ -297,7 +297,7 @@ function adapt_clicks(ϕ::TT, τ_ϕ::TT, L::Vector{Float64}, R::Vector{Float64};
             (length(R) > 1 && ϕ != 1.) ? adapt_clicks!(ϕ, τ_ϕ, Ra, R) : nothing
         end
 
-        return 0., Ra
+        return zeros(TT, 1), Ra
 
     elseif length(R) == 0
          La = ones(TT,length(L))
@@ -309,7 +309,7 @@ function adapt_clicks(ϕ::TT, τ_ϕ::TT, L::Vector{Float64}, R::Vector{Float64};
             (length(L) > 1 && ϕ != 1.) ? adapt_clicks!(ϕ, τ_ϕ, La, L) : nothing
         end
 
-        return La, 0.
+        return La, zeros(TT, 1)
 
     elseif cross
         
