@@ -227,17 +227,27 @@ end
 
 
 """
-    Hessian(model)
+    Hessian(model; chunck_size, remap)
 
 Compute the hessian of the negative log-likelihood at the current value of the parameters of a `neuralDDM` or a `noiseless_neuralDDM`.
+
+Arguments:
+
+- `model`: instance of `neuralDDM` or `noiseless_neuralDDM`
+
+Optional arguments:
+
+- `chunk_size`: parameter to manange how many passes over the LL are required to compute the Hessian. Can be larger if you have access to more memory.
+- `remap`: For considering parameters in variance of std space.
+
 """
-function Hessian(model::Union{neuralDDM, noiseless_neuralDDM}; chuck_size::Int=4)
+function Hessian(model::Union{neuralDDM, noiseless_neuralDDM}; chunk_size::Int=4, remap::Bool=false)
 
     @unpack θ = model
     x = flatten(θ)
-    ℓℓ(x) = -loglikelihood(x, model)
+    ℓℓ(x) = -loglikelihood(x, model; remap=remap)
 
-    cfg = ForwardDiff.HessianConfig(ℓℓ, x, ForwardDiff.Chunk{chuck_size}())
+    cfg = ForwardDiff.HessianConfig(ℓℓ, x, ForwardDiff.Chunk{chunk_size}())
     ForwardDiff.hessian(ℓℓ, x, cfg)
 
 end
@@ -265,7 +275,7 @@ function optimize(data, f::Vector{Vector{String}}; n::Int=53,
         outer_iterations::Int=Int(1e1), scaled::Bool=false,
         extended_trace::Bool=false, cross::Bool=false,
         sig_σ::Float64=1., x0_z::Vector{Float64}=[0.1, 15., -0.1, 20., 0.8, 0.01, 0.008], 
-        θprior::θprior=θprior()) 
+        θprior::θprior=θprior(), remap::Bool=false) 
         
     θy0 = θy.(data, f) 
     x0 = vcat([0., 15., 0. - eps(), 0., 0., 1.0 - eps(), 0.008], vcat(vcat(θy0...)...)) 
@@ -273,6 +283,10 @@ function optimize(data, f::Vector{Vector{String}}; n::Int=53,
     model0 = noiseless_neuralDDM(θ, data)
         
     model0, = optimize(model0, neural_options_noiseless(f), show_trace=false)
+    
+    if remap
+        x0_z = collect(Flatten.flatten(invθz2(θz(x0_z...))))
+    end
        
     x0 = vcat(x0_z, pulse_input_DDM.flatten(model0.θ)[dimz+1:end]) 
     options = neural_options(f)  
@@ -280,7 +294,7 @@ function optimize(data, f::Vector{Vector{String}}; n::Int=53,
     model = neuralDDM(θ, data, n, cross, θprior)
     
     model, = optimize(model, options; show_trace=show_trace, f_tol=f_tol, 
-        iterations=iterations, outer_iterations=outer_iterations)
+        iterations=iterations, outer_iterations=outer_iterations, remap=remap)
 
     return model, options
 
@@ -307,7 +321,7 @@ Returns:
 function optimize(model::neuralDDM, options::neural_options;
         x_tol::Float64=1e-10, f_tol::Float64=1e-9, g_tol::Float64=1e-3,
         iterations::Int=Int(2e3), show_trace::Bool=true, outer_iterations::Int=Int(1e1), 
-        scaled::Bool=false, extended_trace::Bool=false, sig_σ::Float64=1.)
+        scaled::Bool=false, extended_trace::Bool=false, sig_σ::Float64=1., remap::Bool=false)
     
     @unpack fit, lb, ub = options
     @unpack θ, data, n, cross, θprior = model
@@ -318,7 +332,7 @@ function optimize(model::neuralDDM, options::neural_options;
     ub, = unstack(ub, fit)
     x0,c = unstack(x0, fit)
     
-    ℓℓ(x) = -(loglikelihood(stack(x,c,fit), model) + logprior(stack(x,c,fit), θprior) 
+    ℓℓ(x) = -(loglikelihood(stack(x,c,fit), model; remap=remap) + logprior(stack(x,c,fit), θprior) 
         + sigmoid_prior(stack(x,c,fit), θ; sig_σ=sig_σ))
     
     output = optimize(x0, ℓℓ, lb, ub; g_tol=g_tol, x_tol=x_tol,
@@ -337,17 +351,41 @@ end
 
 
 """
-    loglikelihood(x, model)
-
-A wrapper function that accepts a vector of mixed parameters, splits the vector
-into two vectors based on the parameter mapping function provided as an input. Used
-in optimization, Hessian and gradient computation.
 """
-function loglikelihood(x::Vector{T}, model::neuralDDM) where {T <: Real}
+θ2(θ::θneural) = θneural(θz=θz2(θ.θz), θy=θ.θy, f=θ.f)
+
+
+"""
+"""
+invθ2(θ::θneural) = θneural(θz=invθz2(θ.θz), θy=θ.θy, f=θ.f)
+
+
+"""
+    loglikelihood(x, model; remap)
+
+Maps `x` into `model`. Used in optimization, Hessian and gradient computation.
+
+Arguments:
+
+- `x`: a vector of mixed parameters.
+- `model`: an instance of `neuralDDM`
+
+Optional arguments:
+
+- `remap`: For considering parameters in variance of std space.
+
+"""
+function loglikelihood(x::Vector{T}, model::neuralDDM; remap::Bool=false) where {T <: Real}
     
     @unpack data,θ,n,cross,θprior = model
     @unpack f = θ 
-    model = neuralDDM(θneural(x, f), data, n, cross, θprior)
+    
+    if remap
+        model = neuralDDM(θ2(θneural(x, f)), data, n, cross, θprior)
+    else
+        model = neuralDDM(θneural(x, f), data, n, cross, θprior)
+    end
+
     loglikelihood(model)
 
 end
