@@ -48,10 +48,10 @@ function create_options_and_x0(; modeltype = "bing")
         :σ2_s =>        [0., 8, true, true, true, true, eps()],  
         :ϕ =>           [0.01, 1.2, true, true, true, true, 1. + eps()], 
         :τ_ϕ =>         [0.005, 1., true, true, true, true, eps()],   
-        :lapse_prob =>  [0., 0.5, true, true, true, true, 0.],                  
+        :lapse_prob =>  [eps(), 0.5, true, true, true, true, eps()],                  
         :lapse_bias =>  [0., 20., false, true, true, true, 0.], 
         :lapse_modbeta=>[0., 2., false, false, true, true, 0.],                                 
-        :h_ηc =>       [-5,. 5., false, true, true, true, 0.], 
+        :h_ηc =>       [-5., 5., false, true, true, true, 0.], 
         :h_ηe =>       [-5., 5., false, true, true, true, 0.], 
         :h_βc =>        [0., 1., false, true, true, true, 0.], 
         :h_βe =>        [0., 1., false, true, true, true, 0.],
@@ -452,7 +452,7 @@ function likelihood!(θ::θchoice,
     rlapse = get_rightlapse_prob(θlapse, i_0)
     @unpack lapse_prob = θlapse
     choice ? lapse_lik = rlapse : lapse_lik = (1-rlapse)
-    sum(choice_likelihood!(bias,xc,P,choice,n,dx)) * (1 - lapse_prob) + (lapse_prob * lapse_lik)
+    sum(choice_likelihood!(bias,xc,P,choice,n,dx)) * (1 - lapse_prob) + ((lapse_prob - eps()) * lapse_lik) + eps()*0.5
 
 end
 
@@ -611,8 +611,8 @@ function compute_history(θhist::θtrialhist, data, B::TT) where TT <: Any
         if sessbnd[i] == true
             lim, i_0[i] = i, 0.
         else
-            i_0[i] = compute_history(i, θhist, choices, hits, lim)     
-            # abs(k) > B ? i_0[i] = k * sign(B) : i_0[i] = k
+            k = compute_history(i, θhist, choices, hits, lim)     
+            abs(k) > B ? i_0[i] = k * sign(B) : i_0[i] = k
         end
     end
 

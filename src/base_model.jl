@@ -284,7 +284,34 @@ Returns:
 """
 function adapt_clicks(ϕ::TT, τ_ϕ::TT, L::Vector{Float64}, R::Vector{Float64}; cross::Bool=false) where {TT}
     
-    if cross
+    if length(L) == length(R) == 0
+        return 0., 0.
+        
+    elseif length(L) == 0
+        Ra = ones(TT,length(R))
+    
+        #this if statement is for cases when ϕ is 1. and not being learned
+        if (typeof(ϕ) == Float64) && (isapprox(ϕ, 1.0))
+        else
+            Ra[1] = eps()
+            (length(R) > 1 && ϕ != 1.) ? adapt_clicks!(ϕ, τ_ϕ, Ra, R) : nothing
+        end
+
+        return 0., Ra
+
+    elseif length(R) == 0
+         La = ones(TT,length(L))
+    
+        #this if statement is for cases when ϕ is 1. and not being learned
+        if (typeof(ϕ) == Float64) && (isapprox(ϕ, 1.0))
+        else
+            La[1] = eps()
+            (length(L) > 1 && ϕ != 1.) ? adapt_clicks!(ϕ, τ_ϕ, La, L) : nothing
+        end
+
+        return La, 0.
+
+    elseif cross
         
         all = vcat(hcat(L[2:end], -1 * ones(length(L)-1)), hcat(R, ones(length(R))))
         all = all[sortperm(all[:, 1]), :]
