@@ -42,7 +42,7 @@ function save_choice_model(file, model, options, ll)
     @unpack θ = model
 
     dict = Dict("ML_params"=> collect(Flatten.flatten(θ)),
-        "name" => get_param_names(θ), "CI" => ll, 
+        "name" => get_param_names(θ), "loglik" => ll, 
         "lb"=> lb, "ub"=> ub, "fit"=> fit)
 
     matwrite(file, dict)
