@@ -91,6 +91,7 @@ end
     L::Vector{Float64}
     R::Vector{Float64}
     T::Float64
+    gamma::Float64
 end
 
 

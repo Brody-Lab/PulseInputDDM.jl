@@ -42,7 +42,7 @@ function create_options_and_x0(; modeltype = "bing")
      paramlims = Dict( 
       #:paramname => [lb, ub, fit_bing, fit_hist_initpt, hist_initpt_lapse, nofit_default]
         :σ2_i =>        [0., 2., true, false, false, true, eps()], 
-        :B =>           [8., 30., true, true, true, true, 100.],      
+        :B =>           [1., 30., true, true, true, true, 100.],      
         :λ =>           [-5., 5., true, true, true, true, 1. + eps()],                                            
         :σ2_a =>        [0., 100., true, true, true, true, eps()], 
         :σ2_s =>        [0., 2.5, true, true, true, true, eps()],  
@@ -50,12 +50,12 @@ function create_options_and_x0(; modeltype = "bing")
         :τ_ϕ =>         [0.005, 1., true, true, true, true, eps()],   
         :lapse_prob =>  [0., 1., true, true, true, true, eps()],                  
         :lapse_bias =>  [0., 20., false, true, true, true, 0.], 
-        :lapse_modbeta=>[0., 2., false, false, true, true, 0.],                                 
+        :lapse_modbeta=>[0., 3., false, false, true, true, 0.],                                 
         :h_ηc =>       [-5., 5., false, true, true, true, 0.], 
         :h_ηe =>       [-5., 5., false, true, true, true, 0.], 
         :h_βc =>        [0., 1., false, true, true, true, 0.], 
         :h_βe =>        [0., 1., false, true, true, true, 0.],
-        :bias =>        [-30, 30, true, true, true, true, 0.])        
+        :bias =>        [-20, 20, true, true, true, true, 0.])        
 
     modeltype_idx = Dict(
         "bing"              => 3,
@@ -602,7 +602,9 @@ function compute_history(θhist::θtrialhist, data, B::TT) where TT <: Any
     # and passed along in data (ask Brian!)
     choices = map(data -> data.choice, data)
     sessbnd = map(data -> data.click_data.sessbnd, data)
-    correct = map(data -> Δclicks(data.click_data)>0, data)
+   
+    correct = map(data -> data.click_data.clicks.gamma > 0, data)
+    # correct = map(data -> Δclicks(data.click_data)>0, data)
     hits = choices .== correct
 
     i_0 = Array{TT}(undef, length(correct))
