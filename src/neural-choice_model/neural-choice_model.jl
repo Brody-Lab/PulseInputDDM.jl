@@ -419,3 +419,82 @@ function joint_likelihood(θ, θy, data::neuraldata,
     return vcat(c, sum(choice_likelihood!(bias,xc,P,choice,n,dx)) * (1 - lapse) + lapse/2)
      
 end
+
+
+"""
+"""
+function posterior(model::neural_choiceDDM)
+    
+    @unpack data,θ,n,cross = model
+    @unpack θy,θz = θ
+    @unpack σ2_i, B, λ, σ2_a = θz
+    @unpack dt = data[1][1].input_data
+
+    P,M,xc,dx = initialize_latent_model(σ2_i, B, λ, σ2_a, n, dt)
+
+    map((data, θy) -> pmap(data -> posterior(θ, θy, data, P, M, xc, dx, n, cross), data), data, θy)
+
+end
+
+
+"""
+"""
+function posterior(θ::θneural_choice, θy, data::neuraldata,
+        P::Vector{T1}, M::Array{T1,2},
+        xc::Vector{T1}, dx::T3, n, cross) where {T1,T3 <: Real}
+    
+    @unpack θz, bias, lapse = θ
+    @unpack λ, σ2_a, σ2_s, ϕ, τ_ϕ = θz
+    @unpack spikes, input_data, choice = data
+    @unpack binned_clicks, clicks, dt, λ0, centered, delay, pad = input_data
+    @unpack nT, nL, nR = binned_clicks
+    @unpack L, R = clicks
+    
+    #adapt magnitude of the click inputs
+    La, Ra = adapt_clicks(ϕ,τ_ϕ,L,R;cross=cross)
+    
+    time_bin = (-(pad-1):nT+pad) .- delay
+
+    c = Vector{T1}(undef, length(time_bin))
+    F = zeros(T1,n,n) #empty transition matrix for time bins with clicks   
+    α = Array{Float64,2}(undef, n, length(time_bin))
+    β = Array{Float64,2}(undef, n, length(time_bin))
+        
+    @inbounds for t = 1:length(time_bin)
+
+        if time_bin[t] >= 1
+            P, F = latent_one_step!(P, F, λ, σ2_a, σ2_s, time_bin[t], nL, nR, La, Ra, M, dx, xc, n, dt)
+        end
+        
+        P = P .* (vcat(map(xc-> exp(sum(map((k,θy,λ0)-> logpdf(Poisson(θy(xc,λ0[t]) * dt),
+                        k[t]), spikes, θy, λ0))), xc)...))
+        
+        (t == length(time_bin)) && (P = choice_likelihood!(bias,xc,P,choice,n,dx))
+        
+        c[t] = sum(P)
+        P /= c[t]
+        α[:,t] = P
+
+    end   
+
+    P = ones(Float64,n) #initialze backward pass with all 1's
+    β[:,end] = P
+
+    @inbounds for t = length(time_bin)-1:-1:1
+
+        (t+1 == length(time_bin)) && (P = choice_likelihood!(bias,xc,P,choice,n,dx))            
+        P = P .* (vcat(map(xc-> exp(sum(map((k,θy,λ0)-> logpdf(Poisson(θy(xc,λ0[t+1]) * dt),
+                k[t+1]), spikes, θy, λ0))), xc)...))
+            
+        if time_bin[t] >= 0
+            P,F = backward_one_step!(P, F, λ, σ2_a, σ2_s, time_bin[t+1], nL, nR, La, Ra, M, dx, xc, n, dt)
+        end
+        
+        P /= c[t+1]
+        β[:,t] = P
+
+    end
+
+    return α, β, xc
+
+end

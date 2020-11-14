@@ -89,33 +89,63 @@ end
 
 
 """
+"""
+function ΣLR_ΔLR(t::Int, nL::Vector{Int}, nR::Vector{Int},
+        La::Vector{TT}, Ra::Vector{TT}) where {TT <: Any}
+
+    any(t .== nL) ? sL = sum(La[t .== nL]) : sL = zero(TT)
+    any(t .== nR) ? sR = sum(Ra[t .== nR]) : sR = zero(TT)
+
+    sL + sR, -sL + sR
+    
+end
+
+
+"""
+    backward_one_step!(P, F, λ, σ2_a, σ2_s, t, nL, nR, La, Ra, M, dx, xc, n, dt)
+
+"""
+function backward_one_step!(P::Vector{TT}, F::Array{TT,2}, λ::TT, σ2_a::TT, σ2_s::TT,
+        t::Int, nL::Vector{Int}, nR::Vector{Int},
+        La::Vector{TT}, Ra::Vector{TT}, M::Array{TT,2},
+        dx::UU, xc::Vector{TT}, n::Int, dt::Float64) where {TT,UU <: Any}
+    
+    Σ, μ = ΣLR_ΔLR(t, nL, nR, La, Ra)
+
+    σ2 = σ2_s * Σ
+    
+    if Σ > zero(TT)
+        transition_M!(F,σ2+σ2_a*dt,λ, μ, dx, xc, n, dt)
+        P = F' * P
+    else
+        P = M' * P
+    end
+    
+    return P, F
+
+end
+
+
+"""
     latent_one_step!(P, F, λ, σ2_a, σ2_s, t, nL, nR, La, Ra, M, dx, xc, n, dt)
 
 """
 function latent_one_step!(P::Vector{TT}, F::Array{TT,2}, λ::TT, σ2_a::TT, σ2_s::TT,
         t::Int, nL::Vector{Int}, nR::Vector{Int},
         La::Vector{TT}, Ra::Vector{TT}, M::Array{TT,2},
-        dx::UU, xc::Vector{TT}, n::Int, dt::Float64; backwards::Bool=false) where {TT,UU <: Any}
+        dx::UU, xc::Vector{TT}, n::Int, dt::Float64) where {TT,UU <: Any}
 
     any(t .== nL) ? sL = sum(La[t .== nL]) : sL = zero(TT)
     any(t .== nR) ? sR = sum(Ra[t .== nR]) : sR = zero(TT)
 
     σ2 = σ2_s * (sL + sR);   μ = -sL + sR
-
+    
     if (sL + sR) > zero(TT)
         transition_M!(F,σ2+σ2_a*dt,λ, μ, dx, xc, n, dt)
         P = F * P
     else
         P = M * P
     end
-
-    #=
-    if backwards
-        (sL + sR) > zero(TT) ? (M!(F,σ2+σ2_a*dt,λ, μ/dt, dx, xc, n, dt); P  = F' * P;) : P = M' * P
-    else
-        (sL + sR) > zero(TT) ? (M!(F,σ2+σ2_a*dt,λ, μ/dt, dx, xc, n, dt); P  = F * P;) : P = M * P
-    end
-    =#
 
     return P, F
 
