@@ -12,7 +12,7 @@ function load_choice_data(file::String; centered::Bool=false, dt::Float64=1e-2)
     T = vec(data["T"])
     L = vec(map(x-> vec(collect(x)), data[collect(keys(data))[occursin.("left", collect(keys(data)))][1]]))
     R = vec(map(x-> vec(collect(x)), data[collect(keys(data))[occursin.("right", collect(keys(data)))][1]]))
-    gamma = vec(data["gamma"])
+#    gamma = vec(data["gamma"])
 
     choices = vec(convert(BitArray, data["pokedR"]))
 
@@ -23,7 +23,8 @@ function load_choice_data(file::String; centered::Bool=false, dt::Float64=1e-2)
     end    
     sessbnd[1] = true  # marking the first trial
 
-    theclicks = clicks.(L, R, T, gamma)
+    theclicks = clicks.(L, R, T)	
+  #  theclicks = clicks.(L, R, T, gamma)
     binned_clicks = bin_clicks.(theclicks, centered=centered, dt=dt)
     inputs = map((clicks, binned_clicks, sessbnd)-> choiceinputs(clicks=clicks, binned_clicks=binned_clicks, sessbnd=sessbnd, 
         dt=dt, centered=centered), theclicks, binned_clicks, sessbnd)

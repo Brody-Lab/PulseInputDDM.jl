@@ -35,8 +35,8 @@ function rand(θ::θchoice, ntrials::Int; dt::Float64=1e-4, rng::Int = 1, center
     #choices = rand.(Ref(θ), inputs, rng)
     choices = Array{Bool}(undef, ntrials)
     hits = Array{Bool}(undef, ntrials)
-    # correct = map(inputs -> Δclicks(inputs) > 0, inputs)
-    correct = map(data -> data.click_data.clicks.gamma > 0, data)
+    correct = map(inputs -> Δclicks(inputs) > 0, inputs)
+    # correct = map(data -> data.click_data.clicks.gamma > 0, data)
 
     @unpack θz, θlapse, θhist, bias = θ
     lim = 1

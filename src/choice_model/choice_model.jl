@@ -42,20 +42,20 @@ function create_options_and_x0(; modeltype = "bing")
      paramlims = Dict( 
       #:paramname => [lb, ub, fit_bing, fit_hist_initpt, hist_initpt_lapse, nofit_default]
         :σ2_i =>        [0., 2., true, false, false, true, eps()], 
-        :B =>           [1., 30., true, true, true, true, 100.],      
+        :B =>           [8., 100., true, false, false, false, 100.],      
         :λ =>           [-5., 5., true, true, true, true, 1. + eps()],                                            
         :σ2_a =>        [0., 100., true, true, true, true, eps()], 
-        :σ2_s =>        [0., 2.5, true, true, true, true, eps()],  
+        :σ2_s =>        [0., 8., true, true, true, true, eps()],  
         :ϕ =>           [0.01, 1.2, true, true, true, true, 1. + eps()], 
         :τ_ϕ =>         [0.005, 1., true, true, true, true, eps()],   
-        :lapse_prob =>  [0., 1., true, true, true, true, eps()],                  
-        :lapse_bias =>  [0., 20., false, true, true, true, 0.], 
-        :lapse_modbeta=>[0., 3., false, false, true, true, 0.],                                 
-        :h_ηc =>       [-5., 5., false, true, true, true, 0.], 
-        :h_ηe =>       [-5., 5., false, true, true, true, 0.], 
+        :lapse_prob =>  [0., 0.5, true, true, true, true, eps()],                  
+        :lapse_bias =>  [0., 5., false, true, true, true, 0.], 
+        :lapse_modbeta=>[0., 2., false, false, true, true, 0.],                                 
+        :h_ηc =>       [-3.5, 3.5, false, true, true, true, 0.], 
+        :h_ηe =>       [-3.5, 3.5, false, true, true, true, 0.], 
         :h_βc =>        [0., 1., false, true, true, true, 0.], 
         :h_βe =>        [0., 1., false, true, true, true, 0.],
-        :bias =>        [-20, 20, true, true, true, true, 0.])        
+        :bias =>        [-5., 5., true, true, true, true, 0.])        
 
     modeltype_idx = Dict(
         "bing"              => 3,
@@ -276,7 +276,7 @@ Arguments:
 """
 function optimize(data, options::choiceoptions; 
         n::Int=53, cross::Bool=false, initpt_mod::Bool=false,
-        x_tol::Float64=1e-10, f_tol::Float64=1e-9, g_tol::Float64=1e-3,
+        x_tol::Float64=1e-10, f_tol::Float64=1e-9, g_tol::Float64=1e-6,
         iterations::Int=Int(2e3), show_trace::Bool=true, outer_iterations::Int=Int(1e1),
         extended_trace::Bool=false, scaled::Bool=false, time_limit::Float64=170000., show_every::Int=10,
         x0::Vector{Float64} = [0.1, 15., -0.1, 20., 0.5, 0.8, 0.008, 0.01, 0., 0., 0., 0., 0., 0., 0.],  
@@ -452,7 +452,7 @@ function likelihood!(θ::θchoice,
     rlapse = get_rightlapse_prob(θlapse, i_0)
     @unpack lapse_prob = θlapse
     choice ? lapse_lik = rlapse : lapse_lik = (1-rlapse)
-    sum(choice_likelihood!(bias,xc,P,choice,n,dx)) * (1 - lapse_prob) + ((lapse_prob - eps()) * lapse_lik) + eps()*0.5
+    sum(choice_likelihood!(bias,xc,P,choice,n,dx)) * (1 - lapse_prob) + (lapse_prob * lapse_lik)
 
 end
 
@@ -603,8 +603,8 @@ function compute_history(θhist::θtrialhist, data, B::TT) where TT <: Any
     choices = map(data -> data.choice, data)
     sessbnd = map(data -> data.click_data.sessbnd, data)
    
-    correct = map(data -> data.click_data.clicks.gamma > 0, data)
-    # correct = map(data -> Δclicks(data.click_data)>0, data)
+  #  correct = map(data -> data.click_data.clicks.gamma > 0, data)
+    correct = map(data -> Δclicks(data.click_data)>0, data)
     hits = choices .== correct
 
     i_0 = Array{TT}(undef, length(correct))
