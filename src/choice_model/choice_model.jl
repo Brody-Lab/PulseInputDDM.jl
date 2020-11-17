@@ -40,16 +40,16 @@ Keyword Arguments:
 function create_options_and_x0(; modeltype = "bing")
 
      paramlims = Dict( 
-      #:paramname => [lb, ub, fit_bing, fit_hist_initpt, hist_initpt_lapse, nofit_default]
-        :σ2_i =>        [0., 2., true, false, false, true, eps()], 
-        :B =>           [8., 100., true, false, false, false, 100.],      
+      #:paramname => [lb, ub, fit_bing, fit_hist_initpt, hist_initpt_lapse,hist_lapse,  nofit_default]
+        :σ2_i =>        [0., 40., true, false, false, true, eps()], 
+        :B =>           [5., 100., true, true, true, true, 100.],      
         :λ =>           [-5., 5., true, true, true, true, 1. + eps()],                                            
         :σ2_a =>        [0., 100., true, true, true, true, eps()], 
         :σ2_s =>        [0., 8., true, true, true, true, eps()],  
         :ϕ =>           [0.01, 1.2, true, true, true, true, 1. + eps()], 
         :τ_ϕ =>         [0.005, 1., true, true, true, true, eps()],   
         :lapse_prob =>  [0., 0.5, true, true, true, true, eps()],                  
-        :lapse_bias =>  [0., 5., false, true, true, true, 0.], 
+        :lapse_bias =>  [0., 5., true, true, true, true, 0.], 
         :lapse_modbeta=>[0., 2., false, false, true, true, 0.],                                 
         :h_ηc =>       [-3.5, 3.5, false, true, true, true, 0.], 
         :h_ηe =>       [-3.5, 3.5, false, true, true, true, 0.], 
