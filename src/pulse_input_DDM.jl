@@ -28,6 +28,8 @@ using BasisFunctionExpansions
 
 export choiceDDM, θchoice, θz, choiceoptions
 export neuralDDM, θneural, θy, neural_options, neuraldata
+export θHMMDDM, HMMDDM, HMMDDM_options
+
 export Sigmoid, Softplus
 export noiseless_neuralDDM, θneural_noiseless, neural_options_noiseless
 export neural_poly_DDM
@@ -232,6 +234,7 @@ include("neural_model/neural_model.jl")
 include("neural_model/sample_model.jl")
 include("neural_model/process_data.jl")
 include("neural_model/noiseless_model.jl")
+include("neural_model/HMM-DDM.jl")
 #include("neural_model/null.jl")
 #include("neural_model/polynomial/neural_poly_model.jl")
 #include("neural_model/polynomial/noiseless_model_poly.jl")

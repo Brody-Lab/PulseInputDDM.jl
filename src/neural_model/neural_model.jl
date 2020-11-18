@@ -401,6 +401,20 @@ Returns: loglikehood of the data given the parameters.
 """
 function loglikelihood(model::neuralDDM)
     
+    sum(sum.(loglikelihood_pertrial(model)))
+
+end
+
+
+"""
+    loglikelihood_pertrial(model)
+
+Arguments: `neuralDDM` instance
+
+Returns: loglikehood of the data given the parameters.
+"""
+function loglikelihood_pertrial(model::neuralDDM)
+    
     @unpack data,θ,n,cross = model
     @unpack θz, θy = θ
     @unpack σ2_i, B, λ, σ2_a = θz
@@ -408,8 +422,7 @@ function loglikelihood(model::neuralDDM)
 
     P,M,xc,dx = initialize_latent_model(σ2_i, B, λ, σ2_a, n, dt)
 
-    sum(map((data, θy) -> sum(pmap(data -> 
-                    loglikelihood(θz,θy,data, P, M, xc, dx, n, cross)[1], data)), data, θy))
+    map((data, θy) -> pmap(data -> loglikelihood(θz,θy,data, P, M, xc, dx, n, cross), data), data, θy)
 
 end
 
