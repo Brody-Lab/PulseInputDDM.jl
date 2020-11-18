@@ -61,13 +61,13 @@ are identical for all trials.
 ```
 """
 function initialize_latent_model(σ2_i::TT, B::TT, λ::TT, σ2_a::TT,
-     n::Int, dt::Float64) where {TT <: Any}
+     dx::Float64, dt::Float64) where {TT <: Any}
 
-    xc,dx = bins(B,n)
+    xc,n = bins(B,dx)
     # P = P0(σ2_i, a_0, n,dx,xc,dt)
     M = transition_M(σ2_a*dt,λ,zero(TT),dx,xc,n,dt)
 
-    return M, xc, dx
+    return M, xc, n
 
 end
 
@@ -76,7 +76,7 @@ end
     P0(σ2_i, a_0, n dx, xc, dt)
 
 """
-function P0(σ2_i::TT, a_0::TT, n::Int, dx::VV, xc::Vector{TT}, dt::Float64) where {TT,VV <: Any}
+function P0(σ2_i::TT, a_0::TT, n::Int, dx::Float64, xc::Vector{TT}, dt::Float64) where {TT <: Any}
 
     P = zeros(TT,n)
     P[ceil(Int,n/2)] = one(TT) 
@@ -118,6 +118,24 @@ function latent_one_step!(P::Vector{TT}, F::Array{TT,2}, λ::TT, σ2_a::TT, σ2_
     return P, F
 
 end
+
+
+function bins(B::TT, dx::Float64) where {TT <: Any}
+
+    xc = collect(0.:dx:floor(value(B)/dx)*dx)
+
+    if xc[end] == B
+        xc = vcat(xc[1:end-1], B + dx)
+    else
+        xc = vcat(xc, 2*B - xc[end])
+    end
+
+    xc = vcat(-xc[end:-1:2], xc)
+    n = length(xc)
+
+    return xc, n
+end
+
 
 
 """

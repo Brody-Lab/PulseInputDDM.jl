@@ -118,57 +118,57 @@ end
 
 
 
-"""
-"""
-function rand(θz, inputs, P::Vector{TT}, M::Array{TT,2}, dx::UU,
-        xc::Vector{TT}; n::Int=53, cross::Bool=false) where {TT,UU <: Real}
+# """
+# """
+# function rand(θz, inputs, P::Vector{TT}, M::Array{TT,2}, n::Int,
+#         xc::Vector{TT}, dx::Float64, cross::Bool) where {TT,UU <: Real}
 
-    @unpack λ,σ2_a,σ2_s,ϕ,τ_ϕ = θz
-    @unpack binned_clicks, clicks, dt = inputs
-    @unpack nT, nL, nR = binned_clicks
-    @unpack L, R = clicks
+#     @unpack λ,σ2_a,σ2_s,ϕ,τ_ϕ = θz
+#     @unpack binned_clicks, clicks, dt = inputs
+#     @unpack nT, nL, nR = binned_clicks
+#     @unpack L, R = clicks
 
-    La, Ra = adapt_clicks(ϕ,τ_ϕ,L,R; cross=cross)
-    F = zeros(TT,n,n)
-    a = Vector{TT}(undef,nT)
+#     La, Ra = adapt_clicks(ϕ,τ_ϕ,L,R; cross=cross)
+#     F = zeros(TT,n,n)
+#     a = Vector{TT}(undef,nT)
 
-    @inbounds for t = 1:nT
+#     @inbounds for t = 1:nT
 
-        P,F = latent_one_step!(P,F,λ,σ2_a,σ2_s,t,nL,nR,La,Ra,M,dx,xc,n,dt)
+#         P,F = latent_one_step!(P,F,λ,σ2_a,σ2_s,t,nL,nR,La,Ra,M,dx,xc,n,dt)
         
-        P /= sum(P)
+#         P /= sum(P)
         
-        a[t] = xc[findfirst(cumsum(P) .> rand())]
-        P = TT.(xc .== a[t])
+#         a[t] = xc[findfirst(cumsum(P) .> rand())]
+#         P = TT.(xc .== a[t])
         
-    end
+#     end
 
-    return a
+#     return a
     
-end
+# end
 
 
-"""
-"""
-function randP(θz, inputs, P::Vector{TT}, M::Array{TT,2}, dx::UU,
-        xc::Vector{TT}; n::Int=53, cross::Bool=false) where {TT,UU <: Real}
+# """
+# """
+# function randP(θz, inputs, P::Vector{TT}, M::Array{TT,2}, n::Int, 
+#         xc::Vector{TT}, dx::Float64, cross::Bool) where {TT,UU <: Real}
 
-    @unpack λ,σ2_a,σ2_s,ϕ,τ_ϕ = θz
-    @unpack binned_clicks, clicks, dt = inputs
-    @unpack nT, nL, nR = binned_clicks
-    @unpack L, R = clicks
+#     @unpack λ,σ2_a,σ2_s,ϕ,τ_ϕ = θz
+#     @unpack binned_clicks, clicks, dt = inputs
+#     @unpack nT, nL, nR = binned_clicks
+#     @unpack L, R = clicks
 
-    La, Ra = adapt_clicks(ϕ,τ_ϕ,L,R; cross=cross)
-    F = zeros(TT,n,n)
+#     La, Ra = adapt_clicks(ϕ,τ_ϕ,L,R; cross=cross)
+#     F = zeros(TT,n,n)
 
-    @inbounds for t = 1:nT
+#     @inbounds for t = 1:nT
 
-        P,F = latent_one_step!(P,F,λ,σ2_a,σ2_s,t,nL,nR,La,Ra,M,dx,xc,n,dt)        
-        P /= sum(P)
+#         P,F = latent_one_step!(P,F,λ,σ2_a,σ2_s,t,nL,nR,La,Ra,M,dx,xc,n,dt)        
+#         P /= sum(P)
   
         
-    end
+#     end
 
-    return P
+#     return P
     
-end
+# end
