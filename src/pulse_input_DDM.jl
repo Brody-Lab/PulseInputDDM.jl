@@ -28,7 +28,7 @@ using BasisFunctionExpansions
 
 export choiceDDM, θchoice, θz, choiceoptions
 export neuralDDM, θneural, θy, neural_options, neuraldata
-export θHMMDDM, HMMDDM, HMMDDM_options
+export θHMMDDM, HMMDDM, HMMDDM_options, save_model
 
 export Sigmoid, Softplus
 export noiseless_neuralDDM, θneural_noiseless, neural_options_noiseless

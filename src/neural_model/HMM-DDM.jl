@@ -1,11 +1,11 @@
 """
 """
-@with_kw struct θHMMDDM{T1,T2,T3, T4} <: DDMθ
+@with_kw struct θHMMDDM{T1,T2,T3} <: DDMθ
     θz::Vector{T1}
     θy::T2
     f::Vector{Vector{String}}
-    m::T3
-    K::T4
+    m::Array{T3,2}=[0.2 0.8; 0.1 0.9]
+    K::Int=2
 end
 
 
@@ -35,6 +35,33 @@ end
     fit::Vector{Bool}
     ub::Vector{Float64}
     lb::Vector{Float64}
+end
+
+
+"""
+    save_model(file, model, options)
+
+Given a `file`, `model` and `options` produced by `optimize`, save everything to a `.MAT` file in such a way that `reload_neural_data` can bring these things back into a Julia workspace, or they can be loaded in MATLAB.
+
+See also: [`reload_neural_model`](@ref)
+
+"""
+function save_model(file, model::HMMDDM, options)
+
+    @unpack lb, ub, fit = options
+    @unpack θ, data, n, cross = model
+    @unpack f, K = θ
+    @unpack dt, delay, pad = data[1][1].input_data
+    
+    nparams, ncells = nθparams(f)
+    
+    dict = Dict("ML_params"=> collect(pulse_input_DDM.flatten(θ)),
+        "lb"=> lb, "ub"=> ub, "fit"=> fit, "n"=> n, "cross"=> cross,
+        "dt"=> dt, "delay"=> delay, "pad"=> pad, "f"=> vcat(vcat(f...)...),
+        "nparams" => nparams, "ncells" => ncells, "K" => K)
+
+    matwrite(file, dict)
+
 end
 
 
