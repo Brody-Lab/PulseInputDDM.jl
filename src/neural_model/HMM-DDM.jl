@@ -257,7 +257,7 @@ function loglikelihood(model::HMMDDM)
     @unpack θz, θy, f = θ
     
     LL = map(θz-> loglikelihood_pertrial(neuralDDM(θ=θneural(θz=θz, θy=θy, f=f), data=data, n=n, cross=cross)), θz)  
-    py = map(i-> hcat(map(k-> exp.(LL[k][i]), 1:length(LL))...), 1:length(LL[1]))  
+    py = map(i-> hcat(map(k-> max.(1e-150, exp.(LL[k][i])), 1:length(LL))...), 1:length(LL[1]))  
     sum(pmap(py-> loglikelihood(py, θ)[1], py))
 
 end
@@ -282,9 +282,6 @@ function loglikelihood(py, θ)
         ps[t] = p
 
     end
-
-    #this is a clungy fix to prevent NaNs in the gradient, need to find a better way
-    c[c .< 1e-150] .= 1e-150
     
     return sum(log.(c)), ps
 
