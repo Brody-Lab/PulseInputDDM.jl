@@ -73,7 +73,7 @@ function HMMDDM_options(θ::θHMMDDM)
     
     nparams, ncells = nθparams(f)        
     
-    fit = vcat(repeat(vcat(trues(K-1), falses(1)), K), trues(K*dimz), trues.(nparams)...)
+    fit = vcat(repeat(trues(K), K), trues(K*dimz), trues.(nparams)...)
     
     lb = Vector(undef, sum(ncells))
     ub = Vector(undef, sum(ncells))
@@ -102,9 +102,9 @@ function θHMMDDM(x::Vector{T}, θ::θHMMDDM) where {T <: Real}
     
     @unpack K, f = θ
     
-    m = reshape(x[1:K*(K-1)], K, K-1)
-    summ = sum(m, dims=2)
-    m = hcat(m, 1 .- summ)
+    m = collect(partition(x[1:K*K], K))
+    m = map(m-> m/sum(m), m)
+    m = collect(hcat(m...)')
     
     xz = collect(partition(x[K*K+1:K*K+K*dimz], dimz))  
     
@@ -166,7 +166,7 @@ function optimize(model::HMMDDM, options::HMMDDM_options;
     ub, = unstack(ub, fit)
     x0, c = unstack(x0, fit)
     
-    ℓℓ(x) = -loglikelihood(stack(x,c,fit), model)[1]
+    ℓℓ(x) = -loglikelihood(stack(x,c,fit), model)
     
     output = optimize(x0, ℓℓ, lb, ub; g_tol=g_tol, x_tol=x_tol,
         f_tol=f_tol, iterations=iterations, show_trace=show_trace,
@@ -229,45 +229,11 @@ end
 
 
 """
-    loglikelihood(model)
-
-Arguments: `HMMDDM` instance
-
-Returns: loglikehood of the data given the parameters.
-"""
-function loglikelihood(model::HMMDDM)
-    
-    @unpack data,θ,n,cross = model
-    @unpack θz, θy, f = θ
-    @unpack m, K = θ
-    
-    LL = map(θz-> exp.(vcat(loglikelihood_pertrial(neuralDDM(θ=θneural(θz=θz, θy=θy, f=f), data=data, n=n, cross=cross))...)), θz)
-    
-    c = Vector(undef, length(LL[1]))
-    ps = Vector(undef, length(LL[1]))
-    p = 1/K * ones(K)
-    
-    @inbounds for t = 1:length(c)
-
-        p = m * p    
-        p = p .* vec(getindex.(LL, t))     
-        c[t] = sum(p)
-        p /= c[t]
-        ps[t] = p
-
-    end
-
-    return sum(log.(c)), ps
-
-end
-
-#=
-"""
     gradient(model)
 
-Compute the gradient of the negative log-likelihood at the current value of the parameters of a `neuralDDM` or a `noiseless_neuralDDM`.
+Compute the gradient of the negative log-likelihood at the current value of the parameters of a `HMMDDM`.
 """
-function gradient(model::Union{neuralDDM, noiseless_neuralDDM})
+function gradient(model::HMMDDM)
 
     @unpack θ = model
     x = flatten(θ)
@@ -278,6 +244,53 @@ function gradient(model::Union{neuralDDM, noiseless_neuralDDM})
 end
 
 
+"""
+    loglikelihood(model)
+
+Arguments: `HMMDDM` instance
+
+Returns: loglikehood of the data given the parameters.
+"""
+function loglikelihood(model::HMMDDM)
+    
+    @unpack data,θ,n,cross = model
+    @unpack θz, θy, f = θ
+    
+    LL = map(θz-> loglikelihood_pertrial(neuralDDM(θ=θneural(θz=θz, θy=θy, f=f), data=data, n=n, cross=cross)), θz)  
+    py = map(i-> hcat(map(k-> exp.(LL[k][i]), 1:length(LL))...), 1:length(LL[1]))  
+    sum(pmap(py-> loglikelihood(py, θ)[1], py))
+
+end
+
+
+"""
+"""
+function loglikelihood(py, θ)
+    
+    @unpack m, K = θ
+        
+    c = Vector(undef, size(py,1))
+    ps = Vector(undef, size(py,1))
+    p = 1/K * ones(K)
+    
+    @inbounds for t = 1:length(c)
+
+        p = m * p    
+        p = p .* py[t,:]     
+        c[t] = sum(p)
+        p /= c[t]
+        ps[t] = p
+
+    end
+
+    #this is a clungy fix to prevent NaNs in the gradient, need to find a better way
+    c[c .< 1e-150] .= 1e-150
+    
+    return sum(log.(c)), ps
+
+end
+
+#=
 """
 """
 function train_and_test(data; 
