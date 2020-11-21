@@ -35,8 +35,8 @@ function fit_x0(rng,cross, fit, x0, xlb, xub, lb, ub, data,n,savefilename)
     close(io)
 end
 
-output = map(rng -> fit_x0(rng, false, fit, x0, xlb, xub, lb, ub, data, n,savefilename), 1:20)
+#output = map(rng -> fit_x0(rng, false, fit, x0, xlb, xub, lb, ub, data, n,savefilename), 1:20)
 # trace = map(y -> hcat(map(x -> x.metadata["x"], y[2].trace)...), output)
-outputt = map(rng -> fit_x0(rng, true, fit, x0, xlb, xub, lb, ub, data, n,savefilename), 1:20)
+outputt = map(rng -> fit_x0(rng, true, fit, x0, xlb, xub, lb, ub, data, n,savefilename), 10:20)
 # tracet = map(y -> hcat(map(x -> x.metadata["x"], y[2].trace)...), output)
 

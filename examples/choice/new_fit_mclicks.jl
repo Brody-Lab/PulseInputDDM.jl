@@ -2,7 +2,7 @@
 using pulse_input_DDM, Flatten, MAT, Random, JLD2
 import pulse_input_DDM: P_goright
 num_array = Base.parse(Int, ENV["SLURM_ARRAY_TASK_ID"])
-src_data_folder="/scratch/ejdennis/unfrozen_fclicks/";
+src_data_folder="/scratch/ejdennis/d081_rawdata/";
 fclicks_files=readdir(src_data_folder);
 filename=fclicks_files[num_array]
 string(src_data_folder,filename)
@@ -11,7 +11,7 @@ n = 53
 fit = vcat(trues(9))
 lb = vcat([0., 1., -5., 0., 0., 0.001, 0.0000001], [-30, 0.])
 ub = vcat([20., 100., 5., 200., 10., 1.2, 1.], [30, 1.])
-save_file_location = "/scratch/ejdennis/ddm_runs/notfrozen/"
+save_file_location = "/scratch/ejdennis/ddm_runs/"
 xlb = vcat([0.,1.,-1.,0.,0.,0.1,0.001],[-3,0.])
 xub = vcat([5.,30.,1.,10.,4.,1.05,0.1],[3,0.4])
 x0 = vcat([0.1,15.,-0.1,5., 0.5, 0.02, 0.008], [0.,0.1])
