@@ -579,6 +579,61 @@ function posterior(θ::θchoice, data::choicedata,
 end
 
 
+"""
+    forward(model)
+
+"""
+function forward(model::choiceDDM)
+    
+    @unpack θ, data, n, cross = model
+    @unpack θz = θ
+    @unpack σ2_i, B, λ, σ2_a = θz
+    @unpack dt = data[1].click_data
+
+    P,M,xc,dx = initialize_latent_model(σ2_i, B, λ, σ2_a, n, dt)
+    pmap(data -> forward(θ, data, P, M, dx, xc, data, n, cross), data)
+
+end
+
+
+"""
+    forward(θz, P, M, dx, xc, click_data, n)
+
+"""
+function forward(θ::θchoice, data::choicedata,
+        P::Vector{TT}, M::Array{TT,2}, dx::UU,
+        xc::Vector{TT}, click_data,
+        n::Int, cross::Bool) where {TT,UU <: Real}
+
+    @unpack θz, bias, lapse = θ
+    @unpack click_data, choice = data
+    @unpack λ,σ2_a,σ2_s,ϕ,τ_ϕ = θz
+    @unpack binned_clicks, clicks, dt = click_data
+    @unpack nT, nL, nR = binned_clicks
+    @unpack L, R = clicks
+
+    #adapt magnitude of the click inputs
+    La, Ra = adapt_clicks(ϕ,τ_ϕ,L,R; cross=cross)
+
+    F = zeros(TT,n,n)
+    α = Array{Float64,2}(undef, n, nT)
+    c = Vector{TT}(undef, nT)
+
+    @inbounds for t = 1:nT
+
+        P,F = latent_one_step!(P,F,λ,σ2_a,σ2_s,t,nL,nR,La,Ra,M,dx,xc,n,dt)
+                
+        c[t] = sum(P)
+        P /= c[t]
+        α[:,t] = P
+
+    end
+
+    return α, xc
+   
+end
+
+
 #=
 Backward pass, for one day when I might need to compute the posterior again.
 

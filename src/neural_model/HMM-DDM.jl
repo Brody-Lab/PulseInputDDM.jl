@@ -287,6 +287,64 @@ function loglikelihood(py, θ)
 
 end
 
+
+"""
+    posterior(model)
+
+Arguments: `HMMDDM` instance
+
+Returns: posterior of the data given the parameters.
+"""
+function posterior(model::HMMDDM)
+    
+    @unpack data,θ,n,cross = model
+    @unpack θz, θy, f = θ
+    
+    LL = map(θz-> loglikelihood_pertrial(neuralDDM(θ=θneural(θz=θz, θy=θy, f=f), data=data, n=n, cross=cross)), θz)  
+    py = map(i-> hcat(map(k-> max.(1e-150, exp.(LL[k][i])), 1:length(LL))...), 1:length(LL[1]))  
+    pmap(py-> posterior(py, θ), py)
+
+end
+
+
+"""
+"""
+function posterior(py, θ)
+    
+    @unpack m, K = θ
+        
+    c = Vector(undef, size(py,1))
+    α = Array{Float64,2}(undef, K, size(py,1))
+    β = Array{Float64,2}(undef, K, size(py,1))
+ 
+    p = 1/K * ones(K)
+    
+    @inbounds for t = 1:length(c)
+
+        p = m * p    
+        p = p .* py[t,:]     
+        c[t] = sum(p)
+        p /= c[t]
+        α[:,t] = p
+
+    end
+    
+    p = ones(Float64,K) 
+    β[:,end] = p
+    
+    @inbounds for t = length(c)-1:-1:1
+
+        p = p .* py[t+1,:]         
+        p = m' * p         
+        p /= c[t+1]
+        β[:,t] = p
+
+    end
+    
+    return α .* β
+
+end
+
 #=
 """
 """
