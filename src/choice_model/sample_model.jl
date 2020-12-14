@@ -85,10 +85,10 @@ function rand(θ::θchoice, ntrials::Int, n::Int; dt::Float64=1e-2, rng::Int = 1
     
     #θ = θ2(θ)
 
-    @unpack θz, lapse = θ   
+    @unpack θz = θ   
     @unpack σ2_i, B, λ, σ2_a = θz
 
-    P,M,xc,dx = initialize_latent_model(σ2_i, B, λ, σ2_a, n, dt, lapse=lapse)
+    P,M,xc,dx = initialize_latent_model(σ2_i, B, λ, σ2_a, n, dt)
 
     ntrials = length(inputs)
     rng = sample(Random.seed!(rng), 1:ntrials, ntrials; replace=false)
@@ -107,7 +107,7 @@ Produces L/R choice for one trial, given model parameters and inputs.
 function rand(θ::θchoice, inputs::choiceinputs, rng::Int,
     P::Vector{TT}, M::Array{TT,2}, dx::UU, xc::Vector{TT}; n::Int=53, cross::Bool=false) where {TT,UU <: Real}
 
-    @unpack θz, bias = θ    
+    @unpack θz, bias, lapse = θ    
     Random.seed!(rng)
 
     #a = rand(θz, inputs, P, M, dx, xc; n=n, cross=cross)
@@ -115,6 +115,7 @@ function rand(θ::θchoice, inputs::choiceinputs, rng::Int,
     
     P = P_single_trial!(θz,P,M,dx,xc,inputs,n,cross)   
     #P = randP(θz, inputs, P, M, dx, xc; n=n, cross=cross)
-    choice = xc[findfirst(cumsum(P) .> rand())] >= bias
+    
+    rand() > lapse ? choice = xc[findfirst(cumsum(P) .> rand())] >= bias : choice = Bool(round(rand()))
 
 end

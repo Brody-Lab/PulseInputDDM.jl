@@ -20,8 +20,12 @@ using Test, pulse_input_DDM, LinearAlgebra, Flatten, Parameters
         @time @test round(loglikelihood(model_gen), digits=2) ≈ -3.72
 
         @test round(norm(gradient(model_gen)), digits=2) ≈ 14.32
+        
+        options = choiceoptions(lb=vcat([0., 8.,  -5., 0.,   0.,  0.01, 0.005], [-30, 0.]),
+            ub = vcat([2., 30., 5., 100., 2.5, 1.2,  1.], [30, 1.]), 
+            fit = trues(dimz+2));
 
-        model, = optimize(data, choiceoptions(); iterations=5, outer_iterations=1, 
+        model, = optimize(data, options; iterations=5, outer_iterations=1, 
             θprior=θprior(μ_B=40., σ_B=1e6));
         @test round(norm(Flatten.flatten(model.θ)), digits=2) ≈ 25.05
 
@@ -85,7 +89,7 @@ using Test, pulse_input_DDM, LinearAlgebra, Flatten, Parameters
         model, = optimize(model, options; iterations=2, outer_iterations=1)
         @test round(norm(pulse_input_DDM.flatten(model.θ)), digits=2) ≈ 85.73
 
-        H = Hessian(model; chuck_size=4)
+        H = Hessian(model; chunk_size=4)
         @test round(norm(H), digits=2) ≈ 22.83
 
         CI, HPSD = CIs(H)
