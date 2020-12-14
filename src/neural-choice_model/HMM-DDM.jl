@@ -1,37 +1,6 @@
 """
 """
-@with_kw struct θHMMDDM{T1,T2,T3} <: DDMθ
-    θz::Vector{T1}
-    θy::T2
-    f::Vector{Vector{String}}
-    m::Array{T3,2}=[0.2 0.8; 0.1 0.9]
-    K::Int=2
-end
-
-
-"""
-    HMMDDM
-
-Fields:
-- θ
-- data
-- n
-- cross
-- θprior
-
-"""
-@with_kw struct HMMDDM{U,V} <: DDM
-    θ::θHMMDDM
-    data::U
-    n::Int=53
-    cross::Bool=false
-    θprior::V = θprior()
-end
-
-
-"""
-"""
-@with_kw struct HMMDDM_options
+@with_kw struct HMMDDM_joint_options
     fit::Vector{Bool}
     ub::Vector{Float64}
     lb::Vector{Float64}
@@ -39,41 +8,14 @@ end
 
 
 """
-    save_model(file, model, options)
-
-Given a `file`, `model` and `options` produced by `optimize`, save everything to a `.MAT` file in such a way that `reload_neural_data` can bring these things back into a Julia workspace, or they can be loaded in MATLAB.
-
-See also: [`reload_neural_model`](@ref)
-
 """
-function save_model(file, model::Union{HMMDDM, HMMDDM_joint}, options)
-
-    @unpack lb, ub, fit = options
-    @unpack θ, data, n, cross = model
-    @unpack f, K = θ
-    @unpack dt, delay, pad = data[1][1].input_data
-    
-    nparams, ncells = nθparams(f)
-    
-    dict = Dict("ML_params"=> collect(pulse_input_DDM.flatten(θ)),
-        "lb"=> lb, "ub"=> ub, "fit"=> fit, "n"=> n, "cross"=> cross,
-        "dt"=> dt, "delay"=> delay, "pad"=> pad, "f"=> vcat(vcat(f...)...),
-        "nparams" => nparams, "ncells" => ncells, "K" => K)
-
-    matwrite(file, dict)
-
-end
-
-
-"""
-"""
-function HMMDDM_options(θ::θHMMDDM)
+function HMMDDM_joint_options(θ::θHMMDDM_joint)
     
     @unpack K, f = θ
     
     nparams, ncells = nθparams(f)        
     
-    fit = vcat(repeat(trues(K), K), trues(K*dimz), trues.(nparams)...)
+    fit = vcat(repeat(trues(K), K), trues(K*dimz), trues(2), trues.(nparams)...)
     
     lb = Vector(undef, sum(ncells))
     ub = Vector(undef, sum(ncells))
@@ -88,17 +30,17 @@ function HMMDDM_options(θ::θHMMDDM)
         end
     end
     
-    lb = vcat(repeat(zeros(K), K), repeat([1e-3, 8.,  -5., 1e-3,   1e-3,  1e-3, 0.005], K), vcat(lb...))
-    ub = vcat(repeat(ones(K), K),  repeat([100., 100., 5., 400., 10., 1.2,  1.], K), vcat(ub...));
+    lb = vcat(repeat(zeros(K), K), repeat([1e-3, 8.,  -5., 1e-3,   1e-3,  1e-3, 0.005], K), [-10, 0.], vcat(lb...))
+    ub = vcat(repeat(ones(K), K),  repeat([100., 40., 5., 400., 10., 1.2,  1.], K), [10, 1.], vcat(ub...));
 
-    HMMDDM_options(fit=fit, ub=ub, lb=lb)
+    HMMDDM_joint_options(fit=fit, ub=ub, lb=lb)
     
 end
    
 
 """
 """
-function θHMMDDM(x::Vector{T}, θ::θHMMDDM) where {T <: Real}
+function θHMMDDM_joint(x::Vector{T}, θ::θHMMDDM_joint) where {T <: Real}
     
     @unpack K, f = θ
     
@@ -107,8 +49,11 @@ function θHMMDDM(x::Vector{T}, θ::θHMMDDM) where {T <: Real}
     m = collect(hcat(m...)')
     
     xz = collect(partition(x[K*K+1:K*K+K*dimz], dimz))  
+    idx = K*K+K*dimz
     
-    idx = K*K+K*dimz     
+    bias,lapse = x[idx+1], x[idx+2]
+    
+    idx = K*K+K*dimz+2     
     nparams, ncells = nθparams(f)   
     borg = vcat(idx,idx.+cumsum(nparams))
     blah = [x[i] for i in [borg[i-1]+1:borg[i] for i in 2:length(borg)]]   
@@ -116,7 +61,7 @@ function θHMMDDM(x::Vector{T}, θ::θHMMDDM) where {T <: Real}
     borg = vcat(0,cumsum(ncells))
     θy = [blah[i] for i in [borg[i-1]+1:borg[i] for i in 2:length(borg)]]
     
-    θHMMDDM(θz=map(x -> θz(x...), xz), θy=θy, f=f, m=m, K=K)
+    θHMMDDM_joint(θz=map(x -> θz(x...), xz), bias=bias, lapse=lapse, θy=θy, f=f, m=m, K=K)
 
 end
 
@@ -127,12 +72,12 @@ end
 Extract parameters `HMMDDM` model and place in the correct order into a 1D `array`
 ```
 """
-function flatten(θ::θHMMDDM)
+function flatten(θ::θHMMDDM_joint)
 
-    @unpack m, θz, θy = θ
+    @unpack m, θz, θy, bias, lapse = θ
 
     vcat(m..., vcat(collect.(Flatten.flatten.(θz))...), 
-        vcat(collect.(Flatten.flatten.(vcat(θy...)))...))
+        bias, lapse, vcat(collect.(Flatten.flatten.(vcat(θy...)))...))
 
 end
 
@@ -140,20 +85,20 @@ end
 """
     optimize(model, options)
 
-Optimize model parameters for a `HMMDDM`.
+Optimize model parameters for a `HMMDDM_joint`.
 
 Arguments: 
 
-- `model`: an instance of a `HMMDDM`.
+- `model`: an instance of a `HMMDDM_joint`.
 - `options`: some details related to the optimzation, such as which parameters were fit (`fit`), and the upper (`ub`) and lower (`lb`) bounds of those parameters.
 
 Returns:
 
-- `model`: an instance of a `HMMDDM`.
+- `model`: an instance of a `HMMDDM_joint`.
 - `output`: results from [`Optim.optimize`](@ref).
 
 """
-function optimize(model::HMMDDM, options::HMMDDM_options;
+function optimize(model::HMMDDM_joint, options::HMMDDM_joint_options;
         x_tol::Float64=1e-10, f_tol::Float64=1e-9, g_tol::Float64=1e-3,
         iterations::Int=Int(2e3), show_trace::Bool=true, outer_iterations::Int=Int(1e1), 
         scaled::Bool=false, extended_trace::Bool=false)
@@ -175,7 +120,7 @@ function optimize(model::HMMDDM, options::HMMDDM_options;
 
     x = Optim.minimizer(output)
     x = stack(x,c,fit)
-    model = HMMDDM(θHMMDDM(x, θ), data, n, cross, θprior)
+    model = HMMDDM_joint(θHMMDDM_joint(x, θ), data, n, cross, θprior)
     converged = Optim.converged(output)
 
     return model, output
@@ -191,12 +136,12 @@ Maps `x` into `model`. Used in optimization, Hessian and gradient computation.
 Arguments:
 
 - `x`: a vector of mixed parameters.
-- `model`: an instance of `HMMDDM`
+- `model`: an instance of `HMMDDM_joint`
 """
-function loglikelihood(x::Vector{T}, model::HMMDDM) where {T <: Real}
+function loglikelihood(x::Vector{T}, model::HMMDDM_joint) where {T <: Real}
     
     @unpack data,θ,n,cross,θprior = model
-    model = HMMDDM(θHMMDDM(x, θ), data, n, cross, θprior)
+    model = HMMDDM_joint(θHMMDDM_joint(x, θ), data, n, cross, θprior)
 
     loglikelihood(model)
 
@@ -206,17 +151,17 @@ end
 """
     Hessian(model; chunck_size)
 
-Compute the hessian of the negative log-likelihood at the current value of the parameters of a `HMMDDM`.
+Compute the hessian of the negative log-likelihood at the current value of the parameters of a `HMMDDM_joint`.
 
 Arguments:
 
-- `model`: instance of `HMMDDM`
+- `model`: instance of `HMMDDM_joint`
 
 Optional arguments:
 
 - `chunk_size`: parameter to manange how many passes over the LL are required to compute the Hessian. Can be larger if you have access to more memory.
 """
-function Hessian(model::HMMDDM; chunk_size::Int=4)
+function Hessian(model::HMMDDM_joint; chunk_size::Int=4)
 
     @unpack θ = model
     x = flatten(θ)
@@ -231,9 +176,9 @@ end
 """
     gradient(model)
 
-Compute the gradient of the negative log-likelihood at the current value of the parameters of a `HMMDDM`.
+Compute the gradient of the negative log-likelihood at the current value of the parameters of a `HMMDDM_joint`.
 """
-function gradient(model::HMMDDM)
+function gradient(model::HMMDDM_joint)
 
     @unpack θ = model
     x = flatten(θ)
@@ -247,16 +192,17 @@ end
 """
     loglikelihood(model)
 
-Arguments: `HMMDDM` instance
+Arguments: `HMMDDM_joint` instance
 
 Returns: loglikehood of the data given the parameters.
 """
-function loglikelihood(model::HMMDDM)
+function loglikelihood(model::HMMDDM_joint)
     
     @unpack data,θ,n,cross = model
-    @unpack θz, θy, f = θ
-    
-    LL = map(θz-> loglikelihood_pertrial(neuralDDM(θ=θneural(θz=θz, θy=θy, f=f), data=data, n=n, cross=cross)), θz)  
+    @unpack θz, θy, bias, lapse, f = θ
+        
+    LL = map(θz-> joint_loglikelihood_per_trial(neural_choiceDDM(
+        θ=θneural_choice(θz=θz, bias=bias, lapse=lapse, θy=θy, f=f), data=data, n=n, cross=cross)), θz)  
     py = map(i-> hcat(map(k-> max.(1e-150, exp.(LL[k][i])), 1:length(LL))...), 1:length(LL[1]))  
     sum(pmap(py-> loglikelihood(py, θ)[1], py))
 
@@ -264,86 +210,24 @@ end
 
 
 """
-"""
-function loglikelihood(py, θ)
-    
-    @unpack m, K = θ
-        
-    c = Vector(undef, size(py,1))
-    ps = Vector(undef, size(py,1))
-    p = 1/K * ones(K)
-    
-    @inbounds for t = 1:length(c)
-
-        p = m * p    
-        p = p .* py[t,:]     
-        c[t] = sum(p)
-        p /= c[t]
-        ps[t] = p
-
-    end
-    
-    return sum(log.(c)), ps
-
-end
-
-
-"""
     posterior(model)
 
-Arguments: `HMMDDM` instance
+Arguments: `HMMDDM_joint` instance
 
 Returns: posterior of the data given the parameters.
 """
-function posterior(model::HMMDDM)
+function posterior(model::HMMDDM_joint)
     
     @unpack data,θ,n,cross = model
-    @unpack θz, θy, f = θ
+    @unpack θz, θy, f, bias, lapse = θ
     
-    LL = map(θz-> loglikelihood_pertrial(neuralDDM(θ=θneural(θz=θz, θy=θy, f=f), data=data, n=n, cross=cross)), θz)  
+    LL = map(θz-> joint_loglikelihood_per_trial(neural_choiceDDM(
+        θ=θneural_choice(θz=θz, bias=bias, lapse=lapse, θy=θy, f=f), data=data, n=n, cross=cross)), θz)  
     py = map(i-> hcat(map(k-> max.(1e-150, exp.(LL[k][i])), 1:length(LL))...), 1:length(LL[1]))  
     pmap(py-> posterior(py, θ), py)
 
 end
 
-
-"""
-"""
-function posterior(py, θ)
-    
-    @unpack m, K = θ
-        
-    c = Vector(undef, size(py,1))
-    α = Array{Float64,2}(undef, K, size(py,1))
-    β = Array{Float64,2}(undef, K, size(py,1))
- 
-    p = 1/K * ones(K)
-    
-    @inbounds for t = 1:length(c)
-
-        p = m * p    
-        p = p .* py[t,:]     
-        c[t] = sum(p)
-        p /= c[t]
-        α[:,t] = p
-
-    end
-    
-    p = ones(Float64,K) 
-    β[:,end] = p
-    
-    @inbounds for t = length(c)-1:-1:1
-
-        p = p .* py[t+1,:]         
-        p = m' * p         
-        p /= c[t+1]
-        β[:,t] = p
-
-    end
-    
-    return α .* β
-
-end
 
 #=
 """

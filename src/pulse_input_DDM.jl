@@ -29,6 +29,7 @@ using BasisFunctionExpansions
 export choiceDDM, θchoice, θz, choiceoptions
 export neuralDDM, θneural, θy, neural_options, neuraldata
 export θHMMDDM, HMMDDM, HMMDDM_options, save_model
+export HMMDDM_joint, θHMMDDM_joint, HMMDDM_joint_options
 
 export Sigmoid, Softplus
 export noiseless_neuralDDM, θneural_noiseless, neural_options_noiseless
@@ -217,6 +218,39 @@ end
 
 """
 """
+@with_kw struct θHMMDDM_joint{T1,T2,T3,T4} <: DDMθ
+    θz::Vector{T1}
+    bias::T2
+    lapse::T2
+    θy::T3
+    f::Vector{Vector{String}}
+    m::Array{T4,2}=[0.2 0.8; 0.1 0.9]
+    K::Int=2
+end
+
+
+"""
+    HMMDDM
+
+Fields:
+- θ
+- data
+- n
+- cross
+- θprior
+
+"""
+@with_kw struct HMMDDM_joint{U,V} <: DDM
+    θ::θHMMDDM_joint
+    data::U
+    n::Int=53
+    cross::Bool=false
+    θprior::V = θprior()
+end
+
+
+"""
+"""
 neuralinputs(clicks, binned_clicks, λ0::Vector{Vector{Vector{Float64}}}, dt::Float64, centered::Bool, delay::Int, pad::Int) =
     neuralinputs.(clicks, binned_clicks, λ0, dt, centered, delay, pad)
 
@@ -245,6 +279,7 @@ include("neural_model/neural_model-th.jl")
 include("neural-choice_model/neural-choice_model.jl")
 include("neural-choice_model/neural-choice_GLM_model.jl")
 include("neural-choice_model/process_data.jl")
+include("neural-choice_model/HMM-DDM.jl")
 
 #include("neural_model/load_and_optimize.jl")
 #include("neural_model/sample_model_functions_FP.jl")

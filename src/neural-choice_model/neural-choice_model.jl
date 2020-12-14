@@ -419,6 +419,19 @@ joint_loglikelihood(model::neural_choiceDDM) = sum(log.(vcat(vcat(joint_likeliho
 
 
 """
+    joint_loglikelihood_per_trial(model)
+
+Given parameters θ and data (inputs and choices) computes the LL for all trials
+"""
+function joint_loglikelihood_per_trial(model::neural_choiceDDM) 
+    
+    output = joint_likelihood(model)
+    map(x-> map(x-> sum(log.(x)), x), output)
+    
+end
+
+
+"""
     joint_likelihood(model)
 
 Arguments: `neural_choiceDDM` instance
