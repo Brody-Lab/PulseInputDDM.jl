@@ -27,6 +27,7 @@ import Flatten: flattenable
 using BasisFunctionExpansions
 
 export choiceDDM, θchoice, θz, choiceoptions
+export choiceDDM_dx
 export neuralDDM, θneural, θy, neural_options, neuraldata
 export θHMMDDM, HMMDDM, HMMDDM_options, save_model
 export HMMDDM_joint, θHMMDDM_joint, HMMDDM_joint_options
@@ -244,6 +245,25 @@ Fields:
     θ::θHMMDDM_joint
     data::U
     n::Int=53
+    cross::Bool=false
+    θprior::V = θprior()
+end
+
+
+"""
+    choiceDDM_dx(θ, data, dx, cross)
+
+Fields:
+
+- `θ`: a instance of the module-defined class `θchoice` that contains all of the model parameters for a `choiceDDM`
+- `data`: an `array` where each entry is the module-defined class `choicedata`, which contains all of the data (inputs and choices).
+- `dx`: width of spatial bin (defaults to 0.25).
+- `cross`: whether or not to use cross click adaptation (defaults to false).
+"""
+@with_kw struct choiceDDM_dx{T,U,V} <: DDM
+    θ::T = θchoice()
+    data::U
+    dx::Float64=0.25
     cross::Bool=false
     θprior::V = θprior()
 end
