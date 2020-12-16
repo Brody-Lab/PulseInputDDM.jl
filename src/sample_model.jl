@@ -6,16 +6,17 @@ rng sets the random seed so that clicks can be consistently produced.
 Output is bundled into an array of 'click' types.
 """
 function synthetic_clicks(ntrials::Int, rng::Int;
-    tmin::Float64=0.2, tmax::Float64=1.0, clicktot::Int=40)
+    tmin::Float64=0.2, tmax::Float64=1.0, clickrate::Int=40)
 
     Random.seed!(rng)
 
     T = tmin .+ (tmax-tmin).*rand(ntrials)
     T = ceil.(T, digits=2)
+    clicktot = round.(Int, clickrate.*T)
 
-    ratetot = clicktot./T
-    Rbar = ratetot.*rand(ntrials)
-    Lbar = ratetot .- Rbar
+    rate_vals = [15.10, 24.89, 7.29, 32.7, 3.03, 36.96, 1.17, 38.82]
+    Rbar = rand(rate_vals, ntrials)
+    Lbar = clickrate .- Rbar    
 
     R = cumsum.(rand.(Exponential.(1 ./Rbar), clicktot))
     L = cumsum.(rand.(Exponential.(1 ./Lbar), clicktot))

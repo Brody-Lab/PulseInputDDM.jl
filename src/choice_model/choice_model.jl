@@ -42,14 +42,14 @@ function create_options_and_x0(; modeltype = "bing")
      paramlims = Dict( 
       #:paramname => [lb, ub, fit_bing, fit_hist_initpt, hist_initpt_lapse,hist_lapse,  nofit_default]
         :σ2_i =>        [0., 40., true, false, false, true, eps()], 
-        :B =>           [5., 100., true, true, true, true, 100.],      
+        :B =>           [5., 60., true, true, true, true, 40.],      
         :λ =>           [-5., 5., true, true, true, true, 1. + eps()],                                            
         :σ2_a =>        [0., 100., true, true, true, true, eps()], 
         :σ2_s =>        [0., 8., true, true, true, true, eps()],  
         :ϕ =>           [0.01, 1.2, true, true, true, true, 1. + eps()], 
         :τ_ϕ =>         [0.005, 1., true, true, true, true, eps()],   
         :lapse_prob =>  [0., 0.5, true, true, true, true, eps()],                  
-        :lapse_bias =>  [0., 5., true, true, true, true, 0.], 
+        :lapse_bias =>  [-5., 5., false, true, true, true, 0.], 
         :lapse_modbeta=>[0., 2., false, false, true, true, 0.],                                 
         :h_ηc =>       [-3.5, 3.5, false, true, true, true, 0.], 
         :h_ηe =>       [-3.5, 3.5, false, true, true, true, 0.], 
@@ -229,7 +229,7 @@ Arguments:
 function optimize(model::choiceDDM, options::choiceoptions; 
         x_tol::Float64=1e-10, f_tol::Float64=1e-9, g_tol::Float64=1e-3,
         iterations::Int=Int(2e3), show_trace::Bool=true, outer_iterations::Int=Int(1e1),
-        extended_trace::Bool=false, scaled::Bool=false, time_limit::Float64=170000., show_every::Int=10)
+        extended_trace::Bool=false, scaled::Bool=false, time_limit::Float64=170000., show_every::Int=5)
 
     @unpack fit, lb, ub = options
     @unpack θ, data, dx, cross, initpt_mod, θprior = model
@@ -278,7 +278,7 @@ function optimize(data, options::choiceoptions;
         dx::Float64=0.25, cross::Bool=true, initpt_mod::Bool=false,
         x_tol::Float64=1e-10, f_tol::Float64=1e-9, g_tol::Float64=1e-6,
         iterations::Int=Int(2e3), show_trace::Bool=true, outer_iterations::Int=Int(1e1),
-        extended_trace::Bool=false, scaled::Bool=false, time_limit::Float64=170000., show_every::Int=10,
+        extended_trace::Bool=false, scaled::Bool=false, time_limit::Float64=170000., show_every::Int=5,
         x0::Vector{Float64} = [0.1, 15., -0.1, 20., 0.5, 0.8, 0.008, 0.01, 0., 0., 0., 0., 0., 0., 0.],  
         θprior::θprior=θprior())
     

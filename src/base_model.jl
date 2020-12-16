@@ -300,7 +300,7 @@ Returns:
 -  `Ra`: `array` of adapted state of each right click (same length as `R`).
 
 """
-function adapt_clicks(ϕ::TT, τ_ϕ::TT, L::Vector{Float64}, R::Vector{Float64}; cross::Bool=false) where {TT}
+function adapt_clicks(ϕ::TT, τ_ϕ::TT, L::Vector{Float64}, R::Vector{Float64}; cross::Bool=true) where {TT}
     
     if length(L) == length(R) == 0
         return zeros(TT, 1), zeros(TT, 1)
