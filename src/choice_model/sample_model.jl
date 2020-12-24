@@ -68,10 +68,10 @@ end
 
 Returns default parameters and ntrials of synthetic data (clicks and choices) organized into a choicedata type.
 """
-function synthetic_data(dx::Float64; θ::θchoice=θchoice(), ntrials::Int=2000, rng::Int=1, 
+function synthetic_data(n::Int; θ::θchoice=θchoice(), ntrials::Int=2000, rng::Int=1, 
                         dt::Float64=1e-2, centered::Bool=false, initpt_mod::Bool=false)
 
-    clicks, choices, sessbnd = rand(θ, ntrials, dx; rng=rng, initpt_mod = initpt_mod, centered=centered, dt=dt)
+    clicks, choices, sessbnd = rand(θ, ntrials, n; rng=rng, initpt_mod = initpt_mod, centered=centered, dt=dt)
     binned_clicks = bin_clicks.(clicks, centered=centered, dt=dt)
     inputs = map((clicks, binned_clicks, sessbnd)-> choiceinputs(clicks=clicks, binned_clicks=binned_clicks, 
         sessbnd = sessbnd, dt=dt, centered=centered), clicks, binned_clicks, sessbnd)
@@ -86,7 +86,7 @@ end
 
 Produces synthetic clicks and choices for ntrials using model parameters θ.
 """
-function rand(θ::θchoice, ntrials::Int, dx::Float64; 
+function rand(θ::θchoice, ntrials::Int, n::Int; 
                 dt::Float64=1e-2, rng::Int = 1, centered::Bool=false, initpt_mod::Bool=false)
 
     clicks = synthetic_clicks(ntrials, rng)
@@ -105,7 +105,7 @@ function rand(θ::θchoice, ntrials::Int, dx::Float64;
     hits = Array{Bool}(undef, ntrials)
     correct = map(inputs -> Δclicks(inputs) > 0, inputs)
 
-    M,xc,n = initialize_latent_model(σ2_i, B, λ, σ2_a, dx, dt)
+    M,xc,dx = initialize_latent_model(σ2_i, B, λ, σ2_a, n, dt)
     rng = sample(Random.seed!(rng), 1:ntrials, ntrials; replace=false)
 
     for i = 1:ntrials
