@@ -147,6 +147,7 @@ Example:
 @with_kw struct choicedata{T1} <: DDMdata
     click_data::T1
     choice::Bool
+    hits::Bool
 end
 
 
@@ -602,10 +603,11 @@ function compute_history(θhist::θtrialhist, data, B::TT) where TT <: Any
     # and passed along in data (ask Brian!)
     choices = map(data -> data.choice, data)
     sessbnd = map(data -> data.click_data.sessbnd, data)
-   
-  #  correct = map(data -> data.click_data.clicks.gamma > 0, data)
-    correct = map(data -> Δclicks(data.click_data)>0, data)
-    hits = choices .== correct
+    hits = map(data -> data.hits, data)
+
+   # correct = map(data -> data.click_data.clicks.gamma > 0, data)
+    # correct = map(data -> Δclicks(data.click_data)>0, data)
+    # hits = choices .== correct
 
     i_0 = Array{TT}(undef, length(correct))
     lim = 1
