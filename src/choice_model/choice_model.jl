@@ -45,11 +45,12 @@ function create_options_and_x0(; modeltype = "bing")
         :B =>           [1., 100., true, true, true, true, 40.],      
         :λ =>           [-5., 5., true, true, true, true, 1. + eps()],                                            
         :σ2_a =>        [0., 100., false, false, false, false, eps()], 
-        :σ2_s =>        [0., 100., true, true, true, true, eps()],  
+        :σ2_sL =>        [0., 20., true, true, true, true, eps()], 
+        :σ2_sR =>        [0., 20., true, true, true, true, eps()],   
         :ϕ =>           [0.01, 1.2, false, false, false, false, 1. + eps()], 
         :τ_ϕ =>         [0.005, 1., false, false, false, false, eps()],   
         :lapse_prob =>  [0., 0.5, true, true, true, true, eps()],                  
-        :lapse_bias =>  [-50., 50., false, true, true, true, 0.], 
+        :lapse_bias =>  [-8., 8., false, true, true, true, 0.], 
         :lapse_modbeta=>[0., 50., false, false, true, true, 0.],                                 
         :h_ηc =>       [-5., 5., false, true, true, true, 0.], 
         :h_ηe =>       [-5., 5., false, true, true, true, 0.], 
@@ -356,7 +357,7 @@ end
 """
 """
 θexp(θ) = θchoice(θz=θz(σ2_i = exp(θ.θz.σ2_i), B = θ.θz.B, λ = θ.θz.λ, 
-        σ2_a = exp(θ.θz.σ2_a), σ2_s = exp(θ.θz.σ2_s), 
+        σ2_a = exp(θ.θz.σ2_a), σ2_sL = exp(θ.θz.σ2_sL),σ2_sR = exp(θ.θz.σ2_sR), 
         ϕ = θ.θz.ϕ, τ_ϕ = θ.θz.τ_ϕ), 
         bias=θ.bias, θlapse=θ.θlapse, θhist = θ.θhist)   
     
@@ -426,7 +427,7 @@ function P_goright(model::choiceDDM)
     i_0 = compute_history(θhist, data, B)
     M,xc,dx = initialize_latent_model(σ2_i, B, λ, σ2_a, n, dt)
 
-    pmap((data, i_0) -> likelihood!(θ, M, dx, xc, data, i_0, n, cross, initpt_mod), map(x-> choicedata(x.click_data, true), data), i_0)
+    map((data, i_0) -> likelihood!(θ, M, dx, xc, data, i_0, n, cross, initpt_mod), map(x-> choicedata(x.click_data, true, true), data), i_0)
 
 end
 
@@ -469,7 +470,7 @@ function P_single_trial!(θz,
         n::Int, cross::Bool;
         keepP::Bool=false) where {TT,UU <: Real}
 
-    @unpack λ,σ2_a,σ2_s,ϕ,τ_ϕ = θz
+    @unpack λ,σ2_a,σ2_sL, σ2_sR, ϕ,τ_ϕ = θz
     @unpack binned_clicks, clicks, dt = click_data
     @unpack nT, nL, nR = binned_clicks
     @unpack L, R = clicks
@@ -487,7 +488,7 @@ function P_single_trial!(θz,
     @inbounds for t = 1:nT
 
         #maybe only pass one L,R,nT?
-        P,F = latent_one_step!(P,F,λ,σ2_a,σ2_s,t,nL,nR,La,Ra,M,dx,xc,n,dt)
+        P,F = latent_one_step!(P,F,λ,σ2_a,σ2_sL, σ2_sR, t,nL,nR,La,Ra,M,dx,xc,n,dt)
         
         if keepP
             PS[t] = P
@@ -609,9 +610,9 @@ function compute_history(θhist::θtrialhist, data, B::TT) where TT <: Any
     # correct = map(data -> Δclicks(data.click_data)>0, data)
     # hits = choices .== correct
 
-    i_0 = Array{TT}(undef, length(correct))
+    i_0 = Array{TT}(undef, length(hits))
     lim = 1
-    for i = 1:length(correct)
+    for i = 1:length(hits)
         if sessbnd[i] == true
             lim, i_0[i] = i, 0.
         else
