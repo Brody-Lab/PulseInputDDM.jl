@@ -154,7 +154,7 @@ end
 function randP(θz, inputs, P::Vector{TT}, M::Array{TT,2}, dx::UU,
         xc::Vector{TT}; n::Int=53, cross::Bool=false) where {TT,UU <: Real}
 
-    @unpack λ,σ2_a,σ2_s,ϕ,τ_ϕ = θz
+    @unpack λ,σ2_a,σ2_sL,σ2_sR,ϕ,τ_ϕ = θz
     @unpack binned_clicks, clicks, dt = inputs
     @unpack nT, nL, nR = binned_clicks
     @unpack L, R = clicks
@@ -164,7 +164,7 @@ function randP(θz, inputs, P::Vector{TT}, M::Array{TT,2}, dx::UU,
 
     @inbounds for t = 1:nT
 
-        P,F = latent_one_step!(P,F,λ,σ2_a,σ2_s,t,nL,nR,La,Ra,M,dx,xc,n,dt)        
+        P,F = latent_one_step!(P,F,λ,σ2_a,σ2_sL,σ2_sR,t,nL,nR,La,Ra,M,dx,xc,n,dt)        
         P /= sum(P)
   
         
