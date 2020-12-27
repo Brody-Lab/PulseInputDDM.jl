@@ -426,7 +426,7 @@ function P_goright(model::choiceDDM)
     i_0 = compute_history(θhist, data, B)
     M,xc,dx = initialize_latent_model(σ2_i, B, λ, σ2_a, n, dt)
 
-    map((data, i_0) -> likelihood!(θ, M, dx, xc, data, i_0, n, cross, initpt_mod), map(x-> choicedata(x.click_data, true, true), data), i_0)
+    pmap((data, i_0) -> likelihood!(θ, M, dx, xc, data, i_0, n, cross, initpt_mod), map(x-> choicedata(x.click_data, true, true), data), i_0)
 
 end
 
@@ -488,7 +488,7 @@ function P_single_trial!(θz,
     @inbounds for t = 1:nT
 
         #maybe only pass one L,R,nT?
-        P,F = latent_one_step!(P,F,λ,σ2_a,σ2_s, t,nL,nR,La,Ra,M,dx,xc,n,dt)
+        P,F = latent_one_step!(P,F,λ,σ2_a,σ2_s,t,nL,nR,La,Ra,M,dx,xc,n,dt)
         
         if keepP
             PS[t] = P

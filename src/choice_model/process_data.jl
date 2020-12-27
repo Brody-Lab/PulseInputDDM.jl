@@ -96,12 +96,12 @@ function reload_choice_model(file)
     ub = read(matopen(file), "ub")
     fit = read(matopen(file), "fit")
 
-    if length(x) == 15
-        x = vcat(x[1:5], x[5], x[6:end])
-        lb = vcat(x[1:5], x[5], x[6:end])
-        ub = vcat(x[1:5], x[5], x[6:end])
-        fit = vcat(x[1:5], x[5], x[6:end])
-    end
+    # if length(x) == 15
+    #     x = vcat(x[1:5], x[5], x[6:end])
+    #     lb = vcat(x[1:5], x[5], x[6:end])
+    #     ub = vcat(x[1:5], x[5], x[6:end])
+    #     fit = vcat(x[1:5], x[5], x[6:end])
+    # end
     
     Flatten.reconstruct(θchoice(), x), choiceoptions(fit=fit, lb=lb, ub=ub)
 
