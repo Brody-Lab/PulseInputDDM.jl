@@ -42,7 +42,7 @@ Returns:
 """
 function rand(θz::θz{T}, inputs; a_0::Float64 = 0.) where T <: Real
 
-    @unpack σ2_i, B, λ, σ2_a, σ2_sL, σ2_sR, ϕ, τ_ϕ = θz
+    @unpack σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ = θz
     @unpack clicks, binned_clicks, centered, dt, delay, pad = inputs
     @unpack nT, nL, nR = binned_clicks
     @unpack L, R = clicks
@@ -71,7 +71,7 @@ function rand(θz::θz{T}, inputs; a_0::Float64 = 0.) where T <: Real
             
         else
             
-            a = sample_one_step!(a, time_bin[t], σ2_a, σ2_sL, σ2_sR, λ, nL, nR, La, Ra, dt)
+            a = sample_one_step!(a, time_bin[t], σ2_a, σ2_s,  λ, nL, nR, La, Ra, dt)
             
         end
 
@@ -89,13 +89,13 @@ end
 
 Move latent state one dt forward, given parameters defining the DDM.
 """
-function sample_one_step!(a::TT, t::Int, σ2_a::TT, σ2_sL::TT, σ2_sR::TT, λ::TT,
+function sample_one_step!(a::TT, t::Int, σ2_a::TT, σ2_s::TT, λ::TT,
         nL::Vector{Int}, nR::Vector{Int},
         La, Ra, dt::Float64) where {TT <: Any}
 
     any(t .== nL) ? sL = sum(La[t .== nL]) : sL = zero(TT)
     any(t .== nR) ? sR = sum(Ra[t .== nR]) : sR = zero(TT)
-    σ2, μ = (σ2_sL * sL) + (σ2_sR * sR), -sL + sR
+    σ2, μ = (σ2_s * sL) + (σ2_s * sR), -sL + sR
 
 
     if (σ2_a * dt + σ2) > 0.
@@ -124,7 +124,7 @@ end
 function rand(θz, inputs, P::Vector{TT}, M::Array{TT,2}, dx::UU,
         xc::Vector{TT}; n::Int=53, cross::Bool=false) where {TT,UU <: Real}
 
-    @unpack λ,σ2_a,σ2_sL,σ2_sR,ϕ,τ_ϕ = θz
+    @unpack λ,σ2_a,σ2_s, ϕ,τ_ϕ = θz
     @unpack binned_clicks, clicks, dt = inputs
     @unpack nT, nL, nR = binned_clicks
     @unpack L, R = clicks
@@ -135,7 +135,7 @@ function rand(θz, inputs, P::Vector{TT}, M::Array{TT,2}, dx::UU,
 
     @inbounds for t = 1:nT
 
-        P,F = latent_one_step!(P,F,λ,σ2_a,σ2_sL,σ2_sR,t,nL,nR,La,Ra,M,dx,xc,n,dt)
+        P,F = latent_one_step!(P,F,λ,σ2_a,σ2_s,t,nL,nR,La,Ra,M,dx,xc,n,dt)
         
         P /= sum(P)
         
@@ -154,7 +154,7 @@ end
 function randP(θz, inputs, P::Vector{TT}, M::Array{TT,2}, dx::UU,
         xc::Vector{TT}; n::Int=53, cross::Bool=false) where {TT,UU <: Real}
 
-    @unpack λ,σ2_a,σ2_sL,σ2_sR,ϕ,τ_ϕ = θz
+    @unpack λ,σ2_a,σ2_s,ϕ,τ_ϕ = θz
     @unpack binned_clicks, clicks, dt = inputs
     @unpack nT, nL, nR = binned_clicks
     @unpack L, R = clicks
@@ -164,7 +164,7 @@ function randP(θz, inputs, P::Vector{TT}, M::Array{TT,2}, dx::UU,
 
     @inbounds for t = 1:nT
 
-        P,F = latent_one_step!(P,F,λ,σ2_a,σ2_sL,σ2_sR,t,nL,nR,La,Ra,M,dx,xc,n,dt)        
+        P,F = latent_one_step!(P,F,λ,σ2_a,σ2_s,t,nL,nR,La,Ra,M,dx,xc,n,dt)        
         P /= sum(P)
   
         

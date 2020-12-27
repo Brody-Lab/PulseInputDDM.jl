@@ -45,12 +45,11 @@ function create_options_and_x0(; modeltype = "bing")
         :B =>           [1., 100., true, true, true, true, 40.],      
         :λ =>           [-5., 5., true, true, true, true, 1. + eps()],                                            
         :σ2_a =>        [0., 100., false, false, false, false, eps()], 
-        :σ2_sL =>        [0., 20., true, true, true, true, eps()], 
-        :σ2_sR =>        [0., 20., true, true, true, true, eps()],   
+        :σ2_s =>        [0., 20., true, true, true, true, eps()], 
         :ϕ =>           [0.01, 1.2, false, false, false, false, 1. + eps()], 
         :τ_ϕ =>         [0.005, 1., false, false, false, false, eps()],   
         :lapse_prob =>  [0., 0.5, true, true, true, true, eps()],                  
-        :lapse_bias =>  [-8., 8., false, true, true, true, 0.], 
+        :lapse_bias =>  [0., 1., false, true, true, true, 0.5], 
         :lapse_modbeta=>[0., 50., false, false, true, true, 0.],                                 
         :h_ηc =>       [-5., 5., false, true, true, true, 0.], 
         :h_ηe =>       [-5., 5., false, true, true, true, 0.], 
@@ -357,7 +356,7 @@ end
 """
 """
 θexp(θ) = θchoice(θz=θz(σ2_i = exp(θ.θz.σ2_i), B = θ.θz.B, λ = θ.θz.λ, 
-        σ2_a = exp(θ.θz.σ2_a), σ2_sL = exp(θ.θz.σ2_sL),σ2_sR = exp(θ.θz.σ2_sR), 
+        σ2_a = exp(θ.θz.σ2_a), σ2_s = exp(θ.θz.σ2_s),
         ϕ = θ.θz.ϕ, τ_ϕ = θ.θz.τ_ϕ), 
         bias=θ.bias, θlapse=θ.θlapse, θhist = θ.θhist)   
     
@@ -451,7 +450,8 @@ function likelihood!(θ::θchoice,
     P = P0(θz.σ2_i, a_0, n, dx, xc, click_data.dt)
     P = P_single_trial!(θz,P,M,dx,xc,click_data,n,cross)
 
-    rlapse = get_rightlapse_prob(θlapse, i_0)
+    # rlapse = get_rightlapse_prob(θlapse, i_0)
+    rlapse = θlapse.lapse_bias
     @unpack lapse_prob = θlapse
     choice ? lapse_lik = rlapse : lapse_lik = (1-rlapse)
     sum(choice_likelihood!(bias,xc,P,choice,n,dx)) * (1 - lapse_prob) + (lapse_prob * lapse_lik)
@@ -470,7 +470,7 @@ function P_single_trial!(θz,
         n::Int, cross::Bool;
         keepP::Bool=false) where {TT,UU <: Real}
 
-    @unpack λ,σ2_a,σ2_sL, σ2_sR, ϕ,τ_ϕ = θz
+    @unpack λ,σ2_a,σ2_s, ϕ,τ_ϕ = θz
     @unpack binned_clicks, clicks, dt = click_data
     @unpack nT, nL, nR = binned_clicks
     @unpack L, R = clicks
@@ -488,7 +488,7 @@ function P_single_trial!(θz,
     @inbounds for t = 1:nT
 
         #maybe only pass one L,R,nT?
-        P,F = latent_one_step!(P,F,λ,σ2_a,σ2_sL, σ2_sR, t,nL,nR,La,Ra,M,dx,xc,n,dt)
+        P,F = latent_one_step!(P,F,λ,σ2_a,σ2_s, t,nL,nR,La,Ra,M,dx,xc,n,dt)
         
         if keepP
             PS[t] = P

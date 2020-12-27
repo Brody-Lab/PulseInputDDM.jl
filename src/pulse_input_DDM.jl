@@ -63,8 +63,7 @@ abstract type DDMf end
     B = 15.
     λ = -0.5; @assert λ != 0.
     σ2_a = 50.
-    σ2_sL = 1.5
-    σ2_sR = 1.5
+    σ2_s = 1.5
     ϕ = 0.8; @assert ϕ != 1.
     τ_ϕ = 0.05
 end
