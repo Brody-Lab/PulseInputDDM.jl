@@ -15,7 +15,7 @@ function load_choice_data(file::String; centered::Bool=false, dt::Float64=1e-2)
    # gamma = vec(data["gamma"])
 
     choices = vec(convert(BitArray, data["pokedR"]))
-    hits = vec(convert(BitArray, data["hits"]))
+    hits = vec(convert(BitArray, data["hit"]))
 
     if haskey(data, "sessbnd")
         sessbnd = vec(convert(BitArray, data["sessbnd"]))
