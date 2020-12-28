@@ -90,8 +90,8 @@ end
     latent_one_step!(P, F, λ, σ2_a, σ2_s, t, nL, nR, La, Ra, M, dx, xc, n, dt)
 
 """
-function latent_one_step!(P::Vector{TT}, F::Array{TT,2}, λ::TT, 
-        σ2_a::TT, σ2_s::TT, t::Int, nL::Vector{Int}, nR::Vector{Int},
+function latent_one_step!(P::Vector{TT}, F::Array{TT,2}, λ::TT, σ2_a::TT, σ2_s::TT, 
+        t::Int, nL::Vector{Int}, nR::Vector{Int},
         La::Vector{TT}, Ra::Vector{TT}, M::Array{TT,2},
         dx::UU, xc::Vector{TT}, n::Int, dt::Float64; backwards::Bool=false) where {TT,UU <: Any}
 

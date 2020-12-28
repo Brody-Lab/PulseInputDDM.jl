@@ -470,7 +470,7 @@ function P_single_trial!(θz,
         n::Int, cross::Bool;
         keepP::Bool=false) where {TT,UU <: Real}
 
-    @unpack λ,σ2_a,σ2_s, ϕ,τ_ϕ = θz
+    @unpack λ,σ2_a, σ2_s, ϕ,τ_ϕ = θz
     @unpack binned_clicks, clicks, dt = click_data
     @unpack nT, nL, nR = binned_clicks
     @unpack L, R = clicks
