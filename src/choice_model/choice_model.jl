@@ -46,8 +46,8 @@ function create_options_and_x0(; modeltype = "bing")
         :λ =>           [-5., 5., true, true, true, true, 1. + eps()],                                            
         :σ2_a =>        [0., 100., false, false, false, false, eps()], 
         :σ2_s =>        [0., 20., true, true, true, true, eps()], 
-        :ϕ =>           [0.01, 1.2, false, false, false, false, 1. + eps()], 
-        :τ_ϕ =>         [0.005, 1., false, false, false, false, eps()],   
+        :ϕ =>           [0.01, 1.2, false, true, false, false, 1. + eps()], 
+        :τ_ϕ =>         [0.005, 1., false, true, false, false, eps()],   
         :lapse_prob =>  [0., 1., true, true, true, true, eps()],                  
         :lapse_bias =>  [0., 1., false, true, true, true, 0.5], 
         :lapse_modbeta=>[0., 50., false, false, true, true, 0.],                                 
@@ -56,7 +56,7 @@ function create_options_and_x0(; modeltype = "bing")
         :h_ηe =>       [-5., 5., false, true, true, true, 0.], 
         :h_βc =>        [0., 1., false, true, true, true, 0.], 
         :h_βe =>        [0., 1., false, true, true, true, 0.],
-        :bias =>        [-10., 10., true, true, true, true, 0.])        
+        :bias =>        [-5., 5., true, true, true, true, 0.])        
 
     modeltype_idx = Dict(
         "bing"              => 3,
@@ -229,7 +229,7 @@ Arguments:
 
 """
 function optimize(model::choiceDDM, options::choiceoptions; 
-        x_tol::Float64=1e-12, f_tol::Float64=1e-12, g_tol::Float64=1e-9,
+        x_tol::Float64=1e-9, f_tol::Float64=1e-9, g_tol::Float64=1e-6,
         iterations::Int=Int(2e3), show_trace::Bool=true, outer_iterations::Int=Int(1e1),
         extended_trace::Bool=false, scaled::Bool=false, time_limit::Float64=170000., show_every::Int=5)
 
@@ -278,7 +278,7 @@ Arguments:
 """
 function optimize(data, options::choiceoptions; 
         n::Int=53, cross::Bool=false, initpt_mod::Bool=false,
-        x_tol::Float64=1e-12, f_tol::Float64=1e-12, g_tol::Float64=1e-9,
+        x_tol::Float64=1e-9, f_tol::Float64=1e-9, g_tol::Float64=1e-6,
         iterations::Int=Int(2e3), show_trace::Bool=true, outer_iterations::Int=Int(1e1),
         extended_trace::Bool=false, scaled::Bool=false, time_limit::Float64=170000., show_every::Int=5,
         x0::Vector{Float64} = [0.1, 15., -0.1, 20., 0.5, 0.8, 0.008, 0.01, 0., 0., 0., 0., 0., 0., 0.],  
@@ -623,7 +623,7 @@ function compute_history(θhist::θtrialhist, data, B::TT) where TT <: Any
             lim, i_0[i] = i, 0.
         else
             k = compute_history(i, θhist, choices, hits, lim)     
-            abs(k) > B ? i_0[i] = k * sign(B) : i_0[i] = k
+            abs(k) > B ? i_0[i] = sign(k) * B : i_0[i] = k
         end
     end
 
