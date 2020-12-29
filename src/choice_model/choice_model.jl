@@ -48,10 +48,11 @@ function create_options_and_x0(; modeltype = "bing")
         :σ2_s =>        [0., 20., true, true, true, true, eps()], 
         :ϕ =>           [0.01, 1.2, false, false, false, false, 1. + eps()], 
         :τ_ϕ =>         [0.005, 1., false, false, false, false, eps()],   
-        :lapse_prob =>  [0., 0.5, true, true, true, true, eps()],                  
+        :lapse_prob =>  [0., 1., true, true, true, true, eps()],                  
         :lapse_bias =>  [0., 1., false, true, true, true, 0.5], 
         :lapse_modbeta=>[0., 50., false, false, true, true, 0.],                                 
-        :h_ηc =>       [-5., 5., false, true, true, true, 0.], 
+        :h_ηcL =>       [-5., 5., false, true, true, true, 0.], 
+        :h_ηcR =>       [-5., 5., false, true, true, true, 0.], 
         :h_ηe =>       [-5., 5., false, true, true, true, 0.], 
         :h_βc =>        [0., 1., false, true, true, true, 0.], 
         :h_βe =>        [0., 1., false, true, true, true, 0.],
@@ -228,7 +229,7 @@ Arguments:
 
 """
 function optimize(model::choiceDDM, options::choiceoptions; 
-        x_tol::Float64=1e-10, f_tol::Float64=1e-9, g_tol::Float64=1e-3,
+        x_tol::Float64=1e-12, f_tol::Float64=1e-12, g_tol::Float64=1e-9,
         iterations::Int=Int(2e3), show_trace::Bool=true, outer_iterations::Int=Int(1e1),
         extended_trace::Bool=false, scaled::Bool=false, time_limit::Float64=170000., show_every::Int=5)
 
@@ -277,7 +278,7 @@ Arguments:
 """
 function optimize(data, options::choiceoptions; 
         n::Int=53, cross::Bool=false, initpt_mod::Bool=false,
-        x_tol::Float64=1e-10, f_tol::Float64=1e-9, g_tol::Float64=1e-6,
+        x_tol::Float64=1e-12, f_tol::Float64=1e-12, g_tol::Float64=1e-9,
         iterations::Int=Int(2e3), show_trace::Bool=true, outer_iterations::Int=Int(1e1),
         extended_trace::Bool=false, scaled::Bool=false, time_limit::Float64=170000., show_every::Int=5,
         x0::Vector{Float64} = [0.1, 15., -0.1, 20., 0.5, 0.8, 0.008, 0.01, 0., 0., 0., 0., 0., 0., 0.],  
@@ -454,7 +455,8 @@ function likelihood!(θ::θchoice,
     rlapse = θlapse.lapse_bias
     @unpack lapse_prob = θlapse
     choice ? lapse_lik = rlapse : lapse_lik = (1-rlapse)
-    sum(choice_likelihood!(bias,xc,P,choice,n,dx)) * (1 - lapse_prob) + (lapse_prob * lapse_lik)
+
+    (sum(choice_likelihood!(bias,xc,P,choice,n,dx)) * (1 - lapse_prob)) + (lapse_prob * lapse_lik)
 
 end
 
@@ -509,7 +511,11 @@ end
 """
     choice_likelihood!(bias, xc, P, pokedR, n, dx)
 
-Preserves mass in the distribution P on the side consistent with the choice pokedR relative to the point bias. Deals gracefully in situations where the bias equals a bin center. However, if the bias grows larger than the bound, the LL becomes very large and the gradient is zero. However, it's general convexity of the -LL surface w.r.t this parameter should generally preclude it from approaches these regions.
+Preserves mass in the distribution P on the side consistent with the choice pokedR relative to the point bias. 
+Deals gracefully in situations where the bias equals a bin center. 
+However, if the bias grows larger than the bound, the LL becomes very large and the gradient is zero. 
+However, it's general convexity of the -LL surface w.r.t this parameter should generally preclude it from 
+approaches these regions.
 
 ### Examples
 
