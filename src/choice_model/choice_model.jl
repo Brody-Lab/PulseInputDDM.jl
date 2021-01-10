@@ -42,15 +42,15 @@ function create_options_and_x0(; modeltype = "bing")
      paramlims = Dict( 
       #:paramname => [lb, ub, fit_bing, fit_hist_initpt, hist_initpt_lapse,hist_lapse,  nofit_default]
         :σ2_i =>        [0., 40., true, false, false, true, eps()], 
-        :B =>           [1., 100., true, true, true, true, 40.],      
-        :λ =>           [-5., 5., true, true, true, true, 1. + eps()],                                            
-        :σ2_a =>        [0., 100., false, false, false, false, eps()], 
+        :B =>           [0.5, 100., true, true, true, true, 40.],      
+        :λ =>           [-10., 10., true, true, true, true, 1. + eps()],                                            
+        :σ2_a =>        [0., 100., false, true, true, false, eps()], 
         :σ2_s =>        [0., 20., true, true, true, true, eps()], 
-        :ϕ =>           [0.01, 1.2, false, true, false, false, 1. + eps()], 
-        :τ_ϕ =>         [0.005, 1., false, true, false, false, eps()],   
+        :ϕ =>           [0.01, 1.2, false, true, true, false, 1. + eps()], 
+        :τ_ϕ =>         [0.005, 1., false, true, true, false, eps()],   
         :lapse_prob =>  [0., 1., true, true, true, true, eps()],                  
-        :lapse_bias =>  [0., 1., false, true, true, true, 0.5], 
-        :lapse_modbeta=>[0., 50., false, false, true, true, 0.],                                 
+        :lapse_bias =>  [-5., 5., false, true, true, true, 0.5], 
+        :lapse_modbeta=>[0., 10., false, false, true, true, 0.],                                 
         :h_ηcL =>       [-5., 5., false, true, true, true, 0.], 
         :h_ηcR =>       [-5., 5., false, true, true, true, 0.], 
         :h_ηe =>       [-5., 5., false, true, true, true, 0.], 
@@ -451,8 +451,8 @@ function likelihood!(θ::θchoice,
     P = P0(θz.σ2_i, a_0, n, dx, xc, click_data.dt)
     P = P_single_trial!(θz,P,M,dx,xc,click_data,n,cross)
 
-    # rlapse = get_rightlapse_prob(θlapse, i_0)
-    rlapse = θlapse.lapse_bias
+    rlapse = get_rightlapse_prob(θlapse, i_0)
+    # rlapse = θlapse.lapse_bias
     @unpack lapse_prob = θlapse
     choice ? lapse_lik = rlapse : lapse_lik = (1-rlapse)
 
