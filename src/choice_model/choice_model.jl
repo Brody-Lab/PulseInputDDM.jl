@@ -77,6 +77,9 @@ function create_options_and_x0(; modeltype = "bing")
         fit[i] = paramlims[Symbol(params[i])][modeltype_idx[modeltype]]
         if fit[i]
             x0[i] = lb[i] + (ub[i] - lb[i]) * rand()
+            if i == 9 | i == 10
+                x0[i] = 0.
+            end
         else
             x0[i] = paramlims[Symbol(params[i])][7]
         end
