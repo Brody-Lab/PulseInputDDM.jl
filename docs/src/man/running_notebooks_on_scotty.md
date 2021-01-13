@@ -11,7 +11,7 @@ where `[username]` is your scotty username, assuming you have one. If you do not
 
 ### Installing the IJulia package
 
-Load the julia module: `$ module load julia/1.2.0`.
+Load the julia module: `$ module load julia`.
 
 Launch Julia by typing `julia`. From here, you need to add the IJulia package so you can use Julia in a notebook. In Julia 1.0, you can access the "package manager" by pressing `]`. From there, enter
 
@@ -46,7 +46,7 @@ Now, that IJulia is all set up, you need to launch a Jupyter notebook on scotty.
 First you have to load the anaconda module:
 
 ```
-    >> module load anacondapy/5.1.0
+    >> module load anacondapy
 ``` 
 
 
@@ -77,8 +77,8 @@ Here is a screen shot of what a typical terminal will look like, showing the url
 Next time, you only need to:
 
 - SSH into scotty: `$ ssh scotty`.
-- Load the anaconda module: `$ module load anacondapy/5.1.0`.
-- Load the julia module: `$ module load julia/1.2.0`.
+- Load the anaconda module: `$ module load anacondapy`.
+- Load the julia module: `$ module load julia`.
 - Launch a jupyter notebook: `$ jupyter notebook --port <port>`.
 - Create the ssh tunnel: `$ ssh -L <port>:localhost:<port> scotty`.
 
@@ -122,8 +122,8 @@ OK, now we can go ahead and open our jupyter notebook and create our crazy SHH t
             
         which will automatically create and "move you" over to a bash shell in the compute node. 
         
-    - `module load anacondapy/5.1.0`
-    - `module load julia/1.2.0`
+    - `module load anacondapy`
+    - `module load julia`
     - `jupyter notebook --port <port>`
 
     Now you should have a jupyter notebook server running in that pane (which is actually a bash shell running on the spock-brody compute node).
