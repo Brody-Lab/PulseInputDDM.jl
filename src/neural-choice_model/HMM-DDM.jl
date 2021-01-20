@@ -190,6 +190,14 @@ end
 
 
 """
+"""
+function logsumexp(x)
+    m = maximum(x)
+    m + log(sum(exp.(x .- m)))
+end
+
+
+"""
     loglikelihood(model)
 
 Arguments: `HMMDDM_joint` instance
@@ -203,7 +211,8 @@ function loglikelihood(model::HMMDDM_joint)
         
     LL = map(θz-> joint_loglikelihood_per_trial(neural_choiceDDM(
         θ=θneural_choice(θz=θz, bias=bias, lapse=lapse, θy=θy, f=f), data=data, n=n, cross=cross)), θz)  
-    py = map(i-> hcat(map(k-> max.(1e-150, exp.(LL[k][i])), 1:length(LL))...), 1:length(LL[1]))  
+    #py = map(i-> hcat(map(k-> max.(1e-150, exp.(LL[k][i])), 1:length(LL))...), 1:length(LL[1]))  
+    py = map(i-> hcat(map(k-> LL[k][i], 1:length(LL))...), 1:length(LL[1]))  
     sum(pmap(py-> loglikelihood(py, θ)[1], py))
 
 end
@@ -223,7 +232,8 @@ function posterior(model::HMMDDM_joint)
     
     LL = map(θz-> joint_loglikelihood_per_trial(neural_choiceDDM(
         θ=θneural_choice(θz=θz, bias=bias, lapse=lapse, θy=θy, f=f), data=data, n=n, cross=cross)), θz)  
-    py = map(i-> hcat(map(k-> max.(1e-150, exp.(LL[k][i])), 1:length(LL))...), 1:length(LL[1]))  
+    #py = map(i-> hcat(map(k-> max.(1e-150, exp.(LL[k][i])), 1:length(LL))...), 1:length(LL[1]))  
+    py = map(i-> hcat(map(k-> LL[k][i], 1:length(LL))...), 1:length(LL[1]))  
     pmap(py-> posterior(py, θ), py)
 
 end

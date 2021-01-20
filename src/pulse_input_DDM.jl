@@ -31,6 +31,7 @@ export choiceDDM_dx
 export neuralDDM, θneural, θy, neural_options, neuraldata
 export θHMMDDM, HMMDDM, HMMDDM_options, save_model
 export HMMDDM_joint, θHMMDDM_joint, HMMDDM_joint_options
+export HMMDDM_joint_2, θHMMDDM_joint_2, HMMDDM_joint_options_2
 
 export Sigmoid, Softplus
 export noiseless_neuralDDM, θneural_noiseless, neural_options_noiseless
@@ -251,6 +252,36 @@ end
 
 
 """
+"""
+@with_kw struct θHMMDDM_joint_2{T1,T2} <: DDMθ
+    θ::Vector{T1}
+    m::Array{T2,2}=[0.2 0.8; 0.1 0.9]
+    K::Int=2
+    f::Vector{Vector{String}}
+end
+
+
+"""
+    HMMDDM
+
+Fields:
+- θ
+- data
+- n
+- cross
+- θprior
+
+"""
+@with_kw struct HMMDDM_joint_2{U,V} <: DDM
+    θ::θHMMDDM_joint_2
+    data::U
+    n::Int=53
+    cross::Bool=false
+    θprior::V = θprior()
+end
+
+
+"""
     choiceDDM_dx(θ, data, dx, cross)
 
 Fields:
@@ -300,6 +331,7 @@ include("neural-choice_model/neural-choice_model.jl")
 include("neural-choice_model/neural-choice_GLM_model.jl")
 include("neural-choice_model/process_data.jl")
 include("neural-choice_model/HMM-DDM.jl")
+include("neural-choice_model/HMM-DDM-2.jl")
 
 #include("neural_model/load_and_optimize.jl")
 #include("neural_model/sample_model_functions_FP.jl")
