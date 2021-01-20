@@ -1,81 +1,3 @@
-function simulate_expected_firing_rate(θ::Union{θneural}, data, rng)
-
-    @unpack θz,θy = θ
-    μ_λ = rand.(Ref(θz), θy, data, Ref(rng))
-        
-    return μ_λ
-
-end
-
-
-"""
-    simulate_expected_firing_rate(model)
-
-Given a `model` generate samples of the firing rate `λ` of each neuron.
-
-Arguments:
-
-- `model`: an instance of a `neuralDDM`.
-
-Optional arguments:
-
-- `num_samples`: How many independent samples of the latent to simulate, to average over.
-
-Returns:
-
-- ` λ`: an `array` is length `num_samples`. Each entry an `array` of length number of trials. Each entry of that is an `array` of length number of neurons. Each entry of that is the firing rate of that neuron on that trial for some length of time.
-- `μ_λ`: the mean firing rate for each neuron (averaging across the noise of the latent process for `num_samples` trials). 
-- `μ_c_λ`: the average across trials and across group with similar evidence values (grouped into `nconds` number of groups).
-
-"""
-function simulate_expected_firing_rate(model; num_samples::Int=100, nconds::Int=2, rng1::Int=1)
-
-    @unpack θ,data = model
-    @unpack θz,θy = θ
-    
-    rng = sample(Random.seed!(rng1), 1:num_samples, num_samples; replace=false)
-    λ = map(rng-> rand.(Ref(θz), θy, data, Ref(rng)), rng)
-    μ_λ = mean(λ)
-    
-    μ_c_λ = cond_mean.(μ_λ, data; nconds=nconds)
-    
-    return μ_λ, μ_c_λ, λ
-
-end
-
-
-"""
-    Sample all trials over one session
-"""
-function rand(θz::θz, θy, data, rng)
-    
-    ntrials = length(data)
-    rng = sample(Random.seed!(rng), 1:ntrials, ntrials; replace=false)
-
-    pmap((data,rng) -> rand(θz,θy,data.input_data; rng=rng)[1], data, rng)
-
-end
-
-
-"""
-"""
-function cond_mean(μ_λ, data; nconds=2)
-    
-    ncells = data[1].ncells
-        
-    pad = data[1].input_data.pad
-    nT = map(x-> x.input_data.binned_clicks.nT, data)
-    ΔLRT = map((data,nT) -> getindex(diffLR(data), pad+nT), data, nT)
-    conds = encode(LinearDiscretizer(binedges(DiscretizeUniformWidth(nconds), ΔLRT)), ΔLRT)
-
-    map(n-> map(c-> [mean([μ_λ[conds .== c][k][n][t]
-        for k in findall(nT[conds .== c] .+ (2*pad) .>= t)])
-        for t in 1:(maximum(nT[conds .== c] .+ (2*pad)))],
-                1:nconds), 1:ncells)
-
-end
-
-
 """
 """
 function synthetic_data(θ::θneural_joint,
@@ -123,28 +45,6 @@ end
 
 """
 """
-synthetic_λ0(clicks, N::Int; dt::Float64=1e-4, rng::Int=1, pos_ramp::Bool=false, pad::Int=10) = 
-    synthetic_λ0.(clicks, N; dt=dt, rng=rng, pos_ramp=pos_ramp, pad=pad)
-
-
-"""
-"""
-function synthetic_λ0(clicks::clicks, N::Int; dt::Float64=1e-4, rng::Int=1, pos_ramp::Bool=false, pad::Int=10)
-
-    @unpack T = clicks
-
-    Random.seed!(rng)
-    if pos_ramp
-        λ0 = repeat([collect(range(10. + 5*rand(), stop=20. + 5*rand(), length=Int(ceil(T/dt))))], outer=N)
-    else
-        λ0 = repeat([zeros(Int(ceil(T/dt) + 2*pad))], outer=N)
-    end
-
-end
-
-
-"""
-"""
 function rand(θz::θz, θy, bias, lapse, ntrials, ncells, rng; centered::Bool=false, dt::Float64=1e-4, pos_ramp::Bool=false, 
     delay::Int=0, pad::Int=10)
 
@@ -175,7 +75,8 @@ function rand(θz::θz, θy, bias, lapse, input_data::neuralinputs; rng::Int=1)
     a = rand(θz,input_data)
     λ = map((θy,λ0)-> θy(a, λ0), θy, λ0)
     spikes = map(λ-> rand.(Poisson.(λ*dt)), λ)   
-    choice = a[end] .> bias
+    rand() > lapse ? choice = a[end] >= bias : choice = Bool(round(rand()))
+
 
     return λ, a, spikes, choice
 
