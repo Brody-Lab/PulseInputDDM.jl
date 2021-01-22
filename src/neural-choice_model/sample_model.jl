@@ -1,6 +1,6 @@
 """
 """
-function synthetic_data(θ::θneural_joint,
+function synthetic_data(θ::θneural_choice,
         ntrials::Vector{Int}, ncells::Vector{Int}; centered::Bool=true,
         dt::Float64=1e-2, rng::Int=1, dt_synthetic::Float64=1e-4, 
         delay::Int=0, pad::Int=10, pos_ramp::Bool=false)
@@ -13,17 +13,18 @@ function synthetic_data(θ::θneural_joint,
     output = rand.(Ref(θz), θy, bias, lapse, ntrials, ncells, rng; delay=delay, pad=0, pos_ramp=pos_ramp)
 
     spikes = getindex.(output, 1)
-    #λ0 = getindex.(output, 2)
+    λ0 = getindex.(output, 2)
     clicks = getindex.(output, 3)
     choices = getindex.(output, 4)
 
-    output = bin_clicks_spikes_λ0.(spikes, clicks;
+    output = bin_clicks_spikes_λ0.(spikes, clicks, λ0;
         centered=centered, dt=dt, dt_synthetic=dt_synthetic, synthetic=true)
     
-    λ0 = synthetic_λ0.(clicks, ncells; dt=dt, pos_ramp=pos_ramp, pad=0)
+    #λ0 = synthetic_λ0.(clicks, ncells; dt=dt, pos_ramp=pos_ramp, pad=0)
 
     spikes = getindex.(output, 1)
     binned_clicks = getindex.(output, 2)
+    λ0 = getindex.(output, 3)
 
     input_data = neuralinputs.(clicks, binned_clicks, λ0, dt, centered, delay, 0)
     
@@ -76,7 +77,6 @@ function rand(θz::θz, θy, bias, lapse, input_data::neuralinputs; rng::Int=1)
     λ = map((θy,λ0)-> θy(a, λ0), θy, λ0)
     spikes = map(λ-> rand.(Poisson.(λ*dt)), λ)   
     rand() > lapse ? choice = a[end] >= bias : choice = Bool(round(rand()))
-
 
     return λ, a, spikes, choice
 

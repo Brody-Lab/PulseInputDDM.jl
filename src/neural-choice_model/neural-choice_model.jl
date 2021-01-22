@@ -388,6 +388,33 @@ end
 
 
 """
+    Hessian(model; chunck_size, remap)
+
+Compute the hessian of the negative log-likelihood at the current value of the parameters of a `neural_choiceDDM`.
+
+Arguments:
+
+- `model`: instance of `neural_choiceDDM`
+
+Optional arguments:
+
+- `chunk_size`: parameter to manange how many passes over the LL are required to compute the Hessian. Can be larger if you have access to more memory.
+- `remap`: For considering parameters in variance of std space.
+
+"""
+function Hessian(model::neural_choiceDDM; chunk_size::Int=4, remap::Bool=false)
+
+    @unpack θ = model
+    x = flatten(θ)
+    ℓℓ(x) = -joint_loglikelihood(x, model; remap=remap)
+
+    cfg = ForwardDiff.HessianConfig(ℓℓ, x, ForwardDiff.Chunk{chunk_size}())
+    ForwardDiff.hessian(ℓℓ, x, cfg)
+
+end
+
+
+"""
     joint_loglikelihood(x, model)
 
 A wrapper function that accepts a vector of mixed parameters, splits the vector

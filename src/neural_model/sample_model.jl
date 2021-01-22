@@ -1,4 +1,4 @@
-function simulate_expected_firing_rate(θ::Union{θneural}, data, rng)
+function simulate_expected_firing_rate(θ::Union{θneural, θneural_choice}, data, rng)
 
     @unpack θz,θy = θ
     μ_λ = rand.(Ref(θz), θy, data, Ref(rng))
