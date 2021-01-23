@@ -74,6 +74,18 @@ function initialize_latent_model(σ2_i::TT, B::TT, λ::TT, σ2_a::TT,
 end
 
 
+function initialize_latent_model(σ2_i::TT, B::TT, λ::TT, σ2_a::TT,
+     dx::Float64, dt::Float64) where {TT <: Any}
+
+    xc,n = bins(B,dx)
+    P = P0(σ2_i,n,dx,xc,dt)
+    M = transition_M(σ2_a*dt,λ,zero(TT),dx,xc,n,dt)
+
+    return P, M, xc, n
+
+end
+
+
 """
     P0(σ2_i, n dx, xc, dt)
 
@@ -89,33 +101,63 @@ end
 
 
 """
+"""
+function ΣLR_ΔLR(t::Int, nL::Vector{Int}, nR::Vector{Int},
+        La::Vector{TT}, Ra::Vector{TT}) where {TT <: Any}
+
+    any(t .== nL) ? sL = sum(La[t .== nL]) : sL = zero(TT)
+    any(t .== nR) ? sR = sum(Ra[t .== nR]) : sR = zero(TT)
+
+    sL + sR, -sL + sR
+    
+end
+
+
+"""
+    backward_one_step!(P, F, λ, σ2_a, σ2_s, t, nL, nR, La, Ra, M, dx, xc, n, dt)
+
+"""
+function backward_one_step!(P::Vector{TT}, F::Array{TT,2}, λ::TT, σ2_a::TT, σ2_s::TT,
+        t::Int, nL::Vector{Int}, nR::Vector{Int},
+        La::Vector{TT}, Ra::Vector{TT}, M::Array{TT,2},
+        dx::UU, xc::Vector{TT}, n::Int, dt::Float64) where {TT,UU <: Any}
+    
+    Σ, μ = ΣLR_ΔLR(t, nL, nR, La, Ra)
+
+    σ2 = σ2_s * Σ
+    
+    if Σ > zero(TT)
+        transition_M!(F,σ2+σ2_a*dt,λ, μ, dx, xc, n, dt)
+        P = F' * P
+    else
+        P = M' * P
+    end
+    
+    return P, F
+
+end
+
+
+"""
     latent_one_step!(P, F, λ, σ2_a, σ2_s, t, nL, nR, La, Ra, M, dx, xc, n, dt)
 
 """
 function latent_one_step!(P::Vector{TT}, F::Array{TT,2}, λ::TT, σ2_a::TT, σ2_s::TT,
         t::Int, nL::Vector{Int}, nR::Vector{Int},
         La::Vector{TT}, Ra::Vector{TT}, M::Array{TT,2},
-        dx::UU, xc::Vector{TT}, n::Int, dt::Float64; backwards::Bool=false) where {TT,UU <: Any}
+        dx::UU, xc::Vector{TT}, n::Int, dt::Float64) where {TT,UU <: Any}
 
     any(t .== nL) ? sL = sum(La[t .== nL]) : sL = zero(TT)
     any(t .== nR) ? sR = sum(Ra[t .== nR]) : sR = zero(TT)
 
     σ2 = σ2_s * (sL + sR);   μ = -sL + sR
-
+    
     if (sL + sR) > zero(TT)
         transition_M!(F,σ2+σ2_a*dt,λ, μ, dx, xc, n, dt)
         P = F * P
     else
         P = M * P
     end
-
-    #=
-    if backwards
-        (sL + sR) > zero(TT) ? (M!(F,σ2+σ2_a*dt,λ, μ/dt, dx, xc, n, dt); P  = F' * P;) : P = M' * P
-    else
-        (sL + sR) > zero(TT) ? (M!(F,σ2+σ2_a*dt,λ, μ/dt, dx, xc, n, dt); P  = F * P;) : P = M * P
-    end
-    =#
 
     return P, F
 
@@ -141,6 +183,33 @@ function bins(B::TT, n::Int) where {TT}
         collect(range(dx,stop=(B+dx/2.),length=Int((n-1)/2))))
 
     return xc, dx
+
+end
+
+
+"""
+    bins(B, dx)
+Computes the bin center locations and number of bins, given the boundary and desired (average) bin spacing.
+### Examples
+```jldoctest
+julia> xc,n = pulse_input_DDM.bins(10.,0.25)
+([-10.25, -9.75, -9.5, -9.25, -9.0, -8.75, -8.5, -8.25, -8.0, -7.75  …  7.75, 8.0, 8.25, 8.5, 8.75, 9.0, 9.25, 9.5, 9.75, 10.25], 81)
+```
+"""
+function bins(B::TT, dx::Float64) where {TT}
+
+    xc = collect(0.:dx:floor(value(B)/dx)*dx)
+
+    if xc[end] == B
+        xc = vcat(xc[1:end-1], B + dx)
+    else
+        xc = vcat(xc, 2*B - xc[end])
+    end
+
+    xc = vcat(-xc[end:-1:2], xc)
+    n = length(xc)
+
+    return xc, n
 
 end
 
