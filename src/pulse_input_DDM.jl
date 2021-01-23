@@ -48,6 +48,7 @@ export loglikelihood, synthetic_data
 export CIs, optimize, Hessian, gradient
 export load_choice_data, load_neural_data, reload_neural_model, save_neural_model, flatten
 export save, load, reload_choice_model, save_choice_model
+export reload_joint_model
 export initialize_θy, neural_null
 export synthetic_clicks, binLR, bin_clicks
 export default_parameters_and_data, compute_LL

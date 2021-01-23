@@ -29,10 +29,10 @@ function neural_choice_options(f; remap::Bool=false)
     
     if remap
         lb = vcat([-10., 8.,  -5., -20.,   -3.,   1e-3, 0.005], [-10, 0.], vcat(lb...))
-        ub = vcat([ 10., 100., 5.,  20.,    3.,   1.2,  1.],    [10, 1.],  vcat(ub...));
+        ub = vcat([ 10., 40., 5.,  20.,    3.,   1.2,  1.],    [10, 1.],  vcat(ub...));
     else
         lb = vcat([1e-3, 8.,  -5., 1e-3,   1e-3,  1e-3, 0.005], [-10, 0.], vcat(lb...))
-        ub = vcat([100., 100., 5., 400., 10., 1.2,  1.], [10, 1.], vcat(ub...));
+        ub = vcat([100., 40., 5., 400., 10., 1.2,  1.], [10, 1.], vcat(ub...));
     end
 
     neural_choice_options(fit=fit, ub=ub, lb=lb)
@@ -384,6 +384,31 @@ function choice_likelihood(θ, θy, data::neuraldata,
     P = likelihood(θz, θy, data, P, M, xc, dx, n, cross)[2]
     sum(choice_likelihood!(bias,xc,P,choice,n,dx)) * (1 - lapse) + lapse/2
     
+end
+
+
+"""
+    gradient(model; remap)
+
+Compute the gradient of the negative log-likelihood at the current value of the parameters of a `neural_choiceDDM`.
+
+Arguments:
+
+- `model`: instance of `neural_choiceDDM`
+
+Optional arguments:
+
+- `remap`: For considering parameters in variance of std space.
+
+"""
+function gradient(model::neural_choiceDDM; remap::Bool=false)
+
+    @unpack θ = model
+    x = flatten(θ)
+    ℓℓ(x) = -joint_loglikelihood(x, model; remap=remap)
+
+    ForwardDiff.gradient(ℓℓ, x)
+
 end
 
 

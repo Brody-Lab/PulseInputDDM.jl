@@ -91,11 +91,11 @@ function synthetic_data(θ::θneural,
     output = rand.(Ref(θz), θy, ntrials, ncells, rng; delay=delay, pad=0, pos_ramp=pos_ramp)
 
     spikes = getindex.(output, 1)
-    #λ0 = getindex.(output, 2)
+    λ0 = getindex.(output, 2)
     clicks = getindex.(output, 3)
     choices = getindex.(output, 4)
 
-    output = bin_clicks_spikes_λ0.(spikes, clicks;
+    output = bin_clicks_spikes_λ0.(spikes, clicks, λ0;
         centered=centered, dt=dt, dt_synthetic=dt_synthetic, synthetic=true)
     
     λ0 = synthetic_λ0.(clicks, ncells; dt=dt, pos_ramp=pos_ramp, pad=0)
