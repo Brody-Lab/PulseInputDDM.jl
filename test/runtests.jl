@@ -95,10 +95,7 @@ using Test, pulse_input_DDM, LinearAlgebra, Flatten, Parameters
         CI, HPSD = CIs(H)
         @test round(norm(CI), digits=2) ≈ 199.93
 
-    end
-    
-    @testset "choice_neural_model" begin
-
+        #neural choice, should eventaully be its own set
         options = neural_choice_options(f)
 
         choice_neural_model = neural_choiceDDM(θneural_choice(vcat(x0[1:dimz], 0., 0., x0[dimz+1:end]), f), data, n, cross)
