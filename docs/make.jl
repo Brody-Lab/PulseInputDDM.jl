@@ -25,9 +25,7 @@ pages = Any["Home" => Any["index.md"],
                 "generated/recover_neural_model.md"],
         "Other helpful info" => Any["man/effcient_ssh.md", 
                 "man/running_notebooks_on_scotty.md"],
-        "Development" => Any["man/development.md"],
-        "Index" =>  Any["links.md"],
-        "Functions" =>  Any["functions.md"]]
+        "Development" => Any["man/development.md"]]
 
 makedocs(sitename="pulse input DDM",
         modules = [pulse_input_DDM],
