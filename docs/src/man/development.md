@@ -6,7 +6,7 @@ Julia's package manager makes it easy to develop packages that are hosted as git
 
 **Normally** I try to make all changes to my code base in the `dev` branch of my repository. The general idea here is that all experimental code development should take place off the `master` branch and only be merged with the master branch once its continued stability and robustness is insured. 
 
-If you followed the above instructions, you likely only have the `master` branch in your `~/.julia/dev` directory. To 'switch over' (`checkout` in the language of git) to the `dev` branch on you local machine and to 'match it up' with the `dev` branch on github, in a shell (**not** in julia) you should navigate to `~/.julia/dev` and then type `git checkout --track origin/dev`. You can verify that you are now on the `dev` branch with `git branch` (a star should appear next to `dev`).
+If you followed the above instructions, you likely only have the `master` branch in your `~/.julia/dev` directory. To 'switch over' (`checkout` in the language of git) to the `dev` branch on you local machine and to 'match it up' with the `dev` branch on github, in a shell (**not** in julia) you should navigate to `~/.julia/dev/pulse_input_DDM` and then type `git checkout --track origin/dev`. You can verify that you are now on the `dev` branch with `git branch` (a star should appear next to `dev`).
 
 To jump back to the master branch, type `git checkout master`. Now all of the code if this git repo is switch over to whatever state it was in in the `master` bracnh. Now swithc over to the `dev` branch again with `git checkout dev`. Now all of the code reflects its status in the `dev` branch.
 
