@@ -186,6 +186,9 @@ function load_neural_data(file::String; break_sim_data::Bool=false,
     if haskey(data, "cpoke_out")
         cpoke_out = data["cpoke_out"]
         cpoke_end = data["cpoke_end"]
+    else
+        cpoke_out = data["cpoke_end"]
+        cpoke_end = data["cpoke_end"]
     end
 
     T = vec(data["T"])
