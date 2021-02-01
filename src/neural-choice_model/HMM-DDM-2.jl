@@ -45,8 +45,10 @@ function θHMMDDM_joint_2(x::Vector{T}, θ::θHMMDDM_joint_2) where {T <: Real}
     @unpack K, θ, f = θ
     
     m = collect(partition(x[1:K*K], K))
-    m = map(m-> m/sum(m), m)
-    m = collect(hcat(m...)')
+    #m = map(m-> m/sum(m), m)
+    #m = collect(hcat(m...)')
+    m = collect(hcat(m...))
+    m = mapslices(x-> x/sum(x), m, dims=2)
         
     xz = collect.(partition(x[K*K+1:end], Int(length(x[K*K+1:end])/K)))
     
@@ -126,11 +128,18 @@ Arguments:
 - `x`: a vector of mixed parameters.
 - `model`: an instance of `HMMDDM_joint_2`
 """
-function loglikelihood(x::Vector{T}, model::HMMDDM_joint_2) where {T <: Real}
+function loglikelihood(x::Vector{T}, model::HMMDDM_joint_2; remap::Bool=false) where {T <: Real}
     
     @unpack data,θ,n,cross,θprior = model
-    model = HMMDDM_joint_2(θHMMDDM_joint_2(x, θ), data, n, cross, θprior)
-
+    
+    if remap        
+        θ2 = θHMMDDM_joint_2(x, θ)
+        model = HMMDDM_joint_2(θHMMDDM_joint_2(θ=θexp.(θ2.θ), m=θ2.m, K=θ2.K, f=θ2.f), 
+            data, n, cross, θprior)
+    else
+        model = HMMDDM_joint_2(θHMMDDM_joint_2(x, θ), data, n, cross, θprior)
+    end
+    
     loglikelihood(model)
 
 end
@@ -149,11 +158,11 @@ Optional arguments:
 
 - `chunk_size`: parameter to manange how many passes over the LL are required to compute the Hessian. Can be larger if you have access to more memory.
 """
-function Hessian(model::HMMDDM_joint_2; chunk_size::Int=4)
+function Hessian(model::HMMDDM_joint_2; chunk_size::Int=4, remap=false)
 
     @unpack θ = model
     x = flatten(θ)
-    ℓℓ(x) = -loglikelihood(x, model)
+    ℓℓ(x) = -loglikelihood(x, model; remap=remap)
 
     cfg = ForwardDiff.HessianConfig(ℓℓ, x, ForwardDiff.Chunk{chunk_size}())
     ForwardDiff.hessian(ℓℓ, x, cfg)

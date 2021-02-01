@@ -330,6 +330,8 @@ include("neural_model/neural_model-th.jl")
 
 include("neural-choice_model/sample_model.jl")
 include("neural-choice_model/neural-choice_model.jl")
+include("neural-choice_model/neural-choice_model-sep.jl")
+include("neural-choice_model/neural-choice_model-ALT.jl")
 include("neural-choice_model/neural-choice_GLM_model.jl")
 include("neural-choice_model/process_data.jl")
 include("neural-choice_model/HMM-DDM.jl")

@@ -129,8 +129,9 @@ function load_neural_data(file::Vector{String}; break_sim_data::Bool=false,
     spike_data = getindex.(output, 1)
     μ_rnt = getindex.(output, 2)
     μ_t = getindex.(output, 3)  
+    cpoke_out = getindex.(output, 4)  
     
-    spike_data, μ_rnt, μ_t
+    spike_data, μ_rnt, μ_t, cpoke_out
     
 end
 
@@ -180,6 +181,11 @@ function load_neural_data(file::String; break_sim_data::Bool=false,
     
     if !haskey(data, "spike_times")
         data["spike_times"] = data["St"]
+    end
+    
+    if haskey(data, "cpoke_out")
+        cpoke_out = data["cpoke_out"]
+        cpoke_end = data["cpoke_end"]
     end
 
     T = vec(data["T"])
@@ -342,7 +348,7 @@ function load_neural_data(file::String; break_sim_data::Bool=false,
 
         end
         
-        return spike_data, μ_rnt, μ_t
+        return spike_data, μ_rnt, μ_t, cpoke_out - cpoke_end 
             
     else
 
