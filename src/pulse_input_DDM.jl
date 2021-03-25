@@ -27,8 +27,11 @@ import Flatten: flattenable
 using BasisFunctionExpansions
 
 export choiceDDM, θchoice, θz, choiceoptions
+export choiceDDM_dx
 export neuralDDM, θneural, θy, neural_options, neuraldata
 export θHMMDDM, HMMDDM, HMMDDM_options, save_model
+export HMMDDM_joint, θHMMDDM_joint, HMMDDM_joint_options
+export HMMDDM_joint_2, θHMMDDM_joint_2, HMMDDM_joint_options_2
 
 export Sigmoid, Softplus
 export noiseless_neuralDDM, θneural_noiseless, neural_options_noiseless
@@ -45,6 +48,7 @@ export loglikelihood, synthetic_data
 export CIs, optimize, Hessian, gradient
 export load_choice_data, load_neural_data, reload_neural_model, save_neural_model, flatten
 export save, load, reload_choice_model, save_choice_model
+export reload_joint_model
 export initialize_θy, neural_null
 export synthetic_clicks, binLR, bin_clicks
 export default_parameters_and_data, compute_LL
@@ -217,6 +221,88 @@ end
 
 """
 """
+@with_kw struct θHMMDDM_joint{T1,T2,T3,T4} <: DDMθ
+    θz::Vector{T1}
+    bias::T2
+    lapse::T2
+    θy::T3
+    f::Vector{Vector{String}}
+    m::Array{T4,2}=[0.2 0.8; 0.1 0.9]
+    K::Int=2
+end
+
+
+"""
+    HMMDDM
+
+Fields:
+- θ
+- data
+- n
+- cross
+- θprior
+
+"""
+@with_kw struct HMMDDM_joint{U,V} <: DDM
+    θ::θHMMDDM_joint
+    data::U
+    n::Int=53
+    cross::Bool=false
+    θprior::V = θprior()
+end
+
+
+"""
+"""
+@with_kw struct θHMMDDM_joint_2{T1,T2} <: DDMθ
+    θ::Vector{T1}
+    m::Array{T2,2}=[0.2 0.8; 0.1 0.9]
+    K::Int=2
+    f::Vector{Vector{String}}
+end
+
+
+"""
+    HMMDDM
+
+Fields:
+- θ
+- data
+- n
+- cross
+- θprior
+
+"""
+@with_kw struct HMMDDM_joint_2{U,V} <: DDM
+    θ::θHMMDDM_joint_2
+    data::U
+    n::Int=53
+    cross::Bool=false
+    θprior::V = θprior()
+end
+
+
+"""
+    choiceDDM_dx(θ, data, dx, cross)
+
+Fields:
+
+- `θ`: a instance of the module-defined class `θchoice` that contains all of the model parameters for a `choiceDDM`
+- `data`: an `array` where each entry is the module-defined class `choicedata`, which contains all of the data (inputs and choices).
+- `dx`: width of spatial bin (defaults to 0.25).
+- `cross`: whether or not to use cross click adaptation (defaults to false).
+"""
+@with_kw struct choiceDDM_dx{T,U,V} <: DDM
+    θ::T = θchoice()
+    data::U
+    dx::Float64=0.25
+    cross::Bool=false
+    θprior::V = θprior()
+end
+
+
+"""
+"""
 neuralinputs(clicks, binned_clicks, λ0::Vector{Vector{Vector{Float64}}}, dt::Float64, centered::Bool, delay::Int, pad::Int) =
     neuralinputs.(clicks, binned_clicks, λ0, dt, centered, delay, pad)
 
@@ -242,9 +328,12 @@ include("neural_model/RBF_model.jl")
 include("neural_model/filter/filtered.jl")
 include("neural_model/neural_model-th.jl")
 
+include("neural-choice_model/sample_model.jl")
 include("neural-choice_model/neural-choice_model.jl")
 include("neural-choice_model/neural-choice_GLM_model.jl")
 include("neural-choice_model/process_data.jl")
+include("neural-choice_model/HMM-DDM.jl")
+include("neural-choice_model/HMM-DDM-2.jl")
 
 #include("neural_model/load_and_optimize.jl")
 #include("neural_model/sample_model_functions_FP.jl")

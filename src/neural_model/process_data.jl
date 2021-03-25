@@ -358,14 +358,15 @@ end
 #function bin_clicks_spikes_λ0(data::Dict; centered::Bool=true,
 #        dt::Float64=1e-2, delay::Float64=0., pad::Int=10, filtSD::Int=5)
 
-function bin_clicks_spikes_λ0(spikes, clicks; centered::Bool=true,
+function bin_clicks_spikes_λ0(spikes, clicks, λ0; centered::Bool=true,
         dt::Float64=1e-2, delay::Float64=0., dt_synthetic::Float64=1e-4,
         synthetic::Bool=false)
 
     spikes = bin_spikes(spikes, dt, dt_synthetic)
     binned_clicks = bin_clicks(clicks, centered=centered, dt=dt)
+    λ0 = bin_λ0(λ0, dt, dt_synthetic)
 
-    return spikes, binned_clicks
+    return spikes, binned_clicks, λ0
 
 end
 
@@ -377,7 +378,9 @@ bin_λ0(λ0::Vector{Vector{Vector{Float64}}}, dt, dt_synthetic) = bin_λ0.(λ0, 
 
 """
 """
-bin_λ0(λ0::Vector{Vector{Float64}}, dt, dt_synthetic) = decimate.(λ0, Int(dt/dt_synthetic))
+#bin_λ0(λ0::Vector{Vector{Float64}}, dt, dt_synthetic) = decimate.(λ0, Int(dt/dt_synthetic))
+bin_λ0(λ0::Vector{Vector{Float64}}, dt, dt_synthetic) = 
+     map(λ0-> mean.(Iterators.partition(λ0, Int(dt/dt_synthetic))), λ0)
 
 
 """

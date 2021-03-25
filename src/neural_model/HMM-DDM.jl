@@ -46,7 +46,7 @@ Given a `file`, `model` and `options` produced by `optimize`, save everything to
 See also: [`reload_neural_model`](@ref)
 
 """
-function save_model(file, model::HMMDDM, options)
+function save_model(file, model::Union{HMMDDM, HMMDDM_joint, HMMDDM_joint_2}, options)
 
     @unpack lb, ub, fit = options
     @unpack θ, data, n, cross = model
@@ -257,12 +257,37 @@ function loglikelihood(model::HMMDDM)
     @unpack θz, θy, f = θ
     
     LL = map(θz-> loglikelihood_pertrial(neuralDDM(θ=θneural(θz=θz, θy=θy, f=f), data=data, n=n, cross=cross)), θz)  
-    py = map(i-> hcat(map(k-> max.(1e-150, exp.(LL[k][i])), 1:length(LL))...), 1:length(LL[1]))  
+    #py = map(i-> hcat(map(k-> max.(1e-150, exp.(LL[k][i])), 1:length(LL))...), 1:length(LL[1]))  
+    py = map(i-> hcat(map(k-> LL[k][i], 1:length(LL))...), 1:length(LL[1]))  
     sum(pmap(py-> loglikelihood(py, θ)[1], py))
 
 end
 
 
+"""
+"""
+function loglikelihood(py, θ)
+    
+    @unpack m, K = θ
+    
+    T = size(py,1)
+    ps = Vector(undef, size(py,1))
+    p = 1/K * ones(K)
+
+    alpha = log.(p)
+    
+    @inbounds for t in 1:T
+        mm = maximum(alpha)
+        alpha = log.((exp.(alpha .- mm)' * m)') .+ mm .+ py[t,:]
+        ps[t] = exp.(alpha)
+    end
+    
+    return logsumexp(alpha), ps
+        
+end 
+
+
+#=
 """
 """
 function loglikelihood(py, θ)
@@ -286,6 +311,7 @@ function loglikelihood(py, θ)
     return sum(log.(c)), ps
 
 end
+=#
 
 
 """
@@ -301,13 +327,60 @@ function posterior(model::HMMDDM)
     @unpack θz, θy, f = θ
     
     LL = map(θz-> loglikelihood_pertrial(neuralDDM(θ=θneural(θz=θz, θy=θy, f=f), data=data, n=n, cross=cross)), θz)  
-    py = map(i-> hcat(map(k-> max.(1e-150, exp.(LL[k][i])), 1:length(LL))...), 1:length(LL[1]))  
+    #py = map(i-> hcat(map(k-> max.(1e-150, exp.(LL[k][i])), 1:length(LL))...), 1:length(LL[1]))
+    py = map(i-> hcat(map(k-> LL[k][i], 1:length(LL))...), 1:length(LL[1]))  
     pmap(py-> posterior(py, θ), py)
 
 end
 
 
 """
+"""
+function posterior(py, θ)
+    
+    @unpack m, K = θ
+    T = size(py,1)
+        
+    α = Array{Float64,2}(undef, K, size(py,1))
+    β = Array{Float64,2}(undef, K, size(py,1))
+ 
+    p = 1/K * ones(K)
+    alpha = log.(p)
+    
+    @inbounds for t in 1:T
+        
+        mm = maximum(alpha)
+        alpha = log.((exp.(alpha .- mm)' * m)') .+ mm .+ py[t,:]
+        α[:,t] = alpha
+
+    end
+    
+    p = ones(Float64,K) 
+    beta = log.(p)
+    β[:,end] = beta    
+    
+    @inbounds for t = T-1:-1:1
+        
+        tmp = py[t+1,:] + beta
+        mm = maximum(tmp)
+        beta = log.(m' * exp.(tmp .- mm)) .+ mm      
+        β[:,t] = beta
+
+    end
+    
+    post = α .+ β
+    post = exp.(post .- maximum(post, dims=1));
+    post = post ./ sum(post, dims=1)
+    
+    return post
+    #return α .* β
+
+end
+
+
+#=
+"""
+Not fixed yet
 """
 function posterior(py, θ)
     
@@ -344,6 +417,8 @@ function posterior(py, θ)
     return α .* β
 
 end
+=#
+
 
 #=
 """

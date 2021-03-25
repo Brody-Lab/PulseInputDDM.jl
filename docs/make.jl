@@ -18,7 +18,9 @@ Literate.markdown(EXAMPLE, OUTPUT)
 
 # Make changes here if you add to documentation
 pages = Any["Home" => Any["index.md"],
-        "Basics" => Any["man/getting_the_package.md", "generated/fit_choice_model.md",
+        "Basics" => Any["man/getting_the_package.md", 
+                "man/format_for_neural_data.md",
+                "generated/fit_choice_model.md",
                 "generated/recover_choice_model.md",
                 "generated/recover_neural_model.md"],
         "Other helpful info" => Any["man/effcient_ssh.md", 
