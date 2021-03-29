@@ -44,10 +44,10 @@ function create_options_and_x0(; modeltype = "bing")
         :σ2_i =>        [0., 40., true, false, false, true, eps()], 
         :B =>           [0.5, 100., true, true, true, true, 40.],      
         :λ =>           [-10., 10., true, true, true, true, 1. + eps()],                                            
-        :σ2_a =>        [0., 100., false, true, true, false, eps()], 
+        :σ2_a =>        [0., 100., true, true, true, true, eps()], 
         :σ2_s =>        [0., 20., true, true, true, true, eps()], 
-        :ϕ =>           [0.01, 1.2, false, true, true, false, 1. + eps()], 
-        :τ_ϕ =>         [0.005, 1., false, true, true, false, eps()],   
+        :ϕ =>           [0.01, 1.2, true, true, true, true, 1. + eps()], 
+        :τ_ϕ =>         [0.005, 1., true, true, true, true, eps()],   
         :lapse_prob =>  [0., 1., true, true, true, true, eps()],                  
         :lapse_bias =>  [-5., 5., false, true, true, true, 0.5], 
         :lapse_modbeta=>[0., 10., false, false, true, true, 0.],                                 
@@ -77,8 +77,8 @@ function create_options_and_x0(; modeltype = "bing")
         fit[i] = paramlims[Symbol(params[i])][modeltype_idx[modeltype]]
         if fit[i]
             x0[i] = lb[i] + (ub[i] - lb[i]) * rand()
-            if i == 9 | i == 10
-                x0[i] = 0.
+            if (i == 9) | (i == 10) | (i == 8)
+                x0[i] = 1e-2
             end
         else
             x0[i] = paramlims[Symbol(params[i])][7]
