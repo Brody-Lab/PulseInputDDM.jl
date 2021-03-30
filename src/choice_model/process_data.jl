@@ -82,6 +82,35 @@ function save_choice_model(file, model, options, ll, CI)
 
 end
 
+"""
+    save_choice_model(file, model, options, CI, outsample_ll)
+
+Given a file, model produced by optimize and options, save the results of the optimization to a .MAT file
+"""
+function save_choice_model(file, model, options, ll, CI, outsample_ll)
+
+    @unpack lb, ub, fit = options
+    @unpack θ = model
+
+    dict = Dict("ML_params"=> collect(Flatten.flatten(θ)),
+        "name" => get_param_names(θ), 
+        "loglik" => ll, "outsample_ll" => outsample_ll,
+        "lb"=> lb, "ub"=> ub, "fit"=> fit,
+        "CI" => CI)
+
+    matwrite(file, dict)
+
+    #=
+    if !isempty(H)
+        #dict["H"] = H
+        hfile = matopen(path*"hessian_"*file, "w")
+        write(hfile, "H", H)
+        close(hfile)
+    end
+    =#
+
+end
+
 
 """
     reload_choice_model(file)

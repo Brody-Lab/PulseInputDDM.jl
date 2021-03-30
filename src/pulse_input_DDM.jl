@@ -40,7 +40,7 @@ export likelihood, choice_loglikelihood, joint_loglikelihood
 export choice_optimize, choice_neural_optimize, choice_likelihood
 export simulate_expected_firing_rate, reload_neural_data
 export loglikelihood, synthetic_data
-export get_param_names, create_options_and_x0
+export get_param_names, create_options_and_x0, get_train_test_samples
 export CIs, optimize, Hessian, gradient
 export load_choice_data, load_neural_data, reload_neural_model, save_neural_model, flatten
 export save, load, reload_choice_model, save_choice_model

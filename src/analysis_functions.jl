@@ -1,5 +1,21 @@
 """
 """
+
+function get_samples_for_training(outsample_logll::Bool, data, frac = 0.8, seed = 1)
+
+    if outsample_logll == true
+        ntrials = length(data)
+        train = sample(Random.seed!(seed), 1:ntrials, ceil(Int, frac * ntrials), replace=false)
+    else
+        train = 1:ntrials
+    end
+
+    return train
+end
+
+
+"""
+"""
 function diffLR(data)
     
     @unpack binned_clicks, clicks, dt, pad, delay = data.input_data

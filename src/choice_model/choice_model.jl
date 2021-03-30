@@ -42,20 +42,20 @@ function create_options_and_x0(; modeltype = "bing")
      paramlims = Dict( 
       #:paramname => [lb, ub, fit_bing, fit_hist_initpt, hist_initpt_lapse,hist_lapse,  nofit_default]
         :σ2_i =>        [0., 40., true, false, false, true, eps()], 
-        :B =>           [0.5, 40., true, true, true, true, 40.],      
+        :B =>           [0.5, 60., true, true, true, true, 40.],      
         :λ =>           [-10., 10., true, true, true, true, 1. + eps()],                                            
         :σ2_a =>        [0., 100., true, true, true, true, eps()], 
         :σ2_s =>        [0., 20., true, true, true, true, eps()], 
         :ϕ =>           [0.01, 1.2, true, true, true, true, 1. + eps()], 
         :τ_ϕ =>         [0.005, 1., true, true, true, true, eps()],   
         :lapse_prob =>  [0., 1., true, true, true, true, eps()],                  
-        :lapse_bias =>  [-5., 5., false, false, true, true, 0.5], 
+        :lapse_bias =>  [-5., 5., false, true, true, true, 0.5], 
         :lapse_modbeta=>[0., 10., false, false, true, true, 0.],                                 
         :h_ηcL =>       [-5., 5., false, true, true, true, 0.], 
         :h_ηcR =>       [-5., 5., false, true, true, true, 0.], 
         :h_ηe =>        [-5., 5., false, true, true, true, 0.], 
         :h_βc =>        [0., 1., false, true, true, true, 0.], 
-        :h_βe =>        [0., 1., false, true, true, true, 0.],
+        :h_βe =>        [0., 1., false, false, false, false, 0.],
         :sd_β =>        [0., 50., false, true, true, true, 0.],
         :sd_w =>        [40., 200., false, true, true, true, 4.],
         :bias =>        [-5., 5., true, false, false, false, 0.])        
@@ -180,9 +180,10 @@ _, data = synthetic_data(n ;θ=θ, ntrials=ntrials, rng=1, dt=dt);
 choiceDDM(θ=θ, data=data, n=n)
 ```
 """
-@with_kw struct choiceDDM{T,U,V} <: DDM
+@with_kw struct choiceDDM{T,TT,U,V} <: DDM
     θ::T = θchoice()
     data::U
+    trial_ids::TT
     n::Int=53
     cross::Bool=false
     initpt_mod::Bool=false
@@ -192,31 +193,72 @@ end
 
 """
 """
-function train_and_test(data, options::choiceoptions; 
-        n::Int=53, cross::Bool=false, initpt_mod=false,
-        x_tol::Float64=1e-10, f_tol::Float64=1e-9, g_tol::Float64=1e-3,
-        iterations::Int=Int(2e3), show_trace::Bool=true, outer_iterations::Int=Int(1e1),
-        extended_trace::Bool=false, scaled::Bool=false, time_limit::Float64=170000., show_every::Int=10,
-        x0::Vector{Float64} = [0.1, 15., -0.1, 20., 0.5, 0.8, 0.008, 0.01, 0., 0., 0., 0., 0., 0., 0., 4., 0.], 
-        seed::Int=1, σ_B::Float64=1e6)
+# function train_and_test(data, options::choiceoptions; 
+#         n::Int=53, cross::Bool=false, initpt_mod=false,
+#         x_tol::Float64=1e-10, f_tol::Float64=1e-9, g_tol::Float64=1e-3,
+#         iterations::Int=Int(2e3), show_trace::Bool=true, outer_iterations::Int=Int(1e1),
+#         extended_trace::Bool=false, scaled::Bool=false, time_limit::Float64=170000., show_every::Int=10,
+#         x0::Vector{Float64} = [0.1, 15., -0.1, 20., 0.5, 0.8, 0.008, 0.01, 0., 0., 0., 0., 0., 0., 0., 4., 0.], 
+#         seed::Int=1, σ_B::Float64=1e6)
         
-    ntrials = length(data)
-    train = sample(Random.seed!(seed), 1:ntrials, ceil(Int, 0.9 * ntrials), replace=false)
-    test = setdiff(1:ntrials, train)
+#     ntrials = length(data)
+#     train = sample(Random.seed!(seed), 1:ntrials, ceil(Int, 0.9 * ntrials), replace=false)
+#     test = setdiff(1:ntrials, train)
+    
+#     θ = Flatten.reconstruct(θchoice(), x0)
+#     model = choiceDDM(θ, data[train], n, cross, initpt_mod, θprior(μ_B=40., σ_B=σ_B))
+    
+#     model, = optimize(model, options; 
+#         x_tol=x_tol, f_tol=f_tol, g_tol=g_tol, iterations=iterations, show_trace=show_trace, 
+#         outer_iterations=outer_iterations, extended_trace=extended_trace, 
+#         scaled=scaled, time_limit=time_limit, show_every=show_every)
+        
+#     testLL = loglikelihood(choiceDDM(model.θ, data[test], n, cross, initpt_mod, θprior(μ_B=40., σ_B=σ_B)))
+#     LL = loglikelihood(choiceDDM(model.θ, data, n, cross, initpt_mod, θprior(μ_B=40., σ_B=σ_B)))
+
+#     return σ_B, model, testLL, LL
+    
+# end
+
+
+
+"""
+    optimize(data, options)
+
+Optimize model parameters for a `choiceDDM`.
+THIS IS THE OPTIMIZE FUNCTION I USE WHILE DATA FITTING
+
+Returns:
+
+- `model`: an instance of a `choiceDDM`.
+- `output`: results from [`Optim.optimize`](@ref).
+
+Arguments:
+
+- `data`: an `array`, each element of which is a module-defined type `choicedata`. `choicedata` contains the click data and the choice for a trial.
+- `options`: module-defind type that contains the upper (`ub`) and lower (`lb`) boundaries and specification of which parameters to fit (`fit`).
+
+"""
+function optimize(data, options::choiceoptions; 
+        n::Int=53, cross::Bool=false, initpt_mod::Bool=false, outsample_logll::Bool = false,
+        x_tol::Float64=1e-9, f_tol::Float64=1e-9, g_tol::Float64=1e-6,
+        iterations::Int=Int(2e3), show_trace::Bool=true, outer_iterations::Int=Int(1e1),
+        extended_trace::Bool=false, scaled::Bool=false, time_limit::Float64=170000., show_every::Int=5,
+        x0::Vector{Float64} = [0.1, 15., -0.1, 20., 0.5, 0.8, 0.008, 0.01, 0., 0., 0., 0., 0., 0., 0., 4., 0.],  
+        θprior::θprior=θprior())
     
     θ = Flatten.reconstruct(θchoice(), x0)
-    model = choiceDDM(θ, data[train], n, cross, initpt_mod, θprior(μ_B=40., σ_B=σ_B))
-    
-    model, = optimize(model, options; 
+
+    train = get_samples_for_training(outsample_logll, data)
+    model = choiceDDM(θ, data, train, n, cross, initpt_mod, θprior)
+
+    model, output = optimize(model, options; 
         x_tol=x_tol, f_tol=f_tol, g_tol=g_tol, iterations=iterations, show_trace=show_trace, 
         outer_iterations=outer_iterations, extended_trace=extended_trace, 
         scaled=scaled, time_limit=time_limit, show_every=show_every)
-        
-    testLL = loglikelihood(choiceDDM(model.θ, data[test], n, cross, initpt_mod, θprior(μ_B=40., σ_B=σ_B)))
-    LL = loglikelihood(choiceDDM(model.θ, data, n, cross, initpt_mod, θprior(μ_B=40., σ_B=σ_B)))
 
-    return σ_B, model, testLL, LL
-    
+    return model, output
+
 end
 
 
@@ -242,7 +284,7 @@ function optimize(model::choiceDDM, options::choiceoptions;
         extended_trace::Bool=false, scaled::Bool=false, time_limit::Float64=170000., show_every::Int=5)
 
     @unpack fit, lb, ub = options
-    @unpack θ, data, n, cross, initpt_mod, θprior = model
+    @unpack θ, data, trial_ids, n, cross, initpt_mod, θprior = model
     
     x0 = collect(Flatten.flatten(θ))
 
@@ -260,49 +302,13 @@ function optimize(model::choiceDDM, options::choiceoptions;
     x = Optim.minimizer(output)
     x = stack(x,c,fit)
     θ = Flatten.reconstruct(θchoice(), x)
-    model = choiceDDM(θ, data, n, cross, initpt_mod, θprior)
+    model = choiceDDM(θ, data, trial_ids, n, cross, initpt_mod, θprior)
     converged = Optim.converged(output)
 
     return model, output
 
 end
 
-
-"""
-    optimize(data, options)
-
-Optimize model parameters for a `choiceDDM`.
-
-Returns:
-
-- `model`: an instance of a `choiceDDM`.
-- `output`: results from [`Optim.optimize`](@ref).
-
-Arguments:
-
-- `data`: an `array`, each element of which is a module-defined type `choicedata`. `choicedata` contains the click data and the choice for a trial.
-- `options`: module-defind type that contains the upper (`ub`) and lower (`lb`) boundaries and specification of which parameters to fit (`fit`).
-
-"""
-function optimize(data, options::choiceoptions; 
-        n::Int=53, cross::Bool=false, initpt_mod::Bool=false,
-        x_tol::Float64=1e-9, f_tol::Float64=1e-9, g_tol::Float64=1e-6,
-        iterations::Int=Int(2e3), show_trace::Bool=true, outer_iterations::Int=Int(1e1),
-        extended_trace::Bool=false, scaled::Bool=false, time_limit::Float64=170000., show_every::Int=5,
-        x0::Vector{Float64} = [0.1, 15., -0.1, 20., 0.5, 0.8, 0.008, 0.01, 0., 0., 0., 0., 0., 0., 0., 4., 0.],  
-        θprior::θprior=θprior())
-    
-    θ = Flatten.reconstruct(θchoice(), x0)
-    model = choiceDDM(θ, data, n, cross, initpt_mod, θprior)
-    
-    model, output = optimize(model, options; 
-        x_tol=x_tol, f_tol=f_tol, g_tol=g_tol, iterations=iterations, show_trace=show_trace, 
-        outer_iterations=outer_iterations, extended_trace=extended_trace, 
-        scaled=scaled, time_limit=time_limit, show_every=show_every)
-
-    return model, output
-
-end
 
 
 """
@@ -314,9 +320,9 @@ See also: [`loglikelihood`](@ref)
 """
 function loglikelihood(x::Vector{T1}, model::choiceDDM) where {T1 <: Real}
 
-    @unpack n, data, cross, initpt_mod, θprior = model
+    @unpack n, data, trial_ids, cross, initpt_mod, θprior = model
     θ = Flatten.reconstruct(θchoice(), x)
-    model = choiceDDM(θ, data, n, cross, initpt_mod, θprior)
+    model = choiceDDM(θ, data, trial_ids, n, cross, initpt_mod, θprior)
     loglikelihood(model)
 
 end
@@ -377,7 +383,7 @@ Given parameters θ and data (inputs and choices) computes the LL for all trials
 """
 function loglikelihood(model::choiceDDM)
     
-    @unpack θ, data, n, cross, initpt_mod = model
+    @unpack θ, data, trial_ids, n, cross, initpt_mod = model
     @unpack θz, θhist, θslowdrift  = θ
     @unpack σ2_i, B, λ, σ2_a = θz
     @unpack dt = data[1].click_data
@@ -386,7 +392,7 @@ function loglikelihood(model::choiceDDM)
 
     M,xc,dx = initialize_latent_model(σ2_i, B, λ, σ2_a, n, dt)
 
-    sum(pmap((data, i_0) -> loglikelihood!(θ, M, dx, xc, data, i_0, n, cross, initpt_mod), data, i_0))
+    sum(pmap((data, i_0) -> loglikelihood!(θ, M, dx, xc, data, i_0, n, cross, initpt_mod), data[trial_ids], i_0[trial_ids]))
 
 end
 
@@ -408,7 +414,7 @@ Given parameters θ and data (inputs and choices) computes the likehood of the c
 """
 function likelihood(model::choiceDDM)
     
-    @unpack θ, data, n, cross, initpt_mod = model
+    @unpack θ, data, trial_ids, n, cross, initpt_mod = model
     @unpack θz, θhist, θslowdrift = θ
     @unpack σ2_i, B, λ, σ2_a = θz
     @unpack dt = data[1].click_data
@@ -416,7 +422,7 @@ function likelihood(model::choiceDDM)
     i_0 = compute_history(θhist, data, B) .+ compute_slowdrift(θslowdrift, data, B)
     M,xc,dx = initialize_latent_model(σ2_i, B, λ, σ2_a, n, dt)
 
-    pmap((data, i_0) -> likelihood!(θ, M, dx, xc, data, i_0, n, cross, initpt_mod), data, i_0)
+    pmap((data, i_0) -> likelihood!(θ, M, dx, xc, data, i_0, n, cross, initpt_mod), data[trial_ids], i_0[trial_ids])
 
 end
 
@@ -428,7 +434,7 @@ Given an instance of `choiceDDM` computes the probabilty of going right for each
 """
 function P_goright(model::choiceDDM)
     
-    @unpack θ, data, n, cross, initpt_mod = model
+    @unpack θ, data, trial_ids, n, cross, initpt_mod = model
     @unpack θz, θhist, θslowdrift = θ
     @unpack σ2_i, B, λ, σ2_a = θz
     @unpack dt = data[1].click_data
@@ -436,10 +442,27 @@ function P_goright(model::choiceDDM)
     i_0 = compute_history(θhist, data, B) .+ compute_slowdrift(θslowdrift, data, B)
     M,xc,dx = initialize_latent_model(σ2_i, B, λ, σ2_a, n, dt)
 
-    pmap((data, i_0) -> likelihood!(θ, M, dx, xc, data, i_0, n, cross, initpt_mod), map(x-> choicedata(x.click_data, true, true), data), i_0)
+    pmap((data, i_0) -> likelihood!(θ, M, dx, xc, data, i_0, n, cross, initpt_mod), map(x-> choicedata(x.click_data, true, true), data[trial_ids]), i_0[trial_ids])
 
 end
 
+
+"""
+"""
+
+function compute_outsample_logll(model::choiceDDM)
+
+    @unpack θ, data, trial_ids, n, cross, initpt_mod = model
+    test = setdiff(1:length(data), trial_ids)
+
+    if length(test) == 0
+        return 0.
+    else
+        model = choiceDDM(θ, data, test, n, cross, initpt_mod, θprior)
+        return loglikelihood(model)
+    end
+
+end
 
 
 """

@@ -139,9 +139,9 @@ function compute_history(i::Int, θhist::θtrialhist, choices, hits, lim::Int)
     
     rel = max(lim, i-30):i-1
     rc = ((choices[rel] .== 1) .& (hits[rel] .== 1)).*h_ηcL.*h_βc.^reverse(0:length(rel)-1)
-    re = ((choices[rel] .== 1) .& (hits[rel] .== 0)).*h_ηe.*h_βe.^reverse(0:length(rel)-1)
+    re = ((choices[rel] .== 1) .& (hits[rel] .== 0)).*h_ηe.*h_βc.^reverse(0:length(rel)-1)
     lc = ((choices[rel] .== 0) .& (hits[rel] .== 1)).*h_ηcR.*h_βc.^reverse(0:length(rel)-1)
-    le = ((choices[rel] .== 0) .& (hits[rel] .== 0)).*h_ηe.*h_βe.^reverse(0:length(rel)-1)
+    le = ((choices[rel] .== 0) .& (hits[rel] .== 0)).*h_ηe.*h_βc.^reverse(0:length(rel)-1)
     i_0 = sum(rc - lc + re - le)
 
     return i_0
