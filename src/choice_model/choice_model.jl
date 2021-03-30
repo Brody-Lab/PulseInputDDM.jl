@@ -42,21 +42,23 @@ function create_options_and_x0(; modeltype = "bing")
      paramlims = Dict( 
       #:paramname => [lb, ub, fit_bing, fit_hist_initpt, hist_initpt_lapse,hist_lapse,  nofit_default]
         :σ2_i =>        [0., 40., true, false, false, true, eps()], 
-        :B =>           [0.5, 100., true, true, true, true, 40.],      
+        :B =>           [0.5, 40., true, true, true, true, 40.],      
         :λ =>           [-10., 10., true, true, true, true, 1. + eps()],                                            
         :σ2_a =>        [0., 100., true, true, true, true, eps()], 
         :σ2_s =>        [0., 20., true, true, true, true, eps()], 
         :ϕ =>           [0.01, 1.2, true, true, true, true, 1. + eps()], 
         :τ_ϕ =>         [0.005, 1., true, true, true, true, eps()],   
         :lapse_prob =>  [0., 1., true, true, true, true, eps()],                  
-        :lapse_bias =>  [-5., 5., false, true, true, true, 0.5], 
+        :lapse_bias =>  [-5., 5., false, false, true, true, 0.5], 
         :lapse_modbeta=>[0., 10., false, false, true, true, 0.],                                 
         :h_ηcL =>       [-5., 5., false, true, true, true, 0.], 
         :h_ηcR =>       [-5., 5., false, true, true, true, 0.], 
-        :h_ηe =>       [-5., 5., false, true, true, true, 0.], 
+        :h_ηe =>        [-5., 5., false, true, true, true, 0.], 
         :h_βc =>        [0., 1., false, true, true, true, 0.], 
         :h_βe =>        [0., 1., false, true, true, true, 0.],
-        :bias =>        [-5., 5., true, true, true, true, 0.])        
+        :sd_β =>        [0., 50., false, true, true, true, 0.],
+        :sd_w =>        [40., 200., false, true, true, true, 4.],
+        :bias =>        [-5., 5., true, false, false, false, 0.])        
 
     modeltype_idx = Dict(
         "bing"              => 3,
@@ -77,7 +79,8 @@ function create_options_and_x0(; modeltype = "bing")
         fit[i] = paramlims[Symbol(params[i])][modeltype_idx[modeltype]]
         if fit[i]
             x0[i] = lb[i] + (ub[i] - lb[i]) * rand()
-            if (i == 9) | (i == 10) | (i == 8)
+            # initiate lapse parameters at small values
+            if (i == 9) | (i == 10) | (i == 8)  
                 x0[i] = 1e-2
             end
         else
@@ -111,10 +114,11 @@ Example:
     θhist=θtrialhist(h_ηc = 0.3, h_ηe = -0.1, h_βc = 0.9, h_βe = 0.1))
 ```
 """
-@with_kw struct θchoice{T1, T2, T3, T<:Real} <: DDMθ
+@with_kw struct θchoice{T1, T2, T3, T4, T<:Real} <: DDMθ
     θz::T1 = θz()
     θlapse::T2 = θlapse()
     θhist::T3 = θtrialhist()
+    θslowdrift::T4 = θslowdrift()
     bias::T = 1.
 end
 
@@ -128,7 +132,8 @@ function get_param_names(θ::θchoice)
     params = vcat(collect(map(x-> string(x), fieldnames(typeof(θ.θz)))), 
             collect(map(x-> string(x), fieldnames(typeof(θ.θlapse)))),
             collect(map(x-> string(x), fieldnames(typeof(θ.θhist)))),
-            collect(map(x-> string(x), fieldnames(typeof(θ)))[4:end]))  
+            collect(map(x-> string(x), fieldnames(typeof(θ.θslowdrift)))),
+            collect(map(x-> string(x), fieldnames(typeof(θ)))[5:end]))  
 end
 
 
@@ -192,7 +197,7 @@ function train_and_test(data, options::choiceoptions;
         x_tol::Float64=1e-10, f_tol::Float64=1e-9, g_tol::Float64=1e-3,
         iterations::Int=Int(2e3), show_trace::Bool=true, outer_iterations::Int=Int(1e1),
         extended_trace::Bool=false, scaled::Bool=false, time_limit::Float64=170000., show_every::Int=10,
-        x0::Vector{Float64} = [0.1, 15., -0.1, 20., 0.5, 0.8, 0.008, 0.01, 0., 0., 0., 0., 0., 0., 0.], 
+        x0::Vector{Float64} = [0.1, 15., -0.1, 20., 0.5, 0.8, 0.008, 0.01, 0., 0., 0., 0., 0., 0., 0., 4., 0.], 
         seed::Int=1, σ_B::Float64=1e6)
         
     ntrials = length(data)
@@ -284,7 +289,7 @@ function optimize(data, options::choiceoptions;
         x_tol::Float64=1e-9, f_tol::Float64=1e-9, g_tol::Float64=1e-6,
         iterations::Int=Int(2e3), show_trace::Bool=true, outer_iterations::Int=Int(1e1),
         extended_trace::Bool=false, scaled::Bool=false, time_limit::Float64=170000., show_every::Int=5,
-        x0::Vector{Float64} = [0.1, 15., -0.1, 20., 0.5, 0.8, 0.008, 0.01, 0., 0., 0., 0., 0., 0., 0.],  
+        x0::Vector{Float64} = [0.1, 15., -0.1, 20., 0.5, 0.8, 0.008, 0.01, 0., 0., 0., 0., 0., 0., 0., 4., 0.],  
         θprior::θprior=θprior())
     
     θ = Flatten.reconstruct(θchoice(), x0)
@@ -352,7 +357,7 @@ end
 
 """
 """
-θ2(θ::θchoice) = θchoice(θz=θz2(θ.θz), bias=θ.bias, 
+θ2(θ::θchoice) = θchoice(θz=θz2(θ.θz), bias=θ.bias, θslowdrift = θ.θslowdrift, 
                         θlapse=θ.θlapse, θhist = θ.θhist)   
 
 
@@ -362,7 +367,7 @@ end
 θexp(θ) = θchoice(θz=θz(σ2_i = exp(θ.θz.σ2_i), B = θ.θz.B, λ = θ.θz.λ, 
         σ2_a = exp(θ.θz.σ2_a), σ2_s = exp(θ.θz.σ2_s),
         ϕ = θ.θz.ϕ, τ_ϕ = θ.θz.τ_ϕ), 
-        bias=θ.bias, θlapse=θ.θlapse, θhist = θ.θhist)   
+        bias=θ.bias, θlapse=θ.θlapse, θhist = θ.θhist, θslowdrift = θ.θslowdrift)   
     
     
 """
@@ -373,11 +378,12 @@ Given parameters θ and data (inputs and choices) computes the LL for all trials
 function loglikelihood(model::choiceDDM)
     
     @unpack θ, data, n, cross, initpt_mod = model
-    @unpack θz, θhist  = θ
+    @unpack θz, θhist, θslowdrift  = θ
     @unpack σ2_i, B, λ, σ2_a = θz
     @unpack dt = data[1].click_data
 
-    i_0 = compute_history(θhist, data, B)
+    i_0 = compute_history(θhist, data, B) .+ compute_slowdrift(θslowdrift, data, B)
+
     M,xc,dx = initialize_latent_model(σ2_i, B, λ, σ2_a, n, dt)
 
     sum(pmap((data, i_0) -> loglikelihood!(θ, M, dx, xc, data, i_0, n, cross, initpt_mod), data, i_0))
@@ -403,11 +409,11 @@ Given parameters θ and data (inputs and choices) computes the likehood of the c
 function likelihood(model::choiceDDM)
     
     @unpack θ, data, n, cross, initpt_mod = model
-    @unpack θz, θhist = θ
+    @unpack θz, θhist, θslowdrift = θ
     @unpack σ2_i, B, λ, σ2_a = θz
     @unpack dt = data[1].click_data
 
-    i_0 = compute_history(θhist, data, B)
+    i_0 = compute_history(θhist, data, B) .+ compute_slowdrift(θslowdrift, data, B)
     M,xc,dx = initialize_latent_model(σ2_i, B, λ, σ2_a, n, dt)
 
     pmap((data, i_0) -> likelihood!(θ, M, dx, xc, data, i_0, n, cross, initpt_mod), data, i_0)
@@ -423,11 +429,11 @@ Given an instance of `choiceDDM` computes the probabilty of going right for each
 function P_goright(model::choiceDDM)
     
     @unpack θ, data, n, cross, initpt_mod = model
-    @unpack θz, θhist = θ
+    @unpack θz, θhist, θslowdrift = θ
     @unpack σ2_i, B, λ, σ2_a = θz
     @unpack dt = data[1].click_data
 
-    i_0 = compute_history(θhist, data, B)
+    i_0 = compute_history(θhist, data, B) .+ compute_slowdrift(θslowdrift, data, B)
     M,xc,dx = initialize_latent_model(σ2_i, B, λ, σ2_a, n, dt)
 
     pmap((data, i_0) -> likelihood!(θ, M, dx, xc, data, i_0, n, cross, initpt_mod), map(x-> choicedata(x.click_data, true, true), data), i_0)
@@ -615,9 +621,6 @@ function compute_history(θhist::θtrialhist, data, B::TT) where TT <: Any
     sessbnd = map(data -> data.click_data.sessbnd, data)
     hits = map(data -> data.hits, data)
 
-   # correct = map(data -> data.click_data.clicks.gamma > 0, data)
-    # correct = map(data -> Δclicks(data.click_data)>0, data)
-    # hits = choices .== correct
 
     i_0 = Array{TT}(undef, length(hits))
     lim = 1
@@ -634,6 +637,46 @@ function compute_history(θhist::θtrialhist, data, B::TT) where TT <: Any
 
 end
 
+
+
+function compute_slowdrift(θslowdrift::θslowdrift, data, B::TT) where TT <: Any
+
+    @unpack sd_β, sd_w = θslowdrift
+
+    choices = map(data -> data.choice, data)
+    sessbnd = map(data -> data.click_data.sessbnd, data)
+    sessmat = hcat(findall(sessbnd)[1:end-1], findall(sessbnd)[2:end].-1)
+    sessmat = vcat(sessmat, hcat(findall(sessbnd)[end], length(sessbnd)))
+
+    slowdrift = Array{TT}(undef, length(choices))
+
+    k = 0
+
+    for i = 1:length(choices)
+        
+        sessbnd[i] == true ? k += 1 : k = k
+        
+        if i <= sessmat[k,1] + 1
+            idx_post = min(sessmat[k,2], i + 1) : min(sessmat[k,2], i + floor(Int,sd_w/2)) 
+            num_left = sum(choices[idx_post] .== 0)
+            num_right = sum(choices[idx_post] .== 1)
+        elseif i > sessmat[k,2] - 1
+            idx_pre = max(sessmat[k,1], i - ceil(Int, sd_w/2)) : max(sessmat[k,1], i - 2)
+            num_left = sum(choices[idx_pre] .== 0)
+            num_right = sum(choices[idx_pre] .== 1)
+        else
+            idx_pre = max(sessmat[k,1], i - ceil(Int, sd_w/2)) : max(sessmat[k,1], i - 2)
+            idx_post = min(sessmat[k,2], i + 1) : min(sessmat[k,2], i + floor(Int, sd_w/2)) 
+            num_left = sum(choices[idx_pre] .== 0) + sum(choices[idx_post] .== 0)
+            num_right = sum(choices[idx_pre] .== 1) + sum(choices[idx_post] .== 1)
+        end
+        
+        slowdrift[i] = sd_β * (num_right/(num_left+num_right) - 0.5)  
+    end
+
+    return slowdrift
+
+end
 
 
 
@@ -654,7 +697,7 @@ function bounded_mass(θ::θchoice, data, n::Int, cross::Bool, initpt_mod::Bool)
     @unpack σ2_i, B, λ, σ2_a = θz
     @unpack dt = data[1].click_data
 
-    i_0 = compute_history(θhist, data, B)
+    i_0 = compute_history(θhist, data, B) .+ compute_slowdrift(θslowdrift, data, B)
     initpt_mod ? a_0 = i_0 : a_0 = 0. * i_0
     P,M,xc,dx = initialize_latent_model(σ2_i, a_0, B, λ, σ2_a, n, dt)
 

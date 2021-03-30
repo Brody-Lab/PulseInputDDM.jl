@@ -88,6 +88,14 @@ end
 
 """
 """
+@with_kw struct θslowdrift{T<:Real} @deftype T
+    sd_β = 20.
+    sd_w = 150.
+end
+
+"""
+"""
+
 @with_kw struct clicks
     L::Vector{Float64}
     R::Vector{Float64}
