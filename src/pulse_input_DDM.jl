@@ -210,7 +210,6 @@ end
     cross::Bool=false
 end
 
-
 """
 """
 @with_kw struct θneural_choice_GLM{T1, T2, T3} <: DDMθ
@@ -303,6 +302,23 @@ Fields:
     θprior::V = θprior()
 end
 
+"""
+    jointDDM
+
+A module-specific type that instantiates a drift-diffusion model that is fitted to the choice and firing rates, using stimuli and trial history as inputs
+
+Fields:
+- θ: a vector of
+- [`jointdata`](@ref)
+- `n`: number of bins in the space of the latent variable (a)
+- cross: adaptation of sound pulses is cross-stream if true and within-stream otherwise
+"""
+@with_kw struct jointDDM{T1,T2} <: DDM
+    θ::T1
+    joint_data::T2
+    n::Int=53
+    cross::Bool=false
+end
 
 """
 """
