@@ -1,21 +1,4 @@
 """
-    jointdata
-
-Module-defined type containing information on the behavioral and neural data on each trial to be fitted, as well as the overall trial sequence that contains the subset of trials to be fitted.
-
-Fields:
-- An array of 'neuraldata'. Each array has the same neurons recorded in each trial
-- trialsequence (['trialsequence'](@ref))
-
-"""
-@with_kw struct jointdata
-    neural_data::Vector{neuraldata}
-    sequence::trialsequence
-    shifted::trialshifted
-    @assert check_trialsequence_matches_neuraldata(sequence, neural_data)
-end
-
-"""
     trialsequence
 
 Module-defined type providing information on the entire sequence of trials within which all the trials from each array of `neuraldata` is embedded.

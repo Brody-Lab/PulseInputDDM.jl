@@ -5,7 +5,7 @@ A module-specific type that instantiates a drift-diffusion model that is fitted 
 
 Fields:
 - θ: a vector of
-- [`joint_data`](@ref)
+- [`jointdata`](@ref)
 - `n`: number of bins in the space of the latent variable (a)
 - cross: adaptation of sound pulses is cross-stream if true and within-stream otherwise
 """
@@ -69,7 +69,22 @@ Fields:
     x0::Vector{T}
 end
 
+"""
+    jointdata
 
+Module-defined type containing information on the behavioral and neural data on each trial to be fitted, as well as the overall trial sequence that contains the subset of trials to be fitted.
+
+Fields:
+- An array of 'neuraldata'. Each array has the same neurons recorded in each trial
+- trialsequence (['trialsequence'](@ref))
+
+"""
+@with_kw struct jointdata <: DDMdata
+    neural_data::Vector{neuraldata}
+    sequence::trialsequence
+    shifted::trialshifted
+    @assert check_trialsequence_matches_neuraldata(sequence, neural_data)
+end
 
 """
 Arguments:
