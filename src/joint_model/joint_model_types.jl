@@ -164,7 +164,7 @@ Fields:
 - `pad`: How much extra time should spikes be considered before and after the begining of the clicks. Useful especially if delay is large.
 - `pcut`: p-value for selecting cells.
 """
-@with_kw struct settings{T1::Bool, T2<:Integer, T3<:AbstractFloat}
+@with_kw struct settings{T1,T2,T3}
     break_sim_data::T1=false,
     centered::T1=true
     cut::T2=10
@@ -176,4 +176,7 @@ Fields:
     nRBFs::T2=6
     pad::T2=0
     pcut::T3=0.01
+    @assert T1 == Bool
+    @assert T2 <: Integer
+    @assert T3 <: AbstractFloat
 end
