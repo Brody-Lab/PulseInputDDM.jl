@@ -57,7 +57,7 @@ export mean_exp_rate_per_trial, mean_exp_rate_per_cond
 export logprior, process_spike_data
 export θprior, train_and_test, all_Softplus, θ2, invθ2
 
-export jointDDM, θjoint, joint_options, θh, specify_jointmodel, optimize_jointmodel, load_joint_data, load_trial_sequence
+export jointDDM, jointdata, θjoint, joint_options, θh, specify_jointmodel, optimize_jointmodel, load_joint_data, load_trial_sequence
 
 abstract type DDM end
 abstract type DDMdata end
