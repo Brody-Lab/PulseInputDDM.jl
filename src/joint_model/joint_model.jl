@@ -151,7 +151,7 @@ Arguments:
 - `x` The values of the model parameters
 - `f` An array of String arrays specifying the latent-to-neural transformation
 """
-function θjoint(x::Vector{T}, f::Vector{Vector{String}}) where {T <: Real}
+function θjoint(x::Vector{T}, f::Vector{Vector{String}}) where {T <: AbstractFloat}
 
     nparams, ncells = nθparams(f)
     n = count_parameters_in_joint_DDM
@@ -553,7 +553,7 @@ Arguments:
 - `cross`:true indicates cross-stream, rather than within-stream, adaptation
 - `a₀`: value of the latent variable at the first time point of the trial
 """
-function choice_likelihood(θ::θjoint, choice::Bool, click_data::clicks, dt::T1, M::Matrix{T1}, xc::Vector{T1}, dx::T1, n::T3, cross::Bool, a₀::T1) where {T1<:AbstractFloat, T2<:Integer}
+function choice_likelihood(θ::θjoint, choice::Bool, click_data::clicks, dt::T1, M::Matrix{T1}, xc::Vector{T1}, dx::T1, n::T2, cross::Bool, a₀::T1) where {T1<:AbstractFloat, T2<:Integer}
 
     @unpack θz, bias, lapse = θ
     @unpack σ2_i = θz
