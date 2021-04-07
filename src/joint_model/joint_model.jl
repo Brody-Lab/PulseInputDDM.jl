@@ -82,7 +82,7 @@ function specify_jointmodel(f; remap::Bool=false; modeltype = "history1back")
                     :bias => 0.,
                     :lapse => eps(),
                     :α => 0.,
-                    :k => eps().)
+                    :k => eps())
     if remap
         map((x,y)->θDDM_lb[:x]=y, [:σ2_a, :σ2_i, :σ2_s], repeat([1e-3],3))
         map((x,y)->θDDM_ub[:x]=y, [:σ2_a, :σ2_i, :σ2_s], repeat([100.],3))
