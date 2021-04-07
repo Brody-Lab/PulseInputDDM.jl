@@ -321,6 +321,42 @@ Fields:
 end
 
 """
+A module-specific type that specifies the parameters of the joint model that are related to trial history
+
+Fields:
+
+-`α`: The impact of the correct side of the previous trial
+-`k`: The exponential change rate of α as a function of trial number in the past
+"""
+@with_kw struct θh{T<:AbstractFloat}
+    α::T = 0.
+    k::T = 0.
+end
+
+"""
+    θjoint
+
+A module-specific type that specifies the parameters of the joint model.
+
+Fields:
+- `θz`: an instance of the module-specific type ['θz'](@ref) that contains the values of the parameters σ2_i, σ2_a, σ2_s, λ, B, ϕ, τ_ϕ
+- `θh`: an instance of the module-specific type ['θz'](@ref) that contains the values parametrizing history-dependent influences
+- `bias`: a float that specifies the decision criterion across trials and trial-sets. At the end of each trial, the model chooses right if the integral of P(a) is greater than the bias
+- `lapse`: a float indicating the fraction of trials when the animal makes a choice ignoring the accumulator value
+- `θy`: An instance of the module-specific type [`θy`]()@ref) that parametrizes the relationship between firing rate and the latent variable, a.
+- `f`: A vector of vector of strings that
+"""
+@with_kw struct θjoint{T1 <: AbstractFloat, T2} <: DDMθ
+    θz::θh = θz()
+    θh::θh = θh()
+    bias::T1 = 0.
+    lapse::T1 = 0.
+    θy::T2
+    f::Vector{Vector{String}}
+    @assert all(map(x->x=="Softplus" || x=="Sigmoid", vcat(f...)))
+end
+
+"""
 """
 neuralinputs(clicks, binned_clicks, λ0::Vector{Vector{Vector{Float64}}}, dt::Float64, centered::Bool, delay::Int, pad::Int) =
     neuralinputs.(clicks, binned_clicks, λ0, dt, centered, delay, pad)
