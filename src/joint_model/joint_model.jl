@@ -15,7 +15,7 @@ Returns:
 
 - ([`joint_options`](@ref))
 """
-function specify_jointmodel(f; remap::Bool=false, modeltype = "history1back")
+function specify_jointmodel(f; remap::Bool=false, modeltype = :history1back)
     θDDM_lb = Dict( :σ2_i => 0.,
                     :σ2_a => 0.,
                     :σ2_s => 0.,
@@ -700,7 +700,7 @@ Fields:
 - `pad`: How much extra time should spikes be considered before and after the begining of the clicks. Useful especially if delay is large.
 - `pcut`: p-value for selecting cells.
 """
-@with_kw struct settings {T1::Bool, T2<:Integer, T3<:AbstractFloat}
+@with_kw struct settings{T1::Bool, T2<:Integer, T3<:AbstractFloat}
     break_sim_data::T1=false,
     centered::T1=true
     cut::T2=10
