@@ -24,13 +24,18 @@ Fields:
 - `θy`: An instance of the module-specific type [`θy`]()@ref) that parametrizes the relationship between firing rate and the latent variable, a.
 - `f`: A vector of vector of strings that
 """
-@with_kw struct θjoint{T1::θz, T2::θh, T3 <: AbstractFloat, T2::θy, T5::Vector{Vector{String}}} <: DDMθ
+@with_kw struct θjoint{T1,T2,T3,T4,T5} <: DDMθ
     θz::T1 = θz()
     θh::T2 = θh()
     bias::T3 = 0.
     lapse::T3 = 0.
-    θy::T2
+    θy::T4
     f::T5
+    @assert T1 == θz
+    @assert T2 == θh
+    @assert T3 <: AbstractFloat
+    @assert T4 == θy
+    @assert T5 == Vector{Vector{String}}
     @assert all(map(x->x=="Softplus" || x=="Sigmoid", vcat(f...)))
 end
 
@@ -40,18 +45,20 @@ end
 Module-defined type providing information on the entire sequence of trials within which all the trials from each array of `neuraldata` is embedded.
 
 Fields:
-- `choice`: true if a right, and false if left
+- `choice`: true if a right, and false if leftn
 - `ignore`: true if the trial should be ignored for various reasons, such as breaking fixation or responding after too long of a delay
 - `index`: the temporal position within the entire trial sequence of each trial whose choice and neural activity are being fitted.
 - `reward`: true if rewarded
 - `sessionstart`: true if first trial of a daily session
 """
-@with_kw struct trialsequence {T1::Vector{Bool}, T2::Vector{Int64}}
+@with_kw struct trialsequence {T1, T2}
     choice::T1
     ignore::T1
     index::T2
     reward::T1
     sessionstart::T1
+    @assert T1 == Vector{Bool}
+    @assert T2 == Vector{Int64}
     @assert length(choice) == length(reward) == length(sessionstart)
     @assert minimum(index) >= 1
     @assert maximum(index) <= length(choice)
@@ -69,10 +76,12 @@ Fields:
 - `reward`: Same organization as `choice.` The values -1, 1, and 0 represent the absence of, presence of, and lack of information on reward on a trial in the past or future.
 - `shift`: a vector indicating the number of trials shifted in the past (negative values) or future (positive values) represented by each column of `choice` and `reward`
 """
-@with_kw struct trialshifted {T1::Matrix{Int64}, T2::Vector{Int64}}
+@with_kw struct trialshifted {T1,T2}
     choice::T1
     reward::T1
     shift::T2
+    @assert T1 == Matrix{Int64}
+    @assert T2 == Vector{Int64}
 end
 
 """
@@ -85,11 +94,13 @@ Fields:
 - `lb`: a vector of floats indicating the lower bound of each parameter during optimization
 - `x0`: a vector of floats indicating the initial value of each parameter during optimization
 """
-@with_kw struct joint_options{T1::Vector{Bool}, T2::Vector{Float64}}
+@with_kw struct joint_options{T1,T2}
     fit::T1
     ub::T2
     lb::T2
     x0::T2
+    @assert T1 == Vector{Bool}
+    @assert T2 == Vector{Float64}
 end
 
 """
@@ -102,10 +113,13 @@ Fields:
 - trialsequence (['trialsequence'](@ref))
 
 """
-@with_kw struct jointdata{T1::Vector{neuraldata}, T2::trialsequence, T3::trialshifted} <: DDMdata
+@with_kw struct jointdata{T1, T2, T3} <: DDMdata
     neural_data::T1
     sequence::T2
     shifted::T3
+    @assert T1 == Vector{neuraldata}
+    @assert T2 == trialsequence
+    @assert T3 == trialshifted
     @assert check_trialsequence_matches_neuraldata(sequence, neural_data)
 end
 
@@ -120,9 +134,13 @@ Fields:
 - `n`: number of bins in the space of the latent variable (a)
 - cross: adaptation of sound pulses is cross-stream if true and within-stream otherwise
 """
-@with_kw struct jointDDM{T1::θjoint, T2::jointdata, T3::Int64, T4::Bool} <: DDM
+@with_kw struct jointDDM{T1,T2,T3,T4} <: DDM
     θ::T1
     joint_data::T2
     n::T3=53
     cross::T4=false
+    @assert T1 == θjoint
+    @assert T2 == jointdata
+    @assert T3 <: Integer
+    @assert T4 == Bool
 end
