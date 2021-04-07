@@ -135,7 +135,7 @@ function specify_jointmodel(f; remap::Bool=false; modeltype = "history1back")
         lb[i] = θDDM_lb[paramnames[i]]
         ub[i] = θDDM_ub[paramnames[i]]
         x0[i] = θDDM_x0[paramnames[i]]
-        fit[i] = is_fit[modeltype][paramnames[i]
+        fit[i] = is_fit[modeltype][paramnames[i]]
         if fit[i]
             x0[i] = lb[i] + (ub[i] - lb[i]) * rand()
         end
