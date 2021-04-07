@@ -165,7 +165,7 @@ Fields:
 - `pcut`: p-value for selecting cells.
 """
 @with_kw struct settings{T1,T2,T3}
-    break_sim_data::T1=false,
+    break_sim_data::T1=false
     centered::T1=true
     cut::T2=10
     delay::T2=0
