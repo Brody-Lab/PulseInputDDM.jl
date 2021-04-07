@@ -166,7 +166,7 @@ function θjoint(x::Vector{T}, f::Vector{Vector{String}}) where {T <: Real}
     borg = vcat(0,cumsum(ncells))
     θy = [blah[i] for i in [borg[i-1]+1:borg[i] for i in 2:length(borg)]]
 
-    θjoint(θz(x[1:nz]...), θh(x[nz+1:nz+nh]) x[nz+nh+1], x[nz+nh+2], θy, f)
+    θjoint(θz(x[1:nz]...), θh(x[nz+1:nz+nh]), x[nz+nh+1], x[nz+nh+2], θy, f)
 end
 
 """
