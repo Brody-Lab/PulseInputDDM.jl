@@ -90,32 +90,6 @@ function all_Softplus(data)
 end
 
 """
-    Hessian(model; chunck_size, remap)
-
-Compute the hessian of the negative log-likelihood at the current value of the parameters of a `neural_choiceDDM`.
-
-Arguments:
-
-- `model`: instance of `neural_choiceDDM`
-
-Optional arguments:
-
-- `chunk_size`: parameter to manange how many passes over the LL are required to compute the Hessian. Can be larger if you have access to more memory.
-- `remap`: For considering parameters in variance of std space.
-
-"""
-function Hessian(model::neural_choiceDDM; chunk_size::Int=4, remap::Bool=false)
-
-    @unpack θ = model
-    x = flatten(θ)
-    ℓℓ(x) = -joint_loglikelihood(x, model; remap=remap)
-
-    cfg = ForwardDiff.HessianConfig(ℓℓ, x, ForwardDiff.Chunk{chunk_size}())
-    ForwardDiff.hessian(ℓℓ, x, cfg)
-
-end
-
-"""
     choice_neural_optimize(data)
 
 Optimize model parameters for a `neural_choiceDDM`. Neural tuning parameters ([`θy`](@ref)) are initialized by fitting a the noiseless DDM model first ([`noiseless_neuralDDM`](@ref)).
@@ -500,11 +474,11 @@ joint_loglikelihood(model::neural_choiceDDM) = sum(log.(vcat(vcat(joint_likeliho
 
 Given parameters θ and data (inputs and choices) computes the LL for all trials
 """
-function joint_loglikelihood_per_trial(model::neural_choiceDDM) 
-    
+function joint_loglikelihood_per_trial(model::neural_choiceDDM)
+
     output = joint_likelihood(model)
     map(x-> map(x-> sum(log.(x)), x), output)
-    
+
 end
 
 
