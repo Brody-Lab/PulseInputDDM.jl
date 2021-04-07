@@ -143,6 +143,7 @@ function specify_jointmodel(f; remap::Bool=false; modeltype = "history1back")
 
     n_neural_params, ncells = nθparams(f)
     fit = vcat(fit, trues.(n_neural_params)...)
+
     for i in 1:sum(ncells)
         if vcat(f...)[i] == "Softplus"
             lb = vcat(lb,-10.)

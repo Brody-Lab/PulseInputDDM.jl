@@ -143,7 +143,7 @@ function get_trialshifted(sequence::trialsequence, nback::Int)
     @assert nback > 0
     @unpack sessionstart, choice, ignore, reward, index = sequence
     choice = 2*choice .- 1;
-    reward = 2*reward) .- 1;
+    reward = 2*reward .- 1;
     choice[ignore] .= 0;
     reward[ignore] .= 0;
 
