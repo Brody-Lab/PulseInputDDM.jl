@@ -18,7 +18,7 @@ using ForwardDiff: value
 using PositiveFactorizations, Parameters, Flatten
 using Polynomials, Missings
 using HypothesisTests
-using ToeplitzMatrices 
+using ToeplitzMatrices
 
 import StatsFuns: logistic, logit, softplus, xlogy
 import Base.rand
@@ -56,6 +56,8 @@ export default_parameters_and_data, compute_LL
 export mean_exp_rate_per_trial, mean_exp_rate_per_cond
 export logprior, process_spike_data
 export θprior, train_and_test, all_Softplus, θ2, invθ2
+
+export jointDDM θjoint joint_options θh specify_jointmodel optimize_jointmodel load_joint_data load_trial_sequence
 
 abstract type DDM end
 abstract type DDMdata end
@@ -335,6 +337,12 @@ include("neural-choice_model/neural-choice_GLM_model.jl")
 include("neural-choice_model/process_data.jl")
 include("neural-choice_model/HMM-DDM.jl")
 include("neural-choice_model/HMM-DDM-2.jl")
+
+include("neural-choice_model/HMM-DDM.jl")
+include("neural-choice_model/HMM-DDM-2.jl")
+
+include("joint_model/joint_model.jl")
+include("joint_model/process_joint_data.jl")
 
 #include("neural_model/load_and_optimize.jl")
 #include("neural_model/sample_model_functions_FP.jl")

@@ -293,7 +293,7 @@ end
 """
     optimize_jointmodel(model, options)
 
-Optimize model parameters for a ([`jointDDM`](@ref)) using neural and choice data. Neural tuning parameters ([`θy`](@ref)) are initialized by fitting a the noiseless DDM model first ([`noiseless_neuralDDM`](@ref)).
+Optimize model parameters for a ([`jointDDM`](@ref)) using neural and choice data.
 
 Arguments:
 
