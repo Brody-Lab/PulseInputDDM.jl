@@ -393,8 +393,8 @@ include("neural-choice_model/HMM-DDM-2.jl")
 include("neural-choice_model/HMM-DDM.jl")
 include("neural-choice_model/HMM-DDM-2.jl")
 
-include("joint_model/joint_model.jl")
 include("joint_model/process_joint_data.jl")
+include("joint_model/joint_model.jl")
 
 #include("neural_model/load_and_optimize.jl")
 #include("neural_model/sample_model_functions_FP.jl")
