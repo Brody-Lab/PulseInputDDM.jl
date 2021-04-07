@@ -10,7 +10,7 @@ and/or neural data from pulse-based evidence accumlation tasks.
 module pulse_input_DDM
 
 using StatsBase, Distributions, LineSearches, JLD2
-using ForwardDiff, Distributed, LinearAlgebra, ToeplitzMatrices
+using ForwardDiff, Distributed, LinearAlgebra#, ToeplitzMatrices
 using Optim, DSP, SpecialFunctions, MAT, Random
 using Discretizers
 using ImageFiltering
