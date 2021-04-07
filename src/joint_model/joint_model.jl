@@ -566,11 +566,11 @@ end
 """
     Hessian(model; chunck_size, remap)
 
-Compute the hessian of the negative log-likelihood at the current value of the parameters of a `joint_DDM`.
+Compute the hessian of the negative log-likelihood at the current value of the parameters of a `jointDDM`.
 
 Arguments:
 
-- `model`: instance of [`joint_DDM`](@ref)
+- `model`: instance of [`jointDDM`](@ref)
 
 Optional arguments:
 
@@ -607,9 +607,9 @@ invθ2(θ::θjoint) = θjoint(θz=invθz2(θ.θz), bias=θ.bias, lapse=θ.lapse,
 """
     P_goright(model)
 
-Given an instance of `joint_DDM` computes the probabilty of going right for each trial.
+Given an instance of [`jointDDM`](@ref) computes the probabilty of going right for each trial.
 """
-function P_goright(model::joint_DDM)
+function P_goright(model::jointDDM)
 
     @unpack θ, joint_data, n, cross = model
     @unpack θz, θy, bias, lapse = θ
