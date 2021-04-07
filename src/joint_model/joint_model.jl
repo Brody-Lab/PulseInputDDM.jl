@@ -1,38 +1,4 @@
 """
-A module-specific type that specifies which parameters to fit and their lower and upper bounds and initial values
-
-Fields:
-
-- `fit`: a vector of Bool indicating which parameters are fit
-- `ub`: a vector of floats indicating the upper bound of each parameter during optimization
-- `lb`: a vector of floats indicating the lower bound of each parameter during optimization
-- `x0`: a vector of floats indicating the initial value of each parameter during optimization
-"""
-@with_kw struct joint_options{T <: AbstractFloat}
-    fit::Vector{Bool}
-    ub::Vector{T}
-    lb::Vector{T}
-    x0::Vector{T}
-end
-
-"""
-    jointdata
-
-Module-defined type containing information on the behavioral and neural data on each trial to be fitted, as well as the overall trial sequence that contains the subset of trials to be fitted.
-
-Fields:
-- An array of 'neuraldata'. Each array has the same neurons recorded in each trial
-- trialsequence (['trialsequence'](@ref))
-
-"""
-@with_kw struct jointdata <: DDMdata
-    neural_data::Vector{neuraldata}
-    sequence::trialsequence
-    shifted::trialshifted
-    @assert check_trialsequence_matches_neuraldata(sequence, neural_data)
-end
-
-"""
 Arguments:
 
 - `f`: function mapping the latent variable to firing rate. It can be either "Softplus" or "Sigmoid"
@@ -49,7 +15,7 @@ Returns:
 
 - ([`joint_options`](@ref))
 """
-function specify_jointmodel(f; remap::Bool=false; modeltype = "history1back")
+function specify_jointmodel(f; remap::Bool=false, modeltype = "history1back")
     θDDM_lb = Dict( :σ2_i => 0.,
                     :σ2_a => 0.,
                     :σ2_s => 0.,
@@ -734,16 +700,16 @@ Fields:
 - `pad`: How much extra time should spikes be considered before and after the begining of the clicks. Useful especially if delay is large.
 - `pcut`: p-value for selecting cells.
 """
-@with_kw struct settings{T1<:AbstractInt, T2<:AbstractFloat}
-    break_sim_data::Bool=false,
-    centered::Bool=true
-    cut::T1=10
-    delay::T1=0
-    do_RBF::Bool=false
-    dt::T2=1e-2
-    extra_pad::T1=10
-    filtSD::T1=2,
-    nRBFs::T1=6
-    pad::T1=0
-    pcut::T2=0.01,
+@with_kw struct settings {T1::Bool, T2<:Integer, T3<:AbstractFloat}
+    break_sim_data::T1=false,
+    centered::T1=true
+    cut::T2=10
+    delay::T2=0
+    do_RBF::T1=false
+    dt::T3=1e-2
+    extra_pad::T2=10
+    filtSD::T2=2,
+    nRBFs::T2=6
+    pad::T2=0
+    pcut::T3=0.01,
 end

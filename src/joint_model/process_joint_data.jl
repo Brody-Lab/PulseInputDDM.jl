@@ -1,45 +1,4 @@
 """
-    trialsequence
-
-Module-defined type providing information on the entire sequence of trials within which all the trials from each array of `neuraldata` is embedded.
-
-Fields:
-- `choice`: true if a right, and false if left
-- `ignore`: true if the trial should be ignored for various reasons, such as breaking fixation or responding after too long of a delay
-- `index`: the temporal position within the entire trial sequence of each trial whose choice and neural activity are being fitted.
-- `reward`: true if rewarded
-- `sessionstart`: true if first trial of a daily session
-"""
-@with_kw struct trialsequence
-    choice::Vector{Bool}
-    ignore::Vector{Bool}
-    index::Vector{Int}
-    reward::Vector{Bool}
-    sessionstart::Vector{Bool}
-    @assert length(choice) == length(reward) == length(sessionstart)
-    @assert minimum(index) >= 1
-    @assert maximum(index) <= length(choice)
-    @assert ~any(ignore[index]) "trials whose choice and spikes are being fitted cannot be ignored"
-end
-
-"""
-    trialshifted
-
-Module-defined type providing information on the trial-shifted outcome and choices.
-
-Fields:
-
-- `choice`: number-of-trials by 2*number-of-shifts+1 array of Int. Each row  corresponds to a trial whose choice and firing ratees are being fitted, and each column corresponds to the choice a particular shift relative to that trial. A value of -1 indicates a left choice, 1 a right choice, and 0 no information at that shift. For example, `choice[i,j]' represents the choice shifted by `shift[j]` from trial i.
-- `reward`: Same organization as `choice.` The values -1, 1, and 0 represent the absence of, presence of, and lack of information on reward on a trial in the past or future.
-- `shift`: a vector indicating the number of trials shifted in the past (negative values) or future (positive values) represented by each column of `choice` and `reward`
-"""
-@with_kw struct trialshifted
-    choice::Array{Int}
-    reward::Array{Int}
-    shift::Vector{Int}
-end
-
-"""
     check_trialsequence_matches_neuraldata
 
 Returns true if the length of a vector of `neuraldata` matches the length of the field `index` in an instance `trialsequence`
@@ -165,7 +124,6 @@ function get_trialshifted(sequence::trialsequence, nback::Int)
     shifts = collect(-1:-1:-nback)
     trialshifted(pastchoices, pastrewards, shifts)
 end
-
 
 """
     get_past_values

@@ -66,7 +66,7 @@ abstract type DDMf end
 
 """
 """
-@with_kw struct θz{T<:Real} @deftype T
+@with_kw struct θz{T<:AbstractFloat} @deftype T
     σ2_i = 0.5
     B = 15.
     λ = -0.5; @assert λ != 0.
@@ -303,60 +303,6 @@ Fields:
 end
 
 """
-    jointDDM
-
-A module-specific type that instantiates a drift-diffusion model that is fitted to the choice and firing rates, using stimuli and trial history as inputs
-
-Fields:
-- θ: a vector of
-- [`jointdata`](@ref)
-- `n`: number of bins in the space of the latent variable (a)
-- cross: adaptation of sound pulses is cross-stream if true and within-stream otherwise
-"""
-@with_kw struct jointDDM{T1,T2} <: DDM
-    θ::T1
-    joint_data::T2
-    n::Int=53
-    cross::Bool=false
-end
-
-"""
-A module-specific type that specifies the parameters of the joint model that are related to trial history
-
-Fields:
-
--`α`: The impact of the correct side of the previous trial
--`k`: The exponential change rate of α as a function of trial number in the past
-"""
-@with_kw struct θh{T<:AbstractFloat}
-    α::T = 0.
-    k::T = 0.
-end
-
-"""
-    θjoint
-
-A module-specific type that specifies the parameters of the joint model.
-
-Fields:
-- `θz`: an instance of the module-specific type ['θz'](@ref) that contains the values of the parameters σ2_i, σ2_a, σ2_s, λ, B, ϕ, τ_ϕ
-- `θh`: an instance of the module-specific type ['θz'](@ref) that contains the values parametrizing history-dependent influences
-- `bias`: a float that specifies the decision criterion across trials and trial-sets. At the end of each trial, the model chooses right if the integral of P(a) is greater than the bias
-- `lapse`: a float indicating the fraction of trials when the animal makes a choice ignoring the accumulator value
-- `θy`: An instance of the module-specific type [`θy`]()@ref) that parametrizes the relationship between firing rate and the latent variable, a.
-- `f`: A vector of vector of strings that
-"""
-@with_kw struct θjoint{T1 <: AbstractFloat, T2} <: DDMθ
-    θz::θh = θz()
-    θh::θh = θh()
-    bias::T1 = 0.
-    lapse::T1 = 0.
-    θy::T2
-    f::Vector{Vector{String}}
-    @assert all(map(x->x=="Softplus" || x=="Sigmoid", vcat(f...)))
-end
-
-"""
 """
 neuralinputs(clicks, binned_clicks, λ0::Vector{Vector{Vector{Float64}}}, dt::Float64, centered::Bool, delay::Int, pad::Int) =
     neuralinputs.(clicks, binned_clicks, λ0, dt, centered, delay, pad)
@@ -393,6 +339,7 @@ include("neural-choice_model/HMM-DDM-2.jl")
 include("neural-choice_model/HMM-DDM.jl")
 include("neural-choice_model/HMM-DDM-2.jl")
 
+include("joint_model/joint_model_types.jl")
 include("joint_model/process_joint_data.jl")
 include("joint_model/joint_model.jl")
 
