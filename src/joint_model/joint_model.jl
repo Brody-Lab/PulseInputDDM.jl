@@ -125,7 +125,7 @@ function specify_jointmodel(f; remap::Bool=false; modeltype = "history1back")
                             :α => true,
                             :k => true)
     modeltype = Symbol(modeltype)
-    assert(in(modeltype,collect(keys(is_fit))
+    assert(in(modeltype, collect(keys(is_fit))))
     paramnames = get_DDM_param_names(θjoint())
     ub = Vector{Float64}(undef,length(paramnames))
     lb = Vector{Float64}(undef,length(paramnames))
