@@ -680,36 +680,3 @@ function gradient(model::jointDDM; remap::Bool=false)
 
     ForwardDiff.gradient(ℓℓ, x)
 end
-
-"""
-    *** This is not currently used***
-
-    settings
-
-Additional parameters for processing data the data and fitting the model.
-
-Fields:
-
-- `break_sim_data`: this will break up simulatenously recorded neurons, as if they were recorded independently. Not often used by most users.
-- `centered`: Defaults to true. For the neural model, this aligns the center of the binned spikes, to the beginning of the binned clicks. This was done to fix a numerical problem. Most users will never need to adjust this.
-- `cut`: How much extra to cut off at the beginning and end of filtered things (should be equal to `extra_pad` in most cases).
-- `delay`: How much to offset the spikes, relative to the accumlator, in units of `dt`.
-- `dt`: Binning of the spikes, in seconds.
-- `extra_pad`: Extra padding (in addition to `pad`) to add, for filtering purposes. In units of `dt`.
-- `filtSD`: standard deviation of a Gaussin (in units of `dt`) to filter the spikes with to generate single trial firing rates (`μ_rnt`), and mean firing rate across all trials (`μ_t`).
-- `pad`: How much extra time should spikes be considered before and after the begining of the clicks. Useful especially if delay is large.
-- `pcut`: p-value for selecting cells.
-"""
-@with_kw struct settings{T1::Bool, T2<:Integer, T3<:AbstractFloat}
-    break_sim_data::T1=false,
-    centered::T1=true
-    cut::T2=10
-    delay::T2=0
-    do_RBF::T1=false
-    dt::T3=1e-2
-    extra_pad::T2=10
-    filtSD::T2=2,
-    nRBFs::T2=6
-    pad::T2=0
-    pcut::T3=0.01,
-end
