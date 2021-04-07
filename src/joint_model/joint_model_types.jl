@@ -51,7 +51,7 @@ Fields:
 - `reward`: true if rewarded
 - `sessionstart`: true if first trial of a daily session
 """
-@with_kw struct trialsequence {T1, T2}
+@with_kw struct trialsequence{T1, T2}
     choice::T1
     ignore::T1
     index::T2
@@ -76,7 +76,7 @@ Fields:
 - `reward`: Same organization as `choice.` The values -1, 1, and 0 represent the absence of, presence of, and lack of information on reward on a trial in the past or future.
 - `shift`: a vector indicating the number of trials shifted in the past (negative values) or future (positive values) represented by each column of `choice` and `reward`
 """
-@with_kw struct trialshifted {T1,T2}
+@with_kw struct trialshifted{T1,T2}
     choice::T1
     reward::T1
     shift::T2
