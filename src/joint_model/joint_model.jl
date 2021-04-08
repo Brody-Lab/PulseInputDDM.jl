@@ -137,11 +137,9 @@ Returns:
 
 - param_names: a Vector of Symbols
 """
-function get_DDM_parameter_names(θ::θjoint)
-    params = vcat(collect(fieldnames(typeof(θ.θz))),
-                  collect(fieldnames(typeof(θ.θh))),
+get_DDM_parameter_names() = vcat(collect(fieldnames(typeof(θz()))),
+                  collect(fieldnames(typeof(θh())),
                   map(x->Symbol(x), ["bias", "lapse"]))
-end
 
 """
 Constructor method for ([`θjoint`](@ref)) from a vector of parameter values and an array of String arrays specifying the latent-to-neural transformation
