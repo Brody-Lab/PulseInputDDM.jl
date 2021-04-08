@@ -143,7 +143,7 @@ Returns:
 -`lb`: a Dictionary of the lower bounds
 -`ub`: a Dictionary of the upper limits
 """
-function lookup_jointDDM_θlatent_bounds(remap::Bool==false)
+function lookup_jointDDM_θlatent_bounds(remap::Bool=false)
     lb = Dict( :σ2_i => 0.,
                     :σ2_a => 0.,
                     :σ2_s => 0.,
