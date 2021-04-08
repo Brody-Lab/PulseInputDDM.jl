@@ -113,7 +113,7 @@ Optional arguments:
 Returns:
 -`x0`:A Dictionary of the default initial values
 """
-function lookup_jointDDM_default_θlatent(remap::Bool==false)
+function lookup_jointDDM_default_θlatent(remap::Bool=false)
     x0 = Dict(  :σ2_i => eps(),
                 :σ2_a => eps(),
                 :σ2_s => eps(),
