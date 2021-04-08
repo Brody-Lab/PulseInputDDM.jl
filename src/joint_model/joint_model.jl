@@ -92,7 +92,7 @@ function specify_jointmodel(f; remap::Bool=false, modeltype = :history1back)
                             :k => true)
     modeltype = Symbol(modeltype)
     @assert in(modeltype, collect(keys(is_fit)))
-    paramnames = get_DDM_param_names(θjoint())
+    paramnames = get_θjoint_names()
     ub = Vector{Float64}(undef,length(paramnames))
     lb = Vector{Float64}(undef,length(paramnames))
     fit = Vector{Bool}(undef,length(paramnames))
@@ -125,7 +125,7 @@ function specify_jointmodel(f; remap::Bool=false, modeltype = :history1back)
 end
 
 """
-    get_DDM_parameter_names(θ)
+    get_θjoint_names()
 
 Returns an array of Symbols that are the names of the parameters controlling the drift-diffusion process in the joint drift-diffusion model (see ['jointDDM'](@ref)). The names of the parameters specifying the relationship between the firing rate and the latent are not included.
 
@@ -137,9 +137,9 @@ Returns:
 
 - param_names: a Vector of Symbols
 """
-get_DDM_parameter_names() = vcat(collect(fieldnames(typeof(θz()))),
-                  collect(fieldnames(typeof(θh())),
-                  map(x->Symbol(x), ["bias", "lapse"]))
+function get_θjoint_names()
+    vcat(collect(fieldnames(typeof(θz()))), collect(fieldnames(typeof(θh()))), map(x->Symbol(x), ["bias", "lapse"]))
+end
 
 """
 Constructor method for ([`θjoint`](@ref)) from a vector of parameter values and an array of String arrays specifying the latent-to-neural transformation
