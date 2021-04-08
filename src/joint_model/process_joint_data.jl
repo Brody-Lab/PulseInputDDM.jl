@@ -28,8 +28,8 @@ Returns:
 
 """
 function load_joint_data(file::String; break_sim_data::Bool=false,
-        dt::Float64=1e-2, delay::Int=0, pad::Int=0, filtSD::Int=2,
-        extra_pad::Int=10, cut::Int=10, pcut::Float64=0.01,
+        dt::Float64=1e-2, delay::Int=6, pad::Int=20, filtSD::Int=2,
+        extra_pad::Int=10, cut::Int=10, pcut::Float64=0.0001,
         do_RBF::Bool=false, nRBFs::Int=6, centered::Bool=true, nback::Int=10)
 
     output = load_neural_data(file; break_sim_data=break_sim_data, dt = dt, delay = delay, pad = pad, filtSD = filtSD, extra_pad = extra_pad)
@@ -53,8 +53,8 @@ Returns:
 - `μ_t`: an `array` of length number of trial-sets. Each entry is an `array` of length number of cells. Each entry is the trial-averaged firing rate (across all trials).
 """
 function load_joint_data(file::Vector{String}; break_sim_data::Bool=false,
-        centered::Bool=true, dt::Float64=1e-2, delay::Int=0, pad::Int=0, filtSD::Int=2,
-        extra_pad::Int=10, cut::Int=10, pcut::Float64=0.01,
+        centered::Bool=true, dt::Float64=1e-2, delay::Int=6, pad::Int=20, filtSD::Int=2,
+        extra_pad::Int=10, cut::Int=10, pcut::Float64=0.0001,
         do_RBF::Bool=false, nRBFs::Int=6, nback::Int=10)
 
     output = load_joint_data.(file; break_sim_data=break_sim_data,
@@ -79,8 +79,7 @@ Load the trial sequence from the full path of a MATLAB ".mat" file
 
 """
 function load_trial_sequence(file::String)
-    rawdata = read(matopen(file), "rawdata")
-    sequence = rawdata["trialsequence"]
+    sequence = read(matopen(file), "trialsequence")
     trialsequence(sequence["choice"], sequence["ignore"], sequence["index"], sequence["reward"], sequence["sessionstart"])
 end
 

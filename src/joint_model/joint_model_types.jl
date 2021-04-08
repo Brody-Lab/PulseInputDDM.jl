@@ -89,16 +89,16 @@ A module-specific type that specifies which parameters to fit and their lower an
 
 Fields:
 
-- `fit`: a vector of Bool indicating which parameters are fit
-- `ub`: a vector of floats indicating the upper bound of each parameter during optimization
-- `lb`: a vector of floats indicating the lower bound of each parameter during optimization
-- `x0`: a vector of floats indicating the initial value of each parameter during optimization
+-`fit` a vector of Bool indicating which parameters are fit
+-`ub` a vector of floats indicating the upper bound of each parameter during optimization
+-`lb` a vector of floats indicating the lower bound of each parameter during optimization
+-`n` number of bins in which the latent space, a, is discretized
+-`cross` whether to adapt clicks across left and right streams, as opposed to within each stream
 """
 @with_kw struct joint_options{T1,T2}
     fit::T1
     ub::T2
     lb::T2
-    x0::T2
     @assert T1 == Vector{Bool}
     @assert T2 == Vector{Float64}
 end

@@ -1,22 +1,150 @@
 """
+    jointDDM(data; ftype,remap,modeltype,n,cross)
+
+Create an instance of the ['jointDDM'](@ref) and return the options for optimizing this model
+
 Arguments:
 
-- `f`: function mapping the latent variable to firing rate. It can be either "Softplus" or "Sigmoid"
+-`data`: a Vector of instances of [`jointdata`](@ref). Each element correspond to a single trial-set. If the vector has multiple elements, then the same parameters controlling the latent variable are fit to all the data across the trialsets. Different parameters controlling the mapping from the latent variable to the firing rates are fit to each neuron in each trial.
 
 Optional arguments:
 
-- `remap`: if true, parameters are considered in variance instead of std space
-- `modeltype`: a string specifying the model type. Current options include:
-    "nohistory"
-    "history1back" the influence of only the previous trial is included
-    "history" the influence of the 30 previous trials is included, and the influence further in the past decays exponentially
-
+-`f`: function mapping the latent variable to firing rate. It can be either "Softplus" or "Sigmoid"
+-`remap`: if true, parameters are considered in variance instead of std space
+-`modeltype`: a string specifying the model type. Current options include:
+    "nohistory": no influence by trial history
+    "history1back": the influence of only the previous trial is included
+    "history": the influence of the 30 previous trials is included, and the influence further in the past decays exponentially
+-`n`: Number of bins in which the latent space, a, is discretized
+-`cross`: whether to adapt clicks across left and right streams, as opposed to within each stream
 Returns:
 
-- ([`joint_options`](@ref))
+-`model`: an instance [`jointDDM`](@ref)
+-`options`: an instance [`joint_options`](@ref)
 """
-function specify_jointmodel(f; remap::Bool=false, modeltype = :history1back)
-    θDDM_lb = Dict( :σ2_i => 0.,
+function jointDDM(data::Vector{jointdata}; ftype::String="Softplus", remap::Bool=false, modeltype = :history1back, n::T = 53, cross::Bool = false) where {T<:Integer}
+    @assert ftype == "Softplus" || ftype == "Sigmoid"
+    θ = θjoint(data; ftype=ftype,remap=remap, modeltype=modeltype)
+    model = jointDDM(θ=θ, joint_data=data, n=n, cross=cross)
+end
+
+"""
+    joint_options()
+"""
+function joint_options(f::Vector{Vector{String}}; remap::Bool=false, modeltype::Symbol = :history1back)
+
+    θlatent_fit = is_θlatent_fit_in_jointDDM(modeltype=modeltype)
+    θlatent_lb, θlatent_ub = lookup_jointDDM_θlatent_bounds(remap=remap)
+    θlatent_names = get_jointDDM_θlatent_names()
+    fit = falses(length(θlatent_names))
+    lb = ub = repeat([NaN], length(θlatent_names))
+    for i in eachindex(θlatent_names)
+        fit[i] = θlatent_fit[θlatent_names[i]]
+        lb[i] = θlatent_lb[θlatent_names[i]]
+        ub[i] = θlatent_ub[θlatent_names[i]]
+    end
+
+    n_neural_params, ncells = nθparams(f)
+    fit = vcat(fit, trues(sum(n_neural_params)))
+    for i in 1:sum(ncells)
+        if vcat(f...)[i] == "Softplus"
+            lb = vcat(lb,-10.)
+            ub = vcat(ub, 10.)
+        elseif vcat(f...)[i] == "Sigmoid"
+            lb = vcat(lb, [-100.,0.,-10.,-10.])
+            ub = vcat(ub, [100.,100.,10.,10.])
+        end
+    end
+
+    joint_options(lb = lb, ub = ub, fit = fit)
+end
+"""
+    θjoint(data;ftype,remap,modeltype)
+
+Return an instance of [`θjoint`] to be used as the initial values for model fitting. The parameters specifying the drift-diffusion process are randomly selected, and the parameters for the mapping from latent variable to firing rates result from fitting a noiseless model to the neural data
+
+Arguments:
+
+-is_fit: a vector of Bool specifying whether each parameter controlling the drift-diffusion is fit. The neural parameters are not included in this vector
+-`f`: a vector of vector of the string either "Softplus" or "Sigmoid" specifying the type of the mapping from the latent variable to the firing rate of each neuron in each trialset
+
+"""
+
+function θjoint(data::Vector{jointdata}; ftype::String="Softplus", remap::Bool=false, modeltype::Symbol = :history1back)
+
+    f = specify_a_to_firing_rate_function_type(data; ftype=ftype)
+    fit = is_θlatent_fit_in_jointDDM(modeltype=modeltype)
+    x0 = lookup_jointDDM_default_θlatent(remap=remap)
+    lb, ub = lookup_jointDDM_θlatent_bounds(remap=remap)
+
+    for key in collect(keys(x0))
+        if fit[key]
+            x0[key] = lb[key] + (ub[key] - lb[key]) * rand()
+        end
+    end
+
+    initialθz = θz( σ2_i = x0[:σ2_i],
+                    σ2_a = x0[:σ2_a],
+                    σ2_s = x0[:σ2_s],
+                    ϕ = x0[:ϕ],
+                    τ_ϕ = x0[:τ_ϕ],
+                    λ = x0[:λ],
+                    B = x0[:B])
+    initialyθh = θh(α = x0[:α],
+                    k = x0[:k])
+    neural_data = map(x->x.neural_data, data)
+    initialθy = θy0(neural_data,f)
+    θjoint( θz = initialθz,
+            θh = initialθh,
+            lapse = x0[:lapse],
+            bias = x0[:bias],
+            θy = initialθy,
+            f = f)
+end
+
+"""
+    lookup_jointDDM_default_θlatent
+
+Return the default values for the parameters controlling the latent variable for the joint model
+
+Optional arguments:
+-`remap`: whether to parametrize the noise parameters (σ2_i, σ2_a, σ2_s) as variance rather than standard deviation
+
+Returns:
+-`x0`:A Dictionary of the default initial values
+"""
+function lookup_jointDDM_default_θlatent(remap::Bool==false)
+    x0 = Dict(  :σ2_i => eps(),
+                :σ2_a => eps(),
+                :σ2_s => eps(),
+                :B => 40.,
+                :λ => 0.,
+                :ϕ => 1.,
+                :τ_ϕ => 0.1,
+                :bias => 0.,
+                :lapse => eps(),
+                :α => 0.,
+                :k => eps())
+    if remap
+        map((x,y)->x0[:x]=y, [:σ2_a, :σ2_i, :σ2_s], repeat([1.],3))
+    end
+    return x0
+end
+
+"""
+    lookup_jointDDM_θlatent_bounds
+
+Return the lower and upper limits of the parameters controlling the latent variable for the joint model
+
+Optional arguments:
+-`remap`: whether to parametrize the noise parameters (σ2_i, σ2_a, σ2_s) as variance rather than standard deviation
+
+Returns:
+-`lb`: a Dictionary of the lower bounds
+-`ub`: a Dictionary of the upper limits
+"""
+function lookup_jointDDM_θlatent_bounds(remap::Bool==false)
+    lb = Dict( :σ2_i => 0.,
                     :σ2_a => 0.,
                     :σ2_s => 0.,
                     :B => 0.5,
@@ -27,7 +155,7 @@ function specify_jointmodel(f; remap::Bool=false, modeltype = :history1back)
                     :lapse => 0.,
                     :α => -5.,
                     :k => 0.)
-    θDDM_ub = Dict( :σ2_i => 40.,
+    ub = Dict( :σ2_i => 40.,
                    :σ2_a => 100.,
                    :σ2_s => 20.,
                    :B => 60.,
@@ -38,26 +166,33 @@ function specify_jointmodel(f; remap::Bool=false, modeltype = :history1back)
                    :lapse => 1.,
                    :α => 5.,
                    :k => 10.)
-    θDDM_x0 = Dict( :σ2_i => eps(),
-                    :σ2_a => eps(),
-                    :σ2_s => eps(),
-                    :B => 40.,
-                    :λ => 0.,
-                    :ϕ => 1.,
-                    :τ_ϕ => 0.1,
-                    :bias => 0.,
-                    :lapse => eps(),
-                    :α => 0.,
-                    :k => eps())
     if remap
-        map((x,y)->θDDM_lb[:x]=y, [:σ2_a, :σ2_i, :σ2_s], repeat([1e-3],3))
-        map((x,y)->θDDM_ub[:x]=y, [:σ2_a, :σ2_i, :σ2_s], repeat([100.],3))
-        map((x,y)->θDDM_x0[:x]=y, [:σ2_a, :σ2_i, :σ2_s], repeat([1.],3))
+       map((x,y)->lb[:x]=y, [:σ2_a, :σ2_i, :σ2_s], repeat([1e-3],3))
+       map((x,y)->ub[:x]=y, [:σ2_a, :σ2_i, :σ2_s], repeat([100.],3))
     end
-    is_fit = Dict(  :nohistory => Dict(),
+    return lb, ub
+end
+
+"""
+    is_θlatent_fit_in_jointDDM(;modeltype)
+
+Specify whether each of the parameters controlling the latent variable in the joint drift-diffusion model fit in each type of model
+
+Optional argument:
+-`modeltype`: a string specifying the model type. Current options include:
+    "nohistory": no influence by trial history
+    "history1back": the influence of only the previous trial is included
+    "history": the influence of the 30 previous trials is included, and the influence further in the past decays exponentially
+
+Returns:
+-`fit` a Dictionary whose values are Bools
+"""
+function is_θlatent_fit_in_jointDDM(modeltype::Symbol)
+    isfit = Dict(  :nohistory => Dict(),
                     :history1back => Dict(),
                     :history => Dict())
-    is_fit[:nohistory] = Dict(  :σ2_i => true,
+    @assert in(modeltype, collect(keys(isfit)))
+    isfit[:nohistory] = Dict(   :σ2_i => true,
                                 :σ2_a => true,
                                 :σ2_s => true,
                                 :B => true,
@@ -68,18 +203,18 @@ function specify_jointmodel(f; remap::Bool=false, modeltype = :history1back)
                                 :lapse => true,
                                 :α => false,
                                 :k => false)
-    is_fit[:history1back] = Dict(   :σ2_i => false,
-                                    :σ2_a => true,
-                                    :σ2_s => true,
-                                    :B => true,
-                                    :λ => true,
-                                    :ϕ => true,
-                                    :τ_ϕ => true,
-                                    :bias => true,
-                                    :lapse => true,
-                                    :α => true,
-                                    :k => false)
-    is_fit[:history] = Dict(:σ2_i => false,
+    isfit[:history1back] = Dict(:σ2_i => false,
+                                :σ2_a => true,
+                                :σ2_s => true,
+                                :B => true,
+                                :λ => true,
+                                :ϕ => true,
+                                :τ_ϕ => true,
+                                :bias => true,
+                                :lapse => true,
+                                :α => true,
+                                :k => false)
+    isfit[:history] = Dict( :σ2_i => false,
                             :σ2_a => true,
                             :σ2_s => true,
                             :B => true,
@@ -90,42 +225,11 @@ function specify_jointmodel(f; remap::Bool=false, modeltype = :history1back)
                             :lapse => true,
                             :α => true,
                             :k => true)
-    modeltype = Symbol(modeltype)
-    @assert in(modeltype, collect(keys(is_fit)))
-    paramnames = get_θjoint_names()
-    ub = Vector{Float64}(undef,length(paramnames))
-    lb = Vector{Float64}(undef,length(paramnames))
-    fit = Vector{Bool}(undef,length(paramnames))
-    x0 = Vector{Float64}(undef,length(paramnames))
-    for i in 1:length(paramnames)
-        lb[i] = θDDM_lb[paramnames[i]]
-        ub[i] = θDDM_ub[paramnames[i]]
-        x0[i] = θDDM_x0[paramnames[i]]
-        fit[i] = is_fit[modeltype][paramnames[i]]
-        if fit[i]
-            x0[i] = lb[i] + (ub[i] - lb[i]) * rand()
-        end
-    end
-
-    n_neural_params, ncells = nθparams(f)
-    fit = vcat(fit, trues.(n_neural_params)...)
-
-    for i in 1:sum(ncells)
-        if vcat(f...)[i] == "Softplus"
-            lb = vcat(lb,-10.)
-            ub = vcat(ub, 10.)
-            x0 = vcat(x0, 0.)
-        elseif vcat(f...)[i] == "Sigmoid"
-            lb = vcat(lb, [-100.,0.,-10.,-10.])
-            ub = vcat(ub, [100.,100.,10.,10.])
-            x0 = vcat(x0, [0.,1.,0.,0.])
-        end
-    end
-    joint_options(lb = lb, ub = ub, fit = fit, x0 = x0)
+    return isfit[modeltype]
 end
 
 """
-    get_θjoint_names()
+    get_jointDDM_θlatent_names()
 
 Returns an array of Symbols that are the names of the parameters controlling the drift-diffusion process in the joint drift-diffusion model (see ['jointDDM'](@ref)). The names of the parameters specifying the relationship between the firing rate and the latent are not included.
 
@@ -137,8 +241,31 @@ Returns:
 
 - param_names: a Vector of Symbols
 """
-function get_θjoint_names()
+function get_jointDDM_θlatent_names()
     vcat(collect(fieldnames(typeof(θz()))), collect(fieldnames(typeof(θh()))), map(x->Symbol(x), ["bias", "lapse"]))
+end
+
+"""
+    specify_a_to_firing_rate_function_type(data)
+
+Specifies the type of the mapping the latent variable (a) to the firing rate for each neuron in each trial-set
+
+Arguments:
+- data: A vector of instances of [`jointdata`](@ref)
+
+Optional arguments:
+- f: a string indicating the mapping to be either "Softplus" (default) or "Sigmoid"
+
+Returns:
+- `ftype`: vector of vector of the string "Softplus" or "Sigmoid"
+"""
+function specify_a_to_firing_rate_function_type(data::Vector{jointdata}; f::String = "Softplus")
+
+    @assert f=="Softplus" || f=="Sigmoid"
+    ncells = map(x->x.neural_data[1].ncells, data)
+    ftype = repeat([f], sum(ncells))
+    borg = vcat(0,cumsum(ncells))
+    ftype = [f[i] for i in [borg[i-1]+1:borg[i] for i in 2:length(borg)]]
 end
 
 """
@@ -152,7 +279,7 @@ Arguments:
 function θjoint(x::Vector{T}, f::Vector{Vector{String}}) where {T <: AbstractFloat}
 
     nparams, ncells = nθparams(f)
-    n = count_parameters_in_joint_DDM
+    n = count_parameters_in_joint_DDM()
     nh = count_parameters_in_joint_DDM(type=:history)
     nz  = count_parameters_in_joint_DDM(type=:z)
 
@@ -235,7 +362,7 @@ Returns:
 """
 function optimize_jointmodel(model::jointDDM, options::joint_options;
         x_tol::Float64=1e-10, f_tol::Float64=1e-9, g_tol::Float64=1e-3,
-        iterations::Int=Int(2e3), show_trace::Bool=true, outer_iterations::Int=Int(1e1),
+        iterations::Int=Int(1e2), show_trace::Bool=true, outer_iterations::Int=Int(1e1),
         scaled::Bool=false, extended_trace::Bool=false, remap::Bool=false)
 
     @unpack fit, lb, ub = options
