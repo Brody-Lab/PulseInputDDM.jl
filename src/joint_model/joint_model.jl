@@ -29,7 +29,19 @@ function jointDDM(data::Vector{jointdata}; ftype::String="Softplus", remap::Bool
 end
 
 """
-    joint_options()
+    joint_options(f; rempa, modeltype)
+
+Create an instance of [`joint_options`](@ref)
+
+Arguments:
+-`f` A vector of vector of the String "Sigmoid" or "Softplus", specifying the mapping from latent variable to firing rate for each neuron in each trialset
+
+Optional arguments:
+-`remap`: if true, parameters are considered in variance instead of std space
+-`modeltype`: a string specifying the model type. Current options include:
+    "nohistory": no influence by trial history
+    "history1back": the influence of only the previous trial is included
+    "history": the influence of the 30 previous trials is included, and the influence further in the past decays exponentially
 """
 function joint_options(f::Vector{Vector{String}}; remap::Bool=false, modeltype::Symbol = :history1back)
 

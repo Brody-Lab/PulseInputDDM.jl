@@ -80,7 +80,11 @@ Load the trial sequence from the full path of a MATLAB ".mat" file
 """
 function load_trial_sequence(file::String)
     sequence = read(matopen(file), "trialsequence")
-    trialsequence(sequence["choice"], sequence["ignore"], sequence["index"], sequence["reward"], sequence["sessionstart"])
+    trialsequence(choice = sequence["choice"][:],
+                  ignore = sequence["ignore"][:],
+                  index = sequence["index"][:],
+                  reward = sequence["reward"][:],
+                  sessionstart = sequence["sessionstart"][:])
 end
 
 """
