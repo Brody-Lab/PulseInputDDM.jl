@@ -475,7 +475,7 @@ function joint_likelihood(model::jointDDM)
     a₀ = map(x->history_influence_on_initial_point(θh, B, x), shifted)
 
     map((trialsetdata, θy, trialseta₀) ->
-        pmap(trialdata,triala₀ -> joint_likelihood(θ,θy,trialdata,M,xc,dx,n,cross,triala₀),
+        pmap((trialdata,triala₀) -> joint_likelihood(θ,θy,trialdata,M,xc,dx,n,cross,triala₀),
             trialsetdata, trialseta₀),
         neural_data, θy, a₀)
 end
@@ -680,7 +680,7 @@ function choice_likelihood(model::jointDDM)
     P,M,xc,dx = initialize_latent_model(σ2_i, B, λ, σ2_a, n, dt) # P is not used
 
     map((choice_trialset, clicks_trialset, a₀_trialset) ->
-        pmap(choice_trial, clicks_trial, a₀_trial ->
+        pmap((choice_trial, clicks_trial, a₀_trial) ->
                 choice_likelihood(θ,choice_trial,clicks_trial,dt,M,xc,dx,n,cross,a₀_trial),
             choice_trialset, clicks_trialset, a₀_trialset),
         choice, click_data, a₀)
@@ -802,7 +802,7 @@ function P_goright(model::jointDDM)
     P,M,xc,dx = initialize_latent_model(σ2_i, B, λ, σ2_a, n, dt) # P is not used
 
     map((a₀_trialset, clicks_trialset) ->
-            pmap(a₀_trial, clicks_trial ->
+            pmap((a₀_trial, clicks_trial) ->
                     P_goright(θ,click_data,dt,M,xc,dx,n,cross,a₀_1trial),
                 a₀_trialset, clicks_trialset),
         a₀, click_data)
