@@ -382,7 +382,7 @@ function optimize_jointmodel(model::jointDDM, options::joint_options;
         scaled::Bool=false, extended_trace::Bool=false, remap::Bool=false)
 
     @unpack fit, lb, ub = options
-    @unpack θ, data, n, cross = model
+    @unpack θ, joint_data, n, cross = model
     @unpack f = θ
 
     x0 = pulse_input_DDM.flatten(θ)
@@ -400,7 +400,7 @@ function optimize_jointmodel(model::jointDDM, options::joint_options;
     x = Optim.minimizer(output)
     x = stack(x,c,fit)
 
-    model = jointDDM(θjoint(x, f), data, n, cross)
+    model = jointDDM(θjoint(x, f), joint_data, n, cross)
     converged = Optim.converged(output)
 
     return model, output
@@ -428,12 +428,12 @@ Returns:
 - log[P(choices, firing rates|θ, pulses, previous choices/outcomes)] summed across all trials and sessions
 """
 function joint_loglikelihood(x::Vector{T}, model::jointDDM; remap::Bool=false) where {T <: AbstractFloat}
-    @unpack data,θ,n,cross = model
+    @unpack joint_data, θ, n, cross = model
     @unpack f = θ
     if remap
-        model = jointDDM(θ2(θjoint(x, f)), data, n, cross)
+        model = jointDDM(θ2(θjoint(x, f)), joint_data, n, cross)
     else
-        model = jointDMM(θjoint(x, f), data, n, cross)
+        model = jointDMM(θjoint(x, f), joint_data, n, cross)
     end
     joint_loglikelihood(model)
 end
@@ -615,7 +615,7 @@ function choice_optimize(model::jointDDM, options::joint_options;
     x = Optim.minimizer(output)
     x = stack(x,c,fit)
 
-    model = jointDDM(θjoint(x, f), data, n, cross)
+    model = jointDDM(θjoint(x, f), joint_data, n, cross)
     converged = Optim.converged(output)
 
     return model, output
@@ -633,9 +633,9 @@ function choice_loglikelihood(x::Vector{T}, model::jointDDM; remap::Bool=false) 
     @unpack joint_data,θ,n,cross = model
     @unpack f = θ
     if remap
-        model = jointDDM(θ2(θjoint(x, f)), data, n, cross)
+        model = jointDDM(θ2(θjoint(x, f)), joint_data, n, cross)
     else
-        model = jointDDM(θjoint(x, f), data, n, cross)
+        model = jointDDM(θjoint(x, f), joint_data, n, cross)
     end
     choice_loglikelihood(model)
 end

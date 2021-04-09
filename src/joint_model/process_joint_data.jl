@@ -187,9 +187,10 @@ See also: [`reload_joint_model`](@ref)
 function save_model(file::String, model::jointDDM, options::joint_options, Hessian::Matrix{T}, CI::Matrix{T}) where {T <: AbstractFloat}
 
     @unpack lb, ub, fit = options
-    @unpack θ, data, n, cross = model
+    @unpack θ, joint_data, n, cross = model
     @unpack f = θ
-    @unpack dt, delay, pad = data[1][1].input_data
+    @unpack neural_data = joint_data[1]
+    @unpack dt, delay, pad = neural_data[1].input_data
 
     nparams, ncells = nθparams(f)
 
