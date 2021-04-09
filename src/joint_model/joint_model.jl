@@ -149,7 +149,7 @@ function lookup_jointDDM_default_θlatent(;remap::Bool=false)
                 :bias => 0.,
                 :lapse => eps(),
                 :α => 0.,
-                :k => eps())
+                :k => 10.)
     if remap
         map((x,y)->x0[:x]=y, [:σ2_a, :σ2_i, :σ2_s], repeat([1.],3))
     end
