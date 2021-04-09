@@ -85,7 +85,7 @@ Arguments:
 function θjoint(data::Vector{T}; ftype::String="Softplus", remap::Bool=false, modeltype::Symbol = :history1back) where {T <: jointdata}
 
     f = specify_a_to_firing_rate_function_type(data; ftype=ftype)
-    fit = is_θlatent_fit_in_jointDDM(modeltype=modeltype)
+    fit = is_θlatent_fit_in_jointDDM(modeltype)
     x0 = lookup_jointDDM_default_θlatent(remap=remap)
     lb, ub = lookup_jointDDM_θlatent_bounds(remap=remap)
 
