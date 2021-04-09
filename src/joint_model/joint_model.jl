@@ -271,15 +271,13 @@ Optional arguments:
 Returns:
 - `ftype`: vector of vector of the string "Softplus" or "Sigmoid"
 """
-function specify_a_to_firing_rate_function_type(data::Vector{T}; f::String = "Softplus") where {T <: jointdata}
+function specify_a_to_firing_rate_function_type(data::Vector{T}; ftype::String = "Softplus") where {T <: jointdata}
 
-    @assert f=="Softplus" || f=="Sigmoid"
+    @assert ftype=="Softplus" || ftype=="Sigmoid"
     ncells = map(x->x.neural_data[1].ncells, data)
-    ftype = repeat([f], sum(ncells))
+    f = repeat([ftype], sum(ncells))
     borg = vcat(0,cumsum(ncells))
-    ftype = [f[i] for i in [borg[i-1]+1:borg[i] for i in 2:length(borg)]]
-    @assert all(map(x->x=="Softplus" || x=="Sigmoid", vcat(f...)))
-    return f
+    f = [f[i] for i in [borg[i-1]+1:borg[i] for i in 2:length(borg)]]
 end
 
 """
