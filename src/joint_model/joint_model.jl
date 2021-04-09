@@ -466,7 +466,8 @@ function joint_likelihood(model::jointDDM)
     @unpack joint_data, θ, n, cross = model
     @unpack θz, θh, θy, bias, lapse = θ
     @unpack σ2_i, B, λ, σ2_a = θz
-    @unpack shifted, neural_data = joint_data
+    shifted= map(x->x.shifted, joint_data)
+    neural_data= map(x->x.neural_data, joint_data)
     @unpack dt = neural_data[1][1].input_data
 
     P,M,xc,dx = initialize_latent_model(σ2_i, B, λ, σ2_a, n, dt) # P is not used
