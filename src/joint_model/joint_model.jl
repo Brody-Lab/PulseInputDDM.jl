@@ -334,7 +334,6 @@ Keyword arguments:
 
 """
 function count_parameters_in_joint_DDM(;type::Symbol=:DDM)
-    type = lowercase(type)
     if type == :DDM
         n = length(fieldnames(typeof(θz()))) +  length(fieldnames(typeof(θh()))) + 2
     elseif type == :history || type == :h
