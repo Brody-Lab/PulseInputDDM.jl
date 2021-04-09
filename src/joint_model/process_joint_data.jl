@@ -112,15 +112,15 @@ function get_trialshifted(sequence::trialsequence, nback::Int)
     n = length(choice)
     pastchoices = pastrewards = Array{Int}(undef,n, nback)
     startindices = findall(sessionstart)
-    for i = 1:length(startindices)
+    for i in eachindex(startindices)
         i1st = startindices[i]
         if i == length(startindices)
-            iend = length(sequence["sessionstart"])
+            iend = length(choice)
         else
             iend = startindices[i+1]-1;
         end
-        pastchoices[ist:iend,:] = get_past_values(sequence["choice"][i1st:iend], nback)
-        pastrewards[ist:iend,:] = get_past_values(sequence["reward"][i1st:iend], nback)
+        pastchoices[i1st:iend,:] = get_past_values(choice[i1st:iend], nback)
+        pastrewards[i1st:iend,:] = get_past_values(reward[i1st:iend], nback)
     end
     pastchoices = pastchoices[index, :]
     pastrewards = pastrewards[index, :]
@@ -161,36 +161,36 @@ function get_past_values(x::Vector{T}, n::Int; miss = 0) where T <: Real
 end
 
 """
-    save_joint_model(file, model, options)
+    save_model(file, model, options)
 
 Given a `file`, `model` and `options` produced by `optimize`, save everything to a `.MAT` file in such a way that `reload_neural_data` can bring these things back into a Julia workspace, or they can be loaded in MATLAB.
 
 See also: [`reload_joint_model`](@ref)
 
 """
-# function save_neural_model(file, model::Union{neuralDDM, neural_choiceDDM}, options)
-#
-#     @unpack lb, ub, fit = options
-#     @unpack θ, data, n, cross = model
-#     @unpack f = θ
-#     @unpack dt, delay, pad = data[1][1].input_data
-#
-#     nparams, ncells = nθparams(f)
-#
-#     dict = Dict("ML_params"=> collect(pulse_input_DDM.flatten(θ)),
-#         "lb"=> lb, "ub"=> ub, "fit"=> fit, "n"=> n, "cross"=> cross,
-#         "dt"=> dt, "delay"=> delay, "pad"=> pad, "f"=> vcat(vcat(f...)...),
-#         "nparams" => nparams, "ncells" => ncells)
-#
-#     matwrite(file, dict)
-#
-#     #=
-#     if !isempty(H)
-#         #dict["H"] = H
-#         hfile = matopen(path*"hessian_"*file, "w")
-#         write(hfile, "H", H)
-#         close(hfile)
-#     end
-#     =#
-#
-# end
+function save_model(file::String, model::jointDDM, options::joint_options, Hessian::Matrix{T}, CI::Matrix{T}) where {T <: AbstractFloat}
+
+    @unpack lb, ub, fit = options
+    @unpack θ, data, n, cross = model
+    @unpack f = θ
+    @unpack dt, delay, pad = data[1][1].input_data
+
+    nparams, ncells = nθparams(f)
+
+    dict = Dict("ML_params"=> collect(pulse_input_DDM.flatten(θ)),
+                "parameter_name" vcat(String.(get_jointDDM_θlatent_names()), vcat(vcat(f...)...)),
+                "CI" => CI,
+                "Hessian" => Hessian,
+                "lb"=> lb,
+                "ub"=> ub,
+                "fit"=> fit,
+                "n"=> n,
+                "cross"=> cross,
+                "dt"=> dt,
+                "delay"=> delay,
+                "pad"=> pad,
+                "f"=> vcat(vcat(f...)...),
+                "nparams" => nparams,
+                "ncells" => ncells)
+    matwrite(file, dict)
+end

@@ -726,6 +726,33 @@ function Hessian(model::jointDDM; chunk_size::Int=4, remap::Bool=false)
 end
 
 """
+    confidence_interval(H, θ; confidence_interval)
+
+Estimate the confidence level of the coefficients using the Hessian
+
+Arugments:
+
+-`H`: A Hessian matrix whose elements are Floats
+-`θ`: an instance of a type that is a subtype of `DDMθ`, such as ['θjoint'](@ref)
+
+Optional argument:
+
+-`confidence_level`: a Real in the interval [0,100]. Default is 95
+
+Returns:
+
+-A matrix with two columns representing the lower and upper bounds
+"""
+function confidence_interval(H::Matrix{T1}, θ::DDMθ; confidence_level::T2 = 95.) where {T1 <:AbstractFloat, T2 <:Real}
+    confidence_level = convert(Float64, confidence_level)
+    @assert confidence_level >= 0. && confidence_level <= 100.
+    σ2 = diag(inv(H))
+    σ2[σ2 .< 0.] .= NaN
+    σ = σ2.^0.5
+    z = quantile(Normal(), (1. + confidence_level/100)/2)
+    flatten(θ) + z*hcat(-σ, σ)
+end
+"""
     θ2(θ)
 
 Square the values of a subset of parameters (σ2_i,σ2_a, σ2_s)
