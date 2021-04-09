@@ -184,7 +184,7 @@ Given a `file`, `model` and `options` produced by `optimize`, save everything to
 See also: [`reload_joint_model`](@ref)
 
 """
-function save_model(file::String, model::jointDDM, options::joint_options, Hessian::Matrix{T}, CI::Matrix{T}) where {T <: AbstractFloat}
+function save_model(file::String, model::jointDDM, options::joint_options, Hessian::Matrix{T}, CI::Matrix{T}) where {T <: Real}
 
     @unpack lb, ub, fit = options
     @unpack θ, joint_data, n, cross = model

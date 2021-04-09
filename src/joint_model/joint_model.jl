@@ -301,7 +301,7 @@ Arguments:
 - `x` The values of the model parameters
 - `f` An array of String arrays specifying the latent-to-neural transformation
 """
-function θjoint(x::Vector{T}, f::Vector{Vector{String}}) where {T <: AbstractFloat}
+function θjoint(x::Vector{T}, f::Vector{Vector{String}}) where {T <: Real}
 
     @assert all(map(x->x=="Softplus" || x=="Sigmoid", vcat(f...)))
     nparams, ncells = nθparams(f)
@@ -437,7 +437,7 @@ Returns:
 
 - log[P(choices, firing rates|θ, pulses, previous choices/outcomes)] summed across all trials and sessions
 """
-function joint_loglikelihood(x::Vector{T}, model::jointDDM; remap::Bool=false) where {T <: AbstractFloat}
+function joint_loglikelihood(x::Vector{T}, model::jointDDM; remap::Bool=false) where {T <: Real}
     @unpack joint_data, θ, n, cross = model
     @unpack f = θ
     if remap
@@ -503,7 +503,7 @@ Returns:
 
 """
 function joint_likelihood(θ::Vector{T1}, θy::Vector{T1}, neural_data::neuraldata, M::Matrix{T1},
-        xc::Vector{T1}, dx::T1, n::T2, cross::Bool, a₀::T1) where {T1 <: AbstractFloat, T2 <: Integer}
+        xc::Vector{T1}, dx::T1, n::T2, cross::Bool, a₀::T1) where {T1 <: Real, T2 <: Integer}
 
     @unpack choice = neural_data
     @unpack θz, bias, lapse = θ
@@ -530,7 +530,7 @@ Arguments:
 
 """
 function likelihood(θz::θz, θy::Vector{T1}, neural_data::neuraldata, M::Matrix{T1},
-        xc::Vector{T1}, dx::T1, n::T2, cross::Bool, a₀::T1) where {T1 <: AbstractFloat,T2 <: Integer}
+        xc::Vector{T1}, dx::T1, n::T2, cross::Bool, a₀::T1) where {T1 <: Real,T2 <: Integer}
 
     @unpack λ, σ2_a, σ2_i, σ2_s, ϕ, τ_ϕ = θz
     @unpack spikes, input_data = neural_data
@@ -638,7 +638,7 @@ A wrapper function that accepts a vector of mixed parameters, splits the vector
 into two vectors based on the parameter mapping function provided as an input. Used
 in optimization, Hessian and gradient computation.
 """
-function choice_loglikelihood(x::Vector{T}, model::jointDDM; remap::Bool=false) where {T <: AbstractFloat}
+function choice_loglikelihood(x::Vector{T}, model::jointDDM; remap::Bool=false) where {T <: Real}
 
     @unpack joint_data,θ,n,cross = model
     @unpack f = θ
@@ -704,7 +704,7 @@ Arguments:
 - `cross`:true indicates cross-stream, rather than within-stream, adaptation
 - `a₀`: value of the latent variable at the first time point of the trial
 """
-function choice_likelihood(θ::θjoint, choice::Bool, click_data::clicks, dt::T1, M::Matrix{T1}, xc::Vector{T1}, dx::T1, n::T2, cross::Bool, a₀::T1) where {T1<:AbstractFloat, T2<:Integer}
+function choice_likelihood(θ::θjoint, choice::Bool, click_data::clicks, dt::T1, M::Matrix{T1}, xc::Vector{T1}, dx::T1, n::T2, cross::Bool, a₀::T1) where {T1<:Real, T2<:Integer}
 
     @unpack θz, bias, lapse = θ
     @unpack σ2_i = θz
@@ -757,7 +757,7 @@ Returns:
 
 -A matrix with two columns representing the lower and upper bounds
 """
-function confidence_interval(H::Matrix{T1}, θ::DDMθ; confidence_level::T2 = 95.) where {T1 <:AbstractFloat, T2 <:Real}
+function confidence_interval(H::Matrix{T1}, θ::DDMθ; confidence_level::T2 = 95.) where {T1 <:Real, T2 <:Real}
     confidence_level = convert(Float64, confidence_level)
     @assert confidence_level >= 0. && confidence_level <= 100.
     σ2 = diag(inv(H))
@@ -827,7 +827,7 @@ Arguments:
 - `cross`:true indicates cross-stream, rather than within-stream, adaptation
 - `a₀`: value of the latent variable at the first time point of the trial
 """
-function P_goright(θ::θjoint, click_data::clicks, dt::T1, M::Matrix{T1}, xc::Vector{T1}, dx::T1, n::T2, cross::Bool, a₀::T1) where {T1<:AbstractFloat, T2<:Integer}
+function P_goright(θ::θjoint, click_data::clicks, dt::T1, M::Matrix{T1}, xc::Vector{T1}, dx::T1, n::T2, cross::Bool, a₀::T1) where {T1<:Real, T2<:Integer}
 
     @unpack θz, bias, lapse = θ
 
