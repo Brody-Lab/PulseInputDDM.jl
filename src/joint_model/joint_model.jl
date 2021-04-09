@@ -110,14 +110,16 @@ function θjoint(data::Vector{T}; ftype::String="Softplus", remap::Bool=false, m
     initialθh = θh(α = x0[:α],
                     k = x0[:k])
     neural_data = map(x->x.neural_data, data)
-
-    #hack
-    #initialθy = θy0(neural_data,f)
-    noiselessθy = θy.(neural_data, f)
-    noiselessx0 = vcat([0., 15., 0. - eps(), 0., 0., 1.0 - eps(), 0.008], vcat(vcat(noiselessθy...)...))
-    noiselessθ = θneural_noiseless(noiselessx0, f)
-    noiselessmodel = noiseless_neuralDDM(noiselessθ, neural_data)
-    initialθy = noiselessmodel.θ.θy
+    initialθy = θy0(neural_data,f)
+    # ------
+    # ***hack***
+    #
+    # noiselessθy = θy.(neural_data, f)
+    # noiselessx0 = vcat([0., 15., 0. - eps(), 0., 0., 1.0 - eps(), 0.008], vcat(vcat(noiselessθy...)...))
+    # noiselessθ = θneural_noiseless(noiselessx0, f)
+    # noiselessmodel = noiseless_neuralDDM(noiselessθ, neural_data)
+    # initialθy = noiselessmodel.θ.θy
+    # ------
 
     θjoint( θz = initialθz,
             θh = initialθh,
