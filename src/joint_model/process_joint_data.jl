@@ -82,7 +82,7 @@ function load_trial_sequence(file::String)
     sequence = read(matopen(file), "trialsequence")
     trialsequence(choice = sequence["choice"][:],
                   ignore = sequence["ignore"][:],
-                  index = sequence["index"][:],
+                  convert.(index = sequence["index"][:]),
                   reward = sequence["reward"][:],
                   sessionstart = sequence["sessionstart"][:])
 end
