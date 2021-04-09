@@ -24,7 +24,7 @@ Fields:
 - `θy`: An instance of the module-specific type [`θy`]()@ref) that parametrizes the relationship between firing rate and the latent variable, a.
 - `f`: A vector of vector of strings that
 """
-@with_kw struct θjoint{T1<:θz, T2<:θh, T3<:Float64, T4<:θy, T5<:Vector{Vector{String}}} <: DDMθ
+@with_kw struct θjoint{T1<:θz, T2<:θh, T3<:Float64, T4, T5<:Vector{Vector{String}}} <: DDMθ
     θz::T1 = θz()
     θh::T2 = θh()
     bias::T3 = 0.
