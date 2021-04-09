@@ -537,6 +537,7 @@ function likelihood(θz::θz, θy, neural_data::neuraldata, M::Matrix{T1},
     @unpack binned_clicks, clicks, dt, λ0, centered, delay, pad = input_data
     @unpack nT, nL, nR = binned_clicks
     @unpack L, R = clicks
+    @unpack dt = neural_data.input_data
 
     #adapt magnitude of the click inputs
     La, Ra = adapt_clicks(ϕ,τ_ϕ,L,R;cross=cross)
@@ -547,7 +548,7 @@ function likelihood(θz::θz, θy, neural_data::neuraldata, M::Matrix{T1},
 
     c = Vector{T1}(undef, length(time_bin))
 
-    P = P0(σ2_i, a₀, n, dx, xc, click_data.dt)
+    P = P0(σ2_i, a₀, n, dx, xc, dt)
 
     @inbounds for t = 1:length(time_bin)
 
