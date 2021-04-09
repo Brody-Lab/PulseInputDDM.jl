@@ -141,7 +141,8 @@ function get_trialshifted(sequence::trialsequence, nback::Int)
     pastchoices = pastchoices[index, :]
     pastrewards = pastrewards[index, :]
     shifts = collect(-1:-1:-nback)
-    trialshifted(pastchoices, pastrewards, shifts)
+    shifts = reshape(shifts, (1,length(shifts)))
+    trialshifted(choice=pastchoices, reward=pastrewards, shift=shifts)
 end
 
 """
