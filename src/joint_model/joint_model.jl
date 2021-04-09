@@ -43,7 +43,7 @@ Optional arguments:
     "history1back": the influence of only the previous trial is included
     "history": the influence of the 30 previous trials is included, and the influence further in the past decays exponentially
 """
-function joint_options(f::Vector{Vector{String}}; remap::Bool=false, modeltype::Symbol = :history1back)
+function joint_options(f::Vector{Vector{String}}; remap::Bool=false, modeltype::Symbol=:history1back)
 
     θlatent_fit = is_θlatent_fit_in_jointDDM(modeltype=modeltype)
     θlatent_lb, θlatent_ub = lookup_jointDDM_θlatent_bounds(remap=remap)
@@ -278,6 +278,8 @@ function specify_a_to_firing_rate_function_type(data::Vector{jointdata}; f::Stri
     ftype = repeat([f], sum(ncells))
     borg = vcat(0,cumsum(ncells))
     ftype = [f[i] for i in [borg[i-1]+1:borg[i] for i in 2:length(borg)]]
+    @assert all(map(x->x=="Softplus" || x=="Sigmoid", vcat(f...)))
+    return f
 end
 
 """
@@ -290,6 +292,7 @@ Arguments:
 """
 function θjoint(x::Vector{T}, f::Vector{Vector{String}}) where {T <: AbstractFloat}
 
+    @assert all(map(x->x=="Softplus" || x=="Sigmoid", vcat(f...)))
     nparams, ncells = nθparams(f)
     n = count_parameters_in_joint_DDM()
     nh = count_parameters_in_joint_DDM(type=:history)

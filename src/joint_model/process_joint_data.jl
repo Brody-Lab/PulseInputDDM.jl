@@ -34,11 +34,12 @@ function load_joint_data(file::String; break_sim_data::Bool=false,
 
     output = load_neural_data(file; break_sim_data=break_sim_data, dt = dt, delay = delay, pad = pad, filtSD = filtSD, extra_pad = extra_pad)
     if ~isnothing(output)
-        spike_data = getindex(output, 1)
-        μ_rnt = getindex(output, 2)
-        μ_t = getindex(output, 3)
+        spike_data = output[1]
+        μ_rnt = output[2]
+        μ_t = output[3]
         sequence = load_trial_sequence(file)
         shifted = get_trialshifted(sequence, nback)
+        @assert check_trialsequence_matches_neuraldata(sequence, spike_data)
         joint_data = jointdata(spike_data, sequence, shifted)
         return joint_data, μ_rnt, μ_t
     end
@@ -83,11 +84,23 @@ Load the trial sequence from the full path of a MATLAB ".mat" file
 """
 function load_trial_sequence(file::String)
     sequence = read(matopen(file), "trialsequence")
-    trialsequence(choice = sequence["choice"][:],
-                  ignore = sequence["ignore"][:],
-                  index = convert.(Int, sequence["index"][:]),
-                  reward = sequence["reward"][:],
-                  sessionstart = sequence["sessionstart"][:])
+
+    choice = sequence["choice"][:]
+    ignore = sequence["ignore"][:]
+    index = convert.(Int, sequence["index"][:])
+    reward = sequence["reward"][:]
+    sessionstart = sequence["sessionstart"][:]
+
+    @assert length(choice) == length(reward) == length(sessionstart)
+    @assert minimum(index) >= 1
+    @assert maximum(index) <= length(choice)
+    @assert ~any(ignore[index]) "trials whose choice and spikes are being fitted cannot be ignored"
+
+    trialsequence(choice = choice,
+                  ignore = ignore,
+                  index = index,
+                  reward = reward,
+                  sessionstart = sessionstart)
 end
 
 """

@@ -24,19 +24,13 @@ Fields:
 - `θy`: An instance of the module-specific type [`θy`]()@ref) that parametrizes the relationship between firing rate and the latent variable, a.
 - `f`: A vector of vector of strings that
 """
-@with_kw struct θjoint{T1,T2,T3,T4,T5} <: DDMθ
+@with_kw struct θjoint{T1<:θz, T2<:θh, T3<:Float64, T4<:θy, T5<:Vector{Vector{String}}} <: DDMθ
     θz::T1 = θz()
     θh::T2 = θh()
     bias::T3 = 0.
     lapse::T3 = 0.
     θy::T4
     f::T5
-    @assert T1 == θz
-    @assert T2 == θh
-    @assert T3 <: AbstractFloat
-    @assert T4 == θy
-    @assert T5 == Vector{Vector{String}}
-    @assert all(map(x->x=="Softplus" || x=="Sigmoid", vcat(f...)))
 end
 
 """
@@ -51,18 +45,12 @@ Fields:
 - `reward`: true if rewarded
 - `sessionstart`: true if first trial of a daily session
 """
-@with_kw struct trialsequence{T1, T2}
+@with_kw struct trialsequence{T1<:Vector{Bool}, T2<:Vector{Int64}}
     choice::T1
     ignore::T1
     index::T2
     reward::T1
     sessionstart::T1
-    @assert T1 == Vector{Bool}
-    @assert T2 == Vector{Int64}
-    @assert length(choice) == length(reward) == length(sessionstart)
-    @assert minimum(index) >= 1
-    @assert maximum(index) <= length(choice)
-    @assert ~any(ignore[index]) "trials whose choice and spikes are being fitted cannot be ignored"
 end
 
 """
@@ -76,12 +64,10 @@ Fields:
 - `reward`: Same organization as `choice.` The values -1, 1, and 0 represent the absence of, presence of, and lack of information on reward on a trial in the past or future.
 - `shift`: a vector indicating the number of trials shifted in the past (negative values) or future (positive values) represented by each column of `choice` and `reward`
 """
-@with_kw struct trialshifted{T1,T2}
+@with_kw struct trialshifted{T1<:Matrix{Int64}, T2>:Vector{Int64}}
     choice::T1
     reward::T1
     shift::T2
-    @assert T1 == Matrix{Int64}
-    @assert T2 == Vector{Int64}
 end
 
 """
@@ -95,12 +81,10 @@ Fields:
 -`n` number of bins in which the latent space, a, is discretized
 -`cross` whether to adapt clicks across left and right streams, as opposed to within each stream
 """
-@with_kw struct joint_options{T1,T2}
+@with_kw struct joint_options{T1<:Vector{Bool}, T2<:Vector{Float64}}
     fit::T1
     ub::T2
     lb::T2
-    @assert T1 == Vector{Bool}
-    @assert T2 == Vector{Float64}
 end
 
 """
@@ -113,14 +97,10 @@ Fields:
 - trialsequence (['trialsequence'](@ref))
 
 """
-@with_kw struct jointdata{T1, T2, T3} <: DDMdata
+@with_kw struct jointdata{T1<: Vector{neuraldata}, T2<:trialsequence, T3<:trialshifted} <: DDMdata
     neural_data::T1
     sequence::T2
     shifted::T3
-    @assert T1 == Vector{neuraldata}
-    @assert T2 == trialsequence
-    @assert T3 == trialshifted
-    @assert check_trialsequence_matches_neuraldata(sequence, neural_data)
 end
 
 """
@@ -134,15 +114,11 @@ Fields:
 - `n`: number of bins in the space of the latent variable (a)
 - cross: adaptation of sound pulses is cross-stream if true and within-stream otherwise
 """
-@with_kw struct jointDDM{T1,T2,T3,T4} <: DDM
+@with_kw struct jointDDM{T1<:θjoint, T2<:Vector{jointdata}, T3<:Int64, T4<:Bool} <: DDM
     θ::T1
     joint_data::T2
     n::T3=53
     cross::T4=false
-    @assert T1 == θjoint
-    @assert T2 == jointdata
-    @assert T3 <: Integer
-    @assert T4 == Bool
 end
 
 """
