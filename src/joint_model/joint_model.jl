@@ -108,7 +108,15 @@ function θjoint(data::Vector{T}; ftype::String="Softplus", remap::Bool=false, m
     initialθh = θh(α = x0[:α],
                     k = x0[:k])
     neural_data = map(x->x.neural_data, data)
-    initialθy = θy0(neural_data,f)
+
+    #hack
+    #initialθy = θy0(neural_data,f)
+    noiselessθy = θy.(neural_data, f)
+    noiselessx0 = vcat([0., 15., 0. - eps(), 0., 0., 1.0 - eps(), 0.008], vcat(vcat(noiselessθy...)...))
+    noiselessθ = θneural_noiseless(noiselessx0, f)
+    noiselessmodel = noiseless_neuralDDM(noiselessθ, neural_data)
+    initialθy = noiselessmodel.θ.θy
+
     θjoint( θz = initialθz,
             θh = initialθh,
             lapse = x0[:lapse],
@@ -354,8 +362,8 @@ function flatten(θ::θjoint)
 
     @unpack θz, θh, bias, lapse, θy = θ
     @unpack σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ = θz
-    @unpack α, β = θh
-    vcat(σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ, α, β, bias, lapse,
+    @unpack α, k = θh
+    vcat(σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ, α, k, bias, lapse,
         vcat(collect.(Flatten.flatten.(vcat(θy...)))...))
 end
 
