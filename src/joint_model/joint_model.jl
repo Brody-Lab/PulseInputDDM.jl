@@ -51,14 +51,16 @@ function joint_options(f::Vector{Vector{String}}; remap::Bool=false, modeltype::
     n_neural_params, ncells = nθparams(f)
 
     fit = vcat(falses(length(θlatent_names)), trues(sum(n_neural_params)))
-    lb = ub = repeat([NaN], length(θlatent_names))
+    lb = repeat([NaN], length(θlatent_names))
+    ub = repeat([NaN], length(θlatent_names))
     for i in eachindex(θlatent_names)
         fit[i] = θlatent_fit[θlatent_names[i]]
         lb[i] = θlatent_lb[θlatent_names[i]]
         ub[i] = θlatent_ub[θlatent_names[i]]
     end
 
-    lb_neural = ub_neural = Array{Vector}(undef,sum(ncells))
+    lb_neural = Array{Vector}(undef,sum(ncells))
+    ub_neural = Array{Vector}(undef,sum(ncells))
     for i in 1:sum(ncells)
         if vcat(f...)[i] == "Softplus"
             lb_neural[i] = [-10.]
