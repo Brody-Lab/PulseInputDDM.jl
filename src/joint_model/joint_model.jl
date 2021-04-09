@@ -502,7 +502,7 @@ Returns:
 - `LL` the loglikelihood of the firing rates and choice given the stimuli and the choice and outcomes of the previous trials
 
 """
-function joint_likelihood(θ::Vector{T1}, θy::Vector{T1}, neural_data::neuraldata, M::Matrix{T1},
+function joint_likelihood(θ::θjoint, θy, neural_data::neuraldata, M::Matrix{T1},
         xc::Vector{T1}, dx::T1, n::T2, cross::Bool, a₀::T1) where {T1 <: Real, T2 <: Integer}
 
     @unpack choice = neural_data
@@ -529,7 +529,7 @@ Arguments:
 - `a₀`: The value of the latent variable at time = 0 (i.e., the time when the stereo-click occured) of a single trial
 
 """
-function likelihood(θz::θz, θy::Vector{T1}, neural_data::neuraldata, M::Matrix{T1},
+function likelihood(θz::θz, θy, neural_data::neuraldata, M::Matrix{T1},
         xc::Vector{T1}, dx::T1, n::T2, cross::Bool, a₀::T1) where {T1 <: Real,T2 <: Integer}
 
     @unpack λ, σ2_a, σ2_i, σ2_s, ϕ, τ_ϕ = θz
@@ -757,7 +757,7 @@ Returns:
 
 -A matrix with two columns representing the lower and upper bounds
 """
-function confidence_interval(H::Matrix{T1}, θ::DDMθ; confidence_level::T2 = 95.) where {T1 <:Real, T2 <:Real}
+function confidence_interval(H::Matrix{T1}, θ::θjoint; confidence_level::T2 = 95.) where {T1 <:Real, T2 <:Real}
     confidence_level = convert(Float64, confidence_level)
     @assert confidence_level >= 0. && confidence_level <= 100.
     σ2 = diag(inv(H))
