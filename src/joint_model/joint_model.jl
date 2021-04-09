@@ -48,7 +48,9 @@ function joint_options(f::Vector{Vector{String}}; remap::Bool=false, modeltype::
     θlatent_fit = is_θlatent_fit_in_jointDDM(modeltype=modeltype)
     θlatent_lb, θlatent_ub = lookup_jointDDM_θlatent_bounds(remap=remap)
     θlatent_names = get_jointDDM_θlatent_names()
-    fit = falses(length(θlatent_names))
+    n_neural_params, ncells = nθparams(f)
+
+    fit = vcat(falses(length(θlatent_names)), trues(sum(n_neural_params))))
     lb = ub = repeat([NaN], length(θlatent_names))
     for i in eachindex(θlatent_names)
         fit[i] = θlatent_fit[θlatent_names[i]]
@@ -56,17 +58,18 @@ function joint_options(f::Vector{Vector{String}}; remap::Bool=false, modeltype::
         ub[i] = θlatent_ub[θlatent_names[i]]
     end
 
-    n_neural_params, ncells = nθparams(f)
-    fit = vcat(fit, trues(sum(n_neural_params)))
+    lb_neural = ub_neural = Array{Vector}(undef,sum(ncells))
     for i in 1:sum(ncells)
         if vcat(f...)[i] == "Softplus"
-            lb = vcat(lb,-10.)
-            ub = vcat(ub, 10.)
+            lb_neural[i] = [-10.]
+            ub_neural[i] = [10.]
         elseif vcat(f...)[i] == "Sigmoid"
-            lb = vcat(lb, [-100.,0.,-10.,-10.])
-            ub = vcat(ub, [100.,100.,10.,10.])
+            lb_neural[i] = [-100.,0.,-10.,-10.]
+            ub_neural[i] = [100.,100.,10.,10.]
         end
     end
+    lb = vcat(lb, lb_neural...)
+    ub = vcat(ub, ub_neural...)
 
     joint_options(lb = lb, ub = ub, fit = fit)
 end
@@ -199,7 +202,7 @@ Optional argument:
 Returns:
 -`fit` a Dictionary whose values are Bools
 """
-function is_θlatent_fit_in_jointDDM(;modeltype::Symbol=history1back)
+function is_θlatent_fit_in_jointDDM(;modeltype::Symbol=:history1back)
     isfit = Dict(  :nohistory => Dict(),
                     :history1back => Dict(),
                     :history => Dict())
