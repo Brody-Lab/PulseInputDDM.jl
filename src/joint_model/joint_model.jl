@@ -102,7 +102,7 @@ function θjoint(data::Vector{T}; ftype::String="Softplus", remap::Bool=false, m
                     τ_ϕ = x0[:τ_ϕ],
                     λ = x0[:λ],
                     B = x0[:B])
-    initialyθh = θh(α = x0[:α],
+    initialθh = θh(α = x0[:α],
                     k = x0[:k])
     neural_data = map(x->x.neural_data, data)
     initialθy = θy0(neural_data,f)
