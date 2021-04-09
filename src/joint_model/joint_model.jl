@@ -85,7 +85,7 @@ Arguments:
 function θjoint(data::Vector{T}; ftype::String="Softplus", remap::Bool=false, modeltype::Symbol = :history1back) where {T <: jointdata}
 
     f = specify_a_to_firing_rate_function_type(data; ftype=ftype)
-    fit = is_θlatent_fit_in_jointDDM(modeltype)
+    fit = is_θlatent_fit_in_jointDDM(modeltype=modeltype)
     x0 = lookup_jointDDM_default_θlatent(remap=remap)
     lb, ub = lookup_jointDDM_θlatent_bounds(remap=remap)
 
@@ -115,7 +115,7 @@ function θjoint(data::Vector{T}; ftype::String="Softplus", remap::Bool=false, m
 end
 
 """
-    lookup_jointDDM_default_θlatent
+    lookup_jointDDM_default_θlatent(;remap)
 
 Return the default values for the parameters controlling the latent variable for the joint model
 
@@ -125,7 +125,7 @@ Optional arguments:
 Returns:
 -`x0`:A Dictionary of the default initial values
 """
-function lookup_jointDDM_default_θlatent(remap::Bool=false)
+function lookup_jointDDM_default_θlatent(;remap::Bool=false)
     x0 = Dict(  :σ2_i => eps(),
                 :σ2_a => eps(),
                 :σ2_s => eps(),
@@ -144,7 +144,7 @@ function lookup_jointDDM_default_θlatent(remap::Bool=false)
 end
 
 """
-    lookup_jointDDM_θlatent_bounds
+    lookup_jointDDM_θlatent_bounds(;remap)
 
 Return the lower and upper limits of the parameters controlling the latent variable for the joint model
 
@@ -155,7 +155,7 @@ Returns:
 -`lb`: a Dictionary of the lower bounds
 -`ub`: a Dictionary of the upper limits
 """
-function lookup_jointDDM_θlatent_bounds(remap::Bool=false)
+function lookup_jointDDM_θlatent_bounds(;remap::Bool=false)
     lb = Dict( :σ2_i => 0.,
                     :σ2_a => 0.,
                     :σ2_s => 0.,
@@ -199,7 +199,7 @@ Optional argument:
 Returns:
 -`fit` a Dictionary whose values are Bools
 """
-function is_θlatent_fit_in_jointDDM(modeltype::Symbol)
+function is_θlatent_fit_in_jointDDM(;modeltype::Symbol=history1back)
     isfit = Dict(  :nohistory => Dict(),
                     :history1back => Dict(),
                     :history => Dict())
