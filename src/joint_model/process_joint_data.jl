@@ -34,6 +34,9 @@ function load_joint_data(file::String; break_sim_data::Bool=false,
 
     output = load_neural_data(file; break_sim_data=break_sim_data, dt = dt, delay = delay, pad = pad, filtSD = filtSD, extra_pad = extra_pad)
     if ~isnothing(output)
+        spike_data = getindex(output, 1)
+        μ_rnt = getindex(output, 2)
+        μ_t = getindex(output, 3)
         sequence = load_trial_sequence(file)
         shifted = get_trialshifted(sequence, nback)
         joint_data = jointdata(spike_data, sequence, shifted)
