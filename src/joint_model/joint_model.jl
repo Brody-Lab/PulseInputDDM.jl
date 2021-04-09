@@ -50,7 +50,7 @@ function joint_options(f::Vector{Vector{String}}; remap::Bool=false, modeltype::
     θlatent_names = get_jointDDM_θlatent_names()
     n_neural_params, ncells = nθparams(f)
 
-    fit = vcat(falses(length(θlatent_names)), trues(sum(n_neural_params))))
+    fit = vcat(falses(length(θlatent_names)), trues(sum(n_neural_params)))
     lb = ub = repeat([NaN], length(θlatent_names))
     for i in eachindex(θlatent_names)
         fit[i] = θlatent_fit[θlatent_names[i]]
