@@ -81,7 +81,7 @@ Fields:
 -`n` number of bins in which the latent space, a, is discretized
 -`cross` whether to adapt clicks across left and right streams, as opposed to within each stream
 """
-@with_kw struct joint_options{T1<:Vector{Bool}, T2<:Vector{Float64}}
+@with_kw struct joint_options{T1<:BitArray, T2<:Vector{Float64}}
     fit::T1
     ub::T2
     lb::T2
