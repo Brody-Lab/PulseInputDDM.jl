@@ -442,7 +442,7 @@ function joint_loglikelihood(x::Vector{T}, model::jointDDM; remap::Bool=false) w
     if remap
         model = jointDDM(θ2(θjoint(x, f)), joint_data, n, cross)
     else
-        model = jointDMM(θjoint(x, f), joint_data, n, cross)
+        model = jointDDM(θjoint(x, f), joint_data, n, cross)
     end
     joint_loglikelihood(model)
 end
