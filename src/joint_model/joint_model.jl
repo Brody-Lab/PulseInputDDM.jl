@@ -22,7 +22,7 @@ Returns:
 -`model`: an instance [`jointDDM`](@ref)
 -`options`: an instance [`joint_options`](@ref)
 """
-function jointDDM(data::Vector{T1}; ftype::String="Softplus", remap::Bool=false, modeltype = :history1back, n<:T2 = 53, cross::Bool = false) where {T1<:jointdata, T2<:Integer}
+function jointDDM(data::Vector{T1}; ftype::String="Softplus", remap::Bool=false, modeltype = :history1back, n::T2 = 53, cross::Bool = false) where {T1<:jointdata, T2<:Integer}
     @assert ftype == "Softplus" || ftype == "Sigmoid"
     θ = θjoint(data; ftype=ftype,remap=remap, modeltype=modeltype)
     model = jointDDM(θ=θ, joint_data=data, n=n, cross=cross)
