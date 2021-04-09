@@ -185,7 +185,7 @@ Given a `file`, `model` and `options` produced by `optimize`, save everything to
 See also: [`reload_joint_model`](@ref)
 
 """
-function save_model(file::String, model::jointDDM, options::joint_options, Hessian::Matrix{T}) where {T <: Real}
+function save_model(file::String, model::jointDDM, options::joint_options, Hessian::Matrix{T}, CI::Matrix{T}) where {T <: Real}
 
     @unpack lb, ub, fit = options
     @unpack θ, joint_data, n, cross = model
@@ -197,6 +197,7 @@ function save_model(file::String, model::jointDDM, options::joint_options, Hessi
 
     dict = Dict("ML_params"=> collect(pulse_input_DDM.flatten(θ)),
                 "parameter_name" => vcat(String.(get_jointDDM_θlatent_names()), vcat(vcat(f...)...)),
+                "CI" => CI,
                 "Hessian" => Hessian,
                 "lb"=> lb,
                 "ub"=> ub,
