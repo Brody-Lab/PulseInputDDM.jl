@@ -22,7 +22,7 @@ Returns:
 -`model`: an instance [`jointDDM`](@ref)
 -`options`: an instance [`joint_options`](@ref)
 """
-function jointDDM(data::Vector{jointdata}; ftype::String="Softplus", remap::Bool=false, modeltype = :history1back, n::T = 53, cross::Bool = false) where {T<:Integer}
+function jointDDM(data::Vector{T1}; ftype::String="Softplus", remap::Bool=false, modeltype = :history1back, n<:T2 = 53, cross::Bool = false) where {T1<:jointdata, T2<:Integer}
     @assert ftype == "Softplus" || ftype == "Sigmoid"
     θ = θjoint(data; ftype=ftype,remap=remap, modeltype=modeltype)
     model = jointDDM(θ=θ, joint_data=data, n=n, cross=cross)
@@ -82,7 +82,7 @@ Arguments:
 
 """
 
-function θjoint(data::Vector{jointdata}; ftype::String="Softplus", remap::Bool=false, modeltype::Symbol = :history1back)
+function θjoint(data::Vector{T}; ftype::String="Softplus", remap::Bool=false, modeltype::Symbol = :history1back) where {T <: jointdata}
 
     f = specify_a_to_firing_rate_function_type(data; ftype=ftype)
     fit = is_θlatent_fit_in_jointDDM(modeltype=modeltype)
@@ -271,7 +271,7 @@ Optional arguments:
 Returns:
 - `ftype`: vector of vector of the string "Softplus" or "Sigmoid"
 """
-function specify_a_to_firing_rate_function_type(data::Vector{jointdata}; f::String = "Softplus")
+function specify_a_to_firing_rate_function_type(data::Vector{T}; f::String = "Softplus") where {T <: jointdata}
 
     @assert f=="Softplus" || f=="Sigmoid"
     ncells = map(x->x.neural_data[1].ncells, data)

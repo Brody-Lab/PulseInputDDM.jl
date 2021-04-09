@@ -114,7 +114,7 @@ Fields:
 - `n`: number of bins in the space of the latent variable (a)
 - cross: adaptation of sound pulses is cross-stream if true and within-stream otherwise
 """
-@with_kw struct jointDDM{T1<:θjoint, T2<:Vector{jointdata}, T3<:Int64, T4<:Bool} <: DDM
+@with_kw struct jointDDM{T1<:θjoint, T2<:Vector{}, T3<:Int64, T4<:Bool} <: DDM
     θ::T1
     joint_data::T2
     n::T3=53
