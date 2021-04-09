@@ -765,7 +765,7 @@ function confidence_interval(H::Matrix{T1}, θ::θjoint; confidence_level::T2 = 
     σ2[σ2 .< 0.] .= NaN
     σ = σ2.^0.5
     z = quantile(Normal(), (1. + confidence_level/100)/2)
-    flatten(θ) + z*hcat(-σ, σ)
+    flatten(θ) .+ z.*hcat(-σ, σ)
 end
 """
     θ2(θ)
