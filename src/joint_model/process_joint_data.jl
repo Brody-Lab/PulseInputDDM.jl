@@ -178,7 +178,7 @@ function save_model(file::String, model::jointDDM, options::joint_options, Hessi
     nparams, ncells = nθparams(f)
 
     dict = Dict("ML_params"=> collect(pulse_input_DDM.flatten(θ)),
-                "parameter_name" vcat(String.(get_jointDDM_θlatent_names()), vcat(vcat(f...)...)),
+                "parameter_name" => vcat(String.(get_jointDDM_θlatent_names()), vcat(vcat(f...)...)),
                 "CI" => CI,
                 "Hessian" => Hessian,
                 "lb"=> lb,
