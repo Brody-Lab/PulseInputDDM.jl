@@ -763,11 +763,15 @@ Returns:
 function confidence_interval(H::Matrix{T1}, θ::θjoint; confidence_level::T2 = 95.) where {T1 <:Real, T2 <:Real}
     confidence_level = convert(Float64, confidence_level)
     @assert confidence_level >= 0. && confidence_level <= 100.
-    σ2 = diag(inv(H))
-    σ2[σ2 .< 0.] .= NaN
-    σ = σ2.^0.5
-    z = quantile(Normal(), (1. + confidence_level/100)/2)
-    flatten(θ) .+ z.*hcat(-σ, σ)
+    if det(H) == 0.0
+        repeat([NaN], size(H)[1],2)
+    else
+        σ2 = diag(inv(H))
+        σ2[σ2 .< 0.] .= NaN
+        σ = σ2.^0.5
+        z = quantile(Normal(), (1. + confidence_level/100)/2)
+        flatten(θ) .+ z.*hcat(-σ, σ)
+    end
 end
 """
     θ2(θ)
