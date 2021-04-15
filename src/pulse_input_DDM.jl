@@ -56,7 +56,7 @@ export mean_exp_rate_per_trial, mean_exp_rate_per_cond
 export logprior, process_spike_data
 export θprior, train_and_test, all_Softplus, θ2, invθ2
 
-export jointDDM, jointdata, θjoint, joint_options, θh, trialsequence, trialshifted, specify_jointmodel, optimize_jointmodel, load_joint_data, load_trial_sequence, confidence_interval
+export jointDDM, jointdata, θjoint, joint_options, θh, trialsequence, trialshifted, specify_jointmodel, optimize_jointmodel, load_joint_data, load_trial_sequence, fit_jointmodel
 
 abstract type DDM end
 abstract type DDMdata end
@@ -341,6 +341,8 @@ include("neural-choice_model/HMM-DDM-2.jl")
 include("joint_model/joint_model_types.jl")
 include("joint_model/process_joint_data.jl")
 include("joint_model/joint_model.jl")
+include("joint_model/save_and_reload.jl")
+include("joint_model/sample_joint_model.jl")
 
 #include("neural_model/load_and_optimize.jl")
 #include("neural_model/sample_model_functions_FP.jl")

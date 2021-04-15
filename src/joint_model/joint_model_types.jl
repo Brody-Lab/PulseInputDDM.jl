@@ -100,6 +100,7 @@ Fields:
     centered::T3=true
     cross::T3=false
     cut::T4=10
+    datapath::T6=""
     delay::T4=0
     do_RBF::T3=false
     dt::T5=1e-2

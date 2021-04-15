@@ -1,14 +1,4 @@
 """
-    check_trialsequence_matches_neuraldata
-
-Returns true if the length of a vector of `neuraldata` matches the length of the field `index` in an instance `trialsequence`
-"""
-function check_trialsequence_matches_neuraldata(sequence::trialsequence, neural_data::Vector{neuraldata})
-    @unpack index = sequence
-    length(neural_data) == length(index)
-end
-
-"""
     load_joint_data(file::String, ...
 
 Load data for fitting the `jointDDM` model. See (['load_neural_data']@ref)) for information about the optional arguments
@@ -178,80 +168,11 @@ function get_past_values(x::Vector{T}, n::Int; miss = 0) where T <: Real
 end
 
 """
-    save_model(file, model, options)
+    check_trialsequence_matches_neuraldata
 
-Given a `file`, `model` and `options` produced by `optimize`, save everything to a `.MAT` file in such a way that `reload_neural_data` can bring these things back into a Julia workspace, or they can be loaded in MATLAB.
-
-See also: [`reload_joint_model`](@ref)
-
+Returns true if the length of a vector of `neuraldata` matches the length of the field `index` in an instance `trialsequence`
 """
-function save_model(file::String, model::jointDDM, options::joint_options, Hessian::Matrix{T}, CI::Matrix{T}) where {T <: Real}
-
-    @unpack lb, ub, fit = options
-    @unpack θ, joint_data, n, cross = model
-    @unpack f = θ
-    @unpack neural_data = joint_data[1]
-    @unpack dt, delay, pad = neural_data[1].input_data
-
-    nparams, ncells = nθparams(f)
-
-    dict = Dict("ML_params"=> collect(pulse_input_DDM.flatten(θ)),
-                "parameter_name" => vcat(String.(get_jointDDM_θlatent_names()), vcat(vcat(f...)...)),
-                "CI" => CI,
-                "Hessian" => Hessian,
-                "lb"=> lb,
-                "ub"=> ub,
-                "fit"=> fit,
-                "n"=> n,
-                "cross"=> cross,
-                "dt"=> dt,
-                "delay"=> delay,
-                "pad"=> pad,
-                "f"=> vcat(vcat(f...)...),
-                "nparams" => nparams,
-                "ncells" => ncells)
-    matwrite(file, dict)
-end
-
-"""
-    reload_joint_model(modelpath, datpath)
-
-`reload_neural_data` will bring back the parameters from your fit, some details about the optimization (such as the `fit` and bounds vectors) and some details about how you filtered the data. All of the data is not saved in the format that it is loaded by `load_neural_data` because it's too cumbersome to seralize it, so you have to load it again, as above, to re-build `neuralDDM` but you can use some of the stuff that `reload_neural_data` returns to reload the data in the same way (such as `pad` and `dt`)
-
-Returns:
-
-- `θneural`
-- `neural_options`
-- n
-- cross
-- dt
-- delay
-- pad
-
-See also: [`save_neural_model`](@ref)
-
-"""
-function reload_joint_model(file)
-
-    xf = read(matopen(file), "ML_params")
-    f = string.(read(matopen(file), "f"))
-    ncells = collect(read(matopen(file), "ncells"))
-    nparams = read(matopen(file), "nparams")
-
-    borg = vcat(0,cumsum(ncells, dims=1))
-    nparams = [nparams[i] for i in [borg[i-1]+1:borg[i] for i in 2:length(borg)]]
-    f = [f[i] for i in [borg[i-1]+1:borg[i] for i in 2:length(borg)]]
-
-    lb = read(matopen(file), "lb")
-    ub = read(matopen(file), "ub")
-    fit = read(matopen(file), "fit")
-
-    n = read(matopen(file), "n")
-    cross = read(matopen(file), "cross")
-    dt = read(matopen(file), "dt")
-    delay = read(matopen(file), "delay")
-    pad = read(matopen(file), "pad")
-
-    θneural(xf, f), neural_options(lb=lb, ub=ub, fit=fit), n, cross, dt, delay, pad
-
+function check_trialsequence_matches_neuraldata(sequence::trialsequence, neural_data::Vector{neuraldata})
+    @unpack index = sequence
+    length(neural_data) == length(index)
 end

@@ -1,5 +1,5 @@
 """
-    optimize_jointmodel(datapath, resultspath; options)
+    fit_jointmodel(datapath, resultspath; options)
 
 Fit a single joint model to one trial-set or simultaneously to multiple trial-sets and save the results
 
@@ -11,7 +11,7 @@ Arguments:
 Optional arguments:
 -`options`: an instance of [`joint_options`](@ref)
 """
-function optimize_jointmodel(datapath::Vector{String}, resultspath::String; options::joint_options = joint_options(), verbose::Bool=false)
+function fit_jointmodel(datapath::Vector{String}, resultspath::String; options::joint_options = joint_options(), verbose::Bool=false)
     @assert T==String || T == Vector{String}
     @assert SubString(resultspath, length(resultspath)-3, length(resultspath)) == ".mat"
     resultsfolderpath = splitdir(resultspath)[1]
@@ -19,6 +19,7 @@ function optimize_jointmodel(datapath::Vector{String}, resultspath::String; opti
         mkpath(resultsfolderpath)
         @assert isdir(resultsfolderpath)
     end
+    options.datapath = datapath;
 
     !verbose || println("Loading the data")
     data, = load_joint_data(datapath;
@@ -54,12 +55,11 @@ function optimize_jointmodel(datapath::Vector{String}, resultspath::String; opti
    !verbose || println("Computing the confidence_intervals")
    CI = confidence_interval(H, model.θ)
 
-   !verbose || println("calculating the probability of going right")
-   probability_right = P_goright(model)
+   !verbose || println("simulating firing rates and probability of a right choice")
+   λ, fractionright = simulate_model(model)
 
    !verbose || println("Saving the results")
-   save_model(resultspath, model, options, H, CI, probability_right)
-
+   save_model(resultspath, model, options; H, CI, λ, fractionright)
 
    !verbose || println("Done!")
 end
