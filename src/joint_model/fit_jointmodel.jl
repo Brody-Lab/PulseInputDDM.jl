@@ -59,7 +59,7 @@ function fit_jointmodel(datapath::Vector{String}, resultspath::String; options::
    λ, fractionright = simulate_model(model)
 
    !verbose || println("Saving the results")
-   save_model(resultspath, model, options; H, CI, λ, fractionright)
+   save_model(resultspath, model, options; Hessian=H, CI=CI, λ=λ, fractionright=fractionright)
 
    !verbose || println("Done!")
 end
