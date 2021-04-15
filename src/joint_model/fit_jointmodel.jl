@@ -11,8 +11,7 @@ Arguments:
 Optional arguments:
 -`options`: an instance of [`joint_options`](@ref)
 """
-function fit_jointmodel(datapath::Vector{String}, resultspath::String; options::joint_options = joint_options(), verbose::Bool=false, computeHessian::Bool=true)
-    @assert T==String || T == Vector{String}
+function fit_jointmodel(datapath::Vector{String}, resultspath::String; options::joint_options = joint_options(), verbose::Bool=false, computeHessian::Bool=true, optimizemodel::Bool=false)
     @assert SubString(resultspath, length(resultspath)-3, length(resultspath)) == ".mat"
     resultsfolderpath = splitdir(resultspath)[1]
     if !isdir(resultsfolderpath)
@@ -42,12 +41,15 @@ function fit_jointmodel(datapath::Vector{String}, resultspath::String; options::
                remap = options.remap,
                modeltype = options.modeltype,
                fit_noiseless_model = options.fit_noiseless_model)
+   optimizemodel ? nothing : options.fit_noiseless_model = false
    options = joint_options!(options, θ.f)
    options.x0 = flatten(θ)
    model = jointDDM(θ=θ, joint_data=data, n=options.n, cross=options.cross)
 
    !verbose || println("Optimizing the model")
-   model, = optimize_jointmodel(model, options)
+   if optimizemodel
+       model, = optimize_jointmodel(model, options)
+   end
 
    if computeHessian
        !verbose || println("Computing the Hessian")
