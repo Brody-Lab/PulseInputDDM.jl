@@ -92,10 +92,10 @@ Fields:
 -`remap`: boolean indicating whether to compute in the space where the noise terms (σ2_a, σ2_i, σ2_s) are squared
 """
 @with_kw mutable struct joint_options{T1<:BitArray, T2<:AbstractVector, T3<:Bool, T4<:Integer, T5<:AbstractFloat, T6<:String, T7<:Symbol}
-    fit::T1 = BitArray[]
-    ub::T2 = Vector{Float64}[]
-    lb::T2 = Vector{Float64}[]
-    x0::T2 = Vector{Float64}[]
+    fit::T1 = BitArray(undef,0)
+    ub::T2 = Vector{Float64}(undef,0)
+    lb::T2 = Vector{Float64}(undef,0)
+    x0::T2 = Vector{Float64}(undef,0)
     break_sim_data::T3=false
     centered::T3=true
     cross::T3=false

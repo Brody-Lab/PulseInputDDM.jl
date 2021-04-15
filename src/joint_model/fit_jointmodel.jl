@@ -11,7 +11,7 @@ Arguments:
 Optional arguments:
 -`options`: an instance of [`joint_options`](@ref)
 """
-function fit_jointmodel(datapath::Vector{String}, resultspath::String; options::joint_options = joint_options(), verbose::Bool=false)
+function fit_jointmodel(datapath::Vector{String}, resultspath::String; options::joint_options = joint_options(), verbose::Bool=false, computeHessian::Bool=true)
     @assert T==String || T == Vector{String}
     @assert SubString(resultspath, length(resultspath)-3, length(resultspath)) == ".mat"
     resultsfolderpath = splitdir(resultspath)[1]
@@ -49,11 +49,15 @@ function fit_jointmodel(datapath::Vector{String}, resultspath::String; options::
    !verbose || println("Optimizing the model")
    model, = optimize_jointmodel(model, options)
 
-   !verbose || println("Computing the Hessian")
-   H = Hessian(model)
-
-   !verbose || println("Computing the confidence_intervals")
-   CI = confidence_interval(H, model.θ)
+   if computeHessian
+       !verbose || println("Computing the Hessian")
+       H = Hessian(model)
+       !verbose || println("Computing the confidence_intervals")
+       CI = confidence_interval(H, model.θ)
+   else
+       H = Array{Float64}(undef,0,0)
+       CI = Array{Float64}(undef,0,0)
+   end
 
    !verbose || println("simulating firing rates and probability of a right choice")
    λ, fractionright = simulate_model(model)
