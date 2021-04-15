@@ -84,7 +84,7 @@ function load_joint_model(resultspath::String)
                             dt = options.dt,
                             extra_pad = options.extra_pad,
                             filtSD = options.filtSD,
-                            nback = options.nback
+                            nback = options.nback,
                             nRBFs = options.nRBFs,
                             pad = options.pad,
                             pcut = options.pcut)

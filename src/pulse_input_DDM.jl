@@ -343,6 +343,7 @@ include("joint_model/process_joint_data.jl")
 include("joint_model/joint_model.jl")
 include("joint_model/save_and_reload.jl")
 include("joint_model/sample_joint_model.jl")
+include("joint_model/fit_jointmodel.jl")
 
 #include("neural_model/load_and_optimize.jl")
 #include("neural_model/sample_model_functions_FP.jl")
