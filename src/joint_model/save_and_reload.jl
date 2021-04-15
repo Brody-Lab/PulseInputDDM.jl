@@ -15,7 +15,7 @@ Optional arguments:
 -`CI`: confidence intervals, a matrix whose first and second columns represent the lower and upper bounds, respectively
 
 """
-function save_model(resultspath::String, model::jointDDM, options::joint_options; Hessian::Matrix{T} = Float64[], CI::Matrix{T}=Float64[], λ::U=Vector{Vector{Vector{Float64}}}[], fractionright::Vector{Vector{Float64}}[]) where {T <: Real, U <:AbstractArray}
+function save_model(resultspath::String, model::jointDDM, options::joint_options; Hessian::Matrix{T} = Float64[], CI::Matrix{T}=Float64[], λ::U=Vector{Vector{Vector{Float64}}}[], fractionright::U=Vector{Vector{Float64}}[]) where {T <: Real, U <:AbstractArray}
 
     @unpack θ, joint_data, n, cross = model
     @unpack f = θ
