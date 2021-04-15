@@ -71,20 +71,50 @@ Fields:
 end
 
 """
-A module-specific type that specifies which parameters to fit and their lower and upper bounds and initial values
+A module-specific type that specifies which parameters to fit, their lower and upper bounds, initial values, and other settings used during data preprocessing or model optimization.
 
 Fields:
 
 -`fit` a vector of Bool indicating which parameters are fit
 -`ub` a vector of floats indicating the upper bound of each parameter during optimization
 -`lb` a vector of floats indicating the lower bound of each parameter during optimization
--`n` number of bins in which the latent space, a, is discretized
--`cross` whether to adapt clicks across left and right streams, as opposed to within each stream
+- `break_sim_data`: this will break up simulatenously recorded neurons, as if they were recorded independently. Not often used by most users.
+-`centered`: Defaults to true. For the neural model, this aligns the center of the binned spikes, to the beginning of the binned clicks. This was done to fix a numerical problem. Most users will never need to adjust this.
+-`cut`: How much extra to cut off at the beginning and end of filtered things (should be equal to `extra_pad` in most cases).
+-`delay`: How much to offset the spikes, relative to the accumlator, in units of `dt`.
+-`dt`: Binning of the spikes, in seconds.
+-`extra_pad`: Extra padding (in addition to `pad`) to add, for filtering purposes. In units of `dt`.
+-`filtSD`: standard deviation of a Gaussin (in units of `dt`) to filter the spikes with to generate single trial firing rates (`μ_rnt`), and mean firing rate across all trials (`μ_t`).
+-`fit_noiseless_model` Bool indicating whether the parameters mapping the latent to firing rates (θy) are initialized by fitting a noiseless neuralDDM
+-`nback`: number of trials in the past to consider
+-`pad`: How much extra time should spikes be considered before and after the begining of the clicks. Useful especially if delay is large.
+-`pcut`: p-value for selecting cells.
+-`remap`: boolean indicating whether to compute in the space where the noise terms (σ2_a, σ2_i, σ2_s) are squared
 """
-@with_kw struct joint_options{T1<:BitArray, T2<:Vector{Float64}}
-    fit::T1
-    ub::T2
-    lb::T2
+@with_kw mutable struct joint_options{T1<:BitArray, T2<:AbstractVector, T3<:Bool, T4<:Integer, T5<:AbstractFloat, T6<:String, T7<:Symbol}
+    fit::T1 = BitArray[]
+    ub::T2 = Vector{Float64}[]
+    lb::T2 = Vector{Float64}[]
+    x0::T2 = Vector{Float64}[]
+    break_sim_data::T3=false
+    centered::T3=true
+    cross::T3=false
+    cut::T4=10
+    delay::T4=0
+    do_RBF::T3=false
+    dt::T5=1e-2
+    extra_pad::T4=10
+    filtSD::T4=2
+    fit_noiseless_model::T3=true
+    ftype::T6="Softplus"
+    modeltype::T7 = :history1back
+    nback::T4=10
+    n::T4=53
+    nRBFs::T4=6
+    pad::T4=0
+    pcut::T5=0.01
+    remap::T3=false
+    @assert T2<:Vector{U1} where U1 <:AbstractFloat
 end
 
 """
@@ -114,45 +144,9 @@ Fields:
 - `n`: number of bins in the space of the latent variable (a)
 - cross: adaptation of sound pulses is cross-stream if true and within-stream otherwise
 """
-@with_kw struct jointDDM{T1<:θjoint, T2<:Vector{}, T3<:Int64, T4<:Bool} <: DDM
+@with_kw struct jointDDM{T1<:θjoint, T2<:AbstractVector, T3<:Int64, T4<:Bool} <: DDM
     θ::T1
     joint_data::T2
     n::T3=53
     cross::T4=false
-end
-
-"""
-    *** This is not currently used***
-
-    settings
-
-Additional parameters for processing data the data and fitting the model.
-
-Fields:
-
-- `break_sim_data`: this will break up simulatenously recorded neurons, as if they were recorded independently. Not often used by most users.
-- `centered`: Defaults to true. For the neural model, this aligns the center of the binned spikes, to the beginning of the binned clicks. This was done to fix a numerical problem. Most users will never need to adjust this.
-- `cut`: How much extra to cut off at the beginning and end of filtered things (should be equal to `extra_pad` in most cases).
-- `delay`: How much to offset the spikes, relative to the accumlator, in units of `dt`.
-- `dt`: Binning of the spikes, in seconds.
-- `extra_pad`: Extra padding (in addition to `pad`) to add, for filtering purposes. In units of `dt`.
-- `filtSD`: standard deviation of a Gaussin (in units of `dt`) to filter the spikes with to generate single trial firing rates (`μ_rnt`), and mean firing rate across all trials (`μ_t`).
-- `pad`: How much extra time should spikes be considered before and after the begining of the clicks. Useful especially if delay is large.
-- `pcut`: p-value for selecting cells.
-"""
-@with_kw struct settings{T1,T2,T3}
-    break_sim_data::T1=false
-    centered::T1=true
-    cut::T2=10
-    delay::T2=0
-    do_RBF::T1=false
-    dt::T3=1e-2
-    extra_pad::T2=10
-    filtSD::T2=2
-    nRBFs::T2=6
-    pad::T2=0
-    pcut::T3=0.01
-    @assert T1 == Bool
-    @assert T2 <: Integer
-    @assert T3 <: AbstractFloat
 end

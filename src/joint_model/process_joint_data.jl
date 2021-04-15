@@ -212,3 +212,46 @@ function save_model(file::String, model::jointDDM, options::joint_options, Hessi
                 "ncells" => ncells)
     matwrite(file, dict)
 end
+
+"""
+    reload_joint_model(modelpath, datpath)
+
+`reload_neural_data` will bring back the parameters from your fit, some details about the optimization (such as the `fit` and bounds vectors) and some details about how you filtered the data. All of the data is not saved in the format that it is loaded by `load_neural_data` because it's too cumbersome to seralize it, so you have to load it again, as above, to re-build `neuralDDM` but you can use some of the stuff that `reload_neural_data` returns to reload the data in the same way (such as `pad` and `dt`)
+
+Returns:
+
+- `θneural`
+- `neural_options`
+- n
+- cross
+- dt
+- delay
+- pad
+
+See also: [`save_neural_model`](@ref)
+
+"""
+function reload_joint_model(file)
+
+    xf = read(matopen(file), "ML_params")
+    f = string.(read(matopen(file), "f"))
+    ncells = collect(read(matopen(file), "ncells"))
+    nparams = read(matopen(file), "nparams")
+
+    borg = vcat(0,cumsum(ncells, dims=1))
+    nparams = [nparams[i] for i in [borg[i-1]+1:borg[i] for i in 2:length(borg)]]
+    f = [f[i] for i in [borg[i-1]+1:borg[i] for i in 2:length(borg)]]
+
+    lb = read(matopen(file), "lb")
+    ub = read(matopen(file), "ub")
+    fit = read(matopen(file), "fit")
+
+    n = read(matopen(file), "n")
+    cross = read(matopen(file), "cross")
+    dt = read(matopen(file), "dt")
+    delay = read(matopen(file), "delay")
+    pad = read(matopen(file), "pad")
+
+    θneural(xf, f), neural_options(lb=lb, ub=ub, fit=fit), n, cross, dt, delay, pad
+
+end

@@ -1,4 +1,70 @@
 """
+    optimize_jointmodel(datapath, resultspath; options)
+
+Fit a single joint model to one trial-set or simultaneously to multiple trial-sets and save the results
+
+Arguments:
+
+-`datapath`: A vector of string specifying the path of the ".mat" file (s) containing the data
+-`resultspath`: String specifying the path of ".mat" file where results are saved
+
+Optional arguments:
+-`options`: an instance of [`joint_options`](@ref)
+"""
+function optimize_jointmodel(datapath::Vector{String}, resultspath::String; options::joint_options = joint_options(), verbose::Bool=false)
+    @assert T==String || T == Vector{String}
+    @assert SubString(resultspath, length(resultspath)-3, length(resultspath)) == ".mat"
+    resultsfolderpath = splitdir(resultspath)[1]
+    if !isdir(resultsfolderpath)
+        mkpath(resultsfolderpath)
+        @assert isdir(resultsfolderpath)
+    end
+
+    !verbose || println("Loading the data")
+    data, = load_joint_data(datapath;
+                            break_sim_data = options.break_sim_data,
+                            centered = options.centered,
+                            cut = options.cut,
+                            delay = options.delay,
+                            do_RBF = options.do_RBF,
+                            dt = options.dt,
+                            extra_pad = options.extra_pad,
+                            filtSD = options.filtSD,
+                            nback = options.nback
+                            nRBFs = options.nRBFs,
+                            pad = options.pad,
+                            pcut = options.pcut)
+
+    !verbose || println("Computing the initial value of the parameters")
+    θ = θjoint(data;
+               ftype = options.ftype,
+               remap = options.remap,
+               modeltype = options.modeltype,
+               fit_noiseless_model = options.fit_noiseless_model)
+   options = joint_options!(options, θ.f)
+   options.x0 = flatten(θ)
+   model = jointDDM(θ=θ, joint_data=data, n=options.n, cross=options.cross)
+
+   !verbose || println("Optimizing the model")
+   model, = optimize_jointmodel(model, options)
+
+   !verbose || println("Computing the Hessian")
+   H = Hessian(model)
+
+   !verbose || println("Computing the confidence_intervals")
+   CI = confidence_interval(H, model.θ)
+
+   !verbose || println("calculating the probability of going right")
+   probability_right = P_goright(model)
+
+   !verbose || println("Saving the results")
+   save_model(resultspath, model, options, H, CI, probability_right)
+
+
+   !verbose || println("Done!")
+end
+
+"""
     jointDDM(data; ftype,remap,modeltype,n,cross)
 
 Create an instance of the ['jointDDM'](@ref) and return the options for optimizing this model
@@ -29,11 +95,12 @@ function jointDDM(data::Vector{T1}; ftype::String="Softplus", remap::Bool=false,
 end
 
 """
-    joint_options(f; rempa, modeltype)
+    joint_options!(options, f)
 
-Create an instance of [`joint_options`](@ref)
+Modify an instance of [`joint_options`](@ref) to include the parameters for mapping the latent variable to firing rates
 
 Arguments:
+-`options` an instance of [`joint_options`](@ref)
 -`f` A vector of vector of the String "Sigmoid" or "Softplus", specifying the mapping from latent variable to firing rate for each neuron in each trialset
 
 Optional arguments:
@@ -43,7 +110,7 @@ Optional arguments:
     "history1back": the influence of only the previous trial is included
     "history": the influence of the 30 previous trials is included, and the influence further in the past decays exponentially
 """
-function joint_options(f::Vector{Vector{String}}; remap::Bool=false, modeltype::Symbol=:history1back)
+function joint_options!(options::joint_options, f::Vector{Vector{String}})
 
     θlatent_fit = is_θlatent_fit_in_jointDDM(modeltype=modeltype)
     θlatent_lb, θlatent_ub = lookup_jointDDM_θlatent_bounds(remap=remap)
@@ -73,7 +140,10 @@ function joint_options(f::Vector{Vector{String}}; remap::Bool=false, modeltype::
     lb = vcat(lb, lb_neural...)
     ub = vcat(ub, ub_neural...)
 
-    joint_options(lb = lb, ub = ub, fit = fit)
+    options.fit = fit
+    options.lb = lb
+    options.ub = ub
+    return options
 end
 """
     θjoint(data;ftype,remap,modeltype)
@@ -85,9 +155,11 @@ Arguments:
 -is_fit: a vector of Bool specifying whether each parameter controlling the drift-diffusion is fit. The neural parameters are not included in this vector
 -`f`: a vector of vector of the string either "Softplus" or "Sigmoid" specifying the type of the mapping from the latent variable to the firing rate of each neuron in each trialset
 
+Optional arguments:
+-`fit_noiseless_model`: Bool specifying whether to fit a noiseless model to find of the initial values of the  parameters mapping the latent variable to firing rates (θy)
 """
 
-function θjoint(data::Vector{T}; ftype::String="Softplus", remap::Bool=false, modeltype::Symbol = :history1back) where {T <: jointdata}
+function θjoint(data::Vector{T}; ftype::String="Softplus", remap::Bool=false, modeltype::Symbol = :history1back, fit_noiseless_model::Bool=true) where {T <: jointdata}
 
     f = specify_a_to_firing_rate_function_type(data; ftype=ftype)
     fit = is_θlatent_fit_in_jointDDM(modeltype=modeltype)
@@ -110,17 +182,15 @@ function θjoint(data::Vector{T}; ftype::String="Softplus", remap::Bool=false, m
     initialθh = θh(α = x0[:α],
                     k = x0[:k])
     neural_data = map(x->x.neural_data, data)
-    initialθy = θy0(neural_data,f)
-    # ------
-    # ***hack***
-    #
-    # noiselessθy = θy.(neural_data, f)
-    # noiselessx0 = vcat([0., 15., 0. - eps(), 0., 0., 1.0 - eps(), 0.008], vcat(vcat(noiselessθy...)...))
-    # noiselessθ = θneural_noiseless(noiselessx0, f)
-    # noiselessmodel = noiseless_neuralDDM(noiselessθ, neural_data)
-    # initialθy = noiselessmodel.θ.θy
-    # ------
-
+    if fit_noiseless_model
+        initialθy = θy0(neural_data,f)
+    else
+        noiselessθy = θy.(neural_data, f)
+        noiselessx0 = vcat([0., 15., 0. - eps(), 0., 0., 1.0 - eps(), 0.008], vcat(vcat(noiselessθy...)...))
+        noiselessθ = θneural_noiseless(noiselessx0, f)
+        noiselessmodel = noiseless_neuralDDM(noiselessθ, neural_data)
+        initialθy = noiselessmodel.θ.θy
+    end
     θjoint( θz = initialθz,
             θh = initialθh,
             lapse = x0[:lapse],
@@ -516,7 +586,7 @@ end
 """
     likelihood(θz,θy,neural_data,M,xc,dx,n,cross,a₀)
 
-Computes the likelihood of the firing rates from a single trial
+Computes the likelihood of the firing rates from a single trial. See also (θ::Softplus)(x, λ0)
 
 Arguments:
 
@@ -562,8 +632,11 @@ function likelihood(θz::θz, θy, neural_data::neuraldata, M::Matrix{T1},
         #P .*= vcat(map(xc-> exp(sum(map((k,θy,λ0)-> logpdf(Poisson(θy(xc,λ0[t]) * dt),
         #                        k[t]), spikes, θy, λ0))), xc)...)
 
-        P = P .* (vcat(map(xc-> exp(sum(map((k,θy,λ0)-> logpdf(Poisson(θy(xc,λ0[t]) * dt),
-                        k[t]), spikes, θy, λ0))), xc)...))
+        P = P .* (vcat(map(xc->
+                exp(sum(map((k,θy,λ0)->
+                    logpdf(Poisson(θy(xc,λ0[t]) * dt), k[t]),
+                    spikes, θy, λ0))),
+                xc)...))
         c[t] = sum(P)
         P /= c[t]
     end
