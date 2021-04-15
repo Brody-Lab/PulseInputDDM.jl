@@ -88,7 +88,7 @@ function load_joint_model(resultspath::String)
                             nRBFs = options.nRBFs,
                             pad = options.pad,
                             pcut = options.pcut)
-    f = specify_a_to_firing_rate_function_type(joint_data; options.ftype=ftype)
+    f = specify_a_to_firing_rate_function_type(joint_data; ftype=options.ftype)
     x = read(matopen(file), "ML_params")
     θ = θjoint(x,f)
     jointDDM(joint_data=joint_data, θ=θ, n=options.n, cross=options,cross)
