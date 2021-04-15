@@ -76,7 +76,7 @@ Returns:
 -`λ`: The expected firing rate of each neuron. It is a two-tier nested array whose outer array is of length number of neuron and inner array of length number of time bins.
 -`choseright`: A Bool indicating whether a right choice was made
 """
-function rand(θz::θz, θy, bias::T2, lapse::T2, input_data::neuralinputs, a₀, seed::Int=1)
+function rand(θz::θz, θy, bias::T, lapse::T, input_data::neuralinputs, a₀, seed::Int=1) where {T<:AbstractFloat}
 
     @unpack λ0, dt = input_data
 
@@ -103,7 +103,7 @@ Returns:
 - `A`: an `array` of the latent path.
 
 """
-function rand(θz::θz{T}, inputs::neuralinputs, a₀::T) where T <: Real
+function rand(θz::θz{T}, inputs::neuralinputs, a₀::T) where T <: AbstractFloat
 
     @unpack σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ = θz
     @unpack clicks, binned_clicks, centered, dt, delay, pad = inputs
