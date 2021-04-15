@@ -91,7 +91,7 @@ Fields:
 -`pcut`: p-value for selecting cells.
 -`remap`: boolean indicating whether to compute in the space where the noise terms (σ2_a, σ2_i, σ2_s) are squared
 """
-@with_kw mutable struct joint_options{T1<:BitArray, T2<:AbstractVector, T3<:Bool, T4<:Integer, T5<:AbstractFloat, T6<:String, T7<:Symbol}
+@with_kw mutable struct joint_options{T1<:BitArray, T2<:AbstractVector, T3<:Bool, T4<:Integer, T5<:AbstractFloat, T6<:String, T7<:Symbol, T8<:AbstractVector}
     fit::T1 = BitArray(undef,0)
     ub::T2 = Vector{Float64}(undef,0)
     lb::T2 = Vector{Float64}(undef,0)
@@ -100,7 +100,7 @@ Fields:
     centered::T3=true
     cross::T3=false
     cut::T4=10
-    datapath::T6=""
+    datapath::T8=Array{String}(undef,0)
     delay::T4=0
     do_RBF::T3=false
     dt::T5=1e-2
@@ -116,6 +116,7 @@ Fields:
     pcut::T5=0.01
     remap::T3=false
     @assert T2<:Vector{U1} where U1 <:AbstractFloat
+    @assert T8<:Vector{U2} where U2 <:String
 end
 
 """
