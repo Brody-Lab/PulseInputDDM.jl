@@ -18,10 +18,10 @@ function fit_jointmodel(datapath::Vector{String}, resultspath::String; options::
         mkpath(resultsfolderpath)
         @assert isdir(resultsfolderpath)
     end
-    options.datapath = datapath;
 
     !verbose || println("Loading the data")
-    data, = load_joint_data(datapath;
+    options.datapath = datapath;
+    data, = load_joint_data(options.datapath;
                             break_sim_data = options.break_sim_data,
                             centered = options.centered,
                             cut = options.cut,
