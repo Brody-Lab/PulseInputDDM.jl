@@ -27,6 +27,7 @@ function save_model(resultspath::String, model::jointDDM, options::joint_options
     @unpack f = θ
 
     nT = map(x->map(y->y.input_data.binned_clicks.nT, x.neural_data), joint_data)
+    pad = options.pad
     rightedge_s = map(x->map(y->collect(-pad+1:y+pad), x), nT)
     choice = map(x->map(y->y.choice, x.neural_data), joint_data)
     leftclicks = map(x->map(y->y.input_data.clicks.L, x.neural_data), joint_data)
