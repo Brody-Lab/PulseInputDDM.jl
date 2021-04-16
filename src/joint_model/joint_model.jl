@@ -46,8 +46,8 @@ Optional arguments:
 """
 function joint_options!(options::joint_options, f::Vector{Vector{String}})
 
-    θlatent_fit = is_θlatent_fit_in_jointDDM(modeltype=modeltype)
-    θlatent_lb, θlatent_ub = lookup_jointDDM_θlatent_bounds(remap=remap)
+    θlatent_fit = is_θlatent_fit_in_jointDDM(modeltype=options.modeltype)
+    θlatent_lb, θlatent_ub = lookup_jointDDM_θlatent_bounds(remap=options.remap)
     θlatent_names = get_jointDDM_θlatent_names()
     n_neural_params, ncells = nθparams(f)
 
@@ -71,12 +71,9 @@ function joint_options!(options::joint_options, f::Vector{Vector{String}})
             ub_neural[i] = [100.,100.,10.,10.]
         end
     end
-    lb = vcat(lb, lb_neural...)
-    ub = vcat(ub, ub_neural...)
-
+    options.lb = vcat(lb, lb_neural...)
+    options.ub = vcat(ub, ub_neural...)
     options.fit = fit
-    options.lb = lb
-    options.ub = ub
     return options
 end
 """
