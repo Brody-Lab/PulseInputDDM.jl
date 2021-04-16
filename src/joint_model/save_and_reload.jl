@@ -18,9 +18,9 @@ Optional arguments:
 function save_model(resultspath::String, model::jointDDM, options::joint_options;
                     Hessian::Matrix{T} = Array{Float64}(undef,0,0),
                     CI::Matrix{T} = Array{Float64}(undef,0,0),
-                    μ_rnt::Vector{Vector{Vector{Vector{Vector{T}}}}} = Vector{Vector{Vector{Float64}}}[],
-                    a::Vector{Vector{Vector{T}}} = Vector{Vector{Float64}}[],
-                    λ::Vector{Vector{Vector{Vector{Vector{T}}}}} = Vector{Vector{Vector{Float64}}}[],
+                    μ_rnt::Vector{Vector{Vector{Vector{T}}}} = Vector{Vector{Vector{Float64}}}[],
+                    a::Vector{Vector{Vector{Vector{T}}}} = Vector{Vector{Vector{Float64}}}[],
+                    λ::Vector{Vector{Vector{Vector{T}}}} = Vector{Vector{Vector{Float64}}}[],
                     fractionright::Vector{Vector{T}} = Vector{Float64}[]) where {T <: AbstractFloat}
 
     @unpack θ, joint_data, n, cross = model
@@ -41,7 +41,7 @@ function save_model(resultspath::String, model::jointDDM, options::joint_options
                 "trialshifted" => getfield.(data, :shifted),
                 "CI" => CI,
                 "Hessian" => Hessian,
-                "a"=> a, 
+                "a"=> a,
                 "rightedge_s" => rightedge_s,
                 "observed_firing_rates" => μ_rnt,
                 "expected_firing_rates" => λ,
