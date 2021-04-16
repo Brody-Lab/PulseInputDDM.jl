@@ -15,16 +15,35 @@ Optional arguments:
 -`CI`: confidence intervals, a matrix whose first and second columns represent the lower and upper bounds, respectively
 
 """
-function save_model(resultspath::String, model::jointDDM, options::joint_options; Hessian::Matrix{T} = Array{Float64}(undef,0,0), CI::Matrix{T}=Array{Float64}(undef,0,0), λ::AbstractArray=Vector{Vector{Vector{Float64}}}[], fractionright::AbstractArray=Vector{Vector{Float64}}[]) where {T <: Real}
+function save_model(resultspath::String, model::jointDDM, options::joint_options;
+                    Hessian::Matrix{T} = Array{Float64}(undef,0,0),
+                    CI::Matrix{T} = Array{Float64}(undef,0,0),
+                    μ_rnt::Vector{Vector{Vector{Vector{Vector{T}}}}} = Vector{Vector{Vector{Float64}}}[],
+                    a::Vector{Vector{Vector{T}}} = Vector{Vector{Float64}}[],
+                    λ::Vector{Vector{Vector{Vector{Vector{T}}}}} = Vector{Vector{Vector{Float64}}}[],
+                    fractionright::Vector{Vector{T}} = Vector{Float64}[]) where {T <: AbstractFloat}
 
     @unpack θ, joint_data, n, cross = model
     @unpack f = θ
 
+    nT = map(x->map(y->y.input_data.binned_clicks.nT, x.neural_data), data)
+    rightedge_s = map(x->map(y->collect(-pad+1:y+pad), x), nT)
+    choice = map(x->map(y->y.choice, x.neural_data), data)
+    leftclicks = map(x->map(y->y.input_data.clicks.L, x.neural_data), data)
+    rightclicks = map(x->map(y->y.input_data.clicks.R, x.neural_data), data)
+
     dict = Dict("ML_params"=> collect(pulse_input_DDM.flatten(θ)),
                 "parameter_name" => vcat(String.(get_jointDDM_θlatent_names()), vcat(vcat(f...)...)),
                 "options" => convert_to_matwritable_Dict(options),
+                "choice" => choice,
+                "leftclicks" => leftclicks,
+                "rightclicks" => rightclicks,
+                "trialshifted" => getfield.(data, :shifted),
                 "CI" => CI,
                 "Hessian" => Hessian,
+                "a"=> a, 
+                "rightedge_s" => rightedge_s,
+                "observed_firing_rates" => μ_rnt,
                 "expected_firing_rates" => λ,
                 "fractionright" => fractionright)
     matwrite(resultspath, dict)

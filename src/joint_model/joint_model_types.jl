@@ -101,10 +101,10 @@ Fields:
     cross::T3=false
     cut::T4=10
     datapath::T8=Array{String}(undef,0)
-    delay::T4=0
+    delay::T4 = 6
     do_RBF::T3=false
-    dt::T5=1e-2
-    extra_pad::T4=10
+    dt::T5 = 1e-2
+    extra_pad::T4 = 6
     filtSD::T4=2
     fit_noiseless_model::T3=true
     ftype::T6="Softplus"
@@ -112,8 +112,8 @@ Fields:
     nback::T4=10
     n::T4=53
     nRBFs::T4=6
-    pad::T4=0
-    pcut::T5=0.01
+    pad::T4 = 20
+    pcut::T5 = 1e-4
     remap::T3=false
     @assert T2<:Vector{U1} where U1 <:AbstractFloat
     @assert T8<:Vector{U2} where U2 <:String

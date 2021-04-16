@@ -21,7 +21,7 @@ function fit_jointmodel(datapath::Vector{String}, resultspath::String; options::
 
     !verbose || println("Loading the data")
     options.datapath = datapath;
-    data, = load_joint_data(options.datapath;
+    data, μ_rnt = load_joint_data(options.datapath;
                             break_sim_data = options.break_sim_data,
                             centered = options.centered,
                             cut = options.cut,
@@ -65,10 +65,17 @@ function fit_jointmodel(datapath::Vector{String}, resultspath::String; options::
    end
 
    !verbose || println("simulating firing rates and probability of a right choice")
-   λ, fractionright = simulate_model(model)
+   λ, fractionright, a = simulate_model(model)
 
    !verbose || println("Saving the results")
-   save_model(resultspath, model, options; Hessian=H, CI=CI, λ=λ, fractionright=fractionright)
+   save_model(resultspath, model, options;
+              Hessian=H,
+              CI=CI,
+              μ_rnt = μ_rnt,
+              λ=λ,
+              fractionright=fractionright,
+              rightedge_s = rightedge_s,
+              a=a)
 
    !verbose || println("Done!")
 end

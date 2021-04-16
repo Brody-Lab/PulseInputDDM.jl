@@ -32,7 +32,8 @@ function simulate_model(model::jointDDM; num_samples::Int=100, seed::Int=1)
     output = map(x-> rand.(Ref(θz), θy, bias, lapse, neural_data, a₀, Ref(x)), seeds)
     λ = map(x->map(y->y[1],x), output)
     choseright = map(x->map(y->y[2],x), output)
-    return mean(λ), mean(choseright)
+    a = map(x->map(y->y[2],x), a)
+    return mean(λ), mean(choseright), a
 end
 
 """
@@ -57,9 +58,10 @@ function rand(θz::θz, θy, bias::T2, lapse::T2, neural_data::Vector{T1}, a₀:
     ntrials = length(neural_data)
     seeds = sample(Random.seed!(seed), 1:ntrials, ntrials; replace=false)
     output = pmap((neural_data,a₀,seeds) -> rand(θz, θy, bias, lapse, neural_data.input_data, a₀, seeds), neural_data, a₀, seeds)
-    λ = map(x->x[1], output)
-    choseright = map(x->x[2], output)
-    return λ, choseright
+    λ = getindex.(output,1)
+    choseright = getindex.(output, 2)
+    a = getindex.(output, 3)
+    return λ, choseright, a
 end
 
 """
@@ -79,6 +81,7 @@ Arguments:
 Returns:
 -`λ`: The expected firing rate of each neuron. It is a two-tier nested array whose outer array is of length number of neuron and inner array of length number of time bins.
 -`choseright`: A Bool indicating whether a right choice was made
+-`a`: the latent over time
 """
 function rand(θz::θz, θy, bias::T, lapse::T, input_data::neuralinputs, a₀, seed::Int=1) where {T<:AbstractFloat}
 
@@ -90,7 +93,7 @@ function rand(θz::θz, θy, bias::T, lapse::T, input_data::neuralinputs, a₀, 
     #spikes = map(λ-> rand.(Poisson.(λ*dt)), λ)
     choseright = rand() > lapse ? a[end] > bias : rand() > 0.5
 
-    return λ, choseright
+    return λ, choseright, a
 end
 
 """
