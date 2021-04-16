@@ -116,7 +116,8 @@ function get_trialshifted(sequence::trialsequence, nback::Int)
     reward[ignore] .= 0;
 
     n = length(choice)
-    pastchoices = pastrewards = Array{Int}(undef,n, nback)
+    pastchoices = Array{Int}(undef,n,nback)
+    pastrewards = Array{Int}(undef,n,nback)
     startindices = findall(sessionstart)
     for i in eachindex(startindices)
         i1st = startindices[i]

@@ -29,8 +29,9 @@ function simulate_model(model::jointDDM; num_samples::Int=100, seed::Int=1)
 
     a₀ = map(x->history_influence_on_initial_point(θh, B, x), shifted)
     seeds = sample(Random.seed!(seed), 1:num_samples, num_samples; replace=false)
-    λ, choseright = map(x-> rand.(Ref(θz), θy, bias, lapse, neural_data, a₀, Ref(x)), seeds)
-
+    output = map(x-> rand.(Ref(θz), θy, bias, lapse, neural_data, a₀, Ref(x)), seeds)
+    λ = map(x->map(y->y[1],x), output)
+    choseright = map(x->map(y->y[2],x), output)
     return mean(λ), mean(choseright)
 end
 
@@ -55,7 +56,10 @@ Returns:
 function rand(θz::θz, θy, bias::T2, lapse::T2, neural_data::Vector{T1}, a₀::Vector{T2}, seed::Int) where {T1 <: neuraldata, T2<:AbstractFloat}
     ntrials = length(neural_data)
     seeds = sample(Random.seed!(seed), 1:ntrials, ntrials; replace=false)
-    pmap((neural_data,a₀,seeds) -> rand(θz, θy, bias, lapse, neural_data.input_data, a₀, seeds), neural_data, a₀, seeds)
+    output = pmap((neural_data,a₀,seeds) -> rand(θz, θy, bias, lapse, neural_data.input_data, a₀, seeds), neural_data, a₀, seeds)
+    λ = map(x->x[1], output)
+    choseright = map(x->x[2], output)
+    return λ, choseright
 end
 
 """
