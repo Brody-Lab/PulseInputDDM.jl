@@ -26,11 +26,11 @@ function save_model(resultspath::String, model::jointDDM, options::joint_options
     @unpack θ, joint_data, n, cross = model
     @unpack f = θ
 
-    nT = map(x->map(y->y.input_data.binned_clicks.nT, x.neural_data), data)
+    nT = map(x->map(y->y.input_data.binned_clicks.nT, x.neural_data), joint_data)
     rightedge_s = map(x->map(y->collect(-pad+1:y+pad), x), nT)
-    choice = map(x->map(y->y.choice, x.neural_data), data)
-    leftclicks = map(x->map(y->y.input_data.clicks.L, x.neural_data), data)
-    rightclicks = map(x->map(y->y.input_data.clicks.R, x.neural_data), data)
+    choice = map(x->map(y->y.choice, x.neural_data), joint_data)
+    leftclicks = map(x->map(y->y.input_data.clicks.L, x.neural_data), joint_data)
+    rightclicks = map(x->map(y->y.input_data.clicks.R, x.neural_data), joint_data)
 
     dict = Dict("ML_params"=> collect(pulse_input_DDM.flatten(θ)),
                 "parameter_name" => vcat(String.(get_jointDDM_θlatent_names()), vcat(vcat(f...)...)),
@@ -38,7 +38,7 @@ function save_model(resultspath::String, model::jointDDM, options::joint_options
                 "choice" => choice,
                 "leftclicks" => leftclicks,
                 "rightclicks" => rightclicks,
-                "trialshifted" => getfield.(data, :shifted),
+                "trialshifted" => getfield.(joint_data, :shifted),
                 "CI" => CI,
                 "Hessian" => Hessian,
                 "a"=> a,

@@ -21,7 +21,7 @@ function fit_jointmodel(datapath::Vector{String}, resultspath::String; options::
 
     !verbose || println("Loading the data")
     options.datapath = datapath;
-    data, μ_rnt = load_joint_data(options.datapath;
+    joint_data, μ_rnt = load_joint_data(options.datapath;
                             break_sim_data = options.break_sim_data,
                             centered = options.centered,
                             cut = options.cut,
@@ -40,14 +40,14 @@ function fit_jointmodel(datapath::Vector{String}, resultspath::String; options::
     if verbose && options.fit_noiseless_model
         println("Computing the initial value of the parameters")
     end
-    θ = θjoint(data;
+    θ = θjoint(joint_data;
                ftype = options.ftype,
                remap = options.remap,
                modeltype = options.modeltype,
                fit_noiseless_model = options.fit_noiseless_model)
    options = joint_options!(options, θ.f)
    options.x0 = flatten(θ)
-   model = jointDDM(θ=θ, joint_data=data, n=options.n, cross=options.cross)
+   model = jointDDM(θ=θ, joint_data=joint_data, n=options.n, cross=options.cross)
 
    if optimizemodel
        !verbose || println("Optimizing the model")
