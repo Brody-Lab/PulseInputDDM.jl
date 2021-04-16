@@ -36,13 +36,13 @@ Convert an instance of `joint_options` to a Dictionary that can be saved to a MA
 """
 
 function convert_to_matwritable_Dict(options::joint_options)
-    dict = Dict
+    dict = Dict()
     for field in fieldnames(joint_options)
         value = getfield(options, field)
         field == :modeltype ? value = String(value) : nothing
-        Dict[String(field)] = value
+        dict[String(field)] = value
     end
-    return Dict
+    return dict
 end
 
 """
