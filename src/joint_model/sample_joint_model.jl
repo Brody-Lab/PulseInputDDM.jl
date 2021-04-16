@@ -32,7 +32,7 @@ function simulate_model(model::jointDDM; num_samples::Int=100, seed::Int=1)
     output = map(x-> rand.(Ref(θz), θy, bias, lapse, neural_data, a₀, Ref(x)), seeds)
     λ = map(x->map(y->y[1],x), output)
     choseright = map(x->map(y->y[2],x), output)
-    a = map(x->map(y->y[2],x), a)
+    a = map(x->map(y->y[3],x), output)
     return mean(λ), mean(choseright), a
 end
 
