@@ -11,7 +11,7 @@ Arguments:
 Optional arguments:
 -`options`: an instance of [`joint_options`](@ref)
 """
-function fit_jointmodel(datapath::Vector{String}, resultspath::String; options::joint_options = joint_options(), verbose::Bool=true, computeHessian::Bool=true, optimizemodel::Bool=false)
+function fit_jointmodel(datapath::Vector{String}, resultspath::String; options::joint_options = joint_options(), verbose::Bool=true, computeHessian::Bool=true, optimizemodel::Bool=true)
     @assert SubString(resultspath, length(resultspath)-3, length(resultspath)) == ".mat"
     resultsfolderpath = splitdir(resultspath)[1]
     if !isdir(resultsfolderpath)
