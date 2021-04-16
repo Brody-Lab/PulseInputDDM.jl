@@ -49,8 +49,8 @@ function fit_jointmodel(datapath::Vector{String}, resultspath::String; options::
    options.x0 = flatten(θ)
    model = jointDDM(θ=θ, joint_data=data, n=options.n, cross=options.cross)
 
-   !verbose || println("Optimizing the model")
    if optimizemodel
+       !verbose || println("Optimizing the model")
        model, = optimize_jointmodel(model, options)
    end
 
@@ -74,7 +74,6 @@ function fit_jointmodel(datapath::Vector{String}, resultspath::String; options::
               μ_rnt = μ_rnt,
               λ=λ,
               fractionright=fractionright,
-              rightedge_s = rightedge_s,
               a=a)
 
    !verbose || println("Done!")
