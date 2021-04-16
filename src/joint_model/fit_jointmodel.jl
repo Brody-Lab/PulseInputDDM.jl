@@ -35,7 +35,6 @@ function fit_jointmodel(datapath::Vector{String}, resultspath::String; options::
                             pad = options.pad,
                             pcut = options.pcut)
 
-
     optimizemodel ? nothing : options.fit_noiseless_model = false
     if verbose && options.fit_noiseless_model
         println("Computing the initial value of the parameters")
