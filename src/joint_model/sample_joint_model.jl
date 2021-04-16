@@ -53,9 +53,9 @@ Returns:
 -`choseright`: an array of length number of trials and whose each entry is a Bool
 """
 function rand(θz::θz, θy, bias::T2, lapse::T2, neural_data::Vector{T1}, a₀::Vector{T2}, seed::Int) where {T1 <: neuraldata, T2<:AbstractFloat}
-    ntrials = length(data)
+    ntrials = length(neural_data)
     seeds = sample(Random.seed!(seed), 1:ntrials, ntrials; replace=false)
-    pmap((data,a₀,seeds) -> rand(θz, θy, bias, lapse, data.input_data, a₀, seeds), neural_data, a₀, seeds)
+    pmap((neural_data,a₀,seeds) -> rand(θz, θy, bias, lapse, neural_data.input_data, a₀, seeds), neural_data, a₀, seeds)
 end
 
 """
