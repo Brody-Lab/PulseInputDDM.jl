@@ -508,7 +508,7 @@ Returns:
 function joint_likelihood(θ::θjoint, θy, neural_data::neuraldata, M::Matrix{T1},
         xc::Vector{T1}, dx::T1, n::T2, cross::Bool, a₀::T1) where {T1 <: Real, T2 <: Integer}
 
-    @unpack choice = neural_data
+    @unpack choice, ncells = neural_data
     @unpack θz, bias, lapse = θ
     c, P = likelihood(θz, θy, neural_data, M, xc, dx, n, cross, a₀)
 
@@ -516,7 +516,8 @@ function joint_likelihood(θ::θjoint, θy, neural_data::neuraldata, M::Matrix{T
     # return vcat(c, sum(choice_likelihood!(bias,xc,P,choice,n,dx)) * (1 - lapse) + lapse/2)
 
     # modified: artificially increasing the weight of the choice likelihood
-    return c.*(sum(choice_likelihood!(bias,xc,P,choice,n,dx)) * (1 - lapse) + lapse/2)
+    choicelikelihood = sum(choice_likelihood!(bias,xc,P,choice,n,dx)) * (1 - lapse) + lapse/2;
+    return vcat(c, repeat([choicelikelihood], length(c)*ncells))
 end
 
 """
