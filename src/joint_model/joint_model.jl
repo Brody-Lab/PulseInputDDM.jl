@@ -502,7 +502,7 @@ Arguments:
 
 Returns:
 
-- `LL` the loglikelihood of the firing rates and choice given the stimuli and the choice and outcomes of the previous trials
+- the likelihood of the firing rates and choice given the stimuli and the choice and outcomes of the previous trials
 
 """
 function joint_likelihood(θ::θjoint, θy, neural_data::neuraldata, M::Matrix{T1},
@@ -511,7 +511,12 @@ function joint_likelihood(θ::θjoint, θy, neural_data::neuraldata, M::Matrix{T
     @unpack choice = neural_data
     @unpack θz, bias, lapse = θ
     c, P = likelihood(θz, θy, neural_data, M, xc, dx, n, cross, a₀)
-    return vcat(c, sum(choice_likelihood!(bias,xc,P,choice,n,dx)) * (1 - lapse) + lapse/2)
+
+    # original:
+    # return vcat(c, sum(choice_likelihood!(bias,xc,P,choice,n,dx)) * (1 - lapse) + lapse/2)
+
+    # modified: artificially increasing the weight of the choice likelihood
+    return c.*(sum(choice_likelihood!(bias,xc,P,choice,n,dx)) * (1 - lapse) + lapse/2)
 end
 
 """
