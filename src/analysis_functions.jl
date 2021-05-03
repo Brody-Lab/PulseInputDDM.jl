@@ -7,7 +7,7 @@ function get_samples_for_training(outsample_logll::Bool, data, frac = 0.8, seed 
         ntrials = length(data)
         train = sample(Random.seed!(seed), 1:ntrials, ceil(Int, frac * ntrials), replace=false)
     else
-        train = 1:ntrials
+        train = 1:length(data)
     end
 
     return train
