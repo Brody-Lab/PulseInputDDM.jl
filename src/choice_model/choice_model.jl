@@ -40,7 +40,7 @@ Keyword Arguments:
 function create_options_and_x0(; modeltype = "bing")
 
      paramlims = Dict( 
-      #:paramname => [lb, ub, fit_bing, fit_hist_initpt, hist_initpt_lapse,hist_lapse,  nofit_default]
+      #:paramname => [lb, ub, fit_bing, fit_hist_initpt, hist_initpt_lapse, hist_lapse,  nofit_default]
         :σ2_i =>        [0., 40., true, false, false, true, eps()], 
         :B =>           [0.5, 80., true, true, true, true, 40.],      
         :λ =>           [-15., 15., true, true, true, true, 1. + eps()],                                            
@@ -58,7 +58,7 @@ function create_options_and_x0(; modeltype = "bing")
         :h_βe =>        [0., 1., false, true, true, true, 0.],
         :sd_β =>        [0., 50., false, true, true, true, 0.],
         :sd_w =>        [40., 200., false, true, true, true, 4.],
-        :bias =>        [-5., 5., true, false, false, false, 0.])        
+        :bias =>        [-5., 5., true, true, true, true, 0.])        
 
     modeltype_idx = Dict(
         "bing"              => 3,
@@ -697,7 +697,7 @@ function compute_slowdrift(θslowdrift::θslowdrift, data, B::TT) where TT <: An
         slowdrift[i] = sd_β * (num_right/(num_left+num_right) - 0.5)  
     end
 
-    return slowdrift
+    return (slowdrift - mean(slowdrift))
 
 end
 
