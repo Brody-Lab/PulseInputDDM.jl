@@ -219,7 +219,8 @@ function sep_joint_likelihood(θ, θy, data::neuraldata,
     c = getindex.(output, 1)
     P = getindex.(output, 2)
     
-    choicepart = exp(mean(log.(map(P-> sum(choice_likelihood!(bias,xc,P,choice,n,dx)) * (1 - lapse) + lapse/2, P))))
+    #choicepart = exp(mean(log.(map(P-> sum(choice_likelihood!(bias,xc,P,choice,n,dx)) * (1 - lapse) + lapse/2, P))))
+    choicepart = mean(map(P-> sum(choice_likelihood!(bias,xc,P,choice,n,dx)) * (1 - lapse) + lapse/2, P))
     
     return vcat(c..., choicepart)
      

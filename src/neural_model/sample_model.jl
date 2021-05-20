@@ -44,6 +44,48 @@ function simulate_expected_firing_rate(model; num_samples::Int=100, nconds::Int=
 end
 
 
+function simulate_expected_spikes(model; num_samples::Int=100, nconds::Int=2, rng1::Int=1)
+
+    @unpack θ,data = model
+    @unpack θz,θy = θ
+    
+    rng = sample(Random.seed!(rng1), 1:num_samples, num_samples; replace=false)
+    spikes = map(rng-> rand_spikes.(Ref(θz), θy, data, Ref(rng)), rng)
+    μ_spikes = mean(spikes)
+    
+    μ_c_spikes = cond_mean.(μ_spikes, data; nconds=nconds)
+    
+    return μ_spikes, μ_c_spikes, spikes
+
+end
+
+
+"""
+    Sample all trials over one session
+"""
+function rand_a(θz::θz, θy, data, rng)
+    
+    ntrials = length(data)
+    rng = sample(Random.seed!(rng), 1:ntrials, ntrials; replace=false)
+
+    pmap((data,rng) -> rand(θz,θy,data.input_data; rng=rng)[2], data, rng)
+
+end
+
+
+"""
+    Sample all trials over one session
+"""
+function rand_spikes(θz::θz, θy, data, rng)
+    
+    ntrials = length(data)
+    rng = sample(Random.seed!(rng), 1:ntrials, ntrials; replace=false)
+
+    pmap((data,rng) -> rand(θz,θy,data.input_data; rng=rng)[3], data, rng)
+
+end
+
+
 """
     Sample all trials over one session
 """

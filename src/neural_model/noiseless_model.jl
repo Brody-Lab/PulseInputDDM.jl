@@ -173,7 +173,8 @@ function loglikelihood(θz::θz, θy::Vector{T1}, data::neuraldata) where T1 <: 
     @unpack spikes, input_data = data
     @unpack λ0, dt = input_data
     
-    ΔLR = diffLR(data)
+    #ΔLR = diffLR(data)
+    ΔLR = rand(θz, input_data)
     #λ = loglikelihood(θz,θy,λ0,ΔLR)
     λ = map((θy,λ0)-> θy(ΔLR, λ0), θy, λ0)
     sum(logpdf.(Poisson.(vcat(λ...)*dt), vcat(spikes...)))

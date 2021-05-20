@@ -115,6 +115,16 @@ choice_loglikelihood(model::neural_choiceDDM) = sum(log.(vcat(choice_likelihood(
 
 
 """
+"""
+function choice_loglikelihood_per_trial(model::neural_choiceDDM) 
+    
+    output = choice_likelihood(model)
+    map(x-> map(x-> sum(log.(x)), x), output)
+    
+end
+
+
+"""
     choice_likelihood(model)
 
 Arguments: `neural_choiceDDM` instance

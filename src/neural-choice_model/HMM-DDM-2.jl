@@ -91,7 +91,7 @@ Returns:
 function optimize(model::HMMDDM_joint_2, options::HMMDDM_joint_options_2;
         x_tol::Float64=1e-10, f_tol::Float64=1e-9, g_tol::Float64=1e-3,
         iterations::Int=Int(2e3), show_trace::Bool=true, outer_iterations::Int=Int(1e1), 
-        scaled::Bool=false, extended_trace::Bool=false)
+        scaled::Bool=false, extended_trace::Bool=false, useIDs=nothing)
     
     @unpack fit, lb, ub = options
     @unpack θ, data, n, cross, θprior = model
@@ -101,7 +101,7 @@ function optimize(model::HMMDDM_joint_2, options::HMMDDM_joint_options_2;
     ub, = unstack(ub, fit)
     x0, c = unstack(x0, fit)
     
-    ℓℓ(x) = -loglikelihood(stack(x,c,fit), model)
+    ℓℓ(x) = -loglikelihood(stack(x,c,fit), model; useIDs=useIDs)
     
     output = optimize(x0, ℓℓ, lb, ub; g_tol=g_tol, x_tol=x_tol,
         f_tol=f_tol, iterations=iterations, show_trace=show_trace,
@@ -128,7 +128,7 @@ Arguments:
 - `x`: a vector of mixed parameters.
 - `model`: an instance of `HMMDDM_joint_2`
 """
-function loglikelihood(x::Vector{T}, model::HMMDDM_joint_2; remap::Bool=false) where {T <: Real}
+function loglikelihood(x::Vector{T}, model::HMMDDM_joint_2; remap::Bool=false, useIDs=nothing) where {T <: Real}
     
     @unpack data,θ,n,cross,θprior = model
     
@@ -140,7 +140,7 @@ function loglikelihood(x::Vector{T}, model::HMMDDM_joint_2; remap::Bool=false) w
         model = HMMDDM_joint_2(θHMMDDM_joint_2(x, θ), data, n, cross, θprior)
     end
     
-    loglikelihood(model)
+    loglikelihood(model; useIDs=useIDs)
 
 end
 
@@ -158,7 +158,7 @@ Optional arguments:
 
 - `chunk_size`: parameter to manange how many passes over the LL are required to compute the Hessian. Can be larger if you have access to more memory.
 """
-function Hessian(model::HMMDDM_joint_2; chunk_size::Int=4, remap=false)
+function Hessian(model::Union{HMMDDM_joint_2, HMMDDM_joint_3}; chunk_size::Int=4, remap=false)
 
     @unpack θ = model
     x = flatten(θ)
@@ -175,7 +175,7 @@ end
 
 Compute the gradient of the negative log-likelihood at the current value of the parameters of a `HMMDDM_joint_2`.
 """
-function gradient(model::HMMDDM_joint_2)
+function gradient(model::Union{HMMDDM_joint_2, HMMDDM_joint_3})
 
     @unpack θ = model
     x = flatten(θ)
@@ -193,13 +193,81 @@ Arguments: `HMMDDM_joint_2` instance
 
 Returns: loglikehood of the data given the parameters.
 """
-function loglikelihood(model::HMMDDM_joint_2)
+function loglikelihood(model::Union{HMMDDM_joint_2, HMMDDM_joint_3}; useIDs=nothing)
     
     @unpack data,θ,n,cross = model
+    
+    ntrials = length.(data)
+    if isnothing(useIDs)
+        useIDs = map(ntrials -> 1:ntrials, ntrials)
+    end
         
-    LL = map(θ-> joint_loglikelihood_per_trial(neural_choiceDDM(θ=θ, data=data, n=n, cross=cross)), θ.θ)  
+    use_data = map((data, useIDs)-> data[useIDs], data, useIDs)
+    
+    LL = map(θ-> joint_loglikelihood_per_trial(neural_choiceDDM(θ=θ, data=use_data, n=n, cross=cross)), θ.θ)     
     py = map(i-> hcat(map(k-> LL[k][i], 1:length(LL))...), 1:length(LL[1]))  
-    sum(pmap(py-> loglikelihood(py, θ)[1], py))
+    
+    LL2 = zeros.(typeof(py[1][1]), ntrials, θ.K)
+    map((LL2, useIDs, py)-> LL2[useIDs, :] = py, LL2, useIDs, py)
+    sum(pmap(LL2-> loglikelihood(LL2, θ)[1], LL2))
+
+end
+
+
+"""
+    choice_probability(model)
+
+Arguments: `HMMDDM_joint_2` instance
+
+Returns: choice_probability of the data given the parameters.
+"""
+function choice_probability(model::Union{HMMDDM_joint_2, HMMDDM_joint_3}; useIDs=nothing)
+    
+    @unpack data,θ,n,cross = model
+    
+    ntrials = length.(data)
+    if isnothing(useIDs)
+        useIDs = map(ntrials -> 1:ntrials, ntrials)
+    end
+        
+    use_data = map((data, useIDs)-> data[useIDs], data, useIDs)
+    
+    LL = map(θ-> choice_loglikelihood_per_trial(neural_choiceDDM(θ=θ, data=use_data, n=n, cross=cross)), θ.θ)     
+    py = map(i-> hcat(map(k-> LL[k][i], 1:length(LL))...), 1:length(LL[1]))  
+    
+    LL2 = zeros.(typeof(py[1][1]), ntrials, θ.K)
+    map((LL2, useIDs, py)-> LL2[useIDs, :] = py, LL2, useIDs, py)
+    
+    #sum(pmap(LL2-> loglikelihood(LL2, θ)[1], LL2))
+
+end
+
+
+"""
+    choice_loglikelihood(model)
+
+Arguments: `HMMDDM_joint_2` instance
+
+Returns: loglikehood of the data given the parameters.
+"""
+function choice_loglikelihood(model::Union{HMMDDM_joint_2, HMMDDM_joint_3}; useIDs=nothing)
+    
+    @unpack data,θ,n,cross = model
+    
+    ntrials = length.(data)
+    if isnothing(useIDs)
+        useIDs = map(ntrials -> 1:ntrials, ntrials)
+    end
+    
+    use_data = map((data, useIDs)-> data[useIDs], data, useIDs)
+        
+    LL = map(θ-> choice_loglikelihood_per_trial(neural_choiceDDM(θ=θ, data=use_data, n=n, cross=cross)), θ.θ)  
+    py = map(i-> hcat(map(k-> LL[k][i], 1:length(LL))...), 1:length(LL[1]))  
+    
+    LL2 = zeros.(typeof(py[1][1]), ntrials, θ.K)
+    map((LL2, useIDs, py)-> LL2[useIDs, :] = py, LL2, useIDs, py)
+    
+    sum(pmap(LL2-> loglikelihood(LL2, θ)[1], LL2))
 
 end
 
@@ -211,12 +279,25 @@ Arguments: `HMMDDM_joint_2` instance
 
 Returns: posterior of the data given the parameters.
 """
-function posterior(model::HMMDDM_joint_2)
+function posterior(model::Union{HMMDDM_joint_2, HMMDDM_joint_3}; useIDs=nothing)
     
     @unpack data,θ,n,cross = model
     
-    LL = map(θ-> joint_loglikelihood_per_trial(neural_choiceDDM(θ=θ, data=data, n=n, cross=cross)), θ.θ) 
+    ntrials = length.(data)
+    if isnothing(useIDs)
+        useIDs = map(ntrials -> 1:ntrials, ntrials)
+    end
+        
+    use_data = map((data, useIDs)-> data[useIDs], data, useIDs)
+    
+    LL = map(θ-> joint_loglikelihood_per_trial(neural_choiceDDM(θ=θ, data=use_data, n=n, cross=cross)), θ.θ) 
     py = map(i-> hcat(map(k-> LL[k][i], 1:length(LL))...), 1:length(LL[1]))  
-    pmap(py-> posterior(py, θ), py)
+    
+    LL2 = zeros.(typeof(py[1][1]), ntrials, θ.K)
+    map((LL2, useIDs, py)-> LL2[useIDs, :] = py, LL2, useIDs, py)
+    
+    #sum(pmap(LL2-> loglikelihood(LL2, θ)[1], LL2))
+    #pmap(py-> posterior(py, θ), py)
+    pmap(LL2-> posterior(LL2, θ), LL2)
 
 end

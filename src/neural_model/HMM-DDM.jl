@@ -46,7 +46,7 @@ Given a `file`, `model` and `options` produced by `optimize`, save everything to
 See also: [`reload_neural_model`](@ref)
 
 """
-function save_model(file, model::Union{HMMDDM, HMMDDM_joint, HMMDDM_joint_2}, options)
+function save_model(file, model::Union{HMMDDM, HMMDDM_joint, HMMDDM_joint_2, HMMDDM_joint_3}, options)
 
     @unpack lb, ub, fit = options
     @unpack θ, data, n, cross = model

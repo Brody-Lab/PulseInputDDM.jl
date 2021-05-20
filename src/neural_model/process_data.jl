@@ -1,3 +1,50 @@
+function remean(data, μ_rnt; do_RBF=true, nRBFs=6)
+    
+    spikes = getfield.(data, :spikes)
+    input_data = getfield.(data, :input_data)
+    choice = getfield.(data, :choice)   
+    binned_clicks = getfield.(input_data, :binned_clicks)
+    clicks = getfield.(input_data, :clicks)   
+    nT = getfield.(binned_clicks, :nT)
+    @unpack dt, centered, delay, pad = input_data[1]
+    
+    ncells = data[1].ncells
+    
+    μ_t = Vector(undef, ncells)
+
+    for n = 1:ncells
+
+        μ_t[n] =  map(n->[max(0., mean([μ_rnt[i][n][t]
+            for i in findall(nT .+ 2*pad .>= t)]))
+            for t in 1:(maximum(nT) .+ 2*pad)], n:n)
+
+        λ0 = map(nT-> bin_λ0(μ_t[n], nT+2*pad), nT)
+
+        input_data = neuralinputs(clicks, binned_clicks, λ0, dt, centered, delay, pad)
+        spike_data = neuraldata(input_data, map(x-> [x[n]], spikes), 1, choice)
+
+        if do_RBF
+            model, = optimize([spike_data], pulse_input_DDM.μ_RBF_options(ncells=[1], nRBFs=nRBFs); show_trace=false)
+            maxnT = maximum(nT)
+            x = 1:maxnT+2*pad   
+            rbf = UniformRBFE(x, nRBFs, normalize=true)  
+            μ_t[n] = [rbf(x) * model.θ.θμ[1][1]]
+        end
+
+    end
+
+    μ_t = map(x-> x[1], μ_t);
+    λ0 = map(nT-> bin_λ0(μ_t, nT+2*pad), nT)
+    input_data = neuralinputs(clicks, binned_clicks, λ0, dt, centered, delay, pad)
+    spike_data = neuraldata(input_data, spikes, ncells, choice)
+    
+    return spike_data, μ_rnt, μ_t
+    
+end
+
+
+"""
+"""
 function save(file, model::neuralDDM, options, CI)
 
     @unpack lb, ub, fit = options
