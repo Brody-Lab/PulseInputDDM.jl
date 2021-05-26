@@ -72,7 +72,7 @@ ARGUMENT
 function save(model::DDLM)
 
     abar_insample, choiceprobability_insample, Xa_insample = predict_in_sample(model)
-    dict = Dict("ML_params"=> flatten(model.θ)),
+    dict = Dict("ML_params"=> vec(model.θ),
                 "parameter_name" => θDDLM_names(),
                 "Hessian" => Hessian(model),
                 "abar_insample" => abar_insample,
