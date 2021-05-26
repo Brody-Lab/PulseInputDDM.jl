@@ -123,8 +123,7 @@ RETURNS
 -abar: ̅a(t), a vector indicating the mean of the latent variable at each time step
 """
 function latent_one_trial(θ::θz, trial::trialdata, a₀::TT, M::Matrix{TT},
-                            xcᵀ::Matrix{TT}, dx::TT, n::Int, cross::Bool, nprepad_abar::Int)
-                            where {TT <: Real}
+                            xcᵀ::Matrix{TT}, dx::TT, n::Int, cross::Bool, nprepad_abar::Int) where {TT <: Real}
 
     @unpack clickcounts, clicktimes, choice = trial
     @unpack λ,σ2_a,σ2_s,ϕ,τ_ϕ = θ
