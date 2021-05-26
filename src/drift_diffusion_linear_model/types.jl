@@ -83,8 +83,6 @@ Fields:
     resultspath::T4=""
     ub::T2 = Vector{Float64}(undef,0)
     x0::T2 = Vector{Float64}(undef,0)
-    @assert T2<:Vector{U1} where U1 <:AbstractFloat
-    @assert T4<:Vector{U2} where U2 <:String
 end
 
 """
