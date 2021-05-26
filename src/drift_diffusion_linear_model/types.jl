@@ -44,7 +44,7 @@ Returns:
 """
 function vec(θ::θDDLM)
     @unpack θz, θh, bias, lapse = θ
-    vcat(map(x->getfield(θz, x), fieldnames(typeof(θz))..., map(x->getfield(θh, x), fieldnames(typeof(θh)))..., bias, lapse)
+    vcat(map(x->getfield(θz, x), fieldnames(typeof(θz)))..., map(x->getfield(θh, x), fieldnames(typeof(θh)))..., bias, lapse)
 end
 
 """
