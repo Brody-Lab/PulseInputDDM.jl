@@ -40,7 +40,6 @@ Arguments:
 Returns:
 
 - a vector of Floats
-```
 """
 function vec(θ::θDDLM)
     @unpack θz, θh, bias, lapse = θ
@@ -89,24 +88,6 @@ Fields:
 end
 
 """
-    trialsetdata
-
-Module-defined type containing information on the behavioral data in each trial and the spike count data of each unit
-
-Fields:
-- shifted: An instance of 'trialshifted'
-- trials: A vector of 'trialdata' objects
-- units: A vector of 'unitdata' objects
-- Xtiming: the component of the design matrix that contains regressors related to the timing of events in each trial
-"""
-@with_kw struct trialsetdata{T1<:trialshifted, T2 <: Vector{trialdata}, T3 <: Vector{unitdata}, T4<:Matrix{Float64}}
-    shifted::T1
-    trials::T2
-    units::T3
-    Xtiming::T4
-end
-
-"""
     trialdata
 
 Module-defined type containing information on the behavioral data in each trial
@@ -136,6 +117,24 @@ Fields:
 @with_kw struct unitdata{T1 <: Matrix{Float64}, T2 <: Vector{Float64}}
     Xautoreg::T1
     y::T2
+end
+
+"""
+    trialsetdata
+
+Module-defined type containing information on the behavioral data in each trial and the spike count data of each unit
+
+Fields:
+- shifted: An instance of 'trialshifted'
+- trials: A vector of 'trialdata' objects
+- units: A vector of 'unitdata' objects
+- Xtiming: the component of the design matrix that contains regressors related to the timing of events in each trial
+"""
+@with_kw struct trialsetdata{T1<:trialshifted, T2 <: Vector{trialdata}, T3 <: Vector{unitdata}, T4<:Matrix{Float64}}
+    shifted::T1
+    trials::T2
+    units::T3
+    Xtiming::T4
 end
 
 """
