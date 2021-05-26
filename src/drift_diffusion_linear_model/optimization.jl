@@ -59,7 +59,7 @@ Returns:
 """
 function loglikelihood(x::Vector{T1}, data::Vector{trialsetdata}, options::DDLMoptions) where {T1 <: AbstractFloat}
     θ = θDDLM(x)
-    options.remap && θ = θ2(θ)
+    options.remap && (θ = θ2(θ))
     @unpack σ2_i, B, λ, σ2_a = θ.θz
     sum(map(trialset->loglikelihood(θ, trialset, options), data))
 end

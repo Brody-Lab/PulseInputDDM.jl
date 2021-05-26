@@ -40,7 +40,7 @@ RETURN
 
 function predict_in_sample(model::DDLM)
     @unpack θ, data, options = model
-    options.remap && θ = θ2(θ)
+    options.remap && (θ = θ2(θ))
     map(trialset->predict_in_sample(trialset, θ, options), data)
 end
 
