@@ -57,7 +57,7 @@ export logprior, process_spike_data
 export θprior, train_and_test, all_Softplus, θ2, invθ2
 
 export jointDDM, jointdata, θjoint, joint_options, θh, trialsequence, trialshifted, specify_jointmodel, optimize_jointmodel, load_joint_data, load_trial_sequence, fit_jointmodel
-export θDDLM, DLMoptions, load_DDLM, θDDLM_names, fit_DDLM, latent_one_trial, predict_in_sample
+export θDDLM, DDLMoptions, load_DDLM, θDDLM_names, fit_DDLM, latent_one_trial, predict_in_sample
 
 abstract type DDM end
 abstract type DDMdata end

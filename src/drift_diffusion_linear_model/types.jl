@@ -75,7 +75,7 @@ Fields:
     datapath::T4=""
     dt::T5 = 1e-2
     fit::T1 = BitArray(undef,0)
-    L2regularizer::T8=Matrix{Float64}(undef,0)
+    L2regularizer::T8=Matrix{Float64}(undef,0,0)
     lb::T2 = Vector{Float64}(undef,0)
     n::T6=53
     nback::T6=10
