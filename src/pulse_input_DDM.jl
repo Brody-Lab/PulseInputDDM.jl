@@ -57,6 +57,7 @@ export logprior, process_spike_data
 export θprior, train_and_test, all_Softplus, θ2, invθ2
 
 export jointDDM, jointdata, θjoint, joint_options, θh, trialsequence, trialshifted, specify_jointmodel, optimize_jointmodel, load_joint_data, load_trial_sequence, fit_jointmodel
+export θDDLM, DLMoptions, load_DDLM, θDDLM_names, fit_DDLM, latent_one_trial, predict_in_sample
 
 abstract type DDM end
 abstract type DDMdata end
@@ -375,7 +376,9 @@ include("joint_model/save_and_reload.jl")
 include("joint_model/sample_joint_model.jl")
 include("joint_model/fit_jointmodel.jl")
 
-#include("neural_model/load_and_optimize.jl")
-#include("neural_model/sample_model_functions_FP.jl")
+include("drift_diffusion_linear_model/types.jl")
+include("drift_diffusion_linear_model/load_and_save.jl")
+include("drift_diffusion_linear_model/optimization.jl")
+include("drift_diffusion_linear_model/evaluation.jl")
 
 end
