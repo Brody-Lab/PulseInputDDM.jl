@@ -64,8 +64,20 @@ abstract type DDMθ end
 abstract type DDMf end
 
 """
+    θz
+
+Module-defined type containing the parameters controlling the accumulation process
+
+Fields:
+- σ2_i: variance of the initial noise
+- B: bound height
+- λ: impulsiveness (λ>0) or leakiness (λ<0)
+- σ2_a: variance of noise added each time bin
+- σ2_s: variance of noise added to each click
+- ϕ: adaptation or facilitation strength
+- τ_ϕ: time constant of adaptation or facilitation
 """
-@with_kw struct θz{T<:Real} @deftype T
+@with_kw struct θz{T<:AbstractFloat} @deftype T
     σ2_i = 0.5
     B = 15.
     λ = -0.5; @assert λ != 0.
@@ -75,23 +87,41 @@ abstract type DDMf end
     τ_ϕ = 0.05
 end
 
+"""
+    clicks
+
+Module-defined type containing the information of clicks on each trial
+
+Fields:
+
+- L: a vector of the times, in seconds, of left clicks
+- R: a vector of the times, in seconds, of right clicks
+- T: the duration, in seconds, of the time between the first click and the time when the animal no longer required to fixate
 
 """
-"""
-@with_kw struct clicks
-    L::Vector{Float64}
-    R::Vector{Float64}
-    T::Float64
+@with_kw struct clicks{T1<:Vector{AbstractFloat}, T2<:AbstractFloat}
+    L::T1
+    R::T1
+    T::T2
 end
 
 
 """
+    binned_clicks
+
+Module-defined type containing the information of clicks on each trial, binned at some time interval
+
+Fields:
+
+- nT: number of time bins
+- nL: number of left clicks in each time bin
+- nR: number of right clicks in each time bin
+
 """
-@with_kw struct binned_clicks
-    #clicks::T
-    nT::Int
-    nL::Vector{Int}
-    nR::Vector{Int}
+@with_kw struct binned_clicks{T1<:Integer, T2<:Vector{Integer}}
+    nT::T1
+    nL::T2
+    nR::T2
 end
 
 

@@ -64,7 +64,7 @@ Fields:
 - `reward`: Same organization as `choice.` The values -1, 1, and 0 represent the absence of, presence of, and lack of information on reward on a trial in the past or future.
 - `shift`: a vector indicating the number of trials shifted in the past (negative values) or future (positive values) represented by each column of `choice` and `reward`
 """
-@with_kw struct trialshifted{T1<:Matrix{Int64}, T2>:Matrix{Int64}}
+@with_kw struct trialshifted{T1<:Matrix{Int64}, T2>:Vector{Int64}}
     choice::T1
     reward::T1
     shift::T2
