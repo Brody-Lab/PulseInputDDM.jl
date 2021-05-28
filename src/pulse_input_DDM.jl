@@ -100,7 +100,7 @@ Fields:
 - T: the duration, in seconds, of the time between the first click and the time when the animal no longer required to fixate
 
 """
-@with_kw struct clicks{T1<:Vector{AbstractFloat}, T2<:AbstractFloat}
+@with_kw struct clicks{T1<:Vector{Float64}, T2<:Float64}
     L::T1
     R::T1
     T::T2
@@ -119,7 +119,7 @@ Fields:
 - nR: number of right clicks in each time bin
 
 """
-@with_kw struct binned_clicks{T1<:Integer, T2<:Vector{Integer}}
+@with_kw struct binned_clicks{T1<:Integer, T2<:Vector{Int64}}
     nT::T1
     nL::T2
     nR::T2

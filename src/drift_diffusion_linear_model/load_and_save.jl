@@ -30,32 +30,55 @@ function load_DDLM(datapath::String)
                             resultspath = loadedoptions["resultspath"],
                             ub = vec(loadedoptions["ub"]),
                             x0 = vec(loadedoptions["x0"]))
-    isfile(resultspath) ? θ=read(matopen(resultspath),"ML_params") : θ=θDDLM(options.x0)
+    isfile(options.resultspath) ? θ=read(matopen(options.resultspath),"ML_params") : θ=θDDLM(options.x0)
+    trialsets = map(x->parse_one_trialset(x, options), read(matopen(datapath), "trialsets"))
+    DDLM(data=trialsets, options=options, θ=θ)
+end
 
-    trialsets = read(matopen(datapath), "trialsets")
+"""
+    parse_one_trialset
 
-    L = map(x->map(y->y["L"], x["clicks"]), trialsets["trials"])
-    R = map(x->map(y->y["R"], x["clicks"]), trialsets["trials"])
-    T = map(x->map(y->y["T"], x["clicks"]), trialsets["trials"])
-    choice = map(x->x["choice"], trialsets["trials"])
+Parse the trial set data exported from MATLAB
 
-    L = vec(map(x->vec(map(x->vec(x), x)), L))
-    R = vec(map(x->vec(map(x->vec(x), x)), R))
-    T = vec(map(x->vec(x), T))
-    choice = vec(map(x->vec(x), choice))
+INPUT
 
-    clicktimes = map((L,R,T)->map((L,R,T)->clicks(L=L, R=R, T=T), L, R, T), L, R, T)
-    clickcounts = map(x->map(x->bin_clicks(x, centered=options.centered, dt=options.dt), x), click_times)
+-trialset: data corresponding to a single trial set
 
+OUTPUT
+
+-an instance of trialsetdata
+"""
+function parse_one_trialset(trialset, options)
+    rawtrials = vec(trialset["trials"])
+    rawclicktimes = map(x->x["clicktimes"], rawtrials)
+
+    L = map(x->vec(x["L"]), rawclicktimes)
+    isscalar = map(x->typeof(x),L).==Float64
+    L[isscalar] = map(x->[x], L[isscalar])
+    L = convert(Array{Array{Float64,1},1},L)
+
+    R = map(x->vec(x["R"]), rawclicktimes)
+    isscalar = map(x->typeof(x),R).==Float64
+    R[isscalar] = map(x->[x], R[isscalar])
+    R = convert(Array{Array{Float64,1},1},R)
+
+    T = map(x->x["T"], rawclicktimes)
+    choice = map(x->x["choice"], rawtrials)
+
+    clicktimes = map((L,R,T)->clicks(L=L, R=R, T=T), L, R, T)
+    clickcounts = map(x->bin_clicks(x, centered=options.centered, dt=options.dt), clicktimes)
     trials = map((x,y,z)->map((x,y,z)->trialdata(clickcounts=x, clicktimes=y, choice=z), x,y,z), clickcounts, clicktimes, choice)
 
-    units = map(units->vec(map((X,y)->unitdata(X,vec(y)), units["Xautoreg"], units["y"])), vec(trialsets["units"]))
+    rawunits = vec(trialset["units"])
+    Xautoreg = map(x->x["Xautoreg"], rawunits)
+    y = map(x->vec(x["y"]), rawunits)
+    units = map((X,y)->unitdata(X,y), Xautoreg, y)
 
-    shifted = map(x->trialshifted(x["choice"], x["reward"], vec(x["shift"])), vec(trialsets["shifted"]))
+    shifted = trialshifted(convert(Matrix{Int64}, trialset["shifted"]["choice"]),
+                           convert(Matrix{Int64}, trialset["shifted"]["reward"]),
+                           convert(Matrix{Int64}, trialset["shifted"]["shift"]))
 
-    data = map((w,x,y,z)->trialsetdata(w,x,y,z), shifted, trials, units, vec(trialsets["Xtiming"]))
-
-    DDLM(data=data, options=options, θ=θ)
+    trialsetdata(shifted=shifted, trials=trials, units=units, Xtiming=trialset["Xtiming"])
 end
 
 """
