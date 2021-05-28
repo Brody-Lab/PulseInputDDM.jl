@@ -100,16 +100,3 @@ function θDDLM_names()
      "bias";
      "lapse"]
 end
-
-"""
-    fit_DDLM
-
-Load the data and specifications, optimize, and save the results
-
-"""
-
-function fit_DDLM(datapath::String)
-    model = load_DDLM(datapath)
-    model = optimize(model)
-    save(model)
-end
