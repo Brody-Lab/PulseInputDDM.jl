@@ -20,7 +20,7 @@ function optimize(model::DDLM;
     @unpack θ, data, options = model
     @unpack fit, lb, ub = options
 
-    x0 = vec(θ)
+    x0 = pulse_input_DDM.flatten(θ)
     lb, = unstack(lb, fit)
     ub, = unstack(ub, fit)
     x0,c = unstack(x0, fit)

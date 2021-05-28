@@ -30,7 +30,7 @@ function θDDLM(x::Vector{T}) where {T <: AbstractFloat}
 end
 
 """
-    vec(θ)
+    flatten(θ)
 
 Convert an instance of [`θDDLM`](@ref) to a vector.
 
@@ -42,7 +42,7 @@ Returns:
 
 - a vector of Floats
 """
-function vec(θ::θDDLM)
+function flatten(θ::θDDLM)
     @unpack θz, θh, bias, lapse = θ
     vcat(map(x->getfield(θz, x), fieldnames(typeof(θz)))..., map(x->getfield(θh, x), fieldnames(typeof(θh)))..., bias, lapse)
 end
