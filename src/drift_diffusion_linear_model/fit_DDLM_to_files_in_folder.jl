@@ -21,6 +21,10 @@ filepaths = readdir(folderpath; joint=true)
 hasdata = occursin.(filenames, pattern)
 filepaths = filepaths[hasdata]
 
+println("Loading data")
 model = load_DDLM(filepaths[filenumber])
+println("Loaded data. Beginning to optimize the model.")
 model = optimize(model)
+println("Optimized model. Beginning to save the results.")
 save(model)
+println("Results saved")
