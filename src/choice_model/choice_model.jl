@@ -49,7 +49,7 @@ function create_options_and_x0(; modeltype = "bing")
         :ϕ =>           [0.01, 1.5, true, true, true, true, 1. + eps()], 
         :τ_ϕ =>         [0.005, 1., true, true, true, true, eps()],   
         :lapse_prob =>  [0., 1., true, true, true, true, eps()],                  
-        :lapse_bias =>  [-15., 15., false, true, true, true, 0.5], 
+        :lapse_bias =>  [0., 1., true, true, true, true, 0.5], 
         :lapse_modbeta=>[-10., 10., false, false, true, true, 0.],                                 
         :h_ηcL =>       [-5., 5., false, true, true, true, 0.], 
         :h_ηcR =>       [-5., 5., false, true, true, true, 0.], 
@@ -483,8 +483,8 @@ function likelihood!(θ::θchoice,
     P = P0(θz.σ2_i, a_0, n, dx, xc, click_data.dt)
     P = P_single_trial!(θz,P,M,dx,xc,click_data,n,cross)
 
-    rlapse = get_rightlapse_prob(θlapse, i_0)
-    # rlapse = θlapse.lapse_bias
+    # rlapse = get_rightlapse_prob(θlapse, i_0)
+    rlapse = θlapse.lapse_bias
     @unpack lapse_prob = θlapse
     choice ? lapse_lik = rlapse : lapse_lik = (1-rlapse)
 
@@ -697,7 +697,7 @@ function compute_slowdrift(θslowdrift::θslowdrift, data, B::TT) where TT <: An
         slowdrift[i] = sd_β * (num_right/(num_left+num_right) - 0.5)  
     end
 
-    return (slowdrift - mean(slowdrift))
+    return (slowdrift .- mean(slowdrift))
 
 end
 
