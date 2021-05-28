@@ -129,7 +129,7 @@ Fields:
 - units: A vector of 'unitdata' objects
 - Xtiming: the component of the design matrix that contains regressors related to the timing of events in each trial
 """
-@with_kw struct trialsetdata{T1<:trialshifted, T2 <: Vector{trialdata}, T3 <: Vector{unitdata}, T4<:Matrix{Float64}}
+@with_kw struct trialsetdata{T1<:trialshifted, T2, T3, T4<:Matrix{Float64}}
     shifted::T1
     trials::T2
     units::T3
