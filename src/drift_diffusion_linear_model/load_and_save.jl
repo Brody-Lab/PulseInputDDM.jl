@@ -67,7 +67,7 @@ function parse_one_trialset(trialset, options)
 
     clicktimes = map((L,R,T)->clicks(L=L, R=R, T=T), L, R, T)
     clickcounts = map(x->bin_clicks(x, centered=options.centered, dt=options.dt), clicktimes)
-    trials = map((x,y,z)->map((x,y,z)->trialdata(clickcounts=x, clicktimes=y, choice=z), x,y,z), clickcounts, clicktimes, choice)
+    trials = map((clickcounts, clicktimes, choice)->trialdata(clickcounts=clickcounts, clicktimes=clicktimes, choice=choice), clickcounts, clicktimes, choice)
 
     rawunits = vec(trialset["units"])
     Xautoreg = map(x->x["Xautoreg"], rawunits)

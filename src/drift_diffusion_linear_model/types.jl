@@ -99,8 +99,8 @@ Fields:
 """
 @with_kw struct trialdata{T1 <: binned_clicks, T2 <: clicks, T3 <: Bool}
     clickcounts::T1
-    clicktimes::T3
-    choice::T2
+    clicktimes::T2
+    choice::T3
 end
 
 """
