@@ -16,21 +16,21 @@ RETURN
 function load_DDLM(datapath::String)
 
     loadedoptions = read(matopen(datapath), "options")
-    options = DDLMoptions(  a_bases = loadedoptions["a_bases"],
+    options = DDLMoptions(  a_bases = map(x->vec(x), vec(loadedoptions["a_bases"])),
                             centered = loadedoptions["centered"],
                             cross = loadedoptions["cross"],
                             datapath = datapath,
                             dt = loadedoptions["dt"],
-                            fit = vec(loadedoptions["fit"]),
+                            fit = convert(BitArray, vec(loadedoptions["fit"])),
                             L2regularizer = loadedoptions["L2regularizer"],
                             lb = vec(loadedoptions["lb"]),
-                            n = loadedoptions["n"],
-                            nback = loadedoptions["nback"],
+                            n = convert(Int64, loadedoptions["n"]),
+                            nback = convert(Int64, loadedoptions["nback"]),
                             remap = loadedoptions["remap"],
                             resultspath = loadedoptions["resultspath"],
                             ub = vec(loadedoptions["ub"]),
                             x0 = vec(loadedoptions["x0"]))
-    isempty(resultspath) ? θ=DDLM(options.x0) : θ=read(matopen(resultspath),"ML_params")
+    isfile(resultspath) ? θ=read(matopen(resultspath),"ML_params") : θ=θDDLM(options.x0)
 
     trialsets = read(matopen(datapath), "trialsets")
 

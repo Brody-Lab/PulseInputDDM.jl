@@ -17,7 +17,7 @@ filenumber = parse(Int64,ARGS[3])
 
 filenames = readdir(folderpath);
 hasdata = occursin.(filenames, pattern)
-filepaths = abspath.(filenames[hasdata])
+filepaths = map(x-> joinpath(folderpath, x), filenames[hasdata])
 
 println("======")
 println("Loading data")
