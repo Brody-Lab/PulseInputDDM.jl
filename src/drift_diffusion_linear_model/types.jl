@@ -146,8 +146,8 @@ Fields:
 - options: an instance of 'DDLMoptions'
 - θ: an instance of ''θDDLM'
 """
-@with_kw struct DDLM{T1<:θDDLM, T2<:Vector{trialsetdata}, T3<:DDLMoptions} <: DDM
-    data::T2
-    options::T3
-    θ::T1
+@with_kw struct DDLM{T1, T2<:DDLMoptions, T3<:θDDLM} <: DDM
+    data::T1
+    options::T2
+    θ::T3
 end
