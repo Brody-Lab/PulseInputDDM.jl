@@ -31,7 +31,7 @@ function load_DDLM(datapath::String)
                             ub = vec(loadedoptions["ub"]),
                             x0 = vec(loadedoptions["x0"]))
     isfile(options.resultspath) ? θ=read(matopen(options.resultspath),"ML_params") : θ=θDDLM(options.x0)
-    trialsets = map(x->parse_one_trialset(x, options), read(matopen(datapath), "trialsets"))
+    trialsets = map(x->parse_one_trialset(x, options), vec(read(matopen(datapath), "trialsets")))
     DDLM(data=trialsets, options=options, θ=θ)
 end
 
@@ -48,7 +48,7 @@ OUTPUT
 
 -an instance of trialsetdata
 """
-function parse_one_trialset(trialset, options)
+function parse_one_trialset(trialset::Dict, options::DDLMoptions)
     rawtrials = vec(trialset["trials"])
     rawclicktimes = map(x->x["clicktimes"], rawtrials)
 

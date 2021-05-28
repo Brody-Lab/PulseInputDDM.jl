@@ -129,11 +129,13 @@ Fields:
 - units: A vector of 'unitdata' objects
 - Xtiming: the component of the design matrix that contains regressors related to the timing of events in each trial
 """
-@with_kw struct trialsetdata{T1<:trialshifted, T2, T3, T4<:Matrix{Float64}}
+@with_kw struct trialsetdata{T1<:trialshifted, T2<:Vector, T3<:Vector, T4<:Matrix{Float64}}
     shifted::T1
     trials::T2
     units::T3
     Xtiming::T4
+    @assert all(map(x->typeof(x)<:trialdata, trials))
+    @assert all(map(x->typeof(x)<:unitdata, units))
 end
 
 """
@@ -146,8 +148,9 @@ Fields:
 - options: an instance of 'DDLMoptions'
 - θ: an instance of ''θDDLM'
 """
-@with_kw struct DDLM{T1, T2<:DDLMoptions, T3<:θDDLM} <: DDM
+@with_kw struct DDLM{T1<:Vector, T2<:DDLMoptions, T3<:θDDLM} <: DDM
     data::T1
     options::T2
     θ::T3
+    @assert all(map(x->typeof(x)<:trialsetdata, data))
 end
