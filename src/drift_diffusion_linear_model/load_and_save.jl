@@ -15,7 +15,7 @@ RETURN
 """
 function load_DDLM(datapath::String)
 
-    loadedoptions = read(matopen(filepath), "options")
+    loadedoptions = read(matopen(datapath), "options")
     options = DDLMoptions(  a_bases = loadedoptions["a_bases"],
                             centered = loadedoptions["centered"],
                             cross = loadedoptions["cross"],
@@ -32,7 +32,7 @@ function load_DDLM(datapath::String)
                             x0 = vec(loadedoptions["x0"]))
     isempty(resultspath) ? θ=DDLM(options.x0) : θ=read(matopen(resultspath),"ML_params")
 
-    trialsets = read(matopen(filepath), "trialsets")
+    trialsets = read(matopen(datapath), "trialsets")
 
     L = map(x->map(y->y["L"], x["clicks"]), trialsets["trials"])
     R = map(x->map(y->y["R"], x["clicks"]), trialsets["trials"])

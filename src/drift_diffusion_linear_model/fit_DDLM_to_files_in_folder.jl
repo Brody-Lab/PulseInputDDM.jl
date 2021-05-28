@@ -16,11 +16,10 @@ pattern = ARGS[2]
 filenumber = parse(Int64,ARGS[3])
 
 filenames = readdir(folderpath);
-filepaths = readdir(folderpath; joint=true)
-
 hasdata = occursin.(filenames, pattern)
-filepaths = filepaths[hasdata]
+filepaths = abspath.(filenames[hasdata])
 
+println("======")
 println("Loading data")
 model = load_DDLM(filepaths[filenumber])
 println("Loaded data. Beginning to optimize the model.")
@@ -28,3 +27,4 @@ model = optimize(model)
 println("Optimized model. Beginning to save the results.")
 save(model)
 println("Results saved")
+println("======")
