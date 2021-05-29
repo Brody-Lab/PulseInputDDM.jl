@@ -88,7 +88,7 @@ function loglikelihood(θ::θDDLM, trialset::trialsetdata, options::DDLMoptions)
     P,M,xc,dx = initialize_latent_model(σ2_i, B, λ, σ2_a, n, dt) # P is not used
     xcᵀ = transpose(xc)
 
-    nprepad_abar = size(a_bases)[1]-1
+    nprepad_abar = size(a_bases[1])[1]-1
     P, abar = pmap((trial,a₀)->latent_one_trial(θ, trial, a₀, M, xc, xcᵀ, dx, options, nprepad_abar), trialset.trials, a₀)
 
     choicelikelihood = pmap((P, trial)->sum(choice_likelihood!(bias,xc,P,trial.choice,n,dx)) * (1 - lapse) + lapse/2, P, trialset.trials)
@@ -183,7 +183,7 @@ ARGUMENT
 -Xa: regressors that depend on the mean of the latent variable
 -L2regularizer: penalty matrix for L2 regularization
 """
-function mean_square_error(Xtiming::Matrix{T}, Xautoreg::Matrix{T}, Xa::T2, y::Vector{T}, L2regularizer::Matrix{T}) where {T<:Real, T2 <: Any}
+function mean_square_error(Xtiming::Matrix{T}, Xautoreg::Matrix{T}, Xa::T2, y::Vector{T}, L2regularizer::Matrix{T}) where {T<:Real, T2<:Any}
     X = hcat(Xtiming, Xautoreg, Xa)
     mean((X*inv(tranpose(X)*X+L2regularizer)*transpose(X)*y-y).^2)
 end
