@@ -82,14 +82,14 @@ RETURN
 function loglikelihood(θ::θDDLM, trialset::trialsetdata, options::DDLMoptions)
 
     @unpack σ2_i, B, λ, σ2_a, α, k = θ
-    @unpack a_bases, cross, dt, L2regularizer, n = options
+    @unpack a_bases, cross, dt, L2regularizer, n, dt = options
 
     a₀ = history_influence_on_initial_point(α, k, B, trialset.shifted)
     P,M,xc,dx = initialize_latent_model(σ2_i, B, λ, σ2_a, n, dt) # P is not used
     xcᵀ = transpose(xc)
 
     nprepad_abar = size(a_bases)[1]-1
-    P, abar = pmap((trial,a₀)->latent_one_trial(θ, trial, a₀, M, xc, xcᵀ, dx, n, cross, nprepad_abar), trialset.trials, a₀)
+    P, abar = pmap((trial,a₀)->latent_one_trial(θ, trial, a₀, M, xc, xcᵀ, dx, n, cross, dt, nprepad_abar), trialset.trials, a₀)
 
     choicelikelihood = pmap((P, trial)->sum(choice_likelihood!(bias,xc,P,trial.choice,n,dx)) * (1 - lapse) + lapse/2, P, trialset.trials)
     LLchoice = sum(log.(choicelikelihood))
@@ -116,6 +116,7 @@ ARGUMENTS
 -dx: size of the bins in latent size
 -n: Number of latent size bins
 -cross: Bool indicating whether cross-stream adaptation is implemented
+-dt: time bin size, in seconds
 -nprepad_abar: number of time bins before the stimulus onset to pad to at the beginning of the `abar` with the value of `abar` at the time of stimulus onset
 
 RETURNS
@@ -123,7 +124,7 @@ RETURNS
 -abar: ̅a(t), a vector indicating the mean of the latent variable at each time step
 """
 function latent_one_trial(θ::θDDLM, trial::trialdata, a₀::T1, M::Matrix{T1},
-                            xc::Vector{T1}, xcᵀ::T2, dx::T1, n::Int, cross::Bool, nprepad_abar::Int) where {T1<:Real, T2<:Any}
+                            xc::Vector{T1}, xcᵀ::T2, dx::T1, n::Int, cross::Bool, dt::T1, nprepad_abar::Int) where {T1<:Real, T2<:Any}
 
     @unpack clickcounts, clicktimes, choice = trial
     @unpack σ2_i, λ, σ2_a, σ2_s, ϕ, τ_ϕ = θ
