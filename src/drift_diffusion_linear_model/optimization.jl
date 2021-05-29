@@ -94,9 +94,7 @@ function loglikelihood(θ::θDDLM, trialset::trialsetdata, options::DDLMoptions)
     choicelikelihood = pmap((P, trial)->sum(choice_likelihood!(bias,xc,P,trial.choice,n,dx)) * (1 - lapse) + lapse/2, P, trialset.trials)
     LLchoice = sum(log.(choicelikelihood))
 
-    Xa = designmatrix(abar, a_bases)
-    npad = size(a_bases)[1]-1
-    Xa = vcat(pmap(a->hcat(map(basis->filter(basis, a)[npad+1:end], a_bases)...), abar)...)
+    Xa = vcat(pmap(a->hcat(map(basis->filter(basis, a)[nprepad_abar+1:end], a_bases)...), abar)...)
     nLLspike = pmap(unit->mean_square_error(trialset.Xtiming, unit.Xautoreg, Xa, unit.y, L2regularizer), trialset.units)
     nLLspike = mean(nLLspike)*size(trialset.trials)[1];
 
@@ -152,25 +150,25 @@ function latent_one_trial(θ::θDDLM, trial::trialdata, a₀::T1, M::Matrix{T1},
     return P, abar
 end
 
-"""
-    designmatrix
-
-Make a design matrix from the mean trajectory of the latent variable
-
-=INPUT
-
--abar: ̅a(t), a vector of vectors of floats indicating the mean of the latent variable. Each element of the outer vector corresponds to a trial, and each element of the inner vector corresponds to a time bin
--a_bases: a vector of vector of floats corresponding to the kernel through which the mean latent trajectory is filtered. Each element of the outer vector corresponds to a basis, and each element of the inner array corresponds to a time bin
-
-=OUTPUT
-
-- a matrix of floats with a number of rows equal to sum of the number of time bins in each trial and a number of columns equal to the number of regressors. The trials are concatenated along the first dimension.
-
-"""
-function designmatrix(abar::T, a_bases::T) where {T<:Vector}
-    npad = size(a_bases)[1]-1
-    vcat(pmap(a->hcat(map(basis->filter(basis, a)[npad+1:end], a_bases)...), abar)...)
-end
+# """
+#     designmatrix
+#
+# Make a design matrix from the mean trajectory of the latent variable
+#
+# =INPUT
+#
+# -abar: ̅a(t), a vector of vectors of floats indicating the mean of the latent variable. Each element of the outer vector corresponds to a trial, and each element of the inner vector corresponds to a time bin
+# -a_bases: a vector of vector of floats corresponding to the kernel through which the mean latent trajectory is filtered. Each element of the outer vector corresponds to a basis, and each element of the inner array corresponds to a time bin
+#
+# =OUTPUT
+#
+# - a matrix of floats with a number of rows equal to sum of the number of time bins in each trial and a number of columns equal to the number of regressors. The trials are concatenated along the first dimension.
+#
+# """
+# function designmatrix(abar::T, a_bases::T) where {T<:Vector}
+#     npad = size(a_bases)[1]-1
+#     vcat(pmap(a->hcat(map(basis->filter(basis, a)[npad+1:end], a_bases)...), abar)...)
+# end
 
 """
     mean_square_error
