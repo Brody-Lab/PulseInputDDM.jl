@@ -81,7 +81,7 @@ RETURN
 """
 function loglikelihood(θ::θDDLM, trialset::trialsetdata, options::DDLMoptions)
 
-    @unpack σ2_i, B, λ, σ2_a, α, k = θ
+    @unpack σ2_i, B, λ, σ2_a, α, k, bias = θ
     @unpack a_bases, cross, dt, L2regularizer, n, dt = options
 
     a₀ = history_influence_on_initial_point(α, k, B, trialset.shifted)
@@ -89,7 +89,6 @@ function loglikelihood(θ::θDDLM, trialset::trialsetdata, options::DDLMoptions)
     xcᵀ = transpose(xc)
 
     nprepad_abar = size(a_bases)[1]-1
-    latent_one_trial(θ, trialset.trials[1], a₀[1], M, xc, xcᵀ, dx, options, nprepad_abar)
     P, abar = pmap((trial,a₀)->latent_one_trial(θ, trial, a₀, M, xc, xcᵀ, dx, options, nprepad_abar), trialset.trials, a₀)
 
     choicelikelihood = pmap((P, trial)->sum(choice_likelihood!(bias,xc,P,trial.choice,n,dx)) * (1 - lapse) + lapse/2, P, trialset.trials)
