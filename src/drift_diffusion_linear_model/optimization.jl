@@ -57,7 +57,7 @@ Returns:
 
 - The loglikelihood of choices and spikes counts given the model parameters, pulse timing, trial history, and model specifications, summed across trials and trial-sets
 """
-function loglikelihood(x::Vector{T1}, data::T2, options::DDLMoptions) where {T1 <: AbstractFloat, T2<:Vector}
+function loglikelihood(x::Vector{T1}, data::T2, options::DDLMoptions) where {T1 <: Real, T2<:Vector}
     θ = θDDLM(x)
     options.remap && (θ = θ2(θ))
     @unpack σ2_i, B, λ, σ2_a = θ.θz
@@ -80,7 +80,7 @@ RETURN
 -A Float64 indicating the summed log-likelihood of the choice and spike counts given the model parameters
 
 """
-function loglikelihood(θ::θDDLM, trialset::trialsetdata, options::DDLMoptions) where {T <: AbstractFloat}
+function loglikelihood(θ::θDDLM, trialset::trialsetdata, options::DDLMoptions)
 
     @unpack θz, θh, bias, lapse = θ
     @unpack σ2_i, B, λ, σ2_a = θz
@@ -123,7 +123,7 @@ RETURNS
 -abar: ̅a(t), a vector indicating the mean of the latent variable at each time step
 """
 function latent_one_trial(θ::θz, trial::trialdata, a₀::TT, M::Matrix{TT},
-                            xcᵀ::Matrix{TT}, dx::TT, n::Int, cross::Bool, nprepad_abar::Int) where {TT <: Real}
+                            xcᵀ::Matrix{TT}, dx::TT, n::Int, cross::Bool, nprepad_abar::Int) where {TT <: AbstractFloat}
 
     @unpack clickcounts, clicktimes, choice = trial
     @unpack λ,σ2_a,σ2_s,ϕ,τ_ϕ = θ

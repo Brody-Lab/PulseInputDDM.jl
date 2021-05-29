@@ -23,7 +23,7 @@ Arguments:
 
 - `x` The values of the model parameters
 """
-function θDDLM(x::Vector{T}) where {T <: AbstractFloat}
+function θDDLM(x::Vector{T}) where {T <: Real}
     θDDLM(θz=θz(σ2_i=x[1], B=x[2], λ=x[3], σ2_a=x[4], σ2_s=x[5], ϕ=x[6], τ_ϕ=x[7]),
           θh=θh(α=x[8],k=x[9]),
           bias=x[10], lapse=x[11])

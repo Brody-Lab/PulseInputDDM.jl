@@ -78,7 +78,7 @@ Fields:
 - ϕ: adaptation or facilitation strength
 - τ_ϕ: time constant of adaptation or facilitation
 """
-@with_kw struct θz{T<:AbstractFloat} @deftype T
+@with_kw struct θz{T<:Real} @deftype T
     σ2_i = 0.5
     B = 15.
     λ = -0.5; @assert λ != 0.
