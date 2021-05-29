@@ -94,7 +94,7 @@ function loglikelihood(θ::θDDLM, trialset::trialsetdata, options::DDLMoptions)
     choicelikelihood = pmap((P, trial)->sum(choice_likelihood!(bias,xc,P,trial.choice,n,dx)) * (1 - lapse) + lapse/2, P, trialset.trials)
     LLchoice = sum(log.(choicelikelihood))
 
-    Xa = vcat(pmap(a->hcat(map(basis->filter(basis, a)[nprepad_abar+1:end], a_bases)...), abar)...)
+    Xa = vcat(pmap(a->hcat(map(basis->DSP.filt(basis, a)[nprepad_abar+1:end], a_bases)...), abar)...)
     nLLspike = pmap(unit->mean_square_error(trialset.Xtiming, unit.Xautoreg, Xa, unit.y, L2regularizer), trialset.units)
     nLLspike = mean(nLLspike)*size(trialset.trials)[1];
 
