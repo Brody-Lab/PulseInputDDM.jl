@@ -95,6 +95,7 @@ function loglikelihood(θ::θDDLM, trialset::trialsetdata, options::DDLMoptions)
     LLchoice = sum(log.(choicelikelihood))
 
     Xa = vcat(pmap(a->hcat(map(basis->DSP.filt(basis, a)[nprepad_abar+1:end], a_bases)...), abar)...)
+
     nLLspike = pmap(unit->mean_square_error(trialset.Xtiming, unit.Xautoreg, Xa, unit.y, L2regularizer), trialset.units)
     nLLspike = mean(nLLspike)*size(trialset.trials)[1];
 
@@ -182,7 +183,7 @@ ARGUMENT
 -Xa: regressors that depend on the mean of the latent variable
 -L2regularizer: penalty matrix for L2 regularization
 """
-function mean_square_error(Xtiming::Matrix{T}, Xautoreg::Matrix{T}, Xa:: Matrix{T}, y::Vector{T}, L2regularizer::Matrix{T}) where {T<:Real}
+function mean_square_error(Xtiming::Matrix{T}, Xautoreg::Matrix{T}, Xa::T2, y::Vector{T}, L2regularizer::Matrix{T}) where {T<:Real, T2 <: Any}
     X = hcat(Xtiming, Xautoreg, Xa)
     mean((X*inv(tranpose(X)*X+L2regularizer)*transpose(X)*y-y).^2)
 end
