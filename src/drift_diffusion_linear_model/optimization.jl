@@ -89,7 +89,7 @@ function loglikelihood(θ::θDDLM, trialset::trialsetdata, options::DDLMoptions)
     xcᵀ = transpose(xc)
 
     nprepad_abar = size(a_bases)[1]-1
-    P, abar = pmap((trial,a₀)->latent_one_trial(θ, trial, a₀, M, xcᵀ, dx, n, cross, nprepad_abar), trialset.trials, a₀)
+    P, abar = pmap((trial,a₀)->latent_one_trial(θ, trial, a₀, M, xc, xcᵀ, dx, n, cross, nprepad_abar), trialset.trials, a₀)
 
     choicelikelihood = pmap((P, trial)->sum(choice_likelihood!(bias,xc,P,trial.choice,n,dx)) * (1 - lapse) + lapse/2, P, trialset.trials)
     LLchoice = sum(log.(choicelikelihood))
@@ -122,7 +122,7 @@ RETURNS
 -abar: ̅a(t), a vector indicating the mean of the latent variable at each time step
 """
 function latent_one_trial(θ::θDDLM, trial::trialdata, a₀::T1, M::Matrix{T1},
-                            xcᵀ::T2, dx::T1, n::Int, cross::Bool, nprepad_abar::Int) where {T1<:Real, T2<:Any}
+                            xc::Vector{T}, xcᵀ::T2, dx::T1, n::Int, cross::Bool, nprepad_abar::Int) where {T1<:Real, T2<:Any}
 
     @unpack clickcounts, clicktimes, choice = trial
     @unpack σ2_i, λ, σ2_a, σ2_s, ϕ, τ_ϕ = θ
