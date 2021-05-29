@@ -60,15 +60,13 @@ RETURN
 """
 
 function predict_in_sample(trialset::trialsetdata, θ::θDDLM, options::DDLMoptions)
-    @unpack θz, θh, bias, lapse = θ
-    @unpack σ2_i, B, λ, σ2_a = θz
-    @unpack α, k = θh
+    @unpack σ2_i, B, λ, σ2_a, α, k, bias, lapse = θ
     @unpack trials, shifted, units = trialset
     @unpack a_bases, n, cross = options
 
     P,M,xc,dx = initialize_latent_model(σ2_i, B, λ, σ2_a, n, dt) # P is not used
-    a₀ = history_influence_on_initial_point(θh, B, shifted)
-    P, abar = pmap((trial,a₀)->latent_one_trial(θz, trial, a₀, M, transpose(xc), dx, n, cross, 0), trials, a₀)
+    a₀ = history_influence_on_initial_point(α, k, B, shifted)
+    P, abar = pmap((trial,a₀)->latent_one_trial(θ, trial, a₀, M, transpose(xc), dx, n, cross, 0), trials, a₀)
     choiceprobability = pmap((P, trial)->sum(choice_likelihood!(bias,xc,P,true,n,dx)) * (1 - lapse) + lapse/2, P, trials)
 
     return abar, choiceprobability

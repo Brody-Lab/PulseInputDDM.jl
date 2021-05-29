@@ -4,16 +4,30 @@
 A module-specific type that specifies the parameters of the joint model.
 
 Fields:
-- `θz`: an instance of the module-specific type ['θz'](@ref) that contains the values of the parameters σ2_i, σ2_a, σ2_s, λ, B, ϕ, τ_ϕ
-- `θh`: an instance of the module-specific type ['θh'](@ref) that contains the values parametrizing history-dependent influences
-- `bias`: a float that specifies the decision criterion across trials and trial-sets. At the end of each trial, the model chooses right if the integral of P(a) is greater than the bias
-- `lapse`: a float indicating the fraction of trials when the animal makes a choice ignoring the accumulator value
+- σ2_i: variance of the initial noise
+- B: bound height
+- λ: impulsiveness (λ>0) or leakiness (λ<0)
+- σ2_a: variance of noise added each time bin
+- σ2_s: variance of noise added to each click
+- ϕ: adaptation or facilitation strength
+- τ_ϕ: time constant of adaptation or facilitation
+-`α`: The impact of the correct side of the previous trial
+-`k`: The exponential change rate of α as a function of trial number in the past
+-`bias`: a float that specifies the decision criterion across trials and trial-sets. At the end of each trial, the model chooses right if the integral of P(a) is greater than the bias
+-`lapse`: a float indicating the fraction of trials when the animal makes a choice ignoring the accumulator value
 """
-@with_kw struct θDDLM{T1<:θz, T2<:θh, T3<:Real} <: DDMθ
-    θz::T1 = θz()
-    θh::T2 = θh()
-    bias::T3 = 0.
-    lapse::T3 = 0.
+@with_kw struct θDDLM{T<:Real} <: DDMθ
+    σ2_i::T = 0.5
+    B::T = 15.
+    λ::T = -0.5; @assert λ != 0.
+    σ2_a::T = 50.
+    σ2_s::T = 1.5
+    ϕ::T = 0.8; @assert ϕ != 1.
+    τ_ϕ::T = 0.05
+    α::T = 0.
+    k::T = 0.
+    bias::T = 0.
+    lapse::T = 0.
 end
 
 """
@@ -24,9 +38,7 @@ Arguments:
 - `x` The values of the model parameters
 """
 function θDDLM(x::Vector{T}) where {T <: Real}
-    θDDLM(θz=θz(σ2_i=x[1], B=x[2], λ=x[3], σ2_a=x[4], σ2_s=x[5], ϕ=x[6], τ_ϕ=x[7]),
-          θh=θh(α=x[8],k=x[9]),
-          bias=x[10], lapse=x[11])
+    θDDLM(x...)
 end
 
 """
@@ -43,8 +55,7 @@ Returns:
 - a vector of Floats
 """
 function flatten(θ::θDDLM)
-    @unpack θz, θh, bias, lapse = θ
-    vcat(map(x->getfield(θz, x), fieldnames(typeof(θz)))..., map(x->getfield(θh, x), fieldnames(typeof(θh)))..., bias, lapse)
+    collect(map(x->getfield(θ,x), fieldnames(θDDLM)))
 end
 
 """

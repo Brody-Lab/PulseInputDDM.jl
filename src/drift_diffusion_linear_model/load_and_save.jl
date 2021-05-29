@@ -30,9 +30,9 @@ function load_DDLM(datapath::String)
                             resultspath = loadedoptions["resultspath"],
                             ub = vec(loadedoptions["ub"]),
                             x0 = vec(loadedoptions["x0"]))
-    isfile(options.resultspath) ? θ=read(matopen(options.resultspath),"ML_params") : θ=θDDLM(options.x0)
+    isfile(options.resultspath) ? x = vec(read(matopen(options.resultspath),"ML_params")) : x = options.x0
     trialsets = map(x->parse_one_trialset(x, options), vec(read(matopen(datapath), "trialsets")))
-    DDLM(data=trialsets, options=options, θ=θ)
+    DDLM(data=trialsets, options=options, θ=θDDLM(x))
 end
 
 """
