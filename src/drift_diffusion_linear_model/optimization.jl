@@ -111,7 +111,8 @@ ARGUMENTS
 -trial: an instance of `trialdata`
 -a₀: a(t=0), the value of the latent variable at time equals to zero
 -M: A square matrix of length `n` specifying the P{a{t}|a{t-1}} and the discrete approximation to the Fokker-Planck equation
--xcᵀ: A row vector of length `n` indicating the center of the bins in latent space
+-xc: A vector of length `n` indicating the center of the bins in latent space
+-xcᵀ: transpose of xc
 -dx: size of the bins in latent size
 -n: Number of latent size bins
 -cross: Bool indicating whether cross-stream adaptation is implemented
@@ -122,7 +123,7 @@ RETURNS
 -abar: ̅a(t), a vector indicating the mean of the latent variable at each time step
 """
 function latent_one_trial(θ::θDDLM, trial::trialdata, a₀::T1, M::Matrix{T1},
-                            xc::Vector{T}, xcᵀ::T2, dx::T1, n::Int, cross::Bool, nprepad_abar::Int) where {T1<:Real, T2<:Any}
+                            xc::Vector{T1}, xcᵀ::T2, dx::T1, n::Int, cross::Bool, nprepad_abar::Int) where {T1<:Real, T2<:Any}
 
     @unpack clickcounts, clicktimes, choice = trial
     @unpack σ2_i, λ, σ2_a, σ2_s, ϕ, τ_ϕ = θ
