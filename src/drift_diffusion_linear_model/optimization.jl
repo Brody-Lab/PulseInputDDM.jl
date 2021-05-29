@@ -57,7 +57,7 @@ Returns:
 
 - The loglikelihood of choices and spikes counts given the model parameters, pulse timing, trial history, and model specifications, summed across trials and trial-sets
 """
-function loglikelihood(x::Vector{T1}, data::Vector{trialsetdata}, options::DDLMoptions) where {T1 <: AbstractFloat}
+function loglikelihood(x::Vector{T1}, data::T2, options::DDLMoptions) where {T1 <: AbstractFloat, T2<:Vector}
     θ = θDDLM(x)
     options.remap && (θ = θ2(θ))
     @unpack σ2_i, B, λ, σ2_a = θ.θz
@@ -192,10 +192,9 @@ end
 Square the values of a subset of parameters (σ2_i,σ2_a, σ2_s)
 """
 θ2(θ::θDDLM) = θDDLM(θz=θz2(θ.θz), θh = θ.θh, bias=θ.bias, lapse=θ.lapse)
-
-"""
-    invθ2(θ)
-
-Returns the positive square root of a subset of parameters (σ2_i,σ2_a, σ2_s)
-"""
-invθ2(θ::θDDLM) = θDDLM(θz=invθz2(θ.θz), θh = θ.θh, bias=θ.bias, lapse=θ.lapse)
+# """
+#     invθ2(θ)
+#
+# Returns the positive square root of a subset of parameters (σ2_i,σ2_a, σ2_s)
+# """
+# invθ2(θ::θDDLM) = θDDLM(θz=invθz2(θ.θz), θh = θ.θh, bias=θ.bias, lapse=θ.lapse)
