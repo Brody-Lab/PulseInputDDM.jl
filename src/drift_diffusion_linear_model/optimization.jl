@@ -194,7 +194,8 @@ Square the values of a subset of parameters (σ2_i, σ2_a, σ2_s)
 """
 function θ2(θ::θDDLM)
     x = pulse_input_DDM.flatten(θ)
-    x[[1,4,5]]=x[[1,4,5]].^2
+    index = convert(BitArray, map(x->occursin("σ2", string(x)), collect(fieldnames(θDDLM))))
+    x[index]=x[index].^2
     θDDLM(x)
 end
 

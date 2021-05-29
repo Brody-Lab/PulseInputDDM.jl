@@ -17,17 +17,17 @@ Fields:
 -`lapse`: a float indicating the fraction of trials when the animal makes a choice ignoring the accumulator value
 """
 @with_kw struct θDDLM{T<:Real} <: DDMθ
-    σ2_i::T = 0.5
-    B::T = 15.
-    λ::T = -0.5; @assert λ != 0.
-    σ2_a::T = 50.
-    σ2_s::T = 1.5
-    ϕ::T = 0.8; @assert ϕ != 1.
-    τ_ϕ::T = 0.05
     α::T = 0.
-    k::T = 0.
+    B::T = 15.
     bias::T = 0.
+    k::T = 0.
+    λ::T = -0.5; @assert λ != 0.
     lapse::T = 0.
+    ϕ::T = 0.8; @assert ϕ != 1.
+    σ2_a::T = 50.
+    σ2_i::T = 0.5
+    σ2_s::T = 1.5
+    τ_ϕ::T = 0.05
 end
 
 """

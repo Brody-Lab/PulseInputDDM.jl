@@ -111,15 +111,15 @@ Return a vector of strings for MATLAB that indicate the names of the DDLM parame
 
 """
 function θDDLM_names()
-    ["sigma2_i";
+    ["alpha";
      "B";
-     "lambda";
-     "sigma2_a";
-     "sigma2_s";
-     "phi";
-     "tau_phi";
-     "alpha";
-     "k";
      "bias";
-     "lapse"]
+     "k";
+     "lambda";
+     "lapse";
+     "phi";
+     "sigma2_a";
+     "sigma2_i";
+     "sigma2_s";
+     "tau_phi"]
 end
