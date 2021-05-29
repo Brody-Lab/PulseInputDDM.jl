@@ -139,7 +139,7 @@ function latent_one_trial(θ::θDDLM, trial::trialdata, a₀::T1, M::Matrix{T1},
     #empty transition matrix for time bins with clicks
     F = zeros(TT, options.n, options.n)
 
-    abar = Vector{TT}(undef, nprepad_abar+nT)
+    abar = Vector{T1}(undef, nprepad_abar+nT)
 
     @inbounds for t = 1:nT
         P,F = latent_one_step!(P,F,λ,σ2_a,σ2_s,t,nL,nR,La,Ra,M,dx,xc,options.n,options.dt)
