@@ -146,7 +146,7 @@ function latent_one_trial(θ::θDDLM, trial::trialdata, a₀::T1, M::Matrix{T1},
         P,F = latent_one_step!(P,F,λ,σ2_a,σ2_s,t,nL,nR,La,Ra,M,dx,xc,options.n,options.dt)
         abar[nprepad_abar+t] = xcᵀ*P
     end
-    abar[1:nprepad_abar] = abar[nprepad_abar+1]
+    abar[1:nprepad_abar] .= abar[nprepad_abar+1]
 
     return P, abar
 end
