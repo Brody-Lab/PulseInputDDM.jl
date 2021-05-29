@@ -88,9 +88,10 @@ function loglikelihood(θ::θDDLM, trialset::trialsetdata, options::DDLMoptions)
 
     a₀ = history_influence_on_initial_point(θh, B, trialset.shifted)
     P,M,xc,dx = initialize_latent_model(σ2_i, B, λ, σ2_a, n, dt) # P is not used
+    xcᵀ = transpose(xc)
 
     nprepad_abar = size(a_bases)[1]-1
-    P, abar = pmap((trial,a₀)->latent_one_trial(θz, trial, a₀, M, transpose(xc), dx, n, cross, nprepad_abar), trialset.trials, a₀)
+    P, abar = pmap((trial,a₀)->latent_one_trial(θz, trial, a₀, M, xcᵀ, dx, n, cross, nprepad_abar), trialset.trials, a₀)
 
     choicelikelihood = pmap((P, trial)->sum(choice_likelihood!(bias,xc,P,trial.choice,n,dx)) * (1 - lapse) + lapse/2, P, trialset.trials)
     LLchoice = sum(log.(choicelikelihood))
