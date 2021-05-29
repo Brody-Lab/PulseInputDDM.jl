@@ -81,7 +81,7 @@ RETURN
 """
 function loglikelihood(θ::θDDLM, trialset::trialsetdata, options::DDLMoptions)
 
-    @unpack σ2_i, B, λ, σ2_a, α, k, bias = θ
+    @unpack σ2_i, B, λ, σ2_a, α, k, bias, lapse = θ
     @unpack a_bases, cross, dt, L2regularizer, n, dt = options
 
     a₀ = history_influence_on_initial_point(α, k, B, trialset.shifted)
