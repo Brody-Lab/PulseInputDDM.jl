@@ -125,7 +125,7 @@ function latent_one_trial(θ::θDDLM, trial::trialdata, a₀::T1, M::Matrix{T1},
                             xcᵀ::T2, dx::T1, n::Int, cross::Bool, nprepad_abar::Int) where {T1<:Real, T2<:Any}
 
     @unpack clickcounts, clicktimes, choice = trial
-    @unpack λ,σ2_a,σ2_s,ϕ,τ_ϕ = θ
+    @unpack σ2_i, λ, σ2_a, σ2_s, ϕ, τ_ϕ = θ
     @unpack nT, nL, nR = clickcounts
     @unpack L, R = clicktimes
 
