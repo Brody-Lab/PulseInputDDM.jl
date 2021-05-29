@@ -122,8 +122,8 @@ RETURNS
 -P: the distribution of the latent at the end of the trial
 -abar: ̅a(t), a vector indicating the mean of the latent variable at each time step
 """
-function latent_one_trial(θ::θz, trial::trialdata, a₀::Float64, M::Matrix{Float64},
-                            xcᵀ::Matrix{Float64}, dx::Float64, n::Int64, cross::Bool, nprepad_abar::Int64)
+function latent_one_trial(θ::θz, trial::trialdata, a₀::T, M::Matrix{T},
+                            xcᵀ::Matrix{T}, dx::T, n::Int, cross::Bool, nprepad_abar::Int) where {T<:Real}
 
     @unpack clickcounts, clicktimes, choice = trial
     @unpack λ,σ2_a,σ2_s,ϕ,τ_ϕ = θ
@@ -164,7 +164,7 @@ Make a design matrix from the mean trajectory of the latent variable
 - a matrix of floats with a number of rows equal to sum of the number of time bins in each trial and a number of columns equal to the number of regressors. The trials are concatenated along the first dimension.
 
 """
-function designmatrix(abar::Vector{Vector{Float64}}, a_bases::Vector{Vector{Float64}})
+function designmatrix(abar::Vector{Vector{T}}, a_bases::Vector{Vector{T}}) where {T<:Real}
     npad = size(a_bases)[1]-1
     vcat(pmap(a->hcat(map(basis->filter(basis, a)[npad+1:end], a_bases)...), abar)...)
 end
@@ -181,7 +181,7 @@ ARGUMENT
 -Xa: regressors that depend on the mean of the latent variable
 -L2regularizer: penalty matrix for L2 regularization
 """
-function mean_square_error(Xtiming::Matrix{Float64}, Xautoreg::Matrix{Float64}, Xa:: Matrix{Float64}, y::Vector{Float64}, L2regularizer::Matrix{Float64})
+function mean_square_error(Xtiming::Matrix{T}, Xautoreg::Matrix{T}, Xa:: Matrix{T}, y::Vector{T}, L2regularizer::Matrix{T}) where {T<:Real}
     X = hcat(Xtiming, Xautoreg, Xa)
     mean((X*inv(tranpose(X)*X+L2regularizer)*transpose(X)*y-y).^2)
 end
