@@ -95,6 +95,8 @@ function loglikelihood(θ::θDDLM, trialset::trialsetdata, options::DDLMoptions)
     LLchoice = sum(log.(choicelikelihood))
 
     Xa = designmatrix(abar, a_bases)
+    npad = size(a_bases)[1]-1
+    Xa = vcat(pmap(a->hcat(map(basis->filter(basis, a)[npad+1:end], a_bases)...), abar)...)
     nLLspike = pmap(unit->mean_square_error(trialset.Xtiming, unit.Xautoreg, Xa, unit.y, L2regularizer), trialset.units)
     nLLspike = mean(nLLspike)*size(trialset.trials)[1];
 
@@ -165,7 +167,7 @@ Make a design matrix from the mean trajectory of the latent variable
 - a matrix of floats with a number of rows equal to sum of the number of time bins in each trial and a number of columns equal to the number of regressors. The trials are concatenated along the first dimension.
 
 """
-function designmatrix(abar::Vector{Vector{T}}, a_bases::Vector{Vector{T}}) where {T<:Real}
+function designmatrix(abar::T, a_bases::T) where {T<:Vector}
     npad = size(a_bases)[1]-1
     vcat(pmap(a->hcat(map(basis->filter(basis, a)[npad+1:end], a_bases)...), abar)...)
 end
