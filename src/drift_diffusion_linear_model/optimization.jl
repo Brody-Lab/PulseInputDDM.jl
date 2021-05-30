@@ -88,10 +88,13 @@ function loglikelihood(θ::θDDLM, trialset::trialsetdata, options::DDLMoptions)
     P,M,xc,dx = pulse_input_DDM.initialize_latent_model(σ2_i, B, λ, σ2_a, n, dt) # P is not used
     xcᵀ = transpose(xc)
 
-    nprepad_abar = size(a_bases[1])[1]-1
-    output = map((trial,a₀)->pulse_input_DDM.latent_one_trial(θ, trial, a₀, M, xc, xcᵀ, dx, options, nprepad_abar, npostpad_abar), trialset.trials, a₀)
+    output = pmap((trial,a₀)->pulse_input_DDM.latent_one_trial(θ, trial, a₀, M, xc, xcᵀ, dx, options), trialset.trials, a₀)
     P = map(x->x[1], output)
     abar = map(x->x[2], output)
+
+    # nprepad_abar = size(a_bases[1])[1]-1
+    #abar[1:nprepad_abar] .= abar[nprepad_abar+1]
+    #abar[nprepad_abar+nT+1:end] .= abar[nprepad_abar+nT]
 
     sum(map(x->sum(x), abar))
 
@@ -122,8 +125,6 @@ ARGUMENTS
 -n: Number of latent size bins
 -cross: Bool indicating whether cross-stream adaptation is implemented
 -dt: time bin size, in seconds
--nprepad_abar: number of time bins before the stimulus onset to pad with the value of `abar` at the time of stimulus onset
--npostpad_abar: number of time bins after when the animal is allowed leave the center port to pad with the value of  value of `abar` at the time when the animal is allowed to leave the center port
 
 RETURNS
 -P: the distribution of the latent at the end of the trial
@@ -145,16 +146,12 @@ function latent_one_trial(θ::θDDLM, trial::trialdata, a₀::T1, M::Matrix{T1},
     #empty transition matrix for time bins with clicks
     F = zeros(T1, options.n, options.n)
 
-    abar = Vector{T1}(undef, nprepad_abar+nT+npostpad_abar)
+    abar = Vector{T1}(undef, nT)
 
     @inbounds for t = 1:nT
         P,F = latent_one_step!(P,F,λ,σ2_a,σ2_s,t,nL,nR,La,Ra,M,dx,xc,options.n,options.dt)
         abar[nprepad_abar+t] = xcᵀ*P
     end
-
-    abar[1:nprepad_abar] .= abar[nprepad_abar+1]
-    abar[nprepad_abar+nT+1:end] .= abar[nprepad_abar+nT]
-
     return P, abar
 end
 
