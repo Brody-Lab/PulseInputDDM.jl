@@ -190,7 +190,7 @@ ARGUMENT
 """
 function mean_square_error(Xtiming::Matrix{T}, Xautoreg::Matrix{T}, Xa::T2, y::Vector{T}, L2regularizer::Matrix{T}) where {T<:Real, T2<:Any}
     X = hcat(Xtiming, Xautoreg, Xa)
-    mean((X*inv(tranpose(X)*X+L2regularizer)*transpose(X)*y-y).^2)
+    mean((X*inv(transpose(X)*X+L2regularizer)*transpose(X)*y-y).^2)
 end
 
 """
