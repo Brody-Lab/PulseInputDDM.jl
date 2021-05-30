@@ -58,10 +58,9 @@ Returns:
 - The loglikelihood of choices and spikes counts given the model parameters, pulse timing, trial history, and model specifications, summed across trials and trial-sets
 """
 function loglikelihood(x::Vector{T1}, data::T2, options::DDLMoptions) where {T1 <: Real, T2<:Vector}
-    sum(x)
-    #θ = θDDLM(x)
-    #options.remap && (θ = θ2(θ))
-    #sum(map(trialset->loglikelihood(θ, trialset, options), data))
+    θ = θDDLM(x)
+    options.remap && (θ = θ2(θ))
+    sum(map(trialset->loglikelihood(θ, trialset, options), data))
 end
 
 """
@@ -86,23 +85,24 @@ function loglikelihood(θ::θDDLM, trialset::trialsetdata, options::DDLMoptions)
     @unpack a_bases, cross, dt, L2regularizer, n, dt, npostpad_abar = options
 
     a₀ = pulse_input_DDM.history_influence_on_initial_point(α, k, B, trialset.shifted)
-    P,M,xc,dx = pulse_input_DDM.initialize_latent_model(σ2_i, B, λ, σ2_a, n, dt) # P is not used
-    xcᵀ = transpose(xc)
-
-    nprepad_abar = size(a_bases[1])[1]-1
-    output = map((trial,a₀)->pulse_input_DDM.latent_one_trial(θ, trial, a₀, M, xc, xcᵀ, dx, options, nprepad_abar, npostpad_abar), trialset.trials, a₀)
-    P = map(x->x[1], output)
-    abar = map(x->x[2], output)
-
-    choicelikelihood = pmap((P, trial)->sum(pulse_input_DDM.choice_likelihood!(bias,xc,P,trial.choice,n,dx)) * (1 - lapse) + lapse/2, P, trialset.trials)
-    LLchoice = sum(log.(choicelikelihood))
-
-    Xa = vcat(pmap(a->hcat(map(basis->DSP.filt(basis, a)[nprepad_abar+1:end], a_bases)...), abar)...)
-
-    nLLspike = pmap(unit->pulse_input_DDM.mean_square_error(trialset.Xtiming, unit.Xautoreg, Xa, unit.y, L2regularizer), trialset.units)
-    nLLspike = mean(nLLspike)*(size(trialset.trials)[1]);
-
-    sum(LLchoice) - sum(nLLspike)
+    sum(a₀)
+    # P,M,xc,dx = pulse_input_DDM.initialize_latent_model(σ2_i, B, λ, σ2_a, n, dt) # P is not used
+    # xcᵀ = transpose(xc)
+    #
+    # nprepad_abar = size(a_bases[1])[1]-1
+    # output = map((trial,a₀)->pulse_input_DDM.latent_one_trial(θ, trial, a₀, M, xc, xcᵀ, dx, options, nprepad_abar, npostpad_abar), trialset.trials, a₀)
+    # P = map(x->x[1], output)
+    # abar = map(x->x[2], output)
+    #
+    # choicelikelihood = pmap((P, trial)->sum(pulse_input_DDM.choice_likelihood!(bias,xc,P,trial.choice,n,dx)) * (1 - lapse) + lapse/2, P, trialset.trials)
+    # LLchoice = sum(log.(choicelikelihood))
+    #
+    # Xa = vcat(pmap(a->hcat(map(basis->DSP.filt(basis, a)[nprepad_abar+1:end], a_bases)...), abar)...)
+    #
+    # nLLspike = pmap(unit->pulse_input_DDM.mean_square_error(trialset.Xtiming, unit.Xautoreg, Xa, unit.y, L2regularizer), trialset.units)
+    # nLLspike = mean(nLLspike)*(size(trialset.trials)[1]);
+    #
+    # sum(LLchoice) - sum(nLLspike)
 end
 
 """
