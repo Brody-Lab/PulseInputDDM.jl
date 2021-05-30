@@ -21,9 +21,9 @@ function optimize(model::DDLM;
     @unpack fit, lb, ub = options
 
     x0 = pulse_input_DDM.flatten(θ)
-    lb, = unstack(lb, fit)
-    ub, = unstack(ub, fit)
-    x0,c = unstack(x0, fit)
+    lb, = pulse_input_DDM.unstack(lb, fit)
+    ub, = pulse_input_DDM.unstack(ub, fit)
+    x0,c = pulse_input_DDM.unstack(x0, fit)
 
     ℓℓ(x) = -loglikelihood(stack(x,c,fit), data, options)
 
@@ -89,7 +89,7 @@ function loglikelihood(θ::θDDLM, trialset::trialsetdata, options::DDLMoptions)
     xcᵀ = transpose(xc)
 
     nprepad_abar = size(a_bases[1])[1]-1
-    output = map((trial,a₀)->pulse_input_DDM.latent_one_trial(θ, trial, a₀, M, xc, xcᵀ, dx, options, nprepad_abar, npostpad_abar), trialset.trials, a₀)
+    output = pmap((trial,a₀)->pulse_input_DDM.latent_one_trial(θ, trial, a₀, M, xc, xcᵀ, dx, options, nprepad_abar, npostpad_abar), trialset.trials, a₀)
     P = map(x->x[1], output)
     abar = map(x->x[2], output)
 
@@ -99,7 +99,7 @@ function loglikelihood(θ::θDDLM, trialset::trialsetdata, options::DDLMoptions)
     Xa = vcat(pmap(a->hcat(map(basis->DSP.filt(basis, a)[nprepad_abar+1:end], a_bases)...), abar)...)
 
     nLLspike = pmap(unit->pulse_input_DDM.mean_square_error(trialset.Xtiming, unit.Xautoreg, Xa, unit.y, L2regularizer), trialset.units)
-    nLLspike = mean(nLLspike)*size(trialset.trials)[1];
+    nLLspike = mean(nLLspike)*(size(trialset.trials)[1]);
 
     sum(LLchoice) - sum(nLLspike)
 end
