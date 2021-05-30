@@ -82,7 +82,7 @@ RETURN
 -A Float64 indicating the summed log-likelihood of the choice and spike counts given the model parameters
 
 """
-function loglikelihood(θ::θDDLM, trialset::trialsetdata, options::DDLMoptions, M::Matrix{T1}, xc::Vector{T1}, dx::T1, )
+function loglikelihood(θ::θDDLM, trialset::trialsetdata, options::DDLMoptions, M::Matrix{T1}, xc::Vector{T1}, dx::T1)
 
     @unpack σ2_i, B, λ, σ2_a, α, k, bias, lapse = θ
     @unpack a_bases, cross, dt, L2regularizer, n, dt, npostpad_abar = options
