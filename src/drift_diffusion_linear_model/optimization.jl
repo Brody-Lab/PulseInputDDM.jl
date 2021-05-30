@@ -86,7 +86,8 @@ function loglikelihood(θ::θDDLM, trialset::trialsetdata, options::DDLMoptions)
     @unpack shifted, trials = trialset
 
     a₀ = history_influence_on_initial_point(α, k, B, shifted)
-    P,M,xc,dx = initialize_latent_model(σ2_i, B, λ, σ2_a, n, dt) # P is not used
+    sum(a₀)
+    #P,M,xc,dx = initialize_latent_model(σ2_i, B, λ, σ2_a, n, dt) # P is not used
 
     #output = pmap((trial,a₀)->pulse_input_DDM.latent_one_trial(θ, trial, a₀, M, xc, xcᵀ, dx, options), trialset.trials, a₀)
     #P = map(x->x[1], output)
@@ -96,7 +97,7 @@ function loglikelihood(θ::θDDLM, trialset::trialsetdata, options::DDLMoptions)
     #abar[1:nprepad_abar] .= abar[nprepad_abar+1]
     #abar[nprepad_abar+nT+1:end] .= abar[nprepad_abar+nT]
 
-    sum(P)
+    #sum(P)
     #Pt = pmap((trial,a₀)->pulse_input_DDM.latent_one_trial(θ, trial, a₀, M, xc, dx, options), trials, a₀)
     #sum(map(x->sum(sum(x)), Pt))
 
