@@ -60,7 +60,10 @@ Returns:
 function loglikelihood(x::Vector{T1}, data::T2, options::DDLMoptions) where {T1 <: Real, T2<:Vector}
     θ = θDDLM(x)
     options.remap && (θ = θ2(θ))
-    sum(map(trialset->loglikelihood(θ, trialset, options), data))
+    @unpack σ2_i, B, λ, σ2_a = θ
+    @unpack n, dt = options
+    P,M,xc,dx = initialize_latent_model(σ2_i, B, λ, σ2_a, n, dt) # P is not used
+    sum(map(trialset->loglikelihood(θ, trialset, options, M, xc, dx), data))
 end
 
 """
@@ -79,7 +82,7 @@ RETURN
 -A Float64 indicating the summed log-likelihood of the choice and spike counts given the model parameters
 
 """
-function loglikelihood(θ::θDDLM, trialset::trialsetdata, options::DDLMoptions)
+function loglikelihood(θ::θDDLM, trialset::trialsetdata, options::DDLMoptions, M::Matrix{T1}, xc::Vector{T1}, dx::T1, )
 
     @unpack σ2_i, B, λ, σ2_a, α, k, bias, lapse = θ
     @unpack a_bases, cross, dt, L2regularizer, n, dt, npostpad_abar = options
@@ -87,7 +90,7 @@ function loglikelihood(θ::θDDLM, trialset::trialsetdata, options::DDLMoptions)
 
     a₀ = history_influence_on_initial_point(α, k, B, shifted)
     sum(a₀)
-    #P,M,xc,dx = initialize_latent_model(σ2_i, B, λ, σ2_a, n, dt) # P is not used
+
 
     #output = pmap((trial,a₀)->pulse_input_DDM.latent_one_trial(θ, trial, a₀, M, xc, xcᵀ, dx, options), trialset.trials, a₀)
     #P = map(x->x[1], output)
