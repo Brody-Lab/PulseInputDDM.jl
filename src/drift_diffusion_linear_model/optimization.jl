@@ -83,8 +83,9 @@ function loglikelihood(θ::θDDLM, trialset::trialsetdata, options::DDLMoptions)
 
     @unpack σ2_i, B, λ, σ2_a, α, k, bias, lapse = θ
     @unpack a_bases, cross, dt, L2regularizer, n, dt, npostpad_abar = options
+    @unpack shifted, trials = trialset
 
-    a₀ = pulse_input_DDM.history_influence_on_initial_point(α, k, B, trialset.shifted)
+    a₀ = pulse_input_DDM.history_influence_on_initial_point(α, k, B, shifted)
     P,M,xc,dx = pulse_input_DDM.initialize_latent_model(σ2_i, B, λ, σ2_a, n, dt) # P is not used
     xcᵀ = transpose(xc)
 
@@ -96,7 +97,7 @@ function loglikelihood(θ::θDDLM, trialset::trialsetdata, options::DDLMoptions)
     #abar[1:nprepad_abar] .= abar[nprepad_abar+1]
     #abar[nprepad_abar+nT+1:end] .= abar[nprepad_abar+nT]
 
-    Pt = pmap((trial,a₀)->pulse_input_DDM.latent_one_trial(θ, trial, a₀, M, xc, xcᵀ, dx, options), trialset.trials, a₀)
+    Pt = pmap((trial,a₀)->pulse_input_DDM.latent_one_trial(θ, trial, a₀, M, xc, xcᵀ, dx, options), trials, a₀)
     sum(map(x->sum(sum(x)), Pt))
 
     # choicelikelihood = pmap((P, trial)->sum(pulse_input_DDM.choice_likelihood!(bias,xc,P,trial.choice,n,dx)) * (1 - lapse) + lapse/2, P, trialset.trials)
@@ -138,20 +139,21 @@ function latent_one_trial(θ::θDDLM, trial::trialdata, a₀::T1, M::Matrix{T1},
     @unpack σ2_i, λ, σ2_a, σ2_s, ϕ, τ_ϕ = θ
     @unpack nT, nL, nR = clickcounts
     @unpack L, R = clicktimes
+    @unpack n, dt, cross = options
 
     #adapt magnitude of the click inputs
-    La, Ra = adapt_clicks(ϕ,τ_ϕ,L,R; cross=options.cross)
+    La, Ra = adapt_clicks(ϕ,τ_ϕ,L,R; cross=cross)
 
-    P = P0(σ2_i, a₀, options.n, dx, xc, options.dt)
+    P = P0(σ2_i, a₀, n, dx, xc, dt)
 
     #empty transition matrix for time bins with clicks
-    F = zeros(T1, options.n, options.n)
+    F = zeros(T1, n, n)
 
     #abar = Vector{T1}(undef, nT)
-    Pt = Matrix{T1}(undef, options.n, nT)
+    Pt = Matrix{T1}(undef, n, nT)
 
     @inbounds for t = 1:nT
-        P,F = latent_one_step!(P,F,λ,σ2_a,σ2_s,t,nL,nR,La,Ra,M,dx,xc,options.n,options.dt)
+        P,F = latent_one_step!(P,F,λ,σ2_a,σ2_s,t,nL,nR,La,Ra,M,dx,xc,n,dt)
         #abar[t] = xcᵀ*P
         Pt[:,t]=P
     end
