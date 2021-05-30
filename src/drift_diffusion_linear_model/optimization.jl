@@ -96,8 +96,9 @@ function loglikelihood(θ::θDDLM, trialset::trialsetdata, options::DDLMoptions)
     #abar[1:nprepad_abar] .= abar[nprepad_abar+1]
     #abar[nprepad_abar+nT+1:end] .= abar[nprepad_abar+nT]
 
-    Pt = pmap((trial,a₀)->pulse_input_DDM.latent_one_trial(θ, trial, a₀, M, xc, dx, options), trials, a₀)
-    sum(map(x->sum(sum(x)), Pt))
+    sum(P)
+    #Pt = pmap((trial,a₀)->pulse_input_DDM.latent_one_trial(θ, trial, a₀, M, xc, dx, options), trials, a₀)
+    #sum(map(x->sum(sum(x)), Pt))
 
     # choicelikelihood = pmap((P, trial)->sum(pulse_input_DDM.choice_likelihood!(bias,xc,P,trial.choice,n,dx)) * (1 - lapse) + lapse/2, P, trialset.trials)
     # LLchoice = sum(log.(choicelikelihood))
