@@ -21,9 +21,9 @@ function optimize(model::DDLM;
     @unpack fit, lb, ub = options
 
     x0 = pulse_input_DDM.flatten(θ)
-    lb, = pulse_input_DDM.unstack(lb, fit)
-    ub, = pulse_input_DDM.unstack(ub, fit)
-    x0,c = pulse_input_DDM.unstack(x0, fit)
+    lb, = unstack(lb, fit)
+    ub, = unstack(ub, fit)
+    x0,c = unstack(x0, fit)
 
     ℓℓ(x) = -loglikelihood(stack(x,c,fit), data, options)
 
@@ -58,9 +58,10 @@ Returns:
 - The loglikelihood of choices and spikes counts given the model parameters, pulse timing, trial history, and model specifications, summed across trials and trial-sets
 """
 function loglikelihood(x::Vector{T1}, data::T2, options::DDLMoptions) where {T1 <: Real, T2<:Vector}
-    θ = θDDLM(x)
-    options.remap && (θ = θ2(θ))
-    sum(map(trialset->loglikelihood(θ, trialset, options), data))
+    sum(x)
+    #θ = θDDLM(x)
+    #options.remap && (θ = θ2(θ))
+    #sum(map(trialset->loglikelihood(θ, trialset, options), data))
 end
 
 """
