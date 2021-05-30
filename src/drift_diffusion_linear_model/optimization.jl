@@ -88,15 +88,16 @@ function loglikelihood(θ::θDDLM, trialset::trialsetdata, options::DDLMoptions)
     P,M,xc,dx = pulse_input_DDM.initialize_latent_model(σ2_i, B, λ, σ2_a, n, dt) # P is not used
     xcᵀ = transpose(xc)
 
-    output = pmap((trial,a₀)->pulse_input_DDM.latent_one_trial(θ, trial, a₀, M, xc, xcᵀ, dx, options), trialset.trials, a₀)
-    P = map(x->x[1], output)
-    abar = map(x->x[2], output)
+    #output = pmap((trial,a₀)->pulse_input_DDM.latent_one_trial(θ, trial, a₀, M, xc, xcᵀ, dx, options), trialset.trials, a₀)
+    #P = map(x->x[1], output)
+    #abar = map(x->x[2], output)
 
     # nprepad_abar = size(a_bases[1])[1]-1
     #abar[1:nprepad_abar] .= abar[nprepad_abar+1]
     #abar[nprepad_abar+nT+1:end] .= abar[nprepad_abar+nT]
 
-    sum(map(x->sum(x), abar))
+    Pt = pmap((trial,a₀)->pulse_input_DDM.latent_one_trial(θ, trial, a₀, M, xc, xcᵀ, dx, options), trialset.trials, a₀)
+    sum(map(x->sum(sum(x)), Pt))
 
     # choicelikelihood = pmap((P, trial)->sum(pulse_input_DDM.choice_likelihood!(bias,xc,P,trial.choice,n,dx)) * (1 - lapse) + lapse/2, P, trialset.trials)
     # LLchoice = sum(log.(choicelikelihood))
@@ -146,13 +147,16 @@ function latent_one_trial(θ::θDDLM, trial::trialdata, a₀::T1, M::Matrix{T1},
     #empty transition matrix for time bins with clicks
     F = zeros(T1, options.n, options.n)
 
-    abar = Vector{T1}(undef, nT)
+    #abar = Vector{T1}(undef, nT)
+    Pt = Matrix{T1}(undef, n, nT)
 
     @inbounds for t = 1:nT
         P,F = latent_one_step!(P,F,λ,σ2_a,σ2_s,t,nL,nR,La,Ra,M,dx,xc,options.n,options.dt)
-        abar[t] = xcᵀ*P
+        #abar[t] = xcᵀ*P
+        Pt[:,t]=P
     end
-    return P, abar
+    #return P, abar
+    return Pt
 end
 
 # """
