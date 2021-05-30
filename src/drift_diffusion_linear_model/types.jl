@@ -91,6 +91,7 @@ Fields:
     lb::T2 = Vector{Float64}(undef,0)
     n::T6=53
     nback::T6=10
+    npostpad_abar::T6=30
     remap::T3=false
     resultspath::T4=""
     ub::T2 = Vector{Float64}(undef,0)

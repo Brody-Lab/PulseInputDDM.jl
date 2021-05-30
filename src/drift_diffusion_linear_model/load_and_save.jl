@@ -26,6 +26,7 @@ function load_DDLM(datapath::String)
                             lb = vec(loadedoptions["lb"]),
                             n = convert(Int64, loadedoptions["n"]),
                             nback = convert(Int64, loadedoptions["nback"]),
+                            npostpad_abar = convert(Int64, loadedoptions["npostpad_abar"]),
                             remap = loadedoptions["remap"],
                             resultspath = loadedoptions["resultspath"],
                             ub = vec(loadedoptions["ub"]),

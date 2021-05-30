@@ -82,21 +82,23 @@ RETURN
 function loglikelihood(θ::θDDLM, trialset::trialsetdata, options::DDLMoptions)
 
     @unpack σ2_i, B, λ, σ2_a, α, k, bias, lapse = θ
-    @unpack a_bases, cross, dt, L2regularizer, n, dt = options
+    @unpack a_bases, cross, dt, L2regularizer, n, dt, npostpad_abar = options
 
     a₀ = history_influence_on_initial_point(α, k, B, trialset.shifted)
-    P,M,xc,dx = initialize_latent_model(σ2_i, B, λ, σ2_a, n, dt) # P is not used
+    P,M,xc,dx = pulse_input_DDM.initialize_latent_model(σ2_i, B, λ, σ2_a, n, dt) # P is not used
     xcᵀ = transpose(xc)
 
     nprepad_abar = size(a_bases[1])[1]-1
-    P, abar = pmap((trial,a₀)->latent_one_trial(θ, trial, a₀, M, xc, xcᵀ, dx, options, nprepad_abar), trialset.trials, a₀)
+    output = pmap((trial,a₀)->pulse_input_DDM.latent_one_trial(θ, trial, a₀, M, xc, xcᵀ, dx, options, nprepad_abar, npostpad_abar), trialset.trials, a₀)
+    P = map(x->x[1], output)
+    abar = map(x->x[2], output)
 
-    choicelikelihood = pmap((P, trial)->sum(choice_likelihood!(bias,xc,P,trial.choice,n,dx)) * (1 - lapse) + lapse/2, P, trialset.trials)
+    choicelikelihood = pmap((P, trial)->sum(pulse_input_DDM.choice_likelihood!(bias,xc,P,trial.choice,n,dx)) * (1 - lapse) + lapse/2, P, trialset.trials)
     LLchoice = sum(log.(choicelikelihood))
 
     Xa = vcat(pmap(a->hcat(map(basis->DSP.filt(basis, a)[nprepad_abar+1:end], a_bases)...), abar)...)
 
-    nLLspike = pmap(unit->mean_square_error(trialset.Xtiming, unit.Xautoreg, Xa, unit.y, L2regularizer), trialset.units)
+    nLLspike = pmap(unit->pulse_input_DDM.mean_square_error(trialset.Xtiming, unit.Xautoreg, Xa, unit.y, L2regularizer), trialset.units)
     nLLspike = mean(nLLspike)*size(trialset.trials)[1];
 
     sum(LLchoice) - sum(nLLspike)
@@ -118,14 +120,15 @@ ARGUMENTS
 -n: Number of latent size bins
 -cross: Bool indicating whether cross-stream adaptation is implemented
 -dt: time bin size, in seconds
--nprepad_abar: number of time bins before the stimulus onset to pad to at the beginning of the `abar` with the value of `abar` at the time of stimulus onset
+-nprepad_abar: number of time bins before the stimulus onset to pad with the value of `abar` at the time of stimulus onset
+-npostpad_abar: number of time bins after when the animal is allowed leave the center port to pad with the value of  value of `abar` at the time when the animal is allowed to leave the center port
 
 RETURNS
 -P: the distribution of the latent at the end of the trial
 -abar: ̅a(t), a vector indicating the mean of the latent variable at each time step
 """
 function latent_one_trial(θ::θDDLM, trial::trialdata, a₀::T1, M::Matrix{T1},
-                            xc::Vector{T1}, xcᵀ::T2, dx::T1, options::DDLMoptions, nprepad_abar::Int) where {T1<:Real, T2<:Any}
+                            xc::Vector{T1}, xcᵀ::T2, dx::T1, options::DDLMoptions, nprepad_abar::Int, npostpad_abar::Int) where {T1<:Real, T2<:Any}
 
     @unpack clickcounts, clicktimes, choice = trial
     @unpack σ2_i, λ, σ2_a, σ2_s, ϕ, τ_ϕ = θ
@@ -140,13 +143,15 @@ function latent_one_trial(θ::θDDLM, trial::trialdata, a₀::T1, M::Matrix{T1},
     #empty transition matrix for time bins with clicks
     F = zeros(T1, options.n, options.n)
 
-    abar = Vector{T1}(undef, nprepad_abar+nT)
+    abar = Vector{T1}(undef, nprepad_abar+nT+npostpad_abar)
 
     @inbounds for t = 1:nT
         P,F = latent_one_step!(P,F,λ,σ2_a,σ2_s,t,nL,nR,La,Ra,M,dx,xc,options.n,options.dt)
         abar[nprepad_abar+t] = xcᵀ*P
     end
+
     abar[1:nprepad_abar] .= abar[nprepad_abar+1]
+    abar[nprepad_abar+nT+1:end] .= abar[nprepad_abar+nT]
 
     return P, abar
 end
