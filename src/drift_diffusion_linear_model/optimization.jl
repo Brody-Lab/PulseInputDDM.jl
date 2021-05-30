@@ -87,7 +87,6 @@ function loglikelihood(θ::θDDLM, trialset::trialsetdata, options::DDLMoptions)
 
     a₀ = pulse_input_DDM.history_influence_on_initial_point(α, k, B, shifted)
     P,M,xc,dx = pulse_input_DDM.initialize_latent_model(σ2_i, B, λ, σ2_a, n, dt) # P is not used
-    xcᵀ = transpose(xc)
 
     #output = pmap((trial,a₀)->pulse_input_DDM.latent_one_trial(θ, trial, a₀, M, xc, xcᵀ, dx, options), trialset.trials, a₀)
     #P = map(x->x[1], output)
@@ -97,7 +96,7 @@ function loglikelihood(θ::θDDLM, trialset::trialsetdata, options::DDLMoptions)
     #abar[1:nprepad_abar] .= abar[nprepad_abar+1]
     #abar[nprepad_abar+nT+1:end] .= abar[nprepad_abar+nT]
 
-    Pt = pmap((trial,a₀)->pulse_input_DDM.latent_one_trial(θ, trial, a₀, M, xc, xcᵀ, dx, options), trials, a₀)
+    Pt = pmap((trial,a₀)->pulse_input_DDM.latent_one_trial(θ, trial, a₀, M, xc, dx, options), trials, a₀)
     sum(map(x->sum(sum(x)), Pt))
 
     # choicelikelihood = pmap((P, trial)->sum(pulse_input_DDM.choice_likelihood!(bias,xc,P,trial.choice,n,dx)) * (1 - lapse) + lapse/2, P, trialset.trials)
@@ -133,7 +132,7 @@ RETURNS
 -abar: ̅a(t), a vector indicating the mean of the latent variable at each time step
 """
 function latent_one_trial(θ::θDDLM, trial::trialdata, a₀::T1, M::Matrix{T1},
-                            xc::Vector{T1}, xcᵀ::T2, dx::T1, options::DDLMoptions) where {T1<:Real, T2<:Any}
+                            xc::Vector{T1}, dx::T1, options::DDLMoptions) where {T1<:Real}
 
     @unpack clickcounts, clicktimes, choice = trial
     @unpack σ2_i, λ, σ2_a, σ2_s, ϕ, τ_ϕ = θ
