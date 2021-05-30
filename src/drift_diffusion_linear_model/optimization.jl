@@ -84,12 +84,12 @@ function loglikelihood(θ::θDDLM, trialset::trialsetdata, options::DDLMoptions)
     @unpack σ2_i, B, λ, σ2_a, α, k, bias, lapse = θ
     @unpack a_bases, cross, dt, L2regularizer, n, dt, npostpad_abar = options
 
-    a₀ = history_influence_on_initial_point(α, k, B, trialset.shifted)
+    a₀ = pulse_input_DDM.history_influence_on_initial_point(α, k, B, trialset.shifted)
     P,M,xc,dx = pulse_input_DDM.initialize_latent_model(σ2_i, B, λ, σ2_a, n, dt) # P is not used
     xcᵀ = transpose(xc)
 
     nprepad_abar = size(a_bases[1])[1]-1
-    output = pmap((trial,a₀)->pulse_input_DDM.latent_one_trial(θ, trial, a₀, M, xc, xcᵀ, dx, options, nprepad_abar, npostpad_abar), trialset.trials, a₀)
+    output = map((trial,a₀)->pulse_input_DDM.latent_one_trial(θ, trial, a₀, M, xc, xcᵀ, dx, options, nprepad_abar, npostpad_abar), trialset.trials, a₀)
     P = map(x->x[1], output)
     abar = map(x->x[2], output)
 
@@ -190,7 +190,7 @@ ARGUMENT
 """
 function mean_square_error(Xtiming::Matrix{T}, Xautoreg::Matrix{T}, Xa::T2, y::Vector{T}, L2regularizer::Matrix{T}) where {T<:Real, T2<:Any}
     X = hcat(Xtiming, Xautoreg, Xa)
-    mean((X*inv(transpose(X)*X+L2regularizer)*transpose(X)*y-y).^2)
+    mean((X*(inv(transpose(X)*X+L2regularizer)*transpose(X)*y)-y).^2)
 end
 
 """
