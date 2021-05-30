@@ -148,7 +148,7 @@ function latent_one_trial(θ::θDDLM, trial::trialdata, a₀::T1, M::Matrix{T1},
     F = zeros(T1, options.n, options.n)
 
     #abar = Vector{T1}(undef, nT)
-    Pt = Matrix{T1}(undef, n, nT)
+    Pt = Matrix{T1}(undef, options.n, nT)
 
     @inbounds for t = 1:nT
         P,F = latent_one_step!(P,F,λ,σ2_a,σ2_s,t,nL,nR,La,Ra,M,dx,xc,options.n,options.dt)
