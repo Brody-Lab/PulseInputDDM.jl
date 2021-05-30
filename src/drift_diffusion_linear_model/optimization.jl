@@ -89,11 +89,11 @@ function loglikelihood(θ::θDDLM, trialset::trialsetdata, options::DDLMoptions)
     xcᵀ = transpose(xc)
 
     nprepad_abar = size(a_bases[1])[1]-1
-    output = map((trial,a₀)->pulse_input_DDM.latent_one_trial(θ, trial, a₀, M, xc, xcᵀ, dx, options, nprepad_abar, npostpad_abar), trialset.trials, a₀)
+    output = pmap((trial,a₀)->pulse_input_DDM.latent_one_trial(θ, trial, a₀, M, xc, xcᵀ, dx, options, nprepad_abar, npostpad_abar), trialset.trials, a₀)
     P = map(x->x[1], output)
     abar = map(x->x[2], output)
 
-    sum(sum(abar))
+    sum(map(x->sum(x), abar))
 
     # choicelikelihood = pmap((P, trial)->sum(pulse_input_DDM.choice_likelihood!(bias,xc,P,trial.choice,n,dx)) * (1 - lapse) + lapse/2, P, trialset.trials)
     # LLchoice = sum(log.(choicelikelihood))
