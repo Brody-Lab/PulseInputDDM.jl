@@ -85,8 +85,8 @@ function loglikelihood(θ::θDDLM, trialset::trialsetdata, options::DDLMoptions)
     @unpack a_bases, cross, dt, L2regularizer, n, dt, npostpad_abar = options
     @unpack shifted, trials = trialset
 
-    a₀ = pulse_input_DDM.history_influence_on_initial_point(α, k, B, shifted)
-    P,M,xc,dx = pulse_input_DDM.initialize_latent_model(σ2_i, B, λ, σ2_a, n, dt) # P is not used
+    a₀ = history_influence_on_initial_point(α, k, B, shifted)
+    P,M,xc,dx = initialize_latent_model(σ2_i, B, λ, σ2_a, n, dt) # P is not used
 
     #output = pmap((trial,a₀)->pulse_input_DDM.latent_one_trial(θ, trial, a₀, M, xc, xcᵀ, dx, options), trialset.trials, a₀)
     #P = map(x->x[1], output)
