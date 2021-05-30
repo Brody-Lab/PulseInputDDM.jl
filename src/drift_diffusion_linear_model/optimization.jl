@@ -85,15 +85,16 @@ function loglikelihood(θ::θDDLM, trialset::trialsetdata, options::DDLMoptions)
     @unpack a_bases, cross, dt, L2regularizer, n, dt, npostpad_abar = options
 
     a₀ = pulse_input_DDM.history_influence_on_initial_point(α, k, B, trialset.shifted)
-    sum(a₀)
-    # P,M,xc,dx = pulse_input_DDM.initialize_latent_model(σ2_i, B, λ, σ2_a, n, dt) # P is not used
-    # xcᵀ = transpose(xc)
-    #
-    # nprepad_abar = size(a_bases[1])[1]-1
-    # output = map((trial,a₀)->pulse_input_DDM.latent_one_trial(θ, trial, a₀, M, xc, xcᵀ, dx, options, nprepad_abar, npostpad_abar), trialset.trials, a₀)
-    # P = map(x->x[1], output)
-    # abar = map(x->x[2], output)
-    #
+    P,M,xc,dx = pulse_input_DDM.initialize_latent_model(σ2_i, B, λ, σ2_a, n, dt) # P is not used
+    xcᵀ = transpose(xc)
+
+    nprepad_abar = size(a_bases[1])[1]-1
+    output = map((trial,a₀)->pulse_input_DDM.latent_one_trial(θ, trial, a₀, M, xc, xcᵀ, dx, options, nprepad_abar, npostpad_abar), trialset.trials, a₀)
+    P = map(x->x[1], output)
+    abar = map(x->x[2], output)
+
+    sum(sum(abar))
+
     # choicelikelihood = pmap((P, trial)->sum(pulse_input_DDM.choice_likelihood!(bias,xc,P,trial.choice,n,dx)) * (1 - lapse) + lapse/2, P, trialset.trials)
     # LLchoice = sum(log.(choicelikelihood))
     #
