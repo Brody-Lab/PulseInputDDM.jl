@@ -122,7 +122,10 @@ cross::Bool, dt::Float64, n::Int) where {T1<:Real}
     @unpack σ2_i, λ, σ2_a, σ2_s, ϕ, τ_ϕ = θ
     @unpack nT, nL, nR = clickcounts
     @unpack L, R = clicktimes
-    sum((a₀*λ).*nL)
+
+    P = P0(σ2_i, a₀, n, dx, xc, dt)
+
+    sum((a₀*λ).*P)
 end
 
 """
