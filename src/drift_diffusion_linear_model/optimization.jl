@@ -93,7 +93,11 @@ function loglikelihood(θ::θDDLM, trialset::trialsetdata, options::DDLMoptions,
 
     a₀ = history_influence_on_initial_point(α, k, B, shifted)
 
-    sum(pmap((trial,a₀)->test_latent_one_trial(θ, trial, a₀, M, xc, dx, cross, dt, n), trials, a₀))
+    P = pmap(a₀->P0(σ2_i, a₀, n, dx, xc, dt), a₀)
+
+    sum((λ*σ2_i*a₀*n*dt*dx).*xc.*P)
+    
+    # sum(pmap((trial,P)->test_latent_one_trial(θ, trial, P, M, xc, dx, cross, dt, n), trials, P))
 
     # nprepad_abar = size(a_bases[1])[1]-1
     # output = pmap((trial,a₀)->pulse_input_DDM.latent_one_trial(θ, trial, a₀, M, xc, dx, cross, dt, n, npostpad_abar, nprepad_abar), trialset.trials, a₀)
@@ -116,14 +120,14 @@ end
 
 """
 """
-function test_latent_one_trial(θ::θDDLM, trial::trialdata, a₀::T1, M::Matrix{T1}, xc::Vector{T1}, dx::T1,
+function test_latent_one_trial(θ::θDDLM, trial::trialdata, P::vector{T1}, M::Matrix{T1}, xc::Vector{T1}, dx::T1,
 cross::Bool, dt::Float64, n::Int) where {T1<:Real}
     # @unpack clickcounts, clicktimes = trial
     @unpack σ2_i, λ, σ2_a, σ2_s, ϕ, τ_ϕ = θ
     # @unpack nT, nL, nR = clickcounts
     # @unpack L, R = clicktimes
 
-    sum((λ*σ2_i*a₀*n*dt*dx).*xc)
+    sum((λ*σ2_i*a₀*n*dt*dx).*xc.*P)
     # sum(P0(σ2_i, a₀, n, dx, xc, dt).*λ)
 
     # La, Ra = adapt_clicks(ϕ,τ_ϕ,L,R; cross=cross)
