@@ -25,7 +25,7 @@ function optimize(model::DDLM;
     ub, = unstack(ub, fit)
     x0,c = unstack(x0, fit)
 
-    ℓℓ(x) = -loglikelihood(stack(x,c,fit), data, options)
+    ℓℓ(x) = -loglikelihood(stack(x,c,fit), model)
 
     output = optimize(x0, ℓℓ, lb, ub; g_tol=g_tol, x_tol=x_tol,
         f_tol=f_tol, iterations=iterations, show_trace=show_trace,
@@ -57,9 +57,21 @@ Returns:
 
 - The loglikelihood of choices and spikes counts given the model parameters, pulse timing, trial history, and model specifications, summed across trials and trial-sets
 """
-function loglikelihood(x::Vector{T1}, data::T2, options::DDLMoptions) where {T1 <: Real, T2<:Vector}
-    θ = θDDLM(x)
-    options.remap && (θ = θ2(θ))
+function loglikelihood(x::Vector{T1}, model::DDLM) where {T1 <: Real, T2<:Vector}
+    @unpack options, data = model
+    @unpack remap = options
+    if remap
+        model = DDLM(data=data, options=options, θ=θ2(θDDLM(x)))
+    else
+        model = DDLM(data=data, options=options, θ=θDDLM(x))
+    end
+    loglikelihood(model)
+end
+
+"""
+"""
+function loglikelihood(model::DDLM)
+    @unpack θ, options = model
     @unpack θz = θ
     @unpack σ2_i, B, λ, σ2_a = θz
     @unpack n, dt = options
