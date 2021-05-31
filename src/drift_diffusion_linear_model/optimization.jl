@@ -63,8 +63,7 @@ function loglikelihood(x::Vector{T1}, data::T2, options::DDLMoptions) where {T1 
     @unpack σ2_i, B, λ, σ2_a = θ
     @unpack n, dt = options
     M,xc,dx = initialize_DDLM(σ2_i, B, λ, σ2_a, n, dt) # P is not used
-    # sum(map(trialset->loglikelihood(θ, trialset, options, M, xc, dx), data))
-    loglikelihood(θ, data[1], options, M, xc, dx)
+    sum(map(trialset->loglikelihood(θ, trialset, options, M, xc, dx), data))
 end
 
 """
@@ -94,7 +93,7 @@ function loglikelihood(θ::θDDLM, trialset::trialsetdata, options::DDLMoptions,
 
     a₀ = history_influence_on_initial_point(α, k, B, shifted)
 
-    P = pmap(a₀->P0(σ2_i, a₀, n, dx, xc, dt), a₀)
+    P = P0(σ2_i, a₀[1], n, dx, xc, dt)
 
     sum(sum(P.*λ))
 
