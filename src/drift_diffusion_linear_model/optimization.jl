@@ -62,7 +62,7 @@ function loglikelihood(x::Vector{T1}, data::T2, options::DDLMoptions) where {T1 
     options.remap && (θ = θ2(θ))
     @unpack σ2_i, B, λ, σ2_a = θ
     @unpack n, dt = options
-    M,xc,dx = initialize_DDLM(σ2_i, B, λ, σ2_a, n, dt) # P is not used
+    M,xc,dx = initialize_DDLM(σ2_i, B, λ, σ2_a, n, dt)
     sum(map(trialset->loglikelihood(θ, trialset, options, M, xc, dx), data))
 end
 
@@ -256,8 +256,8 @@ end
 
 """
 """
-function initialize_DDLM(σ2_i::TT, B::TT, λ::TT, σ2_a::TT,
-     n::Int, dt::Float64) where {TT <: Any}
+function initialize_DDLM(σ2_i::T, B::T, λ::T, σ2_a::T,
+     n::Int, dt::Float64) where {TT <: Real}
 
     xc,dx = bins(B,n)
     M = transition_M(σ2_a*dt,λ,zero(TT),dx,xc,n,dt)
@@ -269,7 +269,7 @@ end
     initializeP(σ2_i, a₀, n, dx, xc, dt)
 
 """
-function initializeP(σ2_i::T, a₀::T, n::Int, dx::T, xc::Vector{T}, dt::Float64) where {T <: Any}
+function initializeP(σ2_i::T, a₀::T, n::Int, dx::T, xc::Vector{T}, dt::Float64) where {T <: Real}
     P = zeros(T,n)
     P[ceil(Int,n/2)] = one(T)
     M = transition_M(σ2_i,zero(T),a₀,dx,xc,n,dt)
