@@ -18,14 +18,14 @@ function optimize(model::DDLM;
         scaled::Bool=false, extended_trace::Bool=false)
 
     @unpack θ, data, options = model
-    @unpack fit, lb, ub, n, dt = options
+    @unpack fit, lb, ub = options
 
     x0 = pulse_input_DDM.flatten(θ)
     lb, = unstack(lb, fit)
     ub, = unstack(ub, fit)
     x0,c = unstack(x0, fit)
 
-    ℓℓ(x) = -loglikelihood(stack(x,c,fit), data, n, dt)
+    ℓℓ(x) = -loglikelihood(stack(x,c,fit), data, options)
 
     output = optimize(x0, ℓℓ, lb, ub; g_tol=g_tol, x_tol=x_tol,
         f_tol=f_tol, iterations=iterations, show_trace=show_trace,
@@ -57,11 +57,11 @@ Returns:
 
 - The loglikelihood of choices and spikes counts given the model parameters, pulse timing, trial history, and model specifications, summed across trials and trial-sets
 """
-function loglikelihood(x::Vector{T1}, data::T2, n::Int, dt::Float64) where {T1 <: Real, T2<:Vector}
+function loglikelihood(x::Vector{T1}, data::T2, options::DDLMoptions) where {T1 <: Real, T2<:Vector}
     θ = θDDLM(x)
-    # options.remap && (θ = θ2(θ))
+    options.remap && (θ = θ2(θ))
     @unpack σ2_i, B, λ, σ2_a, bias, lapse = θ
-    # @unpack n, dt = options
+    @unpack n, dt = options
 
     P, M, xc, dx = initialize_latent_model(σ2_i, B, λ, σ2_a, n, dt)
     sum(P)*λ*B*σ2_a
