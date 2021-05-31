@@ -16,7 +16,7 @@ Fields:
 -`bias`: a float that specifies the decision criterion across trials and trial-sets. At the end of each trial, the model chooses right if the integral of P(a) is greater than the bias
 -`lapse`: a float indicating the fraction of trials when the animal makes a choice ignoring the accumulator value
 """
-@with_kw struct θDDLM{T<:Real} <: DDMθ
+@with_kw struct θDDLM{T<:Real} @deftype T
     α::T = 0.
     B::T = 15.
     bias::T = 0.
