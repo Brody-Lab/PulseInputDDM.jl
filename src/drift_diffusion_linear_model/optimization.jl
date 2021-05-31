@@ -72,23 +72,13 @@ end
 """
 function loglikelihood(model::DDLM)
     @unpack θ, options = model
-    @unpack θz = θ
+    @unpack θz, bias, lapse = θ
     @unpack σ2_i, B, λ, σ2_a = θz
     @unpack n, dt = options
 
-    # P, M, xc, dx = initialize_latent_model(σ2_i, B, λ, σ2_a, n, dt)
-    # P = P0(σ2_i, n, dx, xc, dt)
-    TT = typeof(σ2_i)
-    xc,dx = bins(B,n)
-    M = transition_M(σ2_a*dt,λ,zero(TT),dx,xc,n,dt)
-    P = zeros(TT,n)
-    P[ceil(Int,n/2)] = one(TT)
-    M = transition_M(σ2_i,zero(TT),zero(TT),dx,xc,n,dt)
-    P = M * P
-
-    sum(sum(P))*λ*B*σ2_a
-    # P = P0(σ2_i, n, dx, xc, dt)
-    # sum(choice_likelihood!(bias, xc, P, data[1].trials[1].choice, n, dx)) * (1 - lapse) + lapse/2
+    P, M, xc, dx = initialize_latent_model(σ2_i, B, λ, σ2_a, n, dt)
+    P = P0(σ2_i, n, dx, xc, dt)
+    sum(choice_likelihood!(bias, xc, P, data[1].trials[1].choice, n, dx)) * (1 - lapse) + lapse/2
 
     # M,xc,dx = initialize_DDLM(σ2_i, B, λ, σ2_a, n, dt)
     # sum(map(trialset->loglikelihood(θ, trialset, options, M, xc, dx), data))
