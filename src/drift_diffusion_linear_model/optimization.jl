@@ -60,12 +60,12 @@ Returns:
 function loglikelihood(x::Vector{T1}, data::T2, options::DDLMoptions) where {T1 <: Real, T2<:Vector}
     θ = θDDLM(x)
     options.remap && (θ = θ2(θ))
-    @unpack σ2_i, B, λ, σ2_a = θ
+    @unpack σ2_i, B, λ, σ2_a, bias, lapse = θ
     @unpack n, dt = options
 
     P, M, xc, dx = initialize_latent_model(σ2_i, B, λ, σ2_a, n, dt)
     P = P0(σ2_i, n, dx, xc, dt)
-    sum(P.*λ)
+    sum(choice_likelihood!(bias, xc, P, data[1].trials[1].choice, n, dx)) * (1 - lapse) + lapse/2
 
     # M,xc,dx = initialize_DDLM(σ2_i, B, λ, σ2_a, n, dt)
     # sum(map(trialset->loglikelihood(θ, trialset, options, M, xc, dx), data))
