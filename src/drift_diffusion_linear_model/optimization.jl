@@ -71,7 +71,7 @@ end
 """
 """
 function loglikelihood(model::DDLM)
-    @unpack θ, options = model
+    @unpack data, θ, options = model
     @unpack θz, bias, lapse = θ
     @unpack σ2_i, B, λ, σ2_a = θz
     @unpack n, dt = options
