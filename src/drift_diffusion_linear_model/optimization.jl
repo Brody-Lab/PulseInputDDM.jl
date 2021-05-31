@@ -85,7 +85,7 @@ function loglikelihood(θ::θDDLM, trialset::trialsetdata, options::DDLMoptions)
     @unpack shifted, trials = trialset
 
     xc, dx = bins(B, n)
-    M = transition_M(σ2_a*dt,λ,zero(TT),dx,xc,n,dt)
+    M = transition_M(σ2_a*dt,λ,zero(type(σ2_a)),dx,xc,n,dt)
     a₀ = history_influence_on_initial_point(α, k, B, trialset.shifted)
 
     P = P0(σ2_i, n, dx, xc, dt)
