@@ -93,6 +93,8 @@ function loglikelihood(θ::θDDLM, trialset::trialsetdata, options::DDLMoptions,
 
     a₀ = history_influence_on_initial_point(α, k, B, shifted)
 
+    pmap(x->x*B*λ, a₀)
+
     # nprepad_abar = size(a_bases[1])[1]-1
     # output = pmap((trial,a₀)->pulse_input_DDM.latent_one_trial(θ, trial, a₀, M, xc, dx, cross, dt, n, npostpad_abar, nprepad_abar), trialset.trials, a₀)
     # P = map(x->x[1], output)
@@ -100,7 +102,7 @@ function loglikelihood(θ::θDDLM, trialset::trialsetdata, options::DDLMoptions,
     # sum(map(x->sum(sum(x)), abar))
 
     P = pmap((trial,a₀)->latent_one_trial(θ, trial, a₀, M, xc, dx, cross, dt, n), trials, a₀)
-    sum(map(x->sum(sum(x)), P))
+
     # choicelikelihood = pmap((P, trial)->sum(pulse_input_DDM.choice_likelihood!(bias,xc,P,trial.choice,n,dx)) * (1 - lapse) + lapse/2, P, trialset.trials)
     # LLchoice = sum(log.(choicelikelihood))
     #
