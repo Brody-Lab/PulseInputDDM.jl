@@ -90,7 +90,7 @@ function loglikelihood(θ::θDDLM, trialset::trialsetdata, options::DDLMoptions)
 
     P = P0(σ2_i, n, dx, xc, dt)
 
-    sum(choice_likelihood!(bias, xc, P, data[1].trials[1].choice, n, dx)) * (1 - lapse) + lapse/2
+    sum(choice_likelihood!(bias, xc, P, trialset.trials[1].choice, n, dx)) * (1 - lapse) + lapse/2
 
     # sum(pmap((trial,P)->test_latent_one_trial(θ, trial, P, M, xc, dx, cross, dt, n), trials, P))
 
