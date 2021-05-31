@@ -25,7 +25,7 @@ function optimize(model::DDLM;
     ub, = unstack(ub, fit)
     x0,c = unstack(x0, fit)
 
-    ℓℓ(x) = -loglikelihood(stack(x,c,fit), model)
+    ℓℓ(x) = -loglikelihood(stack(x,c,fit), data, options)
 
     output = optimize(x0, ℓℓ, lb, ub; g_tol=g_tol, x_tol=x_tol,
         f_tol=f_tol, iterations=iterations, show_trace=show_trace,
@@ -35,7 +35,7 @@ function optimize(model::DDLM;
     x = Optim.minimizer(output)
     x = stack(x,c,fit)
 
-    model = DDLM(data, options, θDDLM(x))
+    model = DDLM(data=data, options=options, θ=θDDLM(x))
     converged = Optim.converged(output)
 
     return model, output
@@ -57,35 +57,10 @@ Returns:
 
 - The loglikelihood of choices and spikes counts given the model parameters, pulse timing, trial history, and model specifications, summed across trials and trial-sets
 """
-function loglikelihood(x::Vector{T1}, model::DDLM) where {T1 <: Real, T2<:Vector}
-    @unpack options, data = model
-    @unpack remap = options
-    if remap
-        model = DDLM(data=data, options=options, θ=θ2(θDDLM(x)))
-    else
-        model = DDLM(data=data, options=options, θ=θDDLM(x))
-    end
-    x = loglikelihood(model)
-    println(x)
-    return x
-end
-
-"""
-"""
-function loglikelihood(model::DDLM)
-    @unpack data, θ, options = model
-    @unpack θz, bias, lapse = θ
-    @unpack σ2_i, B, λ, σ2_a = θz
-    @unpack n, dt = options
-
-    P, M, xc, dx = initialize_latent_model(σ2_i, B, λ, σ2_a, n, dt)
-    P = P0(σ2_i, n, dx, xc, dt)
-
-    # sum(sum(P))*B*λ*σ2_a
-    sum(choice_likelihood!(bias, xc, P, data[1].trials[1].choice, n, dx)) * (1 - lapse) + lapse/2
-
-    # M,xc,dx = initialize_DDLM(σ2_i, B, λ, σ2_a, n, dt)
-    # sum(map(trialset->loglikelihood(θ, trialset, options, M, xc, dx), data))
+function loglikelihood(x::Vector{T1}, data::T2, options::DDLMoptions) where {T1 <: Real, T2<:Vector}
+    θ = θDDLM(x)
+    options.remap && θ = θ2(θ)
+    sum(map(trialset->loglikelihood(θ, trialset, options), data))
 end
 
 """
@@ -98,26 +73,24 @@ ARGUMENT
 -θ: an instance of `θDDLM`
 -trialset: an instance of `trialsetdata`
 -`options`: specifications of the drift-diffusion linear model
--M: A square matrix of length `n` specifying the P{a{t}|a{t-1}} and the discrete approximation to the Fokker-Planck equation
--xc: A vector of length `n` indicating the center of the bins in latent space
--dx: size of the bins in latent size
-
 RETURN
 
 -A Float64 indicating the summed log-likelihood of the choice and spike counts given the model parameters
 
 """
-function loglikelihood(θ::θDDLM, trialset::trialsetdata, options::DDLMoptions, M::Matrix{T1}, xc::Vector{T1}, dx::T1) where {T1 <: Real}
+function loglikelihood(θ::θDDLM, trialset::trialsetdata, options::DDLMoptions) where {T1 <: Real}
 
-    @unpack σ2_i, B, λ, σ2_a, α, k, bias, lapse = θ
-    @unpack a_bases, cross, dt, L2regularizer, n, dt, npostpad_abar = options
+    @unpack α, B, bias, k, λ, lapse, σ2_a, σ2_i= θ
+    @unpack a_bases, cross, dt, L2regularizer, n, npostpad_abar = options
     @unpack shifted, trials = trialset
 
-    a₀ = history_influence_on_initial_point(α, k, B, shifted)
+    xc, dx = bins(B, n)
+    M = transition_M(σ2_a*dt,λ,zero(TT),dx,xc,n,dt)
+    a₀ = history_influence_on_initial_point(α, k, B, trialset.shifted)
 
     P = P0(σ2_i, n, dx, xc, dt)
 
-    sum(sum(P.*λ))
+    sum(choice_likelihood!(bias, xc, P, data[1].trials[1].choice, n, dx)) * (1 - lapse) + lapse/2
 
     # sum(pmap((trial,P)->test_latent_one_trial(θ, trial, P, M, xc, dx, cross, dt, n), trials, P))
 

@@ -16,11 +16,18 @@ Fields:
 -`bias`: a float that specifies the decision criterion across trials and trial-sets. At the end of each trial, the model chooses right if the integral of P(a) is greater than the bias
 -`lapse`: a float indicating the fraction of trials when the animal makes a choice ignoring the accumulator value
 """
-@with_kw struct θDDLM{T1<:θz, T2<:θh, T3<:Real} <: DDMθ
-    θz::T1 = θz()
-    θh::T2 = θh()
-    bias::T3 = 0.
-    lapse::T3 = 0.
+@with_kw struct θDDLM{T<:Real} <: DDMθ
+    α::T = 0.
+    B::T = 15.
+    bias::T = 0.
+    k::T = 0.
+    λ::T = -0.5; @assert λ != 0.
+    lapse::T = 0.
+    ϕ::T = 0.8; @assert ϕ != 1.
+    σ2_a::T = 50.
+    σ2_i::T = 0.5 @assert σ2_i != 0.
+    σ2_s::T = 1.5
+    τ_ϕ::T = 0.05
 end
 
 """
@@ -31,7 +38,7 @@ Arguments:
 - `x` The values of the model parameters
 """
 function θDDLM(x::Vector{T}) where {T <: Real}
-    θDDLM(θz(x[1:7]...), θh(x[8:9]...), x[10], x[11])
+    θDDLM(x...)
 end
 
 """
@@ -48,11 +55,7 @@ Returns:
 - a vector of Floats
 """
 function flatten(θ::θDDLM)
-
-    @unpack θz, θh, bias, lapse = θ
-    @unpack σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ = θz
-    @unpack α, k = θh
-    vcat(σ2_i, B, λ, σ2_a, σ2_s, ϕ, τ_ϕ, α, k, bias, lapse)
+    collect(map(x->getfield(θ,x), fieldnames(θDDLM)))
 end
 
 """
