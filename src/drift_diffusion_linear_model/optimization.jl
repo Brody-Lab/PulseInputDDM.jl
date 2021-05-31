@@ -93,7 +93,7 @@ function loglikelihood(θ::θDDLM, trialset::trialsetdata, options::DDLMoptions,
 
     a₀ = history_influence_on_initial_point(α, k, B, shifted)
 
-    pmap(x->x*B*λ, a₀)
+    sum(pmap(x->x*B*λ, a₀))
 
     # nprepad_abar = size(a_bases[1])[1]-1
     # output = pmap((trial,a₀)->pulse_input_DDM.latent_one_trial(θ, trial, a₀, M, xc, dx, cross, dt, n, npostpad_abar, nprepad_abar), trialset.trials, a₀)
