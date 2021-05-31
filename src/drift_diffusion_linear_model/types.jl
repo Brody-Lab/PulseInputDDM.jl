@@ -25,7 +25,7 @@ Fields:
     lapse::T = 0.
     ϕ::T = 0.8; @assert ϕ != 1.
     σ2_a::T = 50.
-    σ2_i::T = 0.5 @assert σ2_i != 0.
+    σ2_i::T = 0.5; @assert σ2_i != 0.
     σ2_s::T = 1.5
     τ_ϕ::T = 0.05
 end
