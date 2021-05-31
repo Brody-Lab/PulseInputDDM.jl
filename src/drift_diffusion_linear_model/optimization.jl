@@ -84,7 +84,7 @@ function loglikelihood(model::DDLM)
     P = zeros(TT,n)
     P[ceil(Int,n/2)] = one(TT)
     M = transition_M(σ2_i,zero(TT),zero(TT),dx,xc,n,dt)
-    P = M * P
+    # P = M * P
 
     # P, M, xc, dx = initialize_latent_model(σ2_i, B, λ, σ2_a, n, dt)
     # P = P0(σ2_i, n, dx, xc, dt)
