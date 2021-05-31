@@ -100,8 +100,9 @@ function loglikelihood(θ::θDDLM, trialset::trialsetdata, options::DDLMoptions,
     # sum(map(x->sum(sum(x)), abar))
 
     P = pmap((trial,a₀)->pulse_input_DDM.latent_one_trial(θ, trial, a₀, M, xc, dx, cross, dt, n, npostpad_abar, nprepad_abar), trialset.trials, a₀)
-    choicelikelihood = pmap((P, trial)->sum(pulse_input_DDM.choice_likelihood!(bias,xc,P,trial.choice,n,dx)) * (1 - lapse) + lapse/2, P, trialset.trials)
-    LLchoice = sum(log.(choicelikelihood))
+    sum(map(x->sum(sum(x)), P))
+    # choicelikelihood = pmap((P, trial)->sum(pulse_input_DDM.choice_likelihood!(bias,xc,P,trial.choice,n,dx)) * (1 - lapse) + lapse/2, P, trialset.trials)
+    # LLchoice = sum(log.(choicelikelihood))
     #
     # Xa = vcat(pmap(a->hcat(map(basis->DSP.filt(basis, a)[nprepad_abar+1:end], a_bases)...), abar)...)
     #
