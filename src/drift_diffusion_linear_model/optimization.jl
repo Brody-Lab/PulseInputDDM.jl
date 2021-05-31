@@ -62,7 +62,7 @@ function loglikelihood(x::Vector{T1}, data::T2, options::DDLMoptions) where {T1 
     options.remap && (θ = θ2(θ))
     @unpack σ2_i, B, λ, σ2_a = θ
     @unpack n, dt = options
-    P,M,xc,dx = initialize_latent_model(σ2_i, B, λ, σ2_a, n, dt) # P is not used
+    M,xc,dx = initialize_DDLM(σ2_i, B, λ, σ2_a, n, dt) # P is not used
     sum(map(trialset->loglikelihood(θ, trialset, options, M, xc, dx), data))
 end
 
@@ -231,4 +231,15 @@ function history_influence_on_initial_point(α::T, k::T, B::T, shifted::trialshi
     @unpack choice, reward, shift = shifted
     a₀ = sum(α.*choice.*reward.*exp.(k.*(shift.+1)), dims=2)[:,1]
     min.(max.(a₀, -B), B)
+end
+
+"""
+"""
+function initialize_DDLM(σ2_i::TT, B::TT, λ::TT, σ2_a::TT,
+     n::Int, dt::Float64) where {TT <: Any}
+
+    xc,dx = bins(B,n)
+    M = transition_M(σ2_a*dt,λ,zero(TT),dx,xc,n,dt)
+
+    return M, xc, dx
 end
