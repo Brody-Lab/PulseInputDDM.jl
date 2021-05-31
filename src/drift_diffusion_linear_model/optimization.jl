@@ -257,10 +257,10 @@ end
 """
 """
 function initialize_DDLM(σ2_i::T, B::T, λ::T, σ2_a::T,
-     n::Int, dt::Float64) where {TT <: Real}
+     n::Int, dt::Float64) where {T <: Real}
 
     xc,dx = bins(B,n)
-    M = transition_M(σ2_a*dt,λ,zero(TT),dx,xc,n,dt)
+    M = transition_M(σ2_a*dt,λ,zero(T),dx,xc,n,dt)
 
     return M, xc, dx
 end
