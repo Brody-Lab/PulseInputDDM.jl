@@ -83,11 +83,13 @@ function loglikelihood(model::DDLM)
 
     P = zeros(TT,n)
     P[ceil(Int,n/2)] = one(TT)
-    M = transition_M(σ2_i,zero(TT),zero(TT),dx,xc,n,dt)
+    # M = transition_M(σ2_i,zero(TT),zero(TT),dx,xc,n,dt)
     # P = M * P
 
     # P, M, xc, dx = initialize_latent_model(σ2_i, B, λ, σ2_a, n, dt)
     # P = P0(σ2_i, n, dx, xc, dt)
+
+    M = transition_M(σ2_a*dt,λ,zero(TT),dx,xc,n,dt)
 
     sum(sum(M))*B*λ*σ2_a
     # sum(choice_likelihood!(bias, xc, P, data[1].trials[1].choice, n, dx)) * (1 - lapse) + lapse/2
