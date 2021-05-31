@@ -94,14 +94,14 @@ function loglikelihood(θ::θDDLM, trialset::trialsetdata, options::DDLMoptions,
     a₀ = history_influence_on_initial_point(α, k, B, shifted)
 
     nprepad_abar = size(a_bases[1])[1]-1
-    output = pmap((trial,a₀)->pulse_input_DDM.latent_one_trial(θ, trial, a₀, M, xc, dx, cross, dt, n, npostpad_abar, nprepad_abar), trialset.trials, a₀)
-    P = map(x->x[1], output)
-    abar = map(x->x[2], output)
+    # output = pmap((trial,a₀)->pulse_input_DDM.latent_one_trial(θ, trial, a₀, M, xc, dx, cross, dt, n, npostpad_abar, nprepad_abar), trialset.trials, a₀)
+    # P = map(x->x[1], output)
+    # abar = map(x->x[2], output)
+    # sum(map(x->sum(sum(x)), abar))
 
-    sum(map(x->sum(sum(x)), abar))
-
-    # choicelikelihood = pmap((P, trial)->sum(pulse_input_DDM.choice_likelihood!(bias,xc,P,trial.choice,n,dx)) * (1 - lapse) + lapse/2, P, trialset.trials)
-    # LLchoice = sum(log.(choicelikelihood))
+    P = pmap((trial,a₀)->pulse_input_DDM.latent_one_trial(θ, trial, a₀, M, xc, dx, cross, dt, n, npostpad_abar, nprepad_abar), trialset.trials, a₀)
+    choicelikelihood = pmap((P, trial)->sum(pulse_input_DDM.choice_likelihood!(bias,xc,P,trial.choice,n,dx)) * (1 - lapse) + lapse/2, P, trialset.trials)
+    LLchoice = sum(log.(choicelikelihood))
     #
     # Xa = vcat(pmap(a->hcat(map(basis->DSP.filt(basis, a)[nprepad_abar+1:end], a_bases)...), abar)...)
     #
@@ -149,17 +149,18 @@ function latent_one_trial(θ::θDDLM, trial::trialdata, a₀::T1, M::Matrix{T1},
     #empty transition matrix for time bins with clicks
     F = zeros(T1, n, n)
 
-    abar = Vector{T1}(undef, nprepad_abar+nT+npostpad_abar)
+    # abar = Vector{T1}(undef, nprepad_abar+nT+npostpad_abar)
     # xcᵀ = transpose(xc)
 
     @inbounds for t = nprepad_abar+1:nprepad_abar+nT
         P,F = latent_one_step!(P,F,λ,σ2_a,σ2_s,t,nL,nR,La,Ra,M,dx,xc,n,dt)
-        abar[t] = sum(xc.*P)
+        # abar[t] = xcᵀ*P
     end
-    abar[1:nprepad_abar] .= abar[nprepad_abar+1]
-    abar[nprepad_abar+nT+1:end] .= abar[nprepad_abar+nT]
+    # abar[1:nprepad_abar] .= abar[nprepad_abar+1]
+    # abar[nprepad_abar+nT+1:end] .= abar[nprepad_abar+nT]
 
-    return P, abar
+    # return P, abar
+    return P
 end
 
 # """
