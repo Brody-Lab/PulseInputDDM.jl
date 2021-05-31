@@ -93,13 +93,13 @@ function loglikelihood(θ::θDDLM, trialset::trialsetdata, options::DDLMoptions,
 
     a₀ = history_influence_on_initial_point(α, k, B, shifted)
 
-    nprepad_abar = size(a_bases[1])[1]-1
+    # nprepad_abar = size(a_bases[1])[1]-1
     # output = pmap((trial,a₀)->pulse_input_DDM.latent_one_trial(θ, trial, a₀, M, xc, dx, cross, dt, n, npostpad_abar, nprepad_abar), trialset.trials, a₀)
     # P = map(x->x[1], output)
     # abar = map(x->x[2], output)
     # sum(map(x->sum(sum(x)), abar))
 
-    P = pmap((trial,a₀)->pulse_input_DDM.latent_one_trial(θ, trial, a₀, M, xc, dx, cross, dt, n, npostpad_abar, nprepad_abar), trialset.trials, a₀)
+    P = pmap((trial,a₀)->pulse_input_DDM.latent_one_trial(θ, trial, a₀, M, xc, dx, cross, dt, n), trials, a₀)
     sum(map(x->sum(sum(x)), P))
     # choicelikelihood = pmap((P, trial)->sum(pulse_input_DDM.choice_likelihood!(bias,xc,P,trial.choice,n,dx)) * (1 - lapse) + lapse/2, P, trialset.trials)
     # LLchoice = sum(log.(choicelikelihood))
@@ -134,8 +134,7 @@ RETURNS
 """
 function latent_one_trial(θ::θDDLM, trial::trialdata, a₀::T1, M::Matrix{T1},
                             xc::Vector{T1}, dx::T1,
-                            cross::Bool, dt::Float64, n::Int,
-                            npostpad_abar::Int, nprepad_abar::Int) where {T1<:Real}
+                            cross::Bool, dt::Float64, n::Int) where {T1<:Real}
 
     @unpack clickcounts, clicktimes, choice = trial
     @unpack σ2_i, λ, σ2_a, σ2_s, ϕ, τ_ϕ = θ
@@ -153,7 +152,7 @@ function latent_one_trial(θ::θDDLM, trial::trialdata, a₀::T1, M::Matrix{T1},
     # abar = Vector{T1}(undef, nprepad_abar+nT+npostpad_abar)
     # xcᵀ = transpose(xc)
 
-    @inbounds for t = nprepad_abar+1:nprepad_abar+nT
+    @inbounds for t = 1:nT
         P,F = latent_one_step!(P,F,λ,σ2_a,σ2_s,t,nL,nR,La,Ra,M,dx,xc,n,dt)
         # abar[t] = xcᵀ*P
     end
