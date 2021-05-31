@@ -60,7 +60,8 @@ Returns:
 function loglikelihood(x::Vector{T1}, data::T2, options::DDLMoptions) where {T1 <: Real, T2<:Vector}
     θ = θDDLM(x)
     options.remap && (θ = θ2(θ))
-    @unpack σ2_i, B, λ, σ2_a, bias, lapse = θ
+    @unpack θz = θ
+    @unpack σ2_i, B, λ, σ2_a = θz
     @unpack n, dt = options
 
     P, M, xc, dx = initialize_latent_model(σ2_i, B, λ, σ2_a, n, dt)
@@ -237,10 +238,11 @@ end
 Square the values of a subset of parameters (σ2_i, σ2_a, σ2_s)
 """
 function θ2(θ::θDDLM)
-    x = pulse_input_DDM.flatten(θ)
-    index = convert(BitArray, map(x->occursin("σ2", string(x)), collect(fieldnames(θDDLM))))
+    @unpack θz, θh, bias, lapse = θ
+    x = pulse_input_DDM.flatten(θz)
+    index = convert(BitArray, map(x->occursin("σ2", string(x)), collect(fieldnames(θz))))
     x[index]=x[index].^2
-    θDDLM(x)
+    θDDLM(θz=θz(x), θh=θh, bias=bias, lapse=lapse)
 end
 
 """
