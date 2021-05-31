@@ -67,7 +67,7 @@ function loglikelihood(x::Vector{T1}, data::T2, options::DDLMoptions) where {T1 
 end
 
 """
-    loglikelihood(θ, trialset, options)
+    loglikelihood(θ, trialset, options, M, xc, dx)
 
 Sum the loglikelihood of all trials in a single trial-set
 
@@ -75,7 +75,10 @@ ARGUMENT
 
 -θ: an instance of `θDDLM`
 -trialset: an instance of `trialsetdata`
-- `options`: specifications of the drift-diffusion linear model
+-`options`: specifications of the drift-diffusion linear model
+-M: A square matrix of length `n` specifying the P{a{t}|a{t-1}} and the discrete approximation to the Fokker-Planck equation
+-xc: A vector of length `n` indicating the center of the bins in latent space
+-dx: size of the bins in latent size
 
 RETURN
 
@@ -89,20 +92,14 @@ function loglikelihood(θ::θDDLM, trialset::trialsetdata, options::DDLMoptions,
     @unpack shifted, trials = trialset
 
     a₀ = history_influence_on_initial_point(α, k, B, shifted)
-    sum(a₀)
 
+    nprepad_abar = size(a_bases[1])[1]-1
+    xcᵀ = transpose(xc)
+    output = pmap((trial,a₀)->pulse_input_DDM.latent_one_trial(θ, trial, a₀, M, xc, xcᵀ, dx, cross, dt, n, npostpad_abar, nprepad_abar), trialset.trials, a₀)
+    P = map(x->x[1], output)
+    abar = map(x->x[2], output)
 
-    #output = pmap((trial,a₀)->pulse_input_DDM.latent_one_trial(θ, trial, a₀, M, xc, xcᵀ, dx, options), trialset.trials, a₀)
-    #P = map(x->x[1], output)
-    #abar = map(x->x[2], output)
-
-    # nprepad_abar = size(a_bases[1])[1]-1
-    #abar[1:nprepad_abar] .= abar[nprepad_abar+1]
-    #abar[nprepad_abar+nT+1:end] .= abar[nprepad_abar+nT]
-
-    #sum(P)
-    #Pt = pmap((trial,a₀)->pulse_input_DDM.latent_one_trial(θ, trial, a₀, M, xc, dx, options), trials, a₀)
-    #sum(map(x->sum(sum(x)), Pt))
+    sum(map(x->sum(sum(x)), abar))
 
     # choicelikelihood = pmap((P, trial)->sum(pulse_input_DDM.choice_likelihood!(bias,xc,P,trial.choice,n,dx)) * (1 - lapse) + lapse/2, P, trialset.trials)
     # LLchoice = sum(log.(choicelikelihood))
@@ -137,13 +134,14 @@ RETURNS
 -abar: ̅a(t), a vector indicating the mean of the latent variable at each time step
 """
 function latent_one_trial(θ::θDDLM, trial::trialdata, a₀::T1, M::Matrix{T1},
-                            xc::Vector{T1}, dx::T1, options::DDLMoptions) where {T1<:Real}
+                            xc::Vector{T1}, xcᵀ::T2, dx::T1,
+                            cross::Bool, dt::T1, n::Int,
+                            npostpad_abar::Int, nprepad_abar::Int) where {T1<:Real, T2<:Matrix}
 
     @unpack clickcounts, clicktimes, choice = trial
     @unpack σ2_i, λ, σ2_a, σ2_s, ϕ, τ_ϕ = θ
     @unpack nT, nL, nR = clickcounts
     @unpack L, R = clicktimes
-    @unpack n, dt, cross = options
 
     #adapt magnitude of the click inputs
     La, Ra = adapt_clicks(ϕ,τ_ϕ,L,R; cross=cross)
@@ -153,16 +151,16 @@ function latent_one_trial(θ::θDDLM, trial::trialdata, a₀::T1, M::Matrix{T1},
     #empty transition matrix for time bins with clicks
     F = zeros(T1, n, n)
 
-    #abar = Vector{T1}(undef, nT)
-    Pt = Matrix{T1}(undef, n, nT)
+    abar = Vector{T1}(undef, nprepad_abar+nT+npostpad_abar)
 
-    @inbounds for t = 1:nT
+    @inbounds for t = nprepad_abar+1:nprepad_abar+nT
         P,F = latent_one_step!(P,F,λ,σ2_a,σ2_s,t,nL,nR,La,Ra,M,dx,xc,n,dt)
-        #abar[t] = xcᵀ*P
-        Pt[:,t]=P
+        abar[t] = xcᵀ*P
     end
-    #return P, abar
-    return Pt
+    abar[1:nprepad_abar] .= abar[nprepad_abar+1]
+    abar[nprepad_abar+nT+1:end] .= abar[nprepad_abar+nT]
+
+    return P, abar
 end
 
 # """
