@@ -123,7 +123,7 @@ cross::Bool, dt::Float64, n::Int) where {T1<:Real}
     # @unpack nT, nL, nR = clickcounts
     # @unpack L, R = clicktimes
 
-    λ
+    sum((λ*σ2_i*a₀*n*dt*dx).*xc)
     # sum(P0(σ2_i, a₀, n, dx, xc, dt).*λ)
 
     # La, Ra = adapt_clicks(ϕ,τ_ϕ,L,R; cross=cross)
