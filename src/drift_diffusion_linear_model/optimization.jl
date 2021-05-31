@@ -130,7 +130,7 @@ cross::Bool, dt::Float64, n::Int) where {T1<:Real}
     # @inbounds for t = 1:nT
     #     P,F = latent_one_step!(P,F,λ,σ2_a,σ2_s,t,nL,nR,La,Ra,M,dx,xc,n,dt)
     # end
-    sum(P.*σ2_s*λ*σ2_a)
+    sum(P.*σ2_s.*λ.*σ2_a)
 end
 
 """
