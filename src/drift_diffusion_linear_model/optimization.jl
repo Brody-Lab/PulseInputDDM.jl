@@ -63,7 +63,8 @@ function loglikelihood(x::Vector{T1}, data::T2, options::DDLMoptions) where {T1 
     @unpack σ2_i, B, λ, σ2_a = θ
     @unpack n, dt = options
     M,xc,dx = initialize_DDLM(σ2_i, B, λ, σ2_a, n, dt) # P is not used
-    sum(map(trialset->loglikelihood(θ, trialset, options, M, xc, dx), data))
+    # sum(map(trialset->loglikelihood(θ, trialset, options, M, xc, dx), data))
+    loglikelihood(θ, data[1], options, M, xc, dx)
 end
 
 """
