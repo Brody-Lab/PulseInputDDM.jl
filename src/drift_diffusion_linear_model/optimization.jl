@@ -96,7 +96,7 @@ function loglikelihood(θ::θDDLM, trialset::trialsetdata, options::DDLMoptions,
     P = pmap(a₀->P0(σ2_i, a₀, n, dx, xc, dt), a₀)
 
     sum((λ*σ2_i*a₀*n*dt*dx).*xc.*P)
-    
+
     # sum(pmap((trial,P)->test_latent_one_trial(θ, trial, P, M, xc, dx, cross, dt, n), trials, P))
 
     # nprepad_abar = size(a_bases[1])[1]-1
@@ -120,7 +120,7 @@ end
 
 """
 """
-function test_latent_one_trial(θ::θDDLM, trial::trialdata, P::vector{T1}, M::Matrix{T1}, xc::Vector{T1}, dx::T1,
+function test_latent_one_trial(θ::θDDLM, trial::trialdata, P::Vector{T1}, M::Matrix{T1}, xc::Vector{T1}, dx::T1,
 cross::Bool, dt::Float64, n::Int) where {T1<:Real}
     # @unpack clickcounts, clicktimes = trial
     @unpack σ2_i, λ, σ2_a, σ2_s, ϕ, τ_ϕ = θ
