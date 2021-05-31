@@ -59,7 +59,7 @@ Returns:
 """
 function loglikelihood(x::Vector{T1}, data::T2, n::Int, dt::Float64) where {T1 <: Real, T2<:Vector}
     θ = θDDLM(x)
-    options.remap && (θ = θ2(θ))
+    # options.remap && (θ = θ2(θ))
     @unpack σ2_i, B, λ, σ2_a, bias, lapse = θ
     # @unpack n, dt = options
 
