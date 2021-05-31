@@ -94,8 +94,7 @@ function loglikelihood(θ::θDDLM, trialset::trialsetdata, options::DDLMoptions,
     a₀ = history_influence_on_initial_point(α, k, B, shifted)
 
     nprepad_abar = size(a_bases[1])[1]-1
-    xcᵀ = transpose(xc)
-    output = pmap((trial,a₀)->pulse_input_DDM.latent_one_trial(θ, trial, a₀, M, xc, xcᵀ, dx, cross, dt, n, npostpad_abar, nprepad_abar), trialset.trials, a₀)
+    output = pmap((trial,a₀)->pulse_input_DDM.latent_one_trial(θ, trial, a₀, M, xc, dx, cross, dt, n, npostpad_abar, nprepad_abar), trialset.trials, a₀)
     P = map(x->x[1], output)
     abar = map(x->x[2], output)
 
@@ -123,7 +122,6 @@ ARGUMENTS
 -a₀: a(t=0), the value of the latent variable at time equals to zero
 -M: A square matrix of length `n` specifying the P{a{t}|a{t-1}} and the discrete approximation to the Fokker-Planck equation
 -xc: A vector of length `n` indicating the center of the bins in latent space
--xcᵀ: transpose of xc
 -dx: size of the bins in latent size
 -n: Number of latent size bins
 -cross: Bool indicating whether cross-stream adaptation is implemented
@@ -134,9 +132,9 @@ RETURNS
 -abar: ̅a(t), a vector indicating the mean of the latent variable at each time step
 """
 function latent_one_trial(θ::θDDLM, trial::trialdata, a₀::T1, M::Matrix{T1},
-                            xc::Vector{T1}, xcᵀ::T2, dx::T1,
-                            cross::Bool, dt::T1, n::Int,
-                            npostpad_abar::Int, nprepad_abar::Int) where {T1<:Real, T2<:Matrix}
+                            xc::Vector{T1}, dx::T1,
+                            cross::Bool, dt::Float64, n::Int,
+                            npostpad_abar::Int, nprepad_abar::Int) where {T1<:Real}
 
     @unpack clickcounts, clicktimes, choice = trial
     @unpack σ2_i, λ, σ2_a, σ2_s, ϕ, τ_ϕ = θ
@@ -152,6 +150,7 @@ function latent_one_trial(θ::θDDLM, trial::trialdata, a₀::T1, M::Matrix{T1},
     F = zeros(T1, n, n)
 
     abar = Vector{T1}(undef, nprepad_abar+nT+npostpad_abar)
+    xcᵀ = transpose(xc)
 
     @inbounds for t = nprepad_abar+1:nprepad_abar+nT
         P,F = latent_one_step!(P,F,λ,σ2_a,σ2_s,t,nL,nR,La,Ra,M,dx,xc,n,dt)
