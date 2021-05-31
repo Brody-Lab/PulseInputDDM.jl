@@ -123,14 +123,13 @@ cross::Bool, dt::Float64, n::Int) where {T1<:Real}
     # @unpack nT, nL, nR = clickcounts
     # @unpack L, R = clicktimes
 
-    P = P0(σ2_i, a₀, n, dx, xc, dt)
+    sum(P0(σ2_i, a₀, n, dx, xc, dt).*λ)
 
     # La, Ra = adapt_clicks(ϕ,τ_ϕ,L,R; cross=cross)
     # F = zeros(T1, n, n)
     # @inbounds for t = 1:nT
     #     P,F = latent_one_step!(P,F,λ,σ2_a,σ2_s,t,nL,nR,La,Ra,M,dx,xc,n,dt)
     # end
-    sum(P.*λ)
 end
 
 """
