@@ -95,7 +95,7 @@ function loglikelihood(θ::θDDLM, trialset::trialsetdata, options::DDLMoptions,
 
     P = pmap(a₀->P0(σ2_i, a₀, n, dx, xc, dt), a₀)
 
-    sum((λ*σ2_i*a₀*n*dt*dx).*xc.*P)
+    sum(λ.*P)
 
     # sum(pmap((trial,P)->test_latent_one_trial(θ, trial, P, M, xc, dx, cross, dt, n), trials, P))
 
