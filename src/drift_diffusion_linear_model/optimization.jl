@@ -89,7 +89,7 @@ function loglikelihood(model::DDLM)
     # P, M, xc, dx = initialize_latent_model(σ2_i, B, λ, σ2_a, n, dt)
     # P = P0(σ2_i, n, dx, xc, dt)
 
-    M = transition_M(σ2_i,zero(TT),zero(TT),dx,xc,n,dt)
+    M = transition_M(σ2_a*dt,zero(TT),zero(TT),dx,xc,n,dt)
     # M = transition_M(σ2_a*dt,λ,zero(TT),dx,xc,n,dt)
 
     sum(sum(M))*B*λ*σ2_a
