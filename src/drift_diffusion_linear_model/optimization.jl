@@ -99,7 +99,7 @@ function loglikelihood(θ::θDDLM, trialset::trialsetdata, options::DDLMoptions,
     # abar = map(x->x[2], output)
     # sum(map(x->sum(sum(x)), abar))
 
-    P = pmap((trial,a₀)->pulse_input_DDM.latent_one_trial(θ, trial, a₀, M, xc, dx, cross, dt, n), trials, a₀)
+    P = pmap((trial,a₀)->latent_one_trial(θ, trial, a₀, M, xc, dx, cross, dt, n), trials, a₀)
     sum(map(x->sum(sum(x)), P))
     # choicelikelihood = pmap((P, trial)->sum(pulse_input_DDM.choice_likelihood!(bias,xc,P,trial.choice,n,dx)) * (1 - lapse) + lapse/2, P, trialset.trials)
     # LLchoice = sum(log.(choicelikelihood))
@@ -136,7 +136,7 @@ function latent_one_trial(θ::θDDLM, trial::trialdata, a₀::T1, M::Matrix{T1},
                             xc::Vector{T1}, dx::T1,
                             cross::Bool, dt::Float64, n::Int) where {T1<:Real}
 
-    @unpack clickcounts, clicktimes, choice = trial
+    @unpack clickcounts, clicktimes = trial
     @unpack σ2_i, λ, σ2_a, σ2_s, ϕ, τ_ϕ = θ
     @unpack nT, nL, nR = clickcounts
     @unpack L, R = clicktimes
@@ -144,23 +144,25 @@ function latent_one_trial(θ::θDDLM, trial::trialdata, a₀::T1, M::Matrix{T1},
     #adapt magnitude of the click inputs
     La, Ra = adapt_clicks(ϕ,τ_ϕ,L,R; cross=cross)
 
-    P = P0(σ2_i, a₀, n, dx, xc, dt)
+    P0(σ2_i, a₀, n, dx, xc, dt)
 
-    #empty transition matrix for time bins with clicks
-    F = zeros(T1, n, n)
-
-    # abar = Vector{T1}(undef, nprepad_abar+nT+npostpad_abar)
-    # xcᵀ = transpose(xc)
-
-    @inbounds for t = 1:nT
-        P,F = latent_one_step!(P,F,λ,σ2_a,σ2_s,t,nL,nR,La,Ra,M,dx,xc,n,dt)
-        # abar[t] = xcᵀ*P
-    end
-    # abar[1:nprepad_abar] .= abar[nprepad_abar+1]
-    # abar[nprepad_abar+nT+1:end] .= abar[nprepad_abar+nT]
-
-    # return P, abar
-    return P
+    # P = P0(σ2_i, a₀, n, dx, xc, dt)
+    #
+    # #empty transition matrix for time bins with clicks
+    # F = zeros(T1, n, n)
+    #
+    # # abar = Vector{T1}(undef, nprepad_abar+nT+npostpad_abar)
+    # # xcᵀ = transpose(xc)
+    #
+    # @inbounds for t = 1:nT
+    #     P,F = latent_one_step!(P,F,λ,σ2_a,σ2_s,t,nL,nR,La,Ra,M,dx,xc,n,dt)
+    #     # abar[t] = xcᵀ*P
+    # end
+    # # abar[1:nprepad_abar] .= abar[nprepad_abar+1]
+    # # abar[nprepad_abar+nT+1:end] .= abar[nprepad_abar+nT]
+    #
+    # # return P, abar
+    # return P
 end
 
 # """
