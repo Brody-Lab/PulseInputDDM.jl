@@ -59,7 +59,7 @@ Returns:
 """
 function loglikelihood(x::Vector{T1}, data::T2, options::DDLMoptions) where {T1 <: Real, T2<:Vector}
     θ = θDDLM(x)
-    options.remap && θ = θ2(θ)
+    options.remap && (θ = θ2(θ))
     sum(map(trialset->loglikelihood(θ, trialset, options), data))
 end
 
