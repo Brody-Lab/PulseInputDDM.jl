@@ -136,16 +136,18 @@ function latent_one_trial(θ::θDDLM, trial::trialdata, a₀::T1, M::Matrix{T1},
                             xc::Vector{T1}, dx::T1,
                             cross::Bool, dt::Float64, n::Int) where {T1<:Real}
 
-    @unpack clickcounts, clicktimes = trial
     @unpack σ2_i, λ, σ2_a, σ2_s, ϕ, τ_ϕ = θ
-    @unpack nT, nL, nR = clickcounts
-    @unpack L, R = clicktimes
+    P = P0(σ2_i, a₀, n, dx, xc, dt)
+    P .* (σ2_a*σ2_s*λ)
 
-    #adapt magnitude of the click inputs
-    La, Ra = adapt_clicks(ϕ,τ_ϕ,L,R; cross=cross)
-
-    P0(σ2_i, a₀, n, dx, xc, dt)
-
+    # @unpack clickcounts, clicktimes = trial
+    # @unpack σ2_i, λ, σ2_a, σ2_s, ϕ, τ_ϕ = θ
+    # @unpack nT, nL, nR = clickcounts
+    # @unpack L, R = clicktimes
+    #
+    # #adapt magnitude of the click inputs
+    # La, Ra = adapt_clicks(ϕ,τ_ϕ,L,R; cross=cross)
+    #
     # P = P0(σ2_i, a₀, n, dx, xc, dt)
     #
     # #empty transition matrix for time bins with clicks
