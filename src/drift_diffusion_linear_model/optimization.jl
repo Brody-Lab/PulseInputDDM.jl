@@ -77,7 +77,8 @@ function loglikelihood(model::DDLM)
     @unpack n, dt = options
 
     P, M, xc, dx = initialize_latent_model(σ2_i, B, λ, σ2_a, n, dt)
-    sum(sum(M))*λ*B*σ2_a
+    P = P0(σ2_i, n, dx, xc, dt)
+    sum(sum(P))*λ*B*σ2_a
     # P = P0(σ2_i, n, dx, xc, dt)
     # sum(choice_likelihood!(bias, xc, P, data[1].trials[1].choice, n, dx)) * (1 - lapse) + lapse/2
 
