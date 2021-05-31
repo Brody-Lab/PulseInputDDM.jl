@@ -31,7 +31,6 @@ Arguments:
 - `x` The values of the model parameters
 """
 function θDDLM(x::Vector{T}) where {T <: Real}
-    θDDLM(x...)
     θDDLM(θz(x[1:7]...), θh(x[8:9]...), x[10], x[11])
 end
 
