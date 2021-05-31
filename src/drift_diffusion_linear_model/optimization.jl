@@ -93,7 +93,7 @@ function loglikelihood(θ::θDDLM, trialset::trialsetdata, options::DDLMoptions,
 
     a₀ = history_influence_on_initial_point(α, k, B, shifted)
 
-    P = P0(σ2_i, a₀[1], n, dx, xc, dt)
+    P = initializeP(σ2_i, a₀[1], n, dx, xc, dt)
 
     sum(sum(P.*λ))
 
@@ -263,4 +263,15 @@ function initialize_DDLM(σ2_i::TT, B::TT, λ::TT, σ2_a::TT,
     M = transition_M(σ2_a*dt,λ,zero(TT),dx,xc,n,dt)
 
     return M, xc, dx
+end
+
+"""
+    initializeP(σ2_i, a₀, n, dx, xc, dt)
+
+"""
+function initializeP(σ2_i::T, a₀::T, n::Int, dx::T, xc::Vector{T}, dt::Float64) where {T <: Any}
+    P = zeros(T,n)
+    P[ceil(Int,n/2)] = one(T)
+    M = transition_M(σ2_i,zero(T),a₀,dx,xc,n,dt)
+    M * P
 end
