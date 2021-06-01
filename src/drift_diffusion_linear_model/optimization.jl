@@ -142,8 +142,7 @@ RETURNS
 -abar: ̅a(t), a vector indicating the mean of the latent variable at each time step
 """
 function mean_latent_choice_likelihood(a₀::T1, cross::Bool, dt::Float64, dx::T2,
-    M::Matrix{T1}, n::Int, npostpad_abar::Int, nprepad_abar::Int, θ::θDDLM,
-    trial::trialdata, xc::Vector{T1}) where {T1, T2<:Real}
+    M::Matrix{T1}, n::Int, npostpad_abar::Int, nprepad_abar::Int, θ::θDDLM, trial::trialdata, xc::Vector{T1}) where {T1, T2<:Real}
 
     @unpack clickcounts, clicktimes, choice = trial
     @unpack σ2_i, λ, lapse, σ2_a, σ2_s, ϕ, τ_ϕ = θ
