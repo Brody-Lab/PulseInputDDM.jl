@@ -107,8 +107,8 @@ RETURN
 -choicelikelihood: the likelihood of the observed choice in each trial. A vector.
 """
 function mean_latent_choice_likelihood(θ::θDDLM, trialset::trialsetdata, options::DDLMoptions)
-    @unpack α, B, bias, k, λ, lapse, σ2_a, σ2_i= θ
-    @unpack a_bases, cross, dt, L2regularizer, n, npostpad_abar = options
+    @unpack B, λ, σ2_a = θ
+    @unpack a_bases, cross, dt, n, npostpad_abar = options
 
     xc, dx = bins(B, n)
     M = transition_M(σ2_a*dt, λ, zero(typeof(σ2_a)), dx, xc, n, dt)
@@ -145,7 +145,7 @@ function mean_latent_choice_likelihood(a₀::T1, cross::Bool, dt::Float64, dx::T
     M::Matrix{T1}, n::Int, npostpad_abar::Int, nprepad_abar::Int, θ::θDDLM, trial::trialdata, xc::Vector{T1}) where {T1, T2<:Real}
 
     @unpack clickcounts, clicktimes, choice = trial
-    @unpack σ2_i, λ, lapse, σ2_a, σ2_s, ϕ, τ_ϕ = θ
+    @unpack bias, σ2_i, λ, lapse, σ2_a, σ2_s, ϕ, τ_ϕ = θ
     @unpack nT, nL, nR = clickcounts
     @unpack L, R = clicktimes
 
