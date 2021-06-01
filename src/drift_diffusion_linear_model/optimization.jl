@@ -79,14 +79,14 @@ function loglikelihood(θ::θDDLM, trialset::trialsetdata, options::DDLMoptions)
 
     @unpack a_bases, L2regularizer = options
 
-    abar, choicelikelihood = mean_latent_choice_likelihood(θ::θDDLM, trialset::trialsetdata, options::DDLMoptions)
+    abar, choicelikelihood = mean_latent_choice_likelihood(θ, trialset, options)
 
     sum(log.(choicelikelihood))
-    
-    #nprepad_abar = size(a_bases[1])[1]-1
-    #Xa = vcat(pmap(a->hcat(map(basis->DSP.filt(basis, a)[nprepad_abar+1:end], a_bases)...), abar)...)
 
-    #nLLspike = pmap(unit->pulse_input_DDM.mean_square_error(trialset.Xtiming, unit.Xautoreg, Xa, unit.y, L2regularizer), trialset.units)
+    nprepad_abar = size(a_bases[1])[1]-1
+    Xa = vcat(pmap(a->hcat(map(basis->DSP.filt(basis, a)[nprepad_abar+1:end], a_bases)...), abar)...)
+
+    nLLspike = map(unit->mean_square_error(trialset.Xtiming, unit.Xautoreg, Xa, unit.y, L2regularizer), trialset.units)
     #nLLspike = mean(nLLspike)*(size(trialset.trials)[1]);
 
     #sum(log.(choicelikelihood)) - sum(nLLspike)
@@ -112,9 +112,9 @@ function mean_latent_choice_likelihood(θ::θDDLM, trialset::trialsetdata, optio
     @unpack α, B, k, λ, σ2_a = θ
     @unpack a_bases, cross, dt, n, npostpad_abar = options
 
-    xc, dx = bins(B, n)
-    M = transition_M(σ2_a*dt, λ, zero(typeof(σ2_a)), dx, xc, n, dt)
-    a₀ = history_influence_on_initial_point(α, k, B, trialset.shifted)
+    xc, dx = pulse_input_DDM.bins(B, n)
+    M = pulse_input_DDM.transition_M(σ2_a*dt, λ, zero(typeof(σ2_a)), dx, xc, n, dt)
+    a₀ = pulse_input_DDM.history_influence_on_initial_point(α, k, B, trialset.shifted)
 
     nprepad_abar = size(a_bases[1])[1]-1
     output = pmap((a₀, trial)->mean_latent_choice_likelihood(a₀, cross, dt, dx, M, n, npostpad_abar, nprepad_abar, θ, trial, xc), a₀, trialset.trials)
@@ -152,23 +152,21 @@ function mean_latent_choice_likelihood(a₀::T1, cross::Bool, dt::Float64, dx::T
     @unpack L, R = clicktimes
 
     #adapt magnitude of the click inputs
-    La, Ra = adapt_clicks(ϕ,τ_ϕ,L,R; cross=cross)
-
-    P = P0(a₀, dt, dx, lapse, n, σ2_i, xc)
+    La, Ra = pulse_input_DDM.adapt_clicks(ϕ,τ_ϕ,L,R; cross=cross)
 
     #empty transition matrix for time bins with clicks
     F = zeros(T1, n, n)
 
-    abar = Vector{T1}(undef, nprepad_abar+nT+npostpad_abar)
     xcᵀ = transpose(xc)
+    abar = Vector{T1}(undef, nprepad_abar+nT+npostpad_abar)
+    P = pulse_input_DDM.P0(a₀, dt, dx, lapse, n, σ2_i, xc)
 
     @inbounds for t = 1:nT
-        P,F = latent_one_step!(P,F,λ,σ2_a,σ2_s,t,nL,nR,La,Ra,M,dx,xc,n,dt)
-        abar[t] = xcᵀ*P
+        P,F = pulse_input_DDM.latent_one_step!(P,F,λ,σ2_a,σ2_s,t,nL,nR,La,Ra,M,dx,xc,n,dt)
+        abar[nprepad_abar+t] = xcᵀ*P
     end
     abar[1:nprepad_abar] .= abar[nprepad_abar+1]
     abar[nprepad_abar+nT+1:end] .= abar[nprepad_abar+nT]
-
     choicelikelihood = sum(choice_likelihood!(bias,xc,P,choice,n,dx))
 
     return abar, choicelikelihood
