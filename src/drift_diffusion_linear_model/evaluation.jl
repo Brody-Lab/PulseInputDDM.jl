@@ -17,7 +17,7 @@ function Hessian(model::DDLM; chunk_size::Int=4)
 
     @unpack θ, data, options = model
     @unpack fit = options
-    x = pulse_input_DDM.flattent(θ)
+    x = pulse_input_DDM.flatten(θ)
     x,c = unstack(x, fit)
     ℓℓ(x) = -loglikelihood(stack(x,c,fit), data, options)
 
