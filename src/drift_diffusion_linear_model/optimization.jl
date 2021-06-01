@@ -79,7 +79,7 @@ function loglikelihood(θ::θDDLM, trialset::trialsetdata, options::DDLMoptions)
 
     @unpack a_bases = options
 
-    abar, choicelikelihood = latent_one_trialset(θ::θDDLM, trialset::trialsetdata, options::DDLMoptions)
+    abar, choicelikelihood = mean_latent_choice_likelihood(θ::θDDLM, trialset::trialsetdata, options::DDLMoptions)
 
     nprepad_abar = size(a_bases[1])[1]-1
     Xa = vcat(pmap(a->hcat(map(basis->DSP.filt(basis, a)[nprepad_abar+1:end], a_bases)...), abar)...)
@@ -115,7 +115,7 @@ function mean_latent_choice_likelihood(θ::θDDLM, trialset::trialsetdata, optio
     a₀ = history_influence_on_initial_point(α, k, B, trialset.shifted)
 
     nprepad_abar = size(a_bases[1])[1]-1
-    output = pmap((a₀, trial)->pulse_input_DDM.latent_one_trial(a₀, cross, dt, dx, M, n, npostpad_abar, nprepad_abar, θ, trial, xc), a₀, trialset.trials)
+    output = pmap((a₀, trial)->mean_latent_choice_likelihood(a₀, cross, dt, dx, M, n, npostpad_abar, nprepad_abar, θ, trial, xc), a₀, trialset.trials)
     abar = map(x->x[1], output)
     choicelikelihood = map(x->x[2], output)
     return abar, choicelikelihood
