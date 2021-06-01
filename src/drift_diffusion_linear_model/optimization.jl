@@ -152,7 +152,7 @@ function mean_latent_choice_likelihood(a₀::T1, cross::Bool, dt::Float64, dx::T
     #adapt magnitude of the click inputs
     La, Ra = adapt_clicks(ϕ,τ_ϕ,L,R; cross=cross)
 
-    P = P0(a₀, dt, dx, lapse, n, σ2_i)
+    P = P0(a₀, dt, dx, lapse, n, σ2_i, xc)
 
     #empty transition matrix for time bins with clicks
     F = zeros(T1, n, n)
@@ -232,8 +232,9 @@ ARGUMENT
 -lapse: the fraction of the trials the subject begins (and remains) at one of the two bounds, chosen randomly
 -n: number of bins the latent variable is divided into
 -σ2_i: the variance of the initial value
+-xc: bin centers of the latent
 """
-function P0(a₀::T1, dt::Float64, dx::T2, lapse::T1, n::Int, σ2_i::T1) where {T1,T2 <: Any}
+function P0(a₀::T1, dt::Float64, dx::T2, lapse::T1, n::Int, σ2_i::T1, xc::Vector{T1}) where {T1,T2 <: Any}
     P = zeros(T1,n)
     P[ceil(Int,n/2)] = one(T1) - lapse
     P[1], P[n] = lapse/2., lapse/2.
