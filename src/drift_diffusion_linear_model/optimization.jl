@@ -107,7 +107,7 @@ RETURN
 -choicelikelihood: the likelihood of the observed choice in each trial. A vector.
 """
 function mean_latent_choice_likelihood(θ::θDDLM, trialset::trialsetdata, options::DDLMoptions)
-    @unpack B, λ, σ2_a = θ
+    @unpack α, B, k, λ, σ2_a = θ
     @unpack a_bases, cross, dt, n, npostpad_abar = options
 
     xc, dx = bins(B, n)
