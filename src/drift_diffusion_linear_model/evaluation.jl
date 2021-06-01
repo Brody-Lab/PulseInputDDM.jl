@@ -62,7 +62,7 @@ RETURN
 function predict_in_sample(trialset::trialsetdata, θ::θDDLM, options::DDLMoptions)
     @unpack σ2_i, B, λ, σ2_a, α, k, bias, lapse = θ
     @unpack trials, shifted, units = trialset
-    @unpack a_bases, n, cross = options
+    @unpack a_bases, cross, dt, n = options
 
     P,M,xc,dx = initialize_latent_model(σ2_i, B, λ, σ2_a, n, dt) # P is not used
     a₀ = history_influence_on_initial_point(α, k, B, shifted)
