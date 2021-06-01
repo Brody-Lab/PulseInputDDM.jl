@@ -28,5 +28,3 @@ println("Optimized model. Beginning to save the results.")
 save(model)
 println("Results saved")
 println("======")
-
-# datapath = "/mnt/bucket/labs/brody/tzluo/analysis_data/analysis_2021_05_27_DDLM/data.mat"

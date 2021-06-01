@@ -97,8 +97,7 @@ function save(model::DDLM)
 
     abar, choicelikelihood, Xa = predict_in_sample(model)
     dict = Dict("ML_params"=> pulse_input_DDM.flatten(model.θ),
-                "parameter_name" => θDDLM_names(),
-                "Hessian" => Hessian(model),
+                "parameter_name" => θDDLM_names(), #"Hessian" => Hessian(model),
                 "abar_insample" => abar,
                 "choicelikelihood_insample" => choicelikelihood,
                 "Xa_insample" => Xa)
