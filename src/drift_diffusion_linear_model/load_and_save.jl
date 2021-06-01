@@ -95,13 +95,13 @@ ARGUMENT
 
 function save(model::DDLM)
 
-    abar_insample, choiceprobability_insample, Xa_insample = predict_in_sample(model)
+    abar, choicelikelihood, Xa = predict_in_sample(model)
     dict = Dict("ML_params"=> vec(model.θ),
                 "parameter_name" => θDDLM_names(),
                 "Hessian" => Hessian(model),
-                "abar_insample" => abar_insample,
-                "choiceprobability_insample" => choice_insample,
-                "Xa_insample" => Xa_insample)
+                "abar_insample" => abar,
+                "choicelikelihood_insample" => choicelikelihood,
+                "Xa_insample" => Xa)
     matwrite(DDLM.options.resultspath, dict)
 end
 

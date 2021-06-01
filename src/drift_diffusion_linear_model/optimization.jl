@@ -69,13 +69,44 @@ ARGUMENT
 -θ: an instance of `θDDLM`
 -trialset: an instance of `trialsetdata`
 -`options`: specifications of the drift-diffusion linear model
+
 RETURN
 
 -A Float64 indicating the summed log-likelihood of the choice and spike counts given the model parameters
 
 """
-function loglikelihood(θ::θDDLM, trialset::trialsetdata, options::DDLMoptions) where {T1 <: Real}
+function loglikelihood(θ::θDDLM, trialset::trialsetdata, options::DDLMoptions)
 
+    @unpack a_bases = options
+
+    abar, choicelikelihood = latent_one_trialset(θ::θDDLM, trialset::trialsetdata, options::DDLMoptions)
+
+    nprepad_abar = size(a_bases[1])[1]-1
+    Xa = vcat(pmap(a->hcat(map(basis->DSP.filt(basis, a)[nprepad_abar+1:end], a_bases)...), abar)...)
+
+    nLLspike = pmap(unit->pulse_input_DDM.mean_square_error(trialset.Xtiming, unit.Xautoreg, Xa, unit.y, L2regularizer), trialset.units)
+    nLLspike = mean(nLLspike)*(size(trialset.trials)[1]);
+
+    sum(log.(choicelikelihood)) - sum(nLLspike)
+end
+
+"""
+    mean_latent_choice_likelihood
+
+Calculate the mean trajectory of the latent and the likelihood of the choice for every trial in a trialset
+
+ARGUMENT
+
+-θ: an instance of `θDDLM`
+-trialset: an instance of `trialsetdata`
+-`options`: specifications of the drift-diffusion linear model
+
+RETURN
+
+-abar: the mean trajectory of the latent, organized in nested vectors. Each element of the outer array corresponds to a trial and each element of the inner array refers to a time bin. The first time bin is centered on the occurence of the stereoclick in a trial.
+-choicelikelihood: the likelihood of the observed choice in each trial. A vector.
+"""
+function mean_latent_choice_likelihood(θ::θDDLM, trialset::trialsetdata, options::DDLMoptions)
     @unpack α, B, bias, k, λ, lapse, σ2_a, σ2_i= θ
     @unpack a_bases, cross, dt, L2regularizer, n, npostpad_abar = options
 
@@ -83,54 +114,17 @@ function loglikelihood(θ::θDDLM, trialset::trialsetdata, options::DDLMoptions)
     M = transition_M(σ2_a*dt, λ, zero(typeof(σ2_a)), dx, xc, n, dt)
     a₀ = history_influence_on_initial_point(α, k, B, trialset.shifted)
 
-    P = P0(σ2_i, n, dx, xc, dt)
-
-    sum(choice_likelihood!(bias, xc, P, trialset.trials[1].choice, n, dx)) * (1 - lapse) + lapse/2
-
-    # sum(pmap((trial,P)->test_latent_one_trial(θ, trial, P, M, xc, dx, cross, dt, n), trials, P))
-
-    # nprepad_abar = size(a_bases[1])[1]-1
-    # output = pmap((trial,a₀)->pulse_input_DDM.latent_one_trial(θ, trial, a₀, M, xc, dx, cross, dt, n, npostpad_abar, nprepad_abar), trialset.trials, a₀)
-    # P = map(x->x[1], output)
-    # abar = map(x->x[2], output)
-    # sum(map(x->sum(sum(x)), abar))
-
-    # P = pmap((trial,a₀)->latent_one_trial(θ, trial, a₀, M, xc, dx, cross, dt, n), trials, a₀)
-
-    # choicelikelihood = pmap((P, trial)->sum(pulse_input_DDM.choice_likelihood!(bias,xc,P,trial.choice,n,dx)) * (1 - lapse) + lapse/2, P, trialset.trials)
-    # LLchoice = sum(log.(choicelikelihood))
-    #
-    # Xa = vcat(pmap(a->hcat(map(basis->DSP.filt(basis, a)[nprepad_abar+1:end], a_bases)...), abar)...)
-    #
-    # nLLspike = pmap(unit->pulse_input_DDM.mean_square_error(trialset.Xtiming, unit.Xautoreg, Xa, unit.y, L2regularizer), trialset.units)
-    # nLLspike = mean(nLLspike)*(size(trialset.trials)[1]);
-    #
-    # sum(LLchoice) - sum(nLLspike)
+    nprepad_abar = size(a_bases[1])[1]-1
+    output = pmap((a₀, trial)->pulse_input_DDM.latent_one_trial(a₀, cross, dt, dx, M, n, npostpad_abar, nprepad_abar, θ, trial, xc), a₀, trialset.trials)
+    abar = map(x->x[1], output)
+    choicelikelihood = map(x->x[2], output)
+    return abar, choicelikelihood
 end
 
 """
-"""
-function test_latent_one_trial(θ::θDDLM, trial::trialdata, P::Vector{T1}, M::Matrix{T1}, xc::Vector{T1}, dx::T1,
-cross::Bool, dt::Float64, n::Int) where {T1<:Real}
-    # @unpack clickcounts, clicktimes = trial
-    @unpack σ2_i, λ, σ2_a, σ2_s, ϕ, τ_ϕ = θ
-    # @unpack nT, nL, nR = clickcounts
-    # @unpack L, R = clicktimes
+    mean_latent_choice_likelihood
 
-    sum((λ*σ2_i*a₀*n*dt*dx).*xc.*P)
-    # sum(P0(σ2_i, a₀, n, dx, xc, dt).*λ)
-
-    # La, Ra = adapt_clicks(ϕ,τ_ϕ,L,R; cross=cross)
-    # F = zeros(T1, n, n)
-    # @inbounds for t = 1:nT
-    #     P,F = latent_one_step!(P,F,λ,σ2_a,σ2_s,t,nL,nR,La,Ra,M,dx,xc,n,dt)
-    # end
-end
-
-"""
-    latent_one_trial
-
-Calculate the distribution of the latent at the end of the trial and also return the mean trajectory of the latent during the trial
+Calculate the mean trajectory of the latent and the likelihood of the choice for a single trial
 
 ARGUMENTS
 -θ: an instance of `θDDLM`
@@ -147,56 +141,36 @@ RETURNS
 -P: the distribution of the latent at the end of the trial
 -abar: ̅a(t), a vector indicating the mean of the latent variable at each time step
 """
-function latent_one_trial(θ::θDDLM, trial::trialdata, a₀::T1, M::Matrix{T1},
-                            xc::Vector{T1}, dx::T1,
-                            cross::Bool, dt::Float64, n::Int) where {T1<:Real}
+function mean_latent_choice_likelihood(a₀::T1, cross::Bool, dt::Float64, dx::T2,
+    M::Matrix{T1}, n::Int, θ::θDDLM, trial::trialdata, xc::Vector{T1}) where {T1, T2<:Real}
 
-    # @unpack clickcounts, clicktimes = trial
-    # @unpack σ2_i, λ, σ2_a, σ2_s, ϕ, τ_ϕ = θ
-    # @unpack nT, nL, nR = clickcounts
-    # @unpack L, R = clicktimes
-    #
-    # #adapt magnitude of the click inputs
-    # La, Ra = adapt_clicks(ϕ,τ_ϕ,L,R; cross=cross)
-    #
-    # P = P0(σ2_i, a₀, n, dx, xc, dt)
-    #
-    # #empty transition matrix for time bins with clicks
-    # F = zeros(T1, n, n)
-    #
-    # # abar = Vector{T1}(undef, nprepad_abar+nT+npostpad_abar)
-    # # xcᵀ = transpose(xc)
-    #
-    # @inbounds for t = 1:nT
-    #     P,F = latent_one_step!(P,F,λ,σ2_a,σ2_s,t,nL,nR,La,Ra,M,dx,xc,n,dt)
-    #     # abar[t] = xcᵀ*P
-    # end
-    # # abar[1:nprepad_abar] .= abar[nprepad_abar+1]
-    # # abar[nprepad_abar+nT+1:end] .= abar[nprepad_abar+nT]
-    #
-    # # return P, abar
-    # return P
+    @unpack clickcounts, clicktimes, choice = trial
+    @unpack σ2_i, λ, lapse, σ2_a, σ2_s, ϕ, τ_ϕ = θ
+    @unpack nT, nL, nR = clickcounts
+    @unpack L, R = clicktimes
+
+    #adapt magnitude of the click inputs
+    La, Ra = adapt_clicks(ϕ,τ_ϕ,L,R; cross=cross)
+
+    P = P0(a₀, dt, dx, lapse, n, σ2_i)
+
+    #empty transition matrix for time bins with clicks
+    F = zeros(T1, n, n)
+
+    abar = Vector{T1}(undef, nprepad_abar+nT+npostpad_abar)
+    xcᵀ = transpose(xc)
+
+    @inbounds for t = 1:nT
+        P,F = latent_one_step!(P,F,λ,σ2_a,σ2_s,t,nL,nR,La,Ra,M,dx,xc,n,dt)
+        abar[t] = xcᵀ*P
+    end
+    abar[1:nprepad_abar] .= abar[nprepad_abar+1]
+    abar[nprepad_abar+nT+1:end] .= abar[nprepad_abar+nT]
+
+    choicelikelihood = sum(choice_likelihood!(bias,xc,P,choice,n,dx))
+
+    return abar, choicelikelihood
 end
-
-# """
-#     designmatrix
-#
-# Make a design matrix from the mean trajectory of the latent variable
-#
-# =INPUT
-#
-# -abar: ̅a(t), a vector of vectors of floats indicating the mean of the latent variable. Each element of the outer vector corresponds to a trial, and each element of the inner vector corresponds to a time bin
-# -a_bases: a vector of vector of floats corresponding to the kernel through which the mean latent trajectory is filtered. Each element of the outer vector corresponds to a basis, and each element of the inner array corresponds to a time bin
-#
-# =OUTPUT
-#
-# - a matrix of floats with a number of rows equal to sum of the number of time bins in each trial and a number of columns equal to the number of regressors. The trials are concatenated along the first dimension.
-#
-# """
-# function designmatrix(abar::T, a_bases::T) where {T<:Vector}
-#     npad = size(a_bases)[1]-1
-#     vcat(pmap(a->hcat(map(basis->filter(basis, a)[npad+1:end], a_bases)...), abar)...)
-# end
 
 """
     mean_square_error
@@ -246,23 +220,23 @@ function history_influence_on_initial_point(α::T, k::T, B::T, shifted::trialshi
 end
 
 """
+    P0(a₀, dt, dx, lapse, n, σ2_i)
+
+The initial distribution of the latent variable
+
+ARGUMENT
+
+-a₀: the latent variable at the beginning of the trial
+-dt: the size of the time bin, in seconds
+-dx: the size of each bin of the latent variable
+-lapse: the fraction of the trials the subject begins (and remains) at one of the two bounds, chosen randomly
+-n: number of bins the latent variable is divided into
+-σ2_i: the variance of the initial value
 """
-function initialize_DDLM(σ2_i::T, B::T, λ::T, σ2_a::T,
-     n::Int, dt::Float64) where {T <: Real}
-
-    xc,dx = bins(B,n)
-    M = transition_M(σ2_a*dt,λ,zero(T),dx,xc,n,dt)
-
-    return M, xc, dx
-end
-
-"""
-    initializeP(σ2_i, a₀, n, dx, xc, dt)
-
-"""
-function initializeP(σ2_i::T, a₀::T, n::Int, dx::T, xc::Vector{T}, dt::Float64) where {T <: Real}
-    P = zeros(T,n)
-    P[ceil(Int,n/2)] = one(T)
-    M = transition_M(σ2_i,zero(T),a₀,dx,xc,n,dt)
-    M * P
+function P0(a₀::T1, dt::Float64, dx::T2, lapse::T1, n::Int, σ2_i::T1) where {T1,T2 <: Any}
+    P = zeros(T1,n)
+    P[ceil(Int,n/2)] = one(T1) - lapse
+    P[1], P[n] = lapse/2., lapse/2.
+    M = transition_M(σ2_i, zero(T1), a₀, dx, xc, n, dt)
+    P = M * P
 end

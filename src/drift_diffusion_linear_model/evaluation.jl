@@ -35,39 +35,21 @@ ARGUMENT
 
 RETURN
 -abar: the predicted mean of the latent variable, organized as a vector of vectors of vectors. The outermost array corresponds to trial-sets, the second inner array coresponds to trials, and the innermost aray coresponds to time bins
--choiceprobability: the predicted probability of a right choice in each trial, organized as a vector of vectors. The outer vector corresponds to trial-sets, and the inner array corresponds to trials
+-choicelikelihood: the predicted likelihood of a right choice in each trial, organized as a vector of vectors. The outer vector corresponds to trial-sets, and the inner array corresponds to trials
+-Xa: The columns of the design matrix that depends on the latent variable, organized as a vector of matrics. Each element of the outer array corresponds to a trial-set.
 """
 
 function predict_in_sample(model::DDLM)
     @unpack θ, data, options = model
+    @unpack a_bases = options
+
     options.remap && (θ = θ2(θ))
-    map(trialset->predict_in_sample(trialset, θ, options), data)
-end
+    output = map(trialset->mean_latent_choice_likelihood(θ, trialset, options), data)
+    abar = map(x->x[1], output)
+    choicelikelihood = map(x->x[2], output)
 
-"""
-    predict_in_sample
+    nprepad_abar = size(a_bases[1])[1]-1
+    Xa = map(abar->vcat(pmap(a->hcat(map(basis->DSP.filt(basis, a)[nprepad_abar+1:end], a_bases)...), abar)...), abar)
 
-Compute the model-predicted choice probability and mean of the latent variable in each trial in a single trial-set
-
-ARGUMENT
--trialset: an instance of `trialsetdata`
--θ: an instance of `θDDLM,` parameters of the drift-diffusion linear model
--options: an instance of `DDLMoptions,` specification of the of the drift-diffusion linear model
-
-RETURN
--abar: the predicted mean of the latent variable, organized as a vector of vectors. The outer array coresponds to trials, and the inner aray coresponds to time bins
--choiceprobability: the predicted probability of a right choice in each trial, organized as a vector of floats.
-"""
-
-function predict_in_sample(trialset::trialsetdata, θ::θDDLM, options::DDLMoptions)
-    @unpack σ2_i, B, λ, σ2_a, α, k, bias, lapse = θ
-    @unpack trials, shifted, units = trialset
-    @unpack a_bases, cross, dt, n = options
-
-    P,M,xc,dx = initialize_latent_model(σ2_i, B, λ, σ2_a, n, dt) # P is not used
-    a₀ = history_influence_on_initial_point(α, k, B, shifted)
-    P, abar = pmap((trial,a₀)->latent_one_trial(θ, trial, a₀, M, transpose(xc), dx, n, cross, 0), trials, a₀)
-    choiceprobability = pmap((P, trial)->sum(choice_likelihood!(bias,xc,P,true,n,dx)) * (1 - lapse) + lapse/2, P, trials)
-
-    return abar, choiceprobability
+    return abar, choicelikelihood, Xa
 end
