@@ -77,7 +77,7 @@ RETURN
 """
 function loglikelihood(θ::θDDLM, trialset::trialsetdata, options::DDLMoptions)
 
-    @unpack a_bases = options
+    @unpack a_bases, L2regularizer = options
 
     abar, choicelikelihood = mean_latent_choice_likelihood(θ::θDDLM, trialset::trialsetdata, options::DDLMoptions)
 
