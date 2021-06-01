@@ -31,14 +31,10 @@ function optimize(model::DDLM;
         f_tol=f_tol, iterations=iterations, show_trace=show_trace,
         outer_iterations=outer_iterations, scaled=scaled,
         extended_trace=extended_trace)
-
+    Optim.converged(output) || error("Failed to converge in $(Optim.iterations(output)) iterations")
     x = Optim.minimizer(output)
     x = stack(x,c,fit)
-
-    model = DDLM(data=data, options=options, θ=θDDLM(x))
-    converged = Optim.converged(output)
-
-    return model, output
+    DDLM(data=data, options=options, θ=θDDLM(x))
 end
 
 """
@@ -82,10 +78,9 @@ function loglikelihood(θ::θDDLM, trialset::trialsetdata, options::DDLMoptions)
 
     @unpack α, B, bias, k, λ, lapse, σ2_a, σ2_i= θ
     @unpack a_bases, cross, dt, L2regularizer, n, npostpad_abar = options
-    @unpack shifted, trials = trialset
 
     xc, dx = bins(B, n)
-    M = transition_M(σ2_a*dt,λ,zero(typeof(σ2_a)),dx,xc,n,dt)
+    M = transition_M(σ2_a*dt, λ, zero(typeof(σ2_a)), dx, xc, n, dt)
     a₀ = history_influence_on_initial_point(α, k, B, trialset.shifted)
 
     P = P0(σ2_i, n, dx, xc, dt)
