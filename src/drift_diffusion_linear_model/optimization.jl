@@ -237,7 +237,7 @@ function forwardpass!(abar::Vector{T1}, F::Matrix{T1}, a₀::T1, latentspec::lat
     F .*= typedzero
     P .*= typedzero
     P[ceil(Int,n/2)] = typedone
-    transition_M!(F, σ2_i, zero_T1, a₀, dx, xc, n, dt)
+    transition_M!(F, σ2_i, typedzero, a₀, dx, xc, n, dt)
     P = F * P
 
     La, Ra = adapt_clicks(ϕ,τ_ϕ,L,R; cross=cross)
