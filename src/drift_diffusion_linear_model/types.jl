@@ -198,7 +198,7 @@ A container of variable specifying the latent space
 -typedone: a one of the type of the model parameters
 -xc: centers of bins in latent space
 """
-@with_kw struct latentspecification{T1<:Bool, T2<:Float64, T3<:Float64, T4<:Matrix{<:Real}, T5::Int, T6<:Real, T7<:Vector{<:Real}}
+@with_kw struct latentspecification{T1<:Bool, T2<:Float64, T3<:Float64, T4<:Matrix{<:Real}, T5<:Int, T6<:Real, T7<:Vector{<:Real}}
     cross::T1
     dt::T2
     dx::T3
