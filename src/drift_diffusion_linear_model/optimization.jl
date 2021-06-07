@@ -20,14 +20,14 @@ function optimize(model::DDLM;
     @unpack θ, data, options = model
     @unpack fit, lb, ub = options
 
-    abar, F, P, X = preallocate(model)
+    abar, F, P, X = preallocate(model) #abar, F, P, X = pulse_input_DDM.preallocate(model)
 
-    x0 = pulse_input_DDM.flatten(θ)
+    x0 = pulse_input_DDM.flatten(θ) # x = pulse_input_DDM.flatten(θ)
     lb, = unstack(lb, fit)
     ub, = unstack(ub, fit)
     x0,c = unstack(x0, fit)
 
-    ℓℓ(x) = -loglikelihood(stack(x,c,fit), data, options, abar, F, P, X)
+    ℓℓ(x) = -loglikelihood(stack(x,c,fit), data, options, abar, F, P, X) #pulse_input_DDM.loglikelihood(x, data, options, abar, F, P, X)
 
     output = optimize(x0, ℓℓ, lb, ub; g_tol=g_tol, x_tol=x_tol,
         f_tol=f_tol, iterations=iterations, show_trace=show_trace,
@@ -87,7 +87,7 @@ function loglikelihood(x::Vector{T1}, data::Vector{T2}, options::DDLMoptions, ab
     θ = θDDLM(x)
     options.remap && (θ = θ2(θ))
     latentspec = latentspecification(options, θ)
-    sum(map((trialset)->loglikelihood(θ, trialset, latentspec, options, abar, F, P, X), data))
+    sum(map((trialset, abar, F, P, X)->loglikelihood(θ, trialset, latentspec, options, abar, F, P, X), data, abar, F, P, X))
 end
 
 """
