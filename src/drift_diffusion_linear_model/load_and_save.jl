@@ -79,7 +79,11 @@ function parse_one_trialset(trialset::Dict, options::DDLMoptions)
     laggedanswer = convert(Matrix{Int64}, trialset["lagged"]["answer"])
     laggedchoice = convert(Matrix{Int64}, trialset["lagged"]["choice"])
     laggedreward = convert(Matrix{Int64}, trialset["lagged"]["reward"])
-    lag = convert(Matrix{Int64}, trialset["lagged"]["lag"])
+    if typeof(trialset["lagged"]["lag"])==Float64
+        lag = fill(convert(Int, trialset["lagged"]["lag"]), 1, 1)
+    else
+        lag = convert(Matrix{Int64}, trialset["lagged"]["lag"])
+    end
     eˡᵃᵍ⁺¹ = exp.(lag.+1)
     lagged = laggeddata(answer=laggedanswer, choice=laggedchoice, eˡᵃᵍ⁺¹=eˡᵃᵍ⁺¹, lag=lag, reward=laggedreward)
 
