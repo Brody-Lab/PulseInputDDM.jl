@@ -44,11 +44,11 @@ function predict_in_sample(model::DDLM)
     @unpack a_bases = options
 
     options.remap && (θ = θ2(θ))
-    latentspec = latentspecification(options, θ)
+    latentspec = pulse_input_DDM.latentspecification(options, θ)
     @unpack dx, n, xc = latentspec
-    abar, F, P, X = preallocate(model)
+    abar, F, P, X = pulse_input_DDM.preallocate(model)
 
-    P = map((abar, F, P, trialset)->forwardpass!(abar, F, latentspec, P, θ, trialset), abar, F, P, data)
+    P = map((abar, F, P, trialset)->pulse_input_DDM.forwardpass!(abar, F, latentspec, P, θ, trialset), abar, F, P, data)
     choicelikelihood = map((P,trialset)->map((P, trial)->sum(choice_likelihood!(bias,xc,P,trial.choice,n,dx)), P, trialset.trials), P, data)
 
     return abar, choicelikelihood

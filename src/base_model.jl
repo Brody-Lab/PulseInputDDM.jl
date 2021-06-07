@@ -264,9 +264,7 @@ end
 function transition_M!(F::Array{TT,2}, σ2::TT, λ::TT, μ::TT, dx::UU,
         xc::Vector{TT}, n::Int, dt::Float64) where {TT,UU <: Any}
 
-    # F[1,1] = one(TT); F[n,n] = one(TT); F[:,2:n-1] = zeros(TT,n,n-2)
-    F[1,1] = one(TT)
-    F[n,n] = one(TT)
+    F[1,1] = one(TT); F[n,n] = one(TT)#; F[:,2:n-1] = zeros(TT,n,n-2)
     Fview = @view F[:,2:n-1]
     Fview = Fview .* zero(TT)
 

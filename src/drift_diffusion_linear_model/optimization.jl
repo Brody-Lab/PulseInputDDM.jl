@@ -197,7 +197,7 @@ function forwardpass!(abar::Vector{Vector{T1}}, F::Vector{Matrix{T1}}, latentspe
     @unpack α, B, k = θ
     @unpack lagged, trials = trialset
 
-    a₀ = history_influence_on_initial_point(α, B, k, lagged)
+    a₀ = pulse_input_DDM.history_influence_on_initial_point(α, B, k, lagged)
     pmap((abar, F, a₀, P, trial)->forwardpass!(abar, F, a₀, latentspec, P, θ, trial), abar, F, a₀, P, trials)
 end
 
@@ -234,16 +234,16 @@ function forwardpass!(abar::Vector{T1}, F::Matrix{T1}, a₀::T1, latentspec::lat
     @unpack L, R = clicktimes
     @unpack cross, dt, dx, n, nprepad_abar, typedzero, typedone, xc = latentspec
 
-    F .*= typedzero
-    P .*= typedzero
+    F = F.*typedzero
+    P = P.*typedzero
     P[ceil(Int,n/2)] = typedone
-    transition_M!(F, σ2_i, typedzero, a₀, dx, xc, n, dt)
+    pulse_input_DDM.transition_M!(F, σ2_i, typedzero, a₀, dx, xc, n, dt)
     P = F * P
 
-    La, Ra = adapt_clicks(ϕ,τ_ϕ,L,R; cross=cross)
+    La, Ra = pulse_input_DDM.adapt_clicks(ϕ,τ_ϕ,L,R; cross=cross)
 
     @inbounds for t = 1:nT
-        P = forward_one_step!(F,λ,σ2_a,σ2_s,t,nL,nR,La,Ra,latentspec,P)
+        P = pulse_input_DDM.forward_one_step!(F,λ,σ2_a,σ2_s,t,nL,nR,La,Ra,latentspec,P)
         abar[nprepad_abar+t] = sum(xc.*P)
     end
 
