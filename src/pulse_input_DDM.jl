@@ -379,7 +379,6 @@ include("joint_model/fit_jointmodel.jl")
 include("drift_diffusion_linear_model/types.jl")
 include("drift_diffusion_linear_model/load_and_save.jl")
 include("drift_diffusion_linear_model/optimization.jl")
-include("drift_diffusion_linear_model/preallocation.jl")
 include("drift_diffusion_linear_model/evaluation.jl")
 
 end
