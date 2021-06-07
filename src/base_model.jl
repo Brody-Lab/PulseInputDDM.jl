@@ -93,7 +93,7 @@ end
 function P0(σ2_i::TT, n::Int, dx::VV, xc::Vector{TT}, dt::Float64) where {TT,VV <: Any}
 
     P = zeros(TT,n)
-    P[ceil(Int,n/2)] = one(TT) 
+    P[ceil(Int,n/2)] = one(TT)
     M = transition_M(σ2_i,zero(TT),zero(TT),dx,xc,n,dt)
     P = M * P
 
@@ -109,7 +109,7 @@ function ΣLR_ΔLR(t::Int, nL::Vector{Int}, nR::Vector{Int},
     any(t .== nR) ? sR = sum(Ra[t .== nR]) : sR = zero(TT)
 
     sL + sR, -sL + sR
-    
+
 end
 
 
@@ -121,18 +121,18 @@ function backward_one_step!(P::Vector{TT}, F::Array{TT,2}, λ::TT, σ2_a::TT, σ
         t::Int, nL::Vector{Int}, nR::Vector{Int},
         La::Vector{TT}, Ra::Vector{TT}, M::Array{TT,2},
         dx::UU, xc::Vector{TT}, n::Int, dt::Float64) where {TT,UU <: Any}
-    
+
     Σ, μ = ΣLR_ΔLR(t, nL, nR, La, Ra)
 
     σ2 = σ2_s * Σ
-    
+
     if Σ > zero(TT)
         transition_M!(F,σ2+σ2_a*dt,λ, μ, dx, xc, n, dt)
         P = F' * P
     else
         P = M' * P
     end
-    
+
     return P, F
 
 end
@@ -151,7 +151,7 @@ function latent_one_step!(P::Vector{TT}, F::Array{TT,2}, λ::TT, σ2_a::TT, σ2_
     any(t .== nR) ? sR = sum(Ra[t .== nR]) : sR = zero(TT)
 
     σ2 = σ2_s * (sL + sR);   μ = -sL + sR
-    
+
     if (sL + sR) > zero(TT)
         transition_M!(F,σ2+σ2_a*dt,λ, μ, dx, xc, n, dt)
         P = F * P
@@ -264,7 +264,11 @@ end
 function transition_M!(F::Array{TT,2}, σ2::TT, λ::TT, μ::TT, dx::UU,
         xc::Vector{TT}, n::Int, dt::Float64) where {TT,UU <: Any}
 
-    F[1,1] = one(TT); F[n,n] = one(TT); F[:,2:n-1] = zeros(TT,n,n-2)
+    # F[1,1] = one(TT); F[n,n] = one(TT); F[:,2:n-1] = zeros(TT,n,n-2)
+    F[1,1] = one(TT)
+    F[n,n] = one(TT)
+    Fview = @view F[:,2:n-1]
+    Fview = Fview .* zero(TT)
 
     ndeltas = max(70,ceil(Int, 10. *sqrt(σ2)/dx))
 
@@ -354,9 +358,9 @@ Returns:
 
 """
 function adapt_clicks(ϕ::TT, τ_ϕ::TT, L::Vector{Float64}, R::Vector{Float64}; cross::Bool=false) where {TT}
-    
+
     if cross
-        
+
         all = vcat(hcat(L[2:end], -1 * ones(length(L)-1)), hcat(R, ones(length(R))))
         all = all[sortperm(all[:, 1]), :]
         adapted = ones(TT, size(all,1))
@@ -366,15 +370,15 @@ function adapt_clicks(ϕ::TT, τ_ϕ::TT, L::Vector{Float64}, R::Vector{Float64};
         else
             (length(all) > 1 && ϕ != 1.) ? adapt_clicks!(ϕ, τ_ϕ, adapted, all[:, 1]) : nothing
         end
-        
+
         all = vcat([0., -1.]', all)
         adapted = vcat(eps(), adapted)
         La, Ra = adapted[all[:,2] .== -1.], adapted[all[:,2] .== 1.]
-        
+
     else
 
         La, Ra = ones(TT,length(L)), ones(TT,length(R))
-    
+
         #this if statement is for cases when ϕ is 1. and not being learned
         if (typeof(ϕ) == Float64) && (isapprox(ϕ, 1.0))
         else
@@ -382,7 +386,7 @@ function adapt_clicks(ϕ::TT, τ_ϕ::TT, L::Vector{Float64}, R::Vector{Float64};
             (length(L) > 1 && ϕ != 1.) ? adapt_clicks!(ϕ, τ_ϕ, La, L) : nothing
             (length(R) > 1 && ϕ != 1.) ? adapt_clicks!(ϕ, τ_ϕ, Ra, R) : nothing
         end
-        
+
     end
 
     return La, Ra
@@ -399,15 +403,15 @@ function adapt_clicks!(ϕ::TT, τ_ϕ::TT, Ca::Vector{TT}, C::Vector{Float64}) wh
     ici = diff(C)
 
     for i = 1:length(ici)
-        
+
         arg = (1/τ_ϕ) * (-ici[i] + xlogy(τ_ϕ, abs(1. - Ca[i]* ϕ)))
-        
+
         if Ca[i]* ϕ <= 1
             Ca[i+1] = 1. - exp(arg)
         else
             Ca[i+1] = 1. + exp(arg)
         end
-        
+
     end
 
 end

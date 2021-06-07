@@ -110,7 +110,7 @@ Fields:
 
 """
 @with_kw struct trialdata{T1 <: binned_clicks, T2 <: clicks, T3 <: Bool}
-    clickcounts::T1
+    clickindices::T1
     clicktimes::T2
     choice::T3
 end
@@ -121,13 +121,35 @@ end
 Module-defined type containing design matrix and spike count of each unit
 
 Fields:
-- Xautoreg: component of the design matrix containing auroregressive regressors based on the spiking history
+- ℓ₀y: column vector indicating the likelihood of the spike train conditioned on the latent being zero for all time bins and all trials
+- X: the design matrix containing auroregressive regressors based on the spiking history and regressors related to the timing of trial events. The columns related to the latent variable variable are preallocated as zeros.
 - y: column vector of spike count of the unit in each time bin in each trial, concatenated across trials
+"""
+@with_kw struct unitdata{T1 <: Vector{Float64}, T2 <: Matrix{Float64}}
+    ℓ₀y::T1
+    X::T2
+    y::T1
+end
 
 """
-@with_kw struct unitdata{T1 <: Matrix{Float64}, T2 <: Vector{Float64}}
-    Xautoreg::T1
-    y::T2
+    laggeddata
+
+Module-defined type providing information on the lagged outcome and choices.
+
+Fields:
+
+- `choice`: number-of-trials by 2*number-of-lags+1 array of Int64. Each row  corresponds to a trial whose choice and firing ratees are being fitted, and each column corresponds to the choice a particular lag relative to that trial. A value of -1 indicates a left choice, 1 a right choice, and 0 no information at that lag. For example, `choice[i,j]' represents the choice lagged by `lag[j]` from trial i.
+- `answer`: Same organization as `choice.` The values -1, 1, and 0 represent a previous left answer, a previous right answer, and lack of information on the answer on a trial in the past or future.
+- `reward`: Same organization as `choice.` The values -1, 1, and 0 represent the absence of, presence of, and lack of information on reward on a trial in the past or future.
+- `lag`: a row indicating the number of trials in the past (negative values) or future (positive values) represented by each column of `answer`, `choice`, and `reward`
+- eˡᵃᵍ⁺¹: A row indicating the exponentiated values of the sum `lag`+1
+"""
+@with_kw struct laggeddata{T1<:Matrix{Int64}, T2<:Matrix{Float64}}
+    answer::T1
+    choice::T1
+    eˡᵃᵍ⁺¹::T2
+    lag::T1
+    reward::T1
 end
 
 """
@@ -136,18 +158,14 @@ end
 Module-defined type containing information on the behavioral data in each trial and the spike count data of each unit
 
 Fields:
-- shifted: An instance of 'trialshifted'
+- lagged: An instance of 'laggeddata'
 - trials: A vector of 'trialdata' objects
 - units: A vector of 'unitdata' objects
-- Xtiming: the component of the design matrix that contains regressors related to the timing of events in each trial
 """
-@with_kw struct trialsetdata{T1<:trialshifted, T2<:Vector, T3<:Vector, T4<:Matrix{Float64}}
-    shifted::T1
+@with_kw struct trialsetdata{T1<:laggeddata, T2<:Vector{<:trialdata}, T3<:Vector{<:unitdata}}
+    lagged::T1
     trials::T2
     units::T3
-    Xtiming::T4
-    @assert all(map(x->typeof(x)<:trialdata, trials))
-    @assert all(map(x->typeof(x)<:unitdata, units))
 end
 
 """
@@ -160,9 +178,34 @@ Fields:
 - options: an instance of 'DDLMoptions'
 - θ: an instance of ''θDDLM'
 """
-@with_kw struct DDLM{T1<:Vector, T2<:DDLMoptions, T3<:θDDLM} <: DDM
+@with_kw struct DDLM{T1<:Vector{<:trialsetdata}, T2<:DDLMoptions, T3<:θDDLM} <: DDM
     data::T1
     options::T2
     θ::T3
-    @assert all(map(x->typeof(x)<:trialsetdata, data))
+end
+
+"""
+    latentspecification
+
+A container of variable specifying the latent space
+-cross: whether cross-stream adaptation is implemented
+-dt: size of each time bin
+-dx: size of the bins into which latent space is discretized
+-M: P(aₜ|aₜ₋₁, θ, δₜ=0), i.e., a square matrix representing the transition matrix if no clicks occurred in the current time step
+-n: number of bins into which latent space is discretized
+-nprepad_abar: number of time bins to pad the beginning mean of the latent trajectory
+-typedzero: a zero of the type of the model parameters
+-typedone: a one of the type of the model parameters
+-xc: centers of bins in latent space
+"""
+@with_kw struct latentspecification{T1<:Bool, T2<:Float64, T3<:Float64, T4<:Matrix{<:Real}, T5::Int, T6<:Real, T7<:Vector{<:Real}}
+    cross::T1
+    dt::T2
+    dx::T3
+    M::T4
+    n::T5
+    nprepad_abar::T5
+    typedzero::T6
+    typedone::T6
+    xc::T7
 end

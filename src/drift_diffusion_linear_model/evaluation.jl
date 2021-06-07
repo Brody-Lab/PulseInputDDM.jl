@@ -19,8 +19,8 @@ function Hessian(model::DDLM; chunk_size::Int=4)
     @unpack fit = options
     x = pulse_input_DDM.flatten(θ)
     x,c = unstack(x, fit)
-    ℓℓ(x) = -loglikelihood(stack(x,c,fit), data, options)
-
+    abar, F, P, X = preallocate(model)
+    ℓℓ(x) = -loglikelihood(stack(x,c,fit), data, options, abar, F, P, X)
     cfg = ForwardDiff.HessianConfig(ℓℓ, x, ForwardDiff.Chunk{chunk_size}())
     ForwardDiff.hessian(ℓℓ, x, cfg)
 end
@@ -36,20 +36,20 @@ ARGUMENT
 RETURN
 -abar: the predicted mean of the latent variable, organized as a vector of vectors of vectors. The outermost array corresponds to trial-sets, the second inner array coresponds to trials, and the innermost aray coresponds to time bins
 -choicelikelihood: the predicted likelihood of a right choice in each trial, organized as a vector of vectors. The outer vector corresponds to trial-sets, and the inner array corresponds to trials
--Xa: The columns of the design matrix that depends on the latent variable, organized as a vector of matrics. Each element of the outer array corresponds to a trial-set.
 """
 
 function predict_in_sample(model::DDLM)
     @unpack θ, data, options = model
+    @unpack bias = θ
     @unpack a_bases = options
 
     options.remap && (θ = θ2(θ))
-    output = map(trialset->mean_latent_choice_likelihood(θ, trialset, options), data)
-    abar = map(x->x[1], output)
-    choicelikelihood = map(x->x[2], output)
+    latentspec = latentspecification(options, θ)
+    @unpack dx, n, xc = latentspec
+    abar, F, P, X = preallocate(model)
 
-    nprepad_abar = size(a_bases[1])[1]-1
-    Xa = map(abar->vcat(pmap(a->hcat(map(basis->DSP.filt(basis, a)[nprepad_abar+1:end], a_bases)...), abar)...), abar)
+    P = map((abar, F, P, trialset)->forwardpass!(abar, F, latentspec, P, θ, trialset), abar, F, P, data)
+    choicelikelihood = map((P,trialset)->map((P, trial)->sum(choice_likelihood!(bias,xc,P,trial.choice,n,dx), P, trialsets.trials), P, data)
 
-    return abar, choicelikelihood, Xa
+    return abar, choicelikelihood
 end

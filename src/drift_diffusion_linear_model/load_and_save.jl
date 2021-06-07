@@ -3,7 +3,7 @@
 
 Initiate a drift-diffusion linear model by loading the data and specifications from a MATLAB file
 
-The file `<datapath>.mat` should contain two structures, `options` and `trialsets.` The structure `options` should contains the same fields as in the type `DDLMoptions` and the structure `trialsets` should be a vector whose each element is an instance of `trialsetdata.` Each element of `trialsets` correspond to one trial-set and has the fields `trials`, `units`, and `trialshifted.` The fields `trials,` `units,` and `shifted` are each a vector of instances of `trialdata,` `unitdata,` and `shifted,` respectively and should be organized similarly to the types defined in the Julia `pulse_input_DDM` package.
+The file `<datapath>.mat` should contain two structures, `options` and `trialsets.` The structure `options` should contains the same fields as in the type `DDLMoptions` and the structure `trialsets` should be a vector whose each element is an instance of `trialsetdata.` Each element of `trialsets` correspond to one trial-set and has the fields `trials`, `units`, and `triallagged.` The fields `trials,` `units,` and `lagged` are each a vector of instances of `trialdata,` `unitdata,` and `lagged,` respectively and should be organized similarly to the types defined in the Julia `pulse_input_DDM` package.
 
 ARGUMENT
 
@@ -67,19 +67,23 @@ function parse_one_trialset(trialset::Dict, options::DDLMoptions)
     choice = map(x->x["choice"], rawtrials)
 
     clicktimes = map((L,R,T)->clicks(L=L, R=R, T=T), L, R, T)
-    clickcounts = map(x->bin_clicks(x, centered=options.centered, dt=options.dt), clicktimes)
-    trials = map((clickcounts, clicktimes, choice)->trialdata(clickcounts=clickcounts, clicktimes=clicktimes, choice=choice), clickcounts, clicktimes, choice)
+    clickindices = map(x->bin_clicks(x, centered=options.centered, dt=options.dt), clicktimes)
+    trials = map((clickindices, clicktimes, choice)->trialdata(clickindices=clickindices, clicktimes=clicktimes, choice=choice), clickindices, clicktimes, choice)
 
     rawunits = vec(trialset["units"])
-    Xautoreg = map(x->x["Xautoreg"], rawunits)
+    ℓ₀y = map(x->x["likelihood0_y"], rawunits)
+    X = map(x->x["X"], rawunits)
     y = map(x->vec(x["y"]), rawunits)
-    units = map((X,y)->unitdata(X,y), Xautoreg, y)
+    units = map((ℓ₀y, X, y)->unitdata(ℓ₀y=ℓ₀y, X=X, y=y), ℓ₀y, X, y)
 
-    shifted = trialshifted(convert(Matrix{Int64}, trialset["shifted"]["choice"]),
-                           convert(Matrix{Int64}, trialset["shifted"]["reward"]),
-                           convert(Matrix{Int64}, trialset["shifted"]["shift"]))
+    laggedanswer = convert(Matrix{Int64}, trialset["lagged"]["answer"])
+    laggedchoice = convert(Matrix{Int64}, trialset["lagged"]["choice"])
+    laggedreward = convert(Matrix{Int64}, trialset["lagged"]["reward"])
+    lag = convert(Matrix{Int64}, trialset["lagged"]["lag"])
+    eˡᵃᵍ⁺¹ = exp.(lag.+1)
+    lagged = laggeddata(answer=laggedanswer, choice=laggedchoice, eˡᵃᵍ⁺¹=eˡᵃᵍ⁺¹, reward=laggedreward, lag=lag, answer=laggedanswer)
 
-    trialsetdata(shifted=shifted, trials=trials, units=units, Xtiming=trialset["Xtiming"])
+    trialsetdata(lagged=lagged, trials=trials, units=units)
 end
 
 """
@@ -95,12 +99,11 @@ ARGUMENT
 
 function save(model::DDLM)
 
-    abar, choicelikelihood, Xa = pulse_input_DDM.predict_in_sample(model)
+    abar, choicelikelihood = pulse_input_DDM.predict_in_sample(model)
     dict = Dict("ML_params"=> pulse_input_DDM.flatten(model.θ),
                 "parameter_name" => pulse_input_DDM.θDDLM_names(), #"Hessian" => Hessian(model),
                 "abar_insample" => abar,
-                "choicelikelihood_insample" => choicelikelihood,
-                "Xa_insample" => Xa)
+                "choicelikelihood_insample" => choicelikelihood)
     matwrite(model.options.resultspath, dict)
 end
 
