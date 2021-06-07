@@ -137,7 +137,7 @@ function loglikelihood(θ::θDDLM, trialset::trialsetdata, latentspec::latentspe
     @unpack trials, units = trialset
     @unpack dx, n, nprepad_abar, xc = latentspec
 
-    P = forwardpass!(abar, F, latentspec, P, θ, trialset)
+    P = forwardpass!(abar, F, latentspec, P, θ, trialset) # P[1] = forwardpass!(abar[1], F[1], latentspec, P[1], θ, data[1])
     ℓℓ_choice = sum(log.(map((P, trial)->sum(choice_likelihood!(bias,xc,P,trial.choice,n,dx), P, trials))))
     Xa = hcat(map(basis->vcat(pmap(abar->DSP.filt(basis, abar)[nprepad_abar+1:end], abar)...), a_bases)...)
     ℓℓ_spike_train = mean(pmap((unit, X)->mean(loglikelihood(L2regularizer, unit.ℓ₀y, lapse, X, Xa, unit.y)), units, X))*size(trials)[1]
