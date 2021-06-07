@@ -49,7 +49,7 @@ function predict_in_sample(model::DDLM)
     abar, F, P, X = preallocate(model)
 
     P = map((abar, F, P, trialset)->forwardpass!(abar, F, latentspec, P, θ, trialset), abar, F, P, data)
-    choicelikelihood = map((P,trialset)->map((P, trial)->sum(choice_likelihood!(bias,xc,P,trial.choice,n,dx)), P, trialsets.trials), P, data)
+    choicelikelihood = map((P,trialset)->map((P, trial)->sum(choice_likelihood!(bias,xc,P,trial.choice,n,dx)), P, trialset.trials), P, data)
 
     return abar, choicelikelihood
 end
