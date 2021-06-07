@@ -169,7 +169,7 @@ function loglikelihood!(L2regularizer::Matrix{Float64}, ℓ₀y::Vector{T1}, lap
     ŷ = X*β
     e = y-ŷ
     σ² = var(e)
-    log.((((1-lapse)/sqrt(2π*σ²)).*exp.(-(e.^2)./2σ²) + lapse.*ℓ₀y)
+    log.((((1-lapse)/sqrt(2π*σ²)).*exp.(-(e.^2)./2σ²) + lapse.*ℓ₀y))
 end
 
 """
