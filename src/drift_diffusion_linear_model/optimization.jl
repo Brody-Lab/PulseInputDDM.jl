@@ -130,7 +130,7 @@ RETURN
 -The summed log-likelihood of the choice and spike trains given the model parameters. Note that the likelihood of the spike trains of all units in each trial is normalized to be of the same magnitude as that of the choice, between 0 and 1.
 
 """
-function loglikelihood(θ::θDDLM, trialset::trialsetdata, latentspec::latentspecification, options::DDLMoptions, abar::Vector{Vector{T1}}, F::Vector{Matrix{T1}}, P::Vector{Vector{T1}}, X::Vector{Matrix{T1}}) where{T1<:Real}
+function loglikelihood(θ::θDDLM, trialset::trialsetdata, latentspec::latentspecification, options::DDLMoptions, abar::Vector{Vector{T1}}, F::Vector{Matrix{T1}}, P::Vector{Vector{T1}}, X::Vector{Matrix{T1}}) where{T1<:Float64}
 
     @unpack a_bases, L2regularizer = options
     @unpack bias, lapse = θ
@@ -195,7 +195,7 @@ RETURN
 
 -P: A vector of vectors specifying the probability of the latent variable in each bin. Each element of the outer array corresponds to an individual trial
 """
-function forwardpass!(abar::Vector{Vector{T1}}, F::Vector{Matrix{T1}}, latentspec::latentspecification, P::Vector{Vector{T1}}, θ::θDDLM, trialset::trialsetdata) where {T1<:Real}
+function forwardpass!(abar::Vector{Vector{T1}}, F::Vector{Matrix{T1}}, latentspec::latentspecification, P::Vector{Vector{T1}}, θ::θDDLM, trialset::trialsetdata) where {T1<:Float64}
     @unpack α, B, k = θ
     @unpack lagged, trials = trialset
 
@@ -229,7 +229,7 @@ MODIFICATION
 RETURN
 -P: A vector specifying the probability of the latent variable in each bin
 """
-function forwardpass!(abar::Vector{T1}, F::Matrix{T1}, a₀::T1, latentspec::latentspecification, P::Vector{T1}, θ::θDDLM, trial::trialdata) where {T1<:Real}
+function forwardpass!(abar::Vector{T1}, F::Matrix{T1}, a₀::T1, latentspec::latentspecification, P::Vector{T1}, θ::θDDLM, trial::trialdata) where {T1<:Float64}
     @unpack clickindices, clicktimes, choice = trial
     @unpack σ2_i, λ, σ2_a, σ2_s, ϕ, τ_ϕ = θ
     @unpack nT, nL, nR = clickindices
