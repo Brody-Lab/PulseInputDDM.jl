@@ -232,7 +232,7 @@ function forwardpass!(abar::Vector{T1}, F::Matrix{T1}, a₀::T1, latentspec::lat
     @unpack σ2_i, λ, σ2_a, σ2_s, ϕ, τ_ϕ = θ
     @unpack nT, nL, nR = clickindices
     @unpack L, R = clicktimes
-    @unpack cross, dt, n, nprepad_abar, typedzero, typedone = latentspec
+    @unpack cross, dt, dx, n, nprepad_abar, typedzero, typedone = latentspec
 
     F .*= typedzero
     P .*= typedzero
