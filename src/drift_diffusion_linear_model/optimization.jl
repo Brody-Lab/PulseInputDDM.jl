@@ -234,18 +234,25 @@ function forwardpass!(abar::Vector{T1}, F::Matrix{T1}, a₀::T1, latentspec::lat
     @unpack L, R = clicktimes
     @unpack cross, dt, dx, n, nprepad_abar, typedzero, typedone, xc = latentspec
 
-    F = F.*typedzero
-    P = P.*typedzero
-    P[ceil(Int,n/2)] = typedone
-    pulse_input_DDM.transition_M!(F, σ2_i, typedzero, a₀, dx, xc, n, dt)
-    P = F * P
+    F = F.*typedzero #F[1][1] = F[1][1].*typedzero
+    P = P.*typedzero # P[1][1] = P[1][1].*typedzero
+    P[ceil(Int,n/2)] = typedone #P[1][1][ceil(Int,n/2)] = typedone
+    transition_M!(F, σ2_i, typedzero, a₀, dx, xc, n, dt) #pulse_input_DDM.transition_M!(F[1][1], σ2_i, typedzero, a₀[1], dx, xc, n, dt)
+    P = F * P #P[1][1] = F[1][1] * P[1][1]
 
-    La, Ra = pulse_input_DDM.adapt_clicks(ϕ,τ_ϕ,L,R; cross=cross)
+    La, Ra = adapt_clicks(ϕ,τ_ϕ,L,R; cross=cross) #La, Ra = pulse_input_DDM.adapt_clicks(ϕ,τ_ϕ,L,R; cross=cross)
 
     @inbounds for t = 1:nT
-        P = pulse_input_DDM.forward_one_step!(F,λ,σ2_a,σ2_s,t,nL,nR,La,Ra,latentspec,P)
+        P = forward_one_step!(F,λ,σ2_a,σ2_s,t,nL,nR,La,Ra,latentspec,P)
         abar[nprepad_abar+t] = sum(xc.*P)
     end
+    """
+    @inbounds for t = 1:nT
+        P[1][1] = pulse_input_DDM.forward_one_step!(F[1][1],λ,σ2_a,σ2_s,t,nL,nR,La,Ra,latentspec,P[1][1])
+        abar[1][1][nprepad_abar+t] = sum(xc.*P[1][1])
+    end
+
+    """
 
     abar[1:nprepad_abar] .= abar[nprepad_abar+1]
     abar[nprepad_abar+nT+1:end] .= abar[nprepad_abar+nT]
@@ -299,6 +306,20 @@ function forward_one_step!(F::Array{TT,2}, λ::TT, σ2_a::TT, σ2_s::TT,
     else
         M * P
     end
+    """
+        any(t .== nL) ? sL = sum(La[t .== nL]) : sL = typedzero
+        any(t .== nR) ? sR = sum(Ra[t .== nR]) : sR = typedzero
+        sLR = sL + sR
+        if sLR > typedzero
+            σ2 = σ2_s*sLR + σ2_a*dt
+            pulse_input_DDM.transition_M!(F[1][1], σ2, λ, sR-sL, dx, xc, n, dt)
+            P[1][1]=F[1][1] * P[1][1]
+        else
+            P[1][1]=P[1][1] = M*P[1][1]
+        end
+        sum(P[1][1])
+
+    """
 end
 
 """
