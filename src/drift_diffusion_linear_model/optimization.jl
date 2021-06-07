@@ -83,7 +83,7 @@ Returns:
 
 - The loglikelihood of choices and spikes counts given the model parameters, pulse timing, trial history, and model specifications, summed across trials and trial-sets
 """
-function loglikelihood(x::Vector{T1}, data::Vector{T2}, options::DDLMoptions, abar::Vector{Vector{Vector{T1}}}, F::Vector{Vector{Matrix{T1}}}, P::Vector{Vector{Vector{T1}}}, X::Vector{Vector{Matrix{T1}}}) where {T1<:Real, T2<:trialsetdata}
+function loglikelihood(x::Vector{T1}, data::Vector{T2}, options::DDLMoptions, abar::Vector{Vector{Vector{T1}}}, F::Vector{Vector{Matrix{T1}}}, P::Vector{Vector{Vector{T1}}}, X::Vector{Vector{Matrix{T1}}}) where {T1<:Float64, T2<:trialsetdata}
     θ = θDDLM(x)
     options.remap && (θ = θ2(θ))
     latentspec = latentspecification(options, θ)

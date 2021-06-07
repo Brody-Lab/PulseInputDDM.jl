@@ -18,9 +18,9 @@ function Hessian(model::DDLM; chunk_size::Int=4)
     @unpack θ, data, options = model
     @unpack fit = options
     x = pulse_input_DDM.flatten(θ)
-    x,c = unstack(x, fit)
+    x,c = unstack(x, fit) # x,c = pulse_input_DDM.unstack(x, fit)
     abar, F, P, X = preallocate(model)
-    ℓℓ(x) = -loglikelihood(stack(x,c,fit), data, options, abar, F, P, X)
+    ℓℓ(x) = -loglikelihood(stack(x,c,fit), data, options, abar, F, P, X) # ℓℓ(x) = -loglikelihood(pulse_input_DDM.stack(x,c,fit), data, options, abar, F, P, X)
     cfg = ForwardDiff.HessianConfig(ℓℓ, x, ForwardDiff.Chunk{chunk_size}())
     ForwardDiff.hessian(ℓℓ, x, cfg)
 end
