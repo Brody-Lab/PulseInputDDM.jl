@@ -81,7 +81,7 @@ function parse_one_trialset(trialset::Dict, options::DDLMoptions)
     laggedreward = convert(Matrix{Int64}, trialset["lagged"]["reward"])
     lag = convert(Matrix{Int64}, trialset["lagged"]["lag"])
     eˡᵃᵍ⁺¹ = exp.(lag.+1)
-    lagged = laggeddata(answer=laggedanswer, choice=laggedchoice, eˡᵃᵍ⁺¹=eˡᵃᵍ⁺¹, reward=laggedreward, lag=lag, answer=laggedanswer)
+    lagged = laggeddata(answer=laggedanswer, choice=laggedchoice, eˡᵃᵍ⁺¹=eˡᵃᵍ⁺¹, lag=lag, reward=laggedreward)
 
     trialsetdata(lagged=lagged, trials=trials, units=units)
 end
