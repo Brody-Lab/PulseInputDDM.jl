@@ -319,7 +319,7 @@ a₀: initial value of the latent variable of all the trials of a trialset. A ve
 """
 function history_influence_on_initial_point(α::T, B::T, k::T, lagged::laggeddata) where {T <: Real}
     @unpack answer, eˡᵃᵍ⁺¹ = lagged
-    a₀ = vec(sum(α.*answer.*eˡᵃᵍ⁺¹.^k), dims=2))
+    a₀ = vec(sum(α.*answer.*eˡᵃᵍ⁺¹.^k), dims=2)
     min.(max.(a₀, -B), B)
 end
 
