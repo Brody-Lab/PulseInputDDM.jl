@@ -135,12 +135,13 @@ function loglikelihood(θ::θDDLM, trialset::trialsetdata, latentspec::latentspe
     @unpack a_bases, L2regularizer = options
     @unpack lapse = θ
     @unpack trials, units = trialset
+    #latentspec = pulse_input_DDM.latentspecification(options, θ)
     @unpack dx, n, nprepad_abar, xc = latentspec
 
-    P = forwardpass!(abar, F, latentspec, P, θ, trialset) # P[1] = forwardpass!(abar[1], F[1], latentspec, P[1], θ, data[1])
-    ℓℓ_choice = sum(log.(map((P, trial)->sum(choice_likelihood!(bias,xc,P,trial.choice,n,dx), P, trials))))
-    Xa = hcat(map(basis->vcat(pmap(abar->DSP.filt(basis, abar)[nprepad_abar+1:end], abar)...), a_bases)...)
-    ℓℓ_spike_train = mean(pmap((unit, X)->mean(loglikelihood(L2regularizer, unit.ℓ₀y, lapse, X, Xa, unit.y)), units, X))*size(trials)[1]
+    P = forwardpass!(abar, F, latentspec, P, θ, trialset) # P[1] = pulse_input_DDM.forwardpass!(abar[1], F[1], latentspec, P[1], θ, data[1])
+    ℓℓ_choice = sum(log.(map((P, trial)->sum(choice_likelihood!(bias,xc,P,trial.choice,n,dx)), P, trials))) #ℓℓ_choice = sum(log.(map((P, trial)->sum(pulse_input_DDM.choice_likelihood!(θ.bias,xc,P,trial.choice,n,dx)), P[1], data[1].trials)))
+    Xa = hcat(map(basis->vcat(pmap(abar->DSP.filt(basis, abar)[nprepad_abar+1:end], abar)...), a_bases)...) # Xa = hcat(map(basis->vcat(map(abar->DSP.filt(basis, abar)[nprepad_abar+1:end], abar[1])...), a_bases)...)
+    ℓℓ_spike_train = mean(pmap((unit, X)->mean(loglikelihood(L2regularizer, unit.ℓ₀y, lapse, X, Xa, unit.y)), units, X))*size(trials)[1] #ℓℓ_spike_train = mean(map((unit, X)->mean(loglikelihood(L2regularizer, unit.ℓ₀y, θ.lapse, X, Xa, unit.y)), data[1].units, X[1]))*size(data[1].trials)[1]
     ℓℓ_choice + ℓℓ_spike_train
 end
 
@@ -162,14 +163,15 @@ OUTPUT
 
 -The loglikelihood of the spike trains. A vector of length `∑T(i)`, where `T(i)` is number of time bins in the i-th trial.
 """
-function loglikelihood!(L2regularizer::Matrix{Float64}, ℓ₀y::Vector{T1}, lapse::T1, X::Matrix{Float64}, Xa::Matrix{T1}, y::Vector{Float64}) where {T1<:Real}
+function loglikelihood(L2regularizer::Matrix{Float64}, ℓ₀y::Vector{T1}, lapse::T1, X::Matrix{Float64}, Xa::Matrix{T1}, y::Vector{Float64}) where {T1<:Real}
     nbases = size(Xa)[2]
-    X[:, end-nbases+1:end] = Xa
-    β = inv(transpose(X)*X+L2regularizer)*transpose(X)*y
-    ŷ = X*β
-    e = y-ŷ
+    X[:, end-nbases+1:end] = Xa # X[1][1][:, end-nbases+1:end] = Xa
+    β = inv(transpose(X)*X+L2regularizer)*transpose(X)*y # β = inv(transpose(X[1][1])*X[1][1]+L2regularizer)*transpose(X[1][1])*data[1].units[1].y
+    ŷ = X*β # ŷ = X[1][1]*β
+    e = y-ŷ # e = data[1].units[1].y-ŷ
+    # using Statistics
     σ² = var(e)
-    log.((((1-lapse)/sqrt(2π*σ²)).*exp.(-(e.^2)./2σ²) + lapse.*ℓ₀y))
+    log.((((1-lapse)/sqrt(2π*σ²)).*exp.(-(e.^2)./2σ²) + lapse.*ℓ₀y)) #log.((((1-θ.lapse)/sqrt(2π*σ²)).*exp.(-(e.^2)./2σ²) + θ.lapse.*data[1].units[1].ℓ₀y))
 end
 
 """
