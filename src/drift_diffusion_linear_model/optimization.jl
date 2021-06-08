@@ -88,7 +88,11 @@ function loglikelihood(x::Vector{T1}, data::Vector{T2}, options::DDLMoptions, ab
     θ = θDDLM(x)
     options.remap && (θ = θ2(θ))
     latentspec = latentspecification(options, θ)
-    sum(map((trialset, abar, F, P, X)->loglikelihood(θ, trialset, latentspec, options, abar, F, P, X), data, abar, F, P, X))
+    LL = sum(map((trialset, abar, F, P, X)->loglikelihood(θ, trialset, latentspec, options, abar, F, P, X), data, abar, F, P, X))
+    println("=======")
+    println(typeof(abar))
+    println("=======")
+    return LL
 end
 
 """
