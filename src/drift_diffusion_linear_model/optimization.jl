@@ -25,6 +25,7 @@ function optimize(model::DDLM;
     ub, = unstack(ub, fit)
     x0,c = unstack(x0, fit)
 
+    abar, F, P, X = preallocate(model)
     ℓℓ(x) = -loglikelihood(stack(x,c,fit), data, options, abar, F, P, X) #pulse_input_DDM.loglikelihood(x, data, options, abar, F, P, X)
 
     output = optimize(x0, ℓℓ, lb, ub; g_tol=g_tol, x_tol=x_tol,
@@ -81,9 +82,10 @@ Returns:
 
 - The loglikelihood of choices and spikes counts given the model parameters, pulse timing, trial history, and model specifications, summed across trials and trial-sets
 """
-function loglikelihood(x::Vector{T1}, data::Vector{T2}, options::DDLMoptions, abar, F, P, X) where {T1<:Real, T2<:trialsetdata}
+function loglikelihood(x::Vector{T1}, data::Vector{T2}, options::DDLMoptions, abar::Any, F::Any, P::Any, X::Any) where {T1<:Real, T2<:trialsetdata}
     println("=======")
     println(typeof(abar))
+    println(typeof(X))
     println("=======")
     θ = θDDLM(x)
     options.remap && (θ = θ2(θ))
@@ -91,6 +93,7 @@ function loglikelihood(x::Vector{T1}, data::Vector{T2}, options::DDLMoptions, ab
     LL = sum(map((trialset, abar, F, P, X)->loglikelihood(θ, trialset, latentspec, options, abar, F, P, X), data, abar, F, P, X))
     println("=======")
     println(typeof(abar))
+    println(typeof(X))
     println("=======")
     return LL
 end
@@ -145,13 +148,13 @@ function loglikelihood(θ::θDDLM, trialset::trialsetdata, latentspec::latentspe
 
     P = forwardpass!(abar, F, latentspec, P, θ, trialset) # P[1] = pulse_input_DDM.forwardpass!(abar[1], F[1], latentspec, P[1], θ, data[1])
     ℓℓ_choice = sum(log.(map((P, trial)->sum(choice_likelihood!(bias,xc,P,trial.choice,n,dx)), P, trials))) #ℓℓ_choice = sum(log.(map((P, trial)->sum(pulse_input_DDM.choice_likelihood!(θ.bias,xc,P,trial.choice,n,dx)), P[1], data[1].trials)))
-    #Xa = hcat(map(basis->vcat(pmap(abar->DSP.filt(basis, abar)[nprepad_abar+1:end], abar)...), a_bases)...) # Xa = hcat(map(basis->vcat(map(abar->DSP.filt(basis, abar)[nprepad_abar+1:end], abar[1])...), a_bases)...)
-    #ℓℓ_spike_train = mean(pmap((unit, X)->mean(loglikelihood(L2regularizer, unit.ℓ₀y, lapse, X, Xa, unit.y)), units, X))*size(trials)[1]
+    Xa = hcat(map(basis->vcat(pmap(abar->DSP.filt(basis, abar)[nprepad_abar+1:end], abar)...), a_bases)...) # Xa = hcat(map(basis->vcat(map(abar->DSP.filt(basis, abar)[nprepad_abar+1:end], abar[1])...), a_bases)...)
+    ℓℓ_spike_train = mean(pmap((unit, X)->mean(loglikelihood(L2regularizer, unit.ℓ₀y, lapse, X, Xa, unit.y)), units, X))*size(trials)[1]
     #ℓℓ_spike_train = mean(map((unit, X)->mean(loglikelihood(L2regularizer, unit.ℓ₀y, θ.lapse, X, Xa, unit.y)), data[1].units, X[1]))*size(data[1].trials)[1]
 
     #map->pmap
-    Xa = hcat(map(basis->vcat(map(abar->DSP.filt(basis, abar)[nprepad_abar+1:end], abar)...), a_bases)...)
-    ℓℓ_spike_train = mean(map((unit, X)->mean(loglikelihood(L2regularizer, unit.ℓ₀y, lapse, X, Xa, unit.y)), units, X))*size(trials)[1]
+    #Xa = hcat(map(basis->vcat(map(abar->DSP.filt(basis, abar)[nprepad_abar+1:end], abar)...), a_bases)...)
+    #ℓℓ_spike_train = mean(map((unit, X)->mean(loglikelihood(L2regularizer, unit.ℓ₀y, lapse, X, Xa, unit.y)), units, X))*size(trials)[1]
 
      #ℓℓ_spike_train = mean(map((unit, X)->mean(loglikelihood(L2regularizer, unit.ℓ₀y, θ.lapse, X, Xa, unit.y)), data[1].units, X[1]))*size(data[1].trials)[1]
     ℓℓ_choice + ℓℓ_spike_train
@@ -212,10 +215,10 @@ function forwardpass!(abar::Any, F::Any, latentspec::latentspecification, P, θ:
     @unpack lagged, trials = trialset
 
     a₀ = pulse_input_DDM.history_influence_on_initial_point(α, B, k, lagged)
-    #pmap((abar, F, a₀, P, trial)->forwardpass!(abar, F, a₀, latentspec, P, θ, trial), abar, F, a₀, P, trials)
+    pmap((abar, F, a₀, P, trial)->forwardpass!(abar, F, a₀, latentspec, P, θ, trial), abar, F, a₀, P, trials)
 
     #map -> pmap
-    map((abar, F, a₀, P, trial)->forwardpass!(abar, F, a₀, latentspec, P, θ, trial), abar, F, a₀, P, trials)
+    # map((abar, F, a₀, P, trial)->forwardpass!(abar, F, a₀, latentspec, P, θ, trial), abar, F, a₀, P, trials)
 end
 
 """
