@@ -119,14 +119,16 @@ end
 Module-defined type containing design matrix and spike count of each unit
 
 Fields:
+- L2Regularizer: a `p`-by-`p` matrix with nonzero diagonal terms to implment L2 regularization and to prevent having to invert a singular matrix
 - ℓ₀y: column vector indicating the likelihood of the spike train conditioned on the latent being zero for all time bins and all trials
 - X: the design matrix containing auroregressive regressors based on the spiking history and regressors related to the timing of trial events. The columns related to the latent variable variable are preallocated as zeros.
 - y: column vector of spike count of the unit in each time bin in each trial, concatenated across trials
 """
-@with_kw struct unitdata{T1 <: Vector{Float64}, T2 <: Matrix{Float64}}
-    ℓ₀y::T1
-    X::T2
-    y::T1
+@with_kw struct unitdata{T1 <: Matrix{Float64}, T2 <: Vector{Float64}}
+    L2regularizer:: T1
+    ℓ₀y::T2
+    X::T1
+    y::T2
 end
 
 """

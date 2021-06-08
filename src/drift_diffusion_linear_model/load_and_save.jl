@@ -70,10 +70,11 @@ function parse_one_trialset(trialset::Dict, options::DDLMoptions)
     trials = map((clickindices, clicktimes, choice)->trialdata(clickindices=clickindices, clicktimes=clicktimes, choice=choice), clickindices, clicktimes, choice)
 
     rawunits = vec(trialset["units"])
+    L2regularizer = map(x->x["L2regularizer"], rawunits)
     ℓ₀y = map(x->vec(x["likelihood0_y"]), rawunits)
     X = map(x->x["X"], rawunits)
     y = map(x->vec(x["y"]), rawunits)
-    units = map((ℓ₀y, X, y)->unitdata(ℓ₀y=ℓ₀y, X=X, y=y), ℓ₀y, X, y)
+    units = map((ℓ₀y, X, y)->unitdata(L2regularizer=L2regularizer, ℓ₀y=ℓ₀y, X=X, y=y), ℓ₀y, X, y)
 
     laggedanswer = convert(Matrix{Int64}, trialset["lagged"]["answer"])
     laggedchoice = convert(Matrix{Int64}, trialset["lagged"]["choice"])

@@ -133,10 +133,10 @@ OUTPUT
 -The loglikelihood of the spike trains. A vector of length `∑T(i)`, where `T(i)` is number of time bins in the i-th trial.
 """
 function loglikelihood(lapse::T1, unit::unitdata, Xa::Matrix{T1}) where {T1<:Real}
-    @unpack ℓ₀y, y = unit
+    @unpack L2regularizer, ℓ₀y, y = unit
     X = hcat(unit.X, Xa)
     Xᵀ = transpose(X)
-    β = inv(Xᵀ*X)*Xᵀ*y
+    β = inv(Xᵀ*X+L2regularizer)*Xᵀ*y
     ŷ = X*β
     e = y-ŷ
     σ² = var(e)
