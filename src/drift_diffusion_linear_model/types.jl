@@ -198,14 +198,16 @@ A container of variable specifying the latent space
 -typedone: a one of the type of the model parameters
 -xc: centers of bins in latent space
 """
-@with_kw struct latentspecification{T1<:Bool, T2<:Float64, T3<:Real, T4<:Matrix{<:Real}, T5<:Int, T6<:Vector{<:Real}}
+@with_kw struct latentspecification{T1<:Bool, T2<:Float64, T3<:Real, T4<:Matrix{<:Real}, T5<:Int, T6<:DataType, T7<:Vector{<:Real}}
     cross::T1
     dt::T2
     dx::T3
     M::T4
     n::T5
     nprepad_abar::T5
+    npostpad_abar::T5
+    type::T6
     typedzero::T3
     typedone::T3
-    xc::T6
+    xc::T7
 end

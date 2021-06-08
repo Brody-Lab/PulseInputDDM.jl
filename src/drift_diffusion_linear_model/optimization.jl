@@ -20,8 +20,6 @@ function optimize(model::DDLM;
     @unpack θ, data, options = model
     @unpack fit, lb, ub = options
 
-    abar, F, P, X = preallocate(model) #abar, F, P, X = pulse_input_DDM.preallocate(model)
-
     x0 = pulse_input_DDM.flatten(θ) # x = pulse_input_DDM.flatten(θ)
     lb, = unstack(lb, fit)
     ub, = unstack(ub, fit)
@@ -106,12 +104,12 @@ an instance of `latentspecification`
 """
 function latentspecification(options::DDLMoptions, θ::θDDLM)
     @unpack B, k, λ, σ2_a = θ
-    @unpack a_bases, cross, dt, n = options
+    @unpack a_bases, cross, dt, n, npostpad_abar = options
     T1 = typeof(σ2_a)
     xc, dx = bins(B, n)
     typedzero = zero(T1);
     M = transition_M(σ2_a*dt, λ, typedzero, dx, xc, n, dt)
-    latentspecification(cross=cross, dt=dt, dx=dx, M=M, n=n, nprepad_abar=size(a_bases[1])[1], typedone = one(T1), typedzero=typedzero, xc=xc)
+    latentspecification(cross=cross, dt=dt, dx=dx, M=M, n=n, nprepad_abar=size(a_bases[1])[1], npostpad_abar=npostpad_abar, type=T1, typedone = one(T1), typedzero=typedzero, xc=xc)
 end
 """
     loglikelihood(θ, trialset, latentspec)
@@ -244,10 +242,18 @@ function forwardpass!(abar::Vector{T1}, F::Matrix{T1}, a₀::Any, latentspec::la
     @unpack σ2_i, λ, σ2_a, σ2_s, ϕ, τ_ϕ = θ
     @unpack nT, nL, nR = clickindices
     @unpack L, R = clicktimes
-    @unpack cross, dt, dx, n, nprepad_abar, typedzero, typedone, xc = latentspec
+    @unpack cross, dt, dx, n, nprepad_abar, type, typedzero, typedone, xc = latentspec
 
-    F = F.*typedzero #F[1][1] = F[1][1].*typedzero
-    P = P.*typedzero # P[1][1] = P[1][1].*typedzero
+    if typeof(F[1])==type
+        abar.= typedzero
+        F .= typedzero
+        P .= typedzero
+    else
+        abar = abar.*typedzero
+        F = F.*typedzero #F[1][1] = F[1][1].*typedzero
+        P = P.*typedzero # P[1][1] = P[1][1].*typedzero
+        println("=====constructed====")
+    end
     P[ceil(Int,n/2)] = typedone #P[1][1][ceil(Int,n/2)] = typedone
     transition_M!(F, σ2_i, typedzero, a₀, dx, xc, n, dt) #pulse_input_DDM.transition_M!(F[1][1], σ2_i, typedzero, a₀[1], dx, xc, n, dt)
     P = F * P #P[1][1] = F[1][1] * P[1][1]
