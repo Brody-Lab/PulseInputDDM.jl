@@ -10,7 +10,7 @@ ARGUMENT
 RETURN
 
 - `model`: an instance of `DDLM`
-
+- `output`: output of the optimization
 """
 function optimize(model::DDLM;
         x_tol::Float64=1e-10, f_tol::Float64=1e-9, g_tol::Float64=1e-3,
@@ -31,10 +31,11 @@ function optimize(model::DDLM;
         f_tol=f_tol, iterations=iterations, show_trace=show_trace,
         outer_iterations=outer_iterations, scaled=scaled,
         extended_trace=extended_trace)
-    Optim.converged(output) || error("Failed to converge in $(Optim.iterations(output)) iterations")
     x = Optim.minimizer(output)
     x = stack(x,c,fit)
-    DDLM(data=data, options=options, θ=θDDLM(x))
+    model = DDLM(data=data, options=options, θ=θDDLM(x))
+
+    return model, output
 end
 
 """
