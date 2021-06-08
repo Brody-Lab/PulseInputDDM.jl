@@ -109,14 +109,18 @@ function loglikelihood(a_bases::T1, latentspec::latentspecification, θ::θDDLM,
     @unpack dx, n, npostpad_abar, nprepad_abar, xc = latentspec
 
     abar = map(trial->fill(zero(σ2_a), nprepad_abar+trial.clickindices.nT+npostpad_abar), trialset.trials)
+
+    println("=========")
+    println(abar[1][1][end] == zero(σ2_a))
+    println("=========")
+
     P = forwardpass!(abar, latentspec, θ, trialset)
     ℓℓ_choice = sum(log.(map((P, trial)->sum(choice_likelihood!(bias,xc,P,trial.choice,n,dx)), P, trials)))
     Xa = hcat(map(basis->vcat(pmap(abar->DSP.filt(basis, abar)[nprepad_abar+1:end], abar)...), a_bases)...)
     ℓℓ_spike_train = mean(pmap(unit->mean(loglikelihood(lapse, unit, Xa)), units))*size(trials)[1]
 
     println("=========")
-    println(abar[1][1])
-    println(ℓℓ_spike_train)
+    println(abar[1][1][end] == zero(σ2_a))
     println("=========")
 
     ℓℓ_choice + ℓℓ_spike_train
