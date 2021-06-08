@@ -105,7 +105,7 @@ function loglikelihood(a_bases::T1, latentspec::latentspecification, θ::θDDLM,
 
     @unpack σ2_a, bias, lapse = θ
     @unpack trials, units = trialset
-    @unpack dx, n, nprepad_abar, xc = latentspec
+    @unpack dx, n, npostpad_abar, nprepad_abar, xc = latentspec
 
     abar = map(trial->fill(zero(σ2_a), nprepad_abar+trial.clickindices.nT+npostpad_abar), trialset.trials)
     P = forwardpass!(abar, latentspec, θ, trialset)
