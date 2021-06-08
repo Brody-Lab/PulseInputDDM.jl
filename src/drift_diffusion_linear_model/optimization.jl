@@ -20,13 +20,12 @@ function optimize(model::DDLM;
     @unpack θ, data, options = model
     @unpack fit, lb, ub = options
 
-    x0 = pulse_input_DDM.flatten(θ) # x = pulse_input_DDM.flatten(θ)
+    x0 = pulse_input_DDM.flatten(θ)
     lb, = unstack(lb, fit)
     ub, = unstack(ub, fit)
     x0,c = unstack(x0, fit)
 
-    abar, F, P, X = preallocate(model)
-    ℓℓ(x) = -loglikelihood(stack(x,c,fit), data, options, abar, F, P, X) #pulse_input_DDM.loglikelihood(x, data, options, abar, F, P, X)
+    ℓℓ(x) = -loglikelihood(stack(x,c,fit), data, options)
 
     output = optimize(x0, ℓℓ, lb, ub; g_tol=g_tol, x_tol=x_tol,
         f_tol=f_tol, iterations=iterations, show_trace=show_trace,
@@ -36,34 +35,6 @@ function optimize(model::DDLM;
     x = Optim.minimizer(output)
     x = stack(x,c,fit)
     DDLM(data=data, options=options, θ=θDDLM(x))
-end
-
-"""
-    preallocate(model)
-
-Preallocate memory for variables that will be modified during model fitting
-
-ARGUMENT
-
-model: An instance of the drift-diffusion linear model
-
-RETURN
-
--abar: mean of the latent variable at each time step in each trial. A vector of vectors of vectors of zero's. Each element of the outermost array corresponds to a trialset, each element of the inner array corresponds to a trial, and each element of the innermost corresponds to a time bin
--F: P(aₜ|aₜ₋₁) A vector of vectors of square matrices of zero's. Each element of the outermost array corresponds to a trialset, and that of the inner array corresponds to a trial. The innermost array is a square matrix of length `n`, where `n` is the number of bins into which latent space is discretized. Each element of the innermost corresponds to the transition for a pair of values (aₜ, aₜ₋₁)
--P: P(aₜ) A vector of vectors of vectors of zero's. Each element of the outermost array corresponds to a trialset, and that of the inner array corresponds to a trial. The innermost array is a square matrix of length `n`, where `n` is the number of bins into which latent space is discretized. Each element of the innermost corresponds to the transition for a a value of aₜ.
--X: The design matrix for least square regression. A vector of vectors of matrices. Each element of the outermost array corresponds to a trialset, each element of the inner array corresponds to a neural unit. Each design matrix has a number of rows equal to the sum of time bins across trials and a number of columns equal to the total number of regressors. The columns corresponding to trial timing and spike train history are pre-established, and the columns corresponding to the latent variable are preallocated to be 0.
-"""
-
-function preallocate(model::DDLM)
-    @unpack data, options = model
-    @unpack a_bases, n, npostpad_abar = options
-    nprepad_abar = size(a_bases[1])[1]
-    abar = map(trialset->map(trial->fill(0., nprepad_abar+trial.clickindices.nT+npostpad_abar), trialset.trials), data)
-    F = map(trialset->fill(fill(0., n, n), length(trialset.trials)), data)
-    P = map(trialset->fill(fill(0., n), length(trialset.trials)), data)
-    X = map(trialset->map(unit->unit.X, trialset.units), data)
-    return abar, F, P, X
 end
 
 """
@@ -82,20 +53,11 @@ Returns:
 
 - The loglikelihood of choices and spikes counts given the model parameters, pulse timing, trial history, and model specifications, summed across trials and trial-sets
 """
-function loglikelihood(x::Vector{T1}, data::Vector{T2}, options::DDLMoptions, abar::Any, F::Any, P::Any, X::Any) where {T1<:Real, T2<:trialsetdata}
-    println("=======")
-    println(typeof(abar))
-    println(typeof(X))
-    println("=======")
+function loglikelihood(x::Vector{T1}, data::Vector{T2}, options::DDLMoptions) where {T1<:Real, T2<:trialsetdata}
     θ = θDDLM(x)
     options.remap && (θ = θ2(θ))
     latentspec = latentspecification(options, θ)
-    LL = sum(map((trialset, abar, F, P, X)->loglikelihood(θ, trialset, latentspec, options, abar, F, P, X), data, abar, F, P, X))
-    println("=======")
-    println(typeof(abar))
-    println(typeof(X))
-    println("=======")
-    return LL
+    sum(map((trialset, abar, F, P, X)->loglikelihood(θ, trialset, latentspec, options, abar, F, P, X), data, abar, F, P, X))
 end
 
 """
@@ -119,7 +81,7 @@ function latentspecification(options::DDLMoptions, θ::θDDLM)
     xc, dx = bins(B, n)
     typedzero = zero(T1);
     M = transition_M(σ2_a*dt, λ, typedzero, dx, xc, n, dt)
-    latentspecification(cross=cross, dt=dt, dx=dx, M=M, n=n, nprepad_abar=size(a_bases[1])[1], npostpad_abar=npostpad_abar, type=T1, typedone = one(T1), typedzero=typedzero, xc=xc)
+    latentspecification(cross=cross, dt=dt, dx=dx, M=M, n=n, nprepad_abar=size(a_bases[1])[1], npostpad_abar=npostpad_abar, xc=xc)
 end
 """
     loglikelihood(θ, trialset, latentspec)
@@ -138,30 +100,24 @@ RETURN
 -The summed log-likelihood of the choice and spike trains given the model parameters. Note that the likelihood of the spike trains of all units in each trial is normalized to be of the same magnitude as that of the choice, between 0 and 1.
 
 """
-function loglikelihood(θ::θDDLM, trialset::trialsetdata, latentspec::latentspecification, options::DDLMoptions, abar, F, P, X)
+function loglikelihood(θ::θDDLM, trialset::trialsetdata, latentspec::latentspecification, options::DDLMoptions)
 
     @unpack a_bases, L2regularizer = options
-    @unpack bias, lapse = θ
+    @unpack σ2_a, bias, lapse = θ
     @unpack trials, units = trialset
-    #latentspec = pulse_input_DDM.latentspecification(options, θ)
     @unpack dx, n, nprepad_abar, xc = latentspec
 
-    P = forwardpass!(abar, F, latentspec, P, θ, trialset) # P[1] = pulse_input_DDM.forwardpass!(abar[1], F[1], latentspec, P[1], θ, data[1])
-    ℓℓ_choice = sum(log.(map((P, trial)->sum(choice_likelihood!(bias,xc,P,trial.choice,n,dx)), P, trials))) #ℓℓ_choice = sum(log.(map((P, trial)->sum(pulse_input_DDM.choice_likelihood!(θ.bias,xc,P,trial.choice,n,dx)), P[1], data[1].trials)))
-    Xa = hcat(map(basis->vcat(pmap(abar->DSP.filt(basis, abar)[nprepad_abar+1:end], abar)...), a_bases)...) # Xa = hcat(map(basis->vcat(map(abar->DSP.filt(basis, abar)[nprepad_abar+1:end], abar[1])...), a_bases)...)
-    ℓℓ_spike_train = mean(pmap((unit, X)->mean(loglikelihood(L2regularizer, unit.ℓ₀y, lapse, X, Xa, unit.y)), units, X))*size(trials)[1]
-    #ℓℓ_spike_train = mean(map((unit, X)->mean(loglikelihood(L2regularizer, unit.ℓ₀y, θ.lapse, X, Xa, unit.y)), data[1].units, X[1]))*size(data[1].trials)[1]
+    abar = map(trial->fill(tzero(σ2_a)ypedzero, nprepad_abar+trial.clickindices.nT+npostpad_abar), trialset.trials)
+    P = forwardpass!(abar, latentspec, θ, trialset)
+    ℓℓ_choice = sum(log.(map((P, trial)->sum(choice_likelihood!(bias,xc,P,trial.choice,n,dx)), P, trials)))
+    Xa = hcat(map(basis->vcat(pmap(abar->DSP.filt(basis, abar)[nprepad_abar+1:end], abar)...), a_bases)...)
+    ℓℓ_spike_train = mean(pmap(unit->mean(loglikelihood(L2regularizer, lapse, unit, Xa)), units))*size(trials)[1]
 
-    #map->pmap
-    #Xa = hcat(map(basis->vcat(map(abar->DSP.filt(basis, abar)[nprepad_abar+1:end], abar)...), a_bases)...)
-    #ℓℓ_spike_train = mean(map((unit, X)->mean(loglikelihood(L2regularizer, unit.ℓ₀y, lapse, X, Xa, unit.y)), units, X))*size(trials)[1]
-
-     #ℓℓ_spike_train = mean(map((unit, X)->mean(loglikelihood(L2regularizer, unit.ℓ₀y, θ.lapse, X, Xa, unit.y)), data[1].units, X[1]))*size(data[1].trials)[1]
     ℓℓ_choice + ℓℓ_spike_train
 end
 
 """
-    loglikelihood(L2regularizer, ℓ₀y, lapse, X, Xa, y)
+    loglikelihood(L2regularizer, ℓ₀y, lapse, Xa, y)
 
 Loglikelihood of the spike trains of one neural unit across all trials of a trialset
 
@@ -178,15 +134,14 @@ OUTPUT
 
 -The loglikelihood of the spike trains. A vector of length `∑T(i)`, where `T(i)` is number of time bins in the i-th trial.
 """
-function loglikelihood(L2regularizer::Matrix{Float64}, ℓ₀y::Vector{T1}, lapse::Any, X::Matrix{T1}, Xa::Matrix{T1}, y::Vector{Float64}) where {T1<:Real}
-    nbases = size(Xa)[2]
-    X[:, end-nbases+1:end] = Xa # X[1][1][:, end-nbases+1:end] = Xa
-    β = inv(transpose(X)*X+L2regularizer)*transpose(X)*y # β = inv(transpose(X[1][1])*X[1][1]+L2regularizer)*transpose(X[1][1])*data[1].units[1].y
-    ŷ = X*β # ŷ = X[1][1]*β
-    e = y-ŷ # e = data[1].units[1].y-ŷ
-    # using Statistics
+function loglikelihood(L2regularizer::Matrix{Float64}, lapse::T1, unit::unitdata, Xa::Matrix{T1}) where {T1<:Real}
+    @unpack ℓ₀y, y = unit
+    X = hcat(unit.X, Xa)
+    β = inv(transpose(X)*X+L2regularizer)*transpose(X)*y
+    ŷ = X*β
+    e = y-ŷ
     σ² = var(e)
-    log.((((1-lapse)/sqrt(2π*σ²)).*exp.(-(e.^2)./2σ²) + lapse.*ℓ₀y)) #log.((((1-θ.lapse)/sqrt(2π*σ²)).*exp.(-(e.^2)./2σ²) + θ.lapse.*data[1].units[1].ℓ₀y))
+    log.((((1-lapse)/sqrt(2π*σ²)).*exp.(-(e.^2)./2σ²) + lapse.*ℓ₀y))
 end
 
 """
@@ -210,15 +165,12 @@ RETURN
 
 -P: A vector of vectors specifying the probability of the latent variable in each bin. Each element of the outer array corresponds to an individual trial
 """
-function forwardpass!(abar::Any, F::Any, latentspec::latentspecification, P, θ::θDDLM, trialset::trialsetdata)
+function forwardpass!(abar::Vector{T1}, latentspec::latentspecification, θ::θDDLM, trialset::trialsetdata) where {T1<:Real}
     @unpack α, B, k = θ
     @unpack lagged, trials = trialset
 
     a₀ = pulse_input_DDM.history_influence_on_initial_point(α, B, k, lagged)
-    pmap((abar, F, a₀, P, trial)->forwardpass!(abar, F, a₀, latentspec, P, θ, trial), abar, F, a₀, P, trials)
-
-    #map -> pmap
-    # map((abar, F, a₀, P, trial)->forwardpass!(abar, F, a₀, latentspec, P, θ, trial), abar, F, a₀, P, trials)
+    pmap((abar, a₀, trial)->forwardpass!(abar, a₀, latentspec, θ, trial), abar, a₀, trials)
 end
 
 """
@@ -247,36 +199,26 @@ MODIFICATION
 RETURN
 -P: A vector specifying the probability of the latent variable in each bin
 """
-function forwardpass!(abar::Vector{T1}, F::Matrix{T1}, a₀::Any, latentspec::latentspecification, P::Vector{T1}, θ::θDDLM, trial::trialdata) where {T1<:Real}
+function forwardpass!(abar::Vector{T1}, a₀::T1, latentspec::latentspecification, θ::θDDLM, trial::trialdata) where {T1<:Real}
     @unpack clickindices, clicktimes, choice = trial
     @unpack σ2_i, λ, σ2_a, σ2_s, ϕ, τ_ϕ = θ
     @unpack nT, nL, nR = clickindices
     @unpack L, R = clicktimes
-    @unpack cross, dt, dx, n, nprepad_abar, type, typedzero, typedone, xc = latentspec
+    @unpack cross, dt, dx, n, nprepad_abar, xc = latentspec
 
-    if typeof(F[1])==type
-        abar.= typedzero
-        F .= typedzero
-        P .= typedzero
-    else
-        abar = abar.*typedzero
-        F = F.*typedzero #F[1][1] = F[1][1].*typedzero
-        P = P.*typedzero # P[1][1] = P[1][1].*typedzero
-    end
-    P[ceil(Int,n/2)] = typedone #P[1][1][ceil(Int,n/2)] = typedone
-    transition_M!(F, σ2_i, typedzero, a₀, dx, xc, n, dt) #pulse_input_DDM.transition_M!(F[1][1], σ2_i, typedzero, a₀[1], dx, xc, n, dt)
-    P = F * P #P[1][1] = F[1][1] * P[1][1]
+    typedzero = zero(T1)
+    F = fill(typedzero, n, n)
+    P = fill(typedzero, n)
+    P[ceil(Int,n/2)] = one(T1)
+    transition_M!(F, σ2_i, typedzero, a₀, dx, xc, n, dt)
+    P = F * P
 
-    La, Ra = adapt_clicks(ϕ,τ_ϕ,L,R; cross=cross) #La, Ra = pulse_input_DDM.adapt_clicks(ϕ,τ_ϕ,L,R; cross=cross)
+    La, Ra = adapt_clicks(ϕ,τ_ϕ,L,R; cross=cross)
 
     @inbounds for t = 1:nT
         P = forward_one_step!(F,λ,σ2_a,σ2_s,t,nL,nR,La,Ra,latentspec,P)
         abar[nprepad_abar+t] = sum(xc.*P)
     end
-    # @inbounds for t = 1:nT
-    #     P[1][1] = pulse_input_DDM.forward_one_step!(F[1][1],λ,σ2_a,σ2_s,t,nL,nR,La,Ra,latentspec,P[1][1])
-    #     abar[1][1][nprepad_abar+t] = sum(xc.*P[1][1])
-    # end
 
     abar[1:nprepad_abar] .= abar[nprepad_abar+1]
     abar[nprepad_abar+nT+1:end] .= abar[nprepad_abar+nT]
@@ -318,8 +260,9 @@ function forward_one_step!(F::Array{TT,2}, λ::TT, σ2_a::TT, σ2_s::TT,
         t::Int, nL::Vector{Int}, nR::Vector{Int},
         La::Vector{TT}, Ra::Vector{TT}, latentspec::latentspecification, P::Vector{TT}) where {TT <: Real}
 
-    @unpack dt, dx, M, n, typedzero, xc = latentspec
+    @unpack dt, dx, M, n, xc = latentspec
 
+    typedzero = zero(TT)
     any(t .== nL) ? sL = sum(La[t .== nL]) : sL = typedzero
     any(t .== nR) ? sR = sum(Ra[t .== nR]) : sR = typedzero
     sLR = sL + sR
@@ -330,17 +273,6 @@ function forward_one_step!(F::Array{TT,2}, λ::TT, σ2_a::TT, σ2_s::TT,
     else
         M * P
     end
-    # any(t .== nL) ? sL = sum(La[t .== nL]) : sL = typedzero
-    # any(t .== nR) ? sR = sum(Ra[t .== nR]) : sR = typedzero
-    # sLR = sL + sR
-    # if sLR > typedzero
-    #     σ2 = σ2_s*sLR + σ2_a*dt
-    #     pulse_input_DDM.transition_M!(F[1][1], σ2, λ, sR-sL, dx, xc, n, dt)
-    #     P[1][1]=F[1][1] * P[1][1]
-    # else
-    #     P[1][1]=P[1][1] = M*P[1][1]
-    # end
-    # sum(P[1][1])
 end
 
 """

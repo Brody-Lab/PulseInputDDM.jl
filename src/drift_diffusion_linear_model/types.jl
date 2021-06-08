@@ -194,11 +194,9 @@ A container of variable specifying the latent space
 -M: P(aₜ|aₜ₋₁, θ, δₜ=0), i.e., a square matrix representing the transition matrix if no clicks occurred in the current time step
 -n: number of bins into which latent space is discretized
 -nprepad_abar: number of time bins to pad the beginning mean of the latent trajectory
--typedzero: a zero of the type of the model parameters
--typedone: a one of the type of the model parameters
 -xc: centers of bins in latent space
 """
-@with_kw struct latentspecification{T1<:Bool, T2<:Float64, T3<:Real, T4<:Matrix{<:Real}, T5<:Int, T6<:DataType, T7<:Vector{<:Real}}
+@with_kw struct latentspecification{T1<:Bool, T2<:Float64, T3<:Real, T4<:Matrix{<:Real}, T5<:Int, T6<:Vector{<:Real}}
     cross::T1
     dt::T2
     dx::T3
@@ -206,8 +204,5 @@ A container of variable specifying the latent space
     n::T5
     nprepad_abar::T5
     npostpad_abar::T5
-    type::T6
-    typedzero::T3
-    typedone::T3
-    xc::T7
+    xc::T6
 end

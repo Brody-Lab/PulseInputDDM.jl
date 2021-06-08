@@ -18,12 +18,10 @@ function Hessian(model::DDLM; chunk_size::Int=4)
     @unpack θ, data, options = model
     @unpack fit = options
     x = pulse_input_DDM.flatten(θ)
-    x,c = unstack(x, fit) # x,c = pulse_input_DDM.unstack(x, fit)
-    abar, F, P, X = preallocate(model)
-    ℓℓ(x) = -loglikelihood(stack(x,c,fit), data, options, abar, F, P, X) # ℓℓ(x) = -loglikelihood(pulse_input_DDM.stack(x,c,fit), data, options, abar, F, P, X)
+    x,c = unstack(x, fit)
+    ℓℓ(x) = -loglikelihood(stack(x,c,fit), data, options)
     cfg = ForwardDiff.HessianConfig(ℓℓ, x, ForwardDiff.Chunk{chunk_size}())
-    H = ForwardDiff.hessian(ℓℓ, x, cfg)
-    return H
+    ForwardDiff.hessian(ℓℓ, x, cfg)
 end
 
 """
@@ -41,16 +39,16 @@ RETURN
 
 function predict_in_sample(model::DDLM)
     @unpack θ, data, options = model
-    @unpack bias = θ
+    @unpack bias, σ2_a = θ
     @unpack a_bases = options
 
     options.remap && (θ = θ2(θ))
     latentspec = pulse_input_DDM.latentspecification(options, θ)
     @unpack dx, n, xc = latentspec
-    abar, F, P, X = pulse_input_DDM.preallocate(model)
 
-    P = map((abar, F, P, trialset)->pulse_input_DDM.forwardpass!(abar, F, latentspec, P, θ, trialset), abar, F, P, data)
-    choicelikelihood = map((P,trialset)->map((P, trial)->sum(choice_likelihood!(bias,xc,P,trial.choice,n,dx)), P, trialset.trials), P, data)
+    abar = map(trialset->map(trial->fill(zero(σ2_a), nprepad_abar+trial.clickindices.nT+npostpad_abar), trialset.trials), data)
+    P = map((abar, trialset)->pulse_input_DDM.forwardpass!(abar, latentspec, θ, trialset), abar, data)
+    choicelikelihood = map((P,trialset)->pmap((P, trial)->sum(choice_likelihood!(bias,xc,P,trial.choice,n,dx)), P, trialset.trials), P, data)
 
     return abar, choicelikelihood
 end
