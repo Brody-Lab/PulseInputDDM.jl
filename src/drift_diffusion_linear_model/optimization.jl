@@ -195,7 +195,7 @@ RETURN
 
 -P: A vector of vectors specifying the probability of the latent variable in each bin. Each element of the outer array corresponds to an individual trial
 """
-function forwardpass!(abar::T1, F::T1, latentspec::latentspecification, P::T1, θ::θDDLM, trialset::trialsetdata) where {T1<:Vector}
+function forwardpass!(abar, F, latentspec::latentspecification, P::T1, θ::θDDLM, trialset::trialsetdata)
     @unpack α, B, k = θ
     @unpack lagged, trials = trialset
 
