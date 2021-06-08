@@ -114,6 +114,11 @@ function loglikelihood(a_bases::T1, latentspec::latentspecification, θ::θDDLM,
     Xa = hcat(map(basis->vcat(pmap(abar->DSP.filt(basis, abar)[nprepad_abar+1:end], abar)...), a_bases)...)
     ℓℓ_spike_train = mean(pmap(unit->mean(loglikelihood(lapse, unit, Xa)), units))*size(trials)[1]
 
+    println("=========")
+    println(abar[1][1])
+    println(ℓℓ_spike_train)
+    println("=========")
+
     ℓℓ_choice + ℓℓ_spike_train
 end
 
