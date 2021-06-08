@@ -83,7 +83,7 @@ Returns:
 
 - The loglikelihood of choices and spikes counts given the model parameters, pulse timing, trial history, and model specifications, summed across trials and trial-sets
 """
-function loglikelihood(x::Vector{T1}, data::Vector{T2}, options::DDLMoptions, abar::T3, F::T3, P::T3, X::T3) where {T1<:Real, T2<:trialsetdata, T3<:Vector}
+function loglikelihood(x::Vector{T1}, data::Vector{T2}, options::DDLMoptions, abar, F, P, X) where {T1<:Real, T2<:trialsetdata}
     θ = θDDLM(x)
     options.remap && (θ = θ2(θ))
     latentspec = latentspecification(options, θ)
@@ -163,7 +163,7 @@ OUTPUT
 
 -The loglikelihood of the spike trains. A vector of length `∑T(i)`, where `T(i)` is number of time bins in the i-th trial.
 """
-function loglikelihood(L2regularizer::Matrix{Float64}, ℓ₀y::Vector{T1}, lapse::T1, X::Matrix{Float64}, Xa::Matrix{T1}, y::Vector{Float64}) where {T1<:Real}
+function loglikelihood(L2regularizer::Matrix{Float64}, ℓ₀y::Vector{T1}, lapse::T1, X::Matrix{T1}, Xa::Matrix{T1}, y::Vector{Float64}) where {T1<:Real}
     nbases = size(Xa)[2]
     X[:, end-nbases+1:end] = Xa # X[1][1][:, end-nbases+1:end] = Xa
     β = inv(transpose(X)*X+L2regularizer)*transpose(X)*y # β = inv(transpose(X[1][1])*X[1][1]+L2regularizer)*transpose(X[1][1])*data[1].units[1].y
