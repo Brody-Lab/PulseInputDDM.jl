@@ -23,8 +23,11 @@ println("======")
 println("Loading data")
 model = load_DDLM(filepaths[filenumber])
 println("Loaded data. Beginning to optimize the model.")
-model = optimize(model)
+model, output = optimize(model)
 println("Optimized model. Beginning to save the results.")
 save(model)
 println("Results saved")
 println("======")
+
+using Optim
+Optim.converged(output) || error("Failed to converge in $(Optim.iterations(output)) iterations")
