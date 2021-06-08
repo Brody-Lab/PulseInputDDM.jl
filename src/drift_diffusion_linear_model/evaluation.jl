@@ -22,7 +22,8 @@ function Hessian(model::DDLM; chunk_size::Int=4)
     abar, F, P, X = preallocate(model)
     ℓℓ(x) = -loglikelihood(stack(x,c,fit), data, options, abar, F, P, X) # ℓℓ(x) = -loglikelihood(pulse_input_DDM.stack(x,c,fit), data, options, abar, F, P, X)
     cfg = ForwardDiff.HessianConfig(ℓℓ, x, ForwardDiff.Chunk{chunk_size}())
-    ForwardDiff.hessian(ℓℓ, x, cfg)
+    H = ForwardDiff.hessian(ℓℓ, x, cfg)
+    return H
 end
 
 """

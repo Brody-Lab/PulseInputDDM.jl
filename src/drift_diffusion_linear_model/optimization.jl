@@ -82,6 +82,9 @@ Returns:
 - The loglikelihood of choices and spikes counts given the model parameters, pulse timing, trial history, and model specifications, summed across trials and trial-sets
 """
 function loglikelihood(x::Vector{T1}, data::Vector{T2}, options::DDLMoptions, abar, F, P, X) where {T1<:Real, T2<:trialsetdata}
+    println("=======")
+    println(typeof(abar))
+    println("=======")
     θ = θDDLM(x)
     options.remap && (θ = θ2(θ))
     latentspec = latentspecification(options, θ)
@@ -168,7 +171,7 @@ OUTPUT
 
 -The loglikelihood of the spike trains. A vector of length `∑T(i)`, where `T(i)` is number of time bins in the i-th trial.
 """
-function loglikelihood(L2regularizer::Matrix{Float64}, ℓ₀y::Vector{T1}, lapse::T1, X::Matrix{T1}, Xa::Matrix{T1}, y::Vector{Float64}) where {T1<:Real}
+function loglikelihood(L2regularizer::Matrix{Float64}, ℓ₀y::Vector{T1}, lapse::Any, X::Matrix{T1}, Xa::Matrix{T1}, y::Vector{Float64}) where {T1<:Real}
     nbases = size(Xa)[2]
     X[:, end-nbases+1:end] = Xa # X[1][1][:, end-nbases+1:end] = Xa
     β = inv(transpose(X)*X+L2regularizer)*transpose(X)*y # β = inv(transpose(X[1][1])*X[1][1]+L2regularizer)*transpose(X[1][1])*data[1].units[1].y
@@ -252,7 +255,6 @@ function forwardpass!(abar::Vector{T1}, F::Matrix{T1}, a₀::Any, latentspec::la
         abar = abar.*typedzero
         F = F.*typedzero #F[1][1] = F[1][1].*typedzero
         P = P.*typedzero # P[1][1] = P[1][1].*typedzero
-        println("=====constructed====")
     end
     P[ceil(Int,n/2)] = typedone #P[1][1][ceil(Int,n/2)] = typedone
     transition_M!(F, σ2_i, typedzero, a₀, dx, xc, n, dt) #pulse_input_DDM.transition_M!(F[1][1], σ2_i, typedzero, a₀[1], dx, xc, n, dt)
