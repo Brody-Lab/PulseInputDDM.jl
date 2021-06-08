@@ -130,7 +130,7 @@ RETURN
 -The summed log-likelihood of the choice and spike trains given the model parameters. Note that the likelihood of the spike trains of all units in each trial is normalized to be of the same magnitude as that of the choice, between 0 and 1.
 
 """
-function loglikelihood(θ::θDDLM, trialset::trialsetdata, latentspec::latentspecification, options::DDLMoptions, abar::T1, F::T1, P::T1, X::T1) where{T1<:Vector}
+function loglikelihood(θ::θDDLM, trialset::trialsetdata, latentspec::latentspecification, options::DDLMoptions, abar, F, P, X)
 
     @unpack a_bases, L2regularizer = options
     @unpack bias, lapse = θ
