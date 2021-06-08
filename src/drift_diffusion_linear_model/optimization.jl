@@ -83,7 +83,7 @@ Returns:
 
 - The loglikelihood of choices and spikes counts given the model parameters, pulse timing, trial history, and model specifications, summed across trials and trial-sets
 """
-function loglikelihood(x::Vector{T1}, data::Vector{T2}, options::DDLMoptions, abar::Vector{Vector{Vector{T3}}}, F::Vector{Vector{Matrix{T3}}}, P::Vector{Vector{Vector{T3}}}, X::Vector{Vector{Matrix{T3}}}) where {T1<:Real, T2<:trialsetdata, T3<:Float64}
+function loglikelihood(x::Vector{T1}, data::Vector{T2}, options::DDLMoptions, abar::T3, F::T3, P::T3, X::T3) where {T1<:Real, T2<:trialsetdata, T3<:Vector}
     θ = θDDLM(x)
     options.remap && (θ = θ2(θ))
     latentspec = latentspecification(options, θ)
@@ -130,7 +130,7 @@ RETURN
 -The summed log-likelihood of the choice and spike trains given the model parameters. Note that the likelihood of the spike trains of all units in each trial is normalized to be of the same magnitude as that of the choice, between 0 and 1.
 
 """
-function loglikelihood(θ::θDDLM, trialset::trialsetdata, latentspec::latentspecification, options::DDLMoptions, abar::Vector{Vector{T1}}, F::Vector{Matrix{T1}}, P::Vector{Vector{T1}}, X::Vector{Matrix{T1}}) where{T1<:Float64}
+function loglikelihood(θ::θDDLM, trialset::trialsetdata, latentspec::latentspecification, options::DDLMoptions, abar::T1, F::T1, P::T1, X::T1) where{T1<:Vector}
 
     @unpack a_bases, L2regularizer = options
     @unpack bias, lapse = θ
@@ -195,7 +195,7 @@ RETURN
 
 -P: A vector of vectors specifying the probability of the latent variable in each bin. Each element of the outer array corresponds to an individual trial
 """
-function forwardpass!(abar::Vector{Vector{T1}}, F::Vector{Matrix{T1}}, latentspec::latentspecification, P::Vector{Vector{T1}}, θ::θDDLM, trialset::trialsetdata) where {T1<:Float64}
+function forwardpass!(abar::T1, F::T1, latentspec::latentspecification, P::T1, θ::θDDLM, trialset::trialsetdata) where {T1<:Vector}
     @unpack α, B, k = θ
     @unpack lagged, trials = trialset
 
@@ -229,7 +229,7 @@ MODIFICATION
 RETURN
 -P: A vector specifying the probability of the latent variable in each bin
 """
-function forwardpass!(abar::Vector{T1}, F::Matrix{T1}, a₀::T2, latentspec::latentspecification, P::Vector{T1}, θ::θDDLM, trial::trialdata) where {T1<:Float64, T2<:Real}
+function forwardpass!(abar::Vector{T1}, F::Matrix{T1}, a₀::T2, latentspec::latentspecification, P::Vector{T1}, θ::θDDLM, trial::trialdata) where {T1<:Real}
     @unpack clickindices, clicktimes, choice = trial
     @unpack σ2_i, λ, σ2_a, σ2_s, ϕ, τ_ϕ = θ
     @unpack nT, nL, nR = clickindices
