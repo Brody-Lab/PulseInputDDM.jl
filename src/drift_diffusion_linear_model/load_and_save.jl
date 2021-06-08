@@ -22,7 +22,6 @@ function load_DDLM(datapath::String)
                             datapath = datapath,
                             dt = loadedoptions["dt"],
                             fit = convert(BitArray, vec(loadedoptions["fit"])),
-                            L2regularizer = loadedoptions["L2regularizer"],
                             lb = vec(loadedoptions["lb"]),
                             n = convert(Int64, loadedoptions["n"]),
                             nback = convert(Int64, loadedoptions["nback"]),

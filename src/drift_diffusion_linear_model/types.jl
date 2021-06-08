@@ -71,7 +71,6 @@ Fields:
 -`datapath:` location of the MATLAB file containing the data and model specifications
 -`dt`: Binning of the spikes, in seconds.
 -`fit`: a BitArray indicating which parameters are fit
--`L2regularizer`: a square matrix specifying the L2-regularization penalty for each regressor. Different groups of regressors may have different penalty terms
 -`lb`: a vector of floats indicating the lower bound of each parameter during optimization
 -`n`: Number of bins in the space of the latent variable
 -`nback`: number of trials in the past to consider
@@ -80,14 +79,13 @@ Fields:
 -`ub`: a vector of floats indicating the upper bound of each parameter during optimization
 -`x0`: initial values of the parameters
 """
-@with_kw struct DDLMoptions{T1<:BitArray, T2<:Vector{Float64}, T3<:Bool, T4<:String, T5<:AbstractFloat, T6<:Integer, T7<:Vector{Vector{Float64}}, T8<:Matrix{Float64}}
+@with_kw struct DDLMoptions{T1<:BitArray, T2<:Vector{Float64}, T3<:Bool, T4<:String, T5<:AbstractFloat, T6<:Integer, T7<:Vector{Vector{Float64}}}
     a_bases::T7 = [ones(1)]
     centered::T3=true
     cross::T3=false
     datapath::T4=""
     dt::T5 = 1e-2
     fit::T1 = BitArray(undef,0)
-    L2regularizer::T8=Matrix{Float64}(undef,0,0)
     lb::T2 = Vector{Float64}(undef,0)
     n::T6=53
     nback::T6=10

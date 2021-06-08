@@ -40,11 +40,10 @@ RETURN
 function predict_in_sample(model::DDLM)
     @unpack θ, data, options = model
     @unpack bias, σ2_a = θ
-    @unpack a_bases = options
 
     options.remap && (θ = θ2(θ))
     latentspec = pulse_input_DDM.latentspecification(options, θ)
-    @unpack dx, n, xc = latentspec
+    @unpack dx, n, nprepad_abar, npostpad_abar, xc = latentspec
 
     abar = map(trialset->map(trial->fill(zero(σ2_a), nprepad_abar+trial.clickindices.nT+npostpad_abar), trialset.trials), data)
     P = map((abar, trialset)->pulse_input_DDM.forwardpass!(abar, latentspec, θ, trialset), abar, data)

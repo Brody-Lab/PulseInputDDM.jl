@@ -54,10 +54,11 @@ Returns:
 - The loglikelihood of choices and spikes counts given the model parameters, pulse timing, trial history, and model specifications, summed across trials and trial-sets
 """
 function loglikelihood(x::Vector{T1}, data::Vector{T2}, options::DDLMoptions) where {T1<:Real, T2<:trialsetdata}
+    @unpack a_bases = options
     θ = θDDLM(x)
     options.remap && (θ = θ2(θ))
     latentspec = latentspecification(options, θ)
-    sum(map((trialset, abar, F, P, X)->loglikelihood(θ, trialset, latentspec, options, abar, F, P, X), data, abar, F, P, X))
+    sum(map(trialset->loglikelihood(a_bases, latentspec, θ, trialset), data))
 end
 
 """
@@ -90,54 +91,51 @@ Sum the loglikelihood of all trials in a single trial-set
 
 ARGUMENT
 
+-a_bases: kernels with which to filter the mean of the latent variable
+-latentspec: a container of variables specifying the latent space
 -θ: an instance of `θDDLM`
 -trialset: an instance of `trialsetdata`
--latentspec: a container of variables specifying the latent space
--`options`: specifications of the drift-diffusion linear model
 
 RETURN
 
 -The summed log-likelihood of the choice and spike trains given the model parameters. Note that the likelihood of the spike trains of all units in each trial is normalized to be of the same magnitude as that of the choice, between 0 and 1.
 
 """
-function loglikelihood(θ::θDDLM, trialset::trialsetdata, latentspec::latentspecification, options::DDLMoptions)
+function loglikelihood(a_bases::T1, latentspec::latentspecification, θ::θDDLM, trialset::trialsetdata) where {T1 <: Vector{<:Vector{<:Float64}}}
 
-    @unpack a_bases, L2regularizer = options
     @unpack σ2_a, bias, lapse = θ
     @unpack trials, units = trialset
     @unpack dx, n, nprepad_abar, xc = latentspec
 
-    abar = map(trial->fill(tzero(σ2_a)ypedzero, nprepad_abar+trial.clickindices.nT+npostpad_abar), trialset.trials)
+    abar = map(trial->fill(zero(σ2_a), nprepad_abar+trial.clickindices.nT+npostpad_abar), trialset.trials)
     P = forwardpass!(abar, latentspec, θ, trialset)
     ℓℓ_choice = sum(log.(map((P, trial)->sum(choice_likelihood!(bias,xc,P,trial.choice,n,dx)), P, trials)))
     Xa = hcat(map(basis->vcat(pmap(abar->DSP.filt(basis, abar)[nprepad_abar+1:end], abar)...), a_bases)...)
-    ℓℓ_spike_train = mean(pmap(unit->mean(loglikelihood(L2regularizer, lapse, unit, Xa)), units))*size(trials)[1]
+    ℓℓ_spike_train = mean(pmap(unit->mean(loglikelihood(lapse, unit, Xa)), units))*size(trials)[1]
 
     ℓℓ_choice + ℓℓ_spike_train
 end
 
 """
-    loglikelihood(L2regularizer, ℓ₀y, lapse, Xa, y)
+    loglikelihood(lapse, unit, Xa)
 
 Loglikelihood of the spike trains of one neural unit across all trials of a trialset
 
 INPUT
 
--L2regularizer: penalty matrix to implement L2 regularization. Square matrix of length `p`, where `p` is the total number of regressors. Only the elements of the diagonal are nonzero, and they may have different value
--ℓ₀y: likelihood of the spike train of the specified units given that the latent variable equals 0 for all time bins and all trials. A vector of length `∑T(i)`, where `T(i)` is number of time bins in the i-th trial.
 -lapse: The fraction of trials in which the choice is formed independently of the latent variable
--X: the design matrix for least-square regression. A N-by-p matrix, where N is the sum of time bins across trials, and p is the number of regressors
+-unit: spike train and regressor associated with a unit
 -Xa: the columns of the design matrix corresponding to the filtered output of the mean of the latent variable. It is a N-by-pₐ matrix, where pₐ is the number of filters.
--y: spike train and the response variable of the least-square regression. A vector of length `∑T(i)`, where `T(i)` is number of time bins in the i-th trial. Each element indicates the spike count in a particular time bin of a particular trial.
 
 OUTPUT
 
 -The loglikelihood of the spike trains. A vector of length `∑T(i)`, where `T(i)` is number of time bins in the i-th trial.
 """
-function loglikelihood(L2regularizer::Matrix{Float64}, lapse::T1, unit::unitdata, Xa::Matrix{T1}) where {T1<:Real}
+function loglikelihood(lapse::T1, unit::unitdata, Xa::Matrix{T1}) where {T1<:Real}
     @unpack ℓ₀y, y = unit
     X = hcat(unit.X, Xa)
-    β = inv(transpose(X)*X+L2regularizer)*transpose(X)*y
+    Xᵀ = transpose(X)
+    β = inv(Xᵀ*X)*Xᵀ*y
     ŷ = X*β
     e = y-ŷ
     σ² = var(e)
