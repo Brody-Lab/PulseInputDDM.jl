@@ -229,7 +229,7 @@ MODIFICATION
 RETURN
 -P: A vector specifying the probability of the latent variable in each bin
 """
-function forwardpass!(abar::Vector{T1}, F::Matrix{T1}, a₀::T2, latentspec::latentspecification, P::Vector{T1}, θ::θDDLM, trial::trialdata) where {T1<:Real}
+function forwardpass!(abar::Vector{T1}, F::Matrix{T1}, a₀::T1, latentspec::latentspecification, P::Vector{T1}, θ::θDDLM, trial::trialdata) where {T1<:Real}
     @unpack clickindices, clicktimes, choice = trial
     @unpack σ2_i, λ, σ2_a, σ2_s, ϕ, τ_ϕ = θ
     @unpack nT, nL, nR = clickindices
