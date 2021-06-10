@@ -17,7 +17,7 @@ function load_DDLM(datapath::String)
 
     loadedoptions = read(matopen(datapath), "options")
     options = DDLMoptions(  a_bases = map(x->vec(x), vec(loadedoptions["a_bases"])),
-                            autoreg_bases = loadedoptions["options"],
+                            autoreg_bases = loadedoptions["autoreg_bases"],
                             centered = loadedoptions["centered"],
                             cross = loadedoptions["cross"],
                             datapath = datapath,
