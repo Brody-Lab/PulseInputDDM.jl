@@ -388,5 +388,5 @@ INPUT
 """
 function θ2(θ::θDDLM)
     @unpack α, B, bias, k, λ, lapse, ϕ, σ2_a, σ2_i, σ2_s, τ_ϕ, coupling
-    θDDLM(α=α, B=B, bias=bias, k=k, λ=λ, lapse=lapse, ϕ=ϕ, σ2_a=σ2_a^2, σ2_i=σ2_i^2, σ2_s^2, τ_ϕ=τ_ϕ, coupling=coupling)
+    θDDLM(α=α, B=B, bias=bias, k=k, λ=λ, lapse=lapse, ϕ=ϕ, σ2_a=σ2_a^2, σ2_i=σ2_i^2, σ2_s=σ2_s^2, τ_ϕ=τ_ϕ, coupling=coupling)
 end
