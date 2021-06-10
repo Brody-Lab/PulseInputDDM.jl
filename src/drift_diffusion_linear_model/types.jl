@@ -53,7 +53,7 @@ Fields:
 -`ub`: a vector of floats indicating the upper bound of each parameter during optimization
 -`x0`: initial values of the parameters
 """
-@with_kw struct DDLMoptions{T1<:BitArray, T2<:Vector{Float64}, T3<:Bool, T4<:String, T5<:AbstractFloat, T6<:Integer, T7<:Vector{Vector{Float64}}, T8::Matrix{Float64}}
+@with_kw struct DDLMoptions{T1<:BitArray, T2<:Vector{Float64}, T3<:Bool, T4<:String, T5<:AbstractFloat, T6<:Integer, T7<:Vector{Vector{Float64}}, T8<:Matrix{Float64}}
     a_bases::T7 = [ones(1)]
     autoreg_bases::T8 = ones(1,1)
     centered::T3=true
