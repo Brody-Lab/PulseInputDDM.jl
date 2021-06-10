@@ -17,7 +17,7 @@ Fields:
 -`lapse`: a float indicating the fraction of trials when the animal makes a choice ignoring the accumulator value
 -`coupling`: A nested vector whose element coupling[i][j] indicates the coupling between the j-th neuron in the i-th trialset and the latent variable
 """
-@with_kw struct θDDLM{T<:Real, T2<:Vector{<:Vector{<:Real}} <: DDMθ
+@with_kw struct θDDLM{T<:Real, T2<:Vector{<:Vector{<:Real}}} <: DDMθ
     α::T = 0.
     B::T = 15.
     bias::T = 0.
