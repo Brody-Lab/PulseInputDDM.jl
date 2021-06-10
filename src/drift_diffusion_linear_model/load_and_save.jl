@@ -89,7 +89,7 @@ function parse_one_trialset(trialset::Dict, options::DDLMoptions)
     lagged = laggeddata(answer=laggedanswer, choice=laggedchoice, eˡᵃᵍ⁺¹=eˡᵃᵍ⁺¹, lag=lag, reward=laggedreward)
 
     nbins_each_trial = map(trial->trial.clickindices.nT, trials)
-    @assert sum(nbins_each_trial) == length(units[1].y)
+    @assert sum(nbins_each_trial+options.npostpad_abar) == length(units[1].y)
 
     trialsetdata(lagged=lagged, nbins_each_trial=nbins_each_trial, trials=trials, units=units, Xtiming=trialset["Xtiming"])
 end
