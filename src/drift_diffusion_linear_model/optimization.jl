@@ -183,7 +183,7 @@ INPUT
 -Xtiming: the columns of the design matrix corresponding to the timing of events in each trial
 
 """
-function predict_spike_train(autoreg_bases::Matrix{T1}, β::Vector{T2}, nbins_each_trial::Vector{T3}, Xa::Matrix{T1}, Xtiming::Matrix{T1}) where {T1<:Float64, T2<:Real, T3<:Int}
+function predict_spike_train(autoreg_bases::Matrix{T1}, β::Vector{T2}, nbins_each_trial::Vector{T3}, Xa::Matrix{T2}, Xtiming::Matrix{T1}) where {T1<:Float64, T2<:Real, T3<:Int}
     size_autoreg_bases = size(autoreg_bases)
     n_autoreg_bins = size_autoreg_bases[1]
     n_autoreg_bases = size_autoreg_bases[2]
