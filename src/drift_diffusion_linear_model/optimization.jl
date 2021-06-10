@@ -110,7 +110,7 @@ function loglikelihood(coupling::Vector{<:Real}, latentspec::latentspecification
     @unpack dx, n, npostpad_abar, nprepad_abar, xc = latentspec
     @unpack a_bases, autoreg_bases = options
 
-    abar = map(trial->zeros(type(σ2_a), nprepad_abar+trial.clickindices.nT+npostpad_abar), trialset.trials)
+    abar = map(trial->zeros(typeof(σ2_a), nprepad_abar+trial.clickindices.nT+npostpad_abar), trialset.trials)
 
     P = forwardpass!(abar, latentspec, θ, trialset)
     ℓℓ_choice = sum(log.(map((P, trial)->sum(choice_likelihood!(bias,xc,P,trial.choice,n,dx)), P, trials)))
