@@ -15,8 +15,9 @@ Fields:
 -`k`: The exponential change rate of α as a function of trial number in the past
 -`bias`: a float that specifies the decision criterion across trials and trial-sets. At the end of each trial, the model chooses right if the integral of P(a) is greater than the bias
 -`lapse`: a float indicating the fraction of trials when the animal makes a choice ignoring the accumulator value
+-`coupling`: A nested vector whose element coupling[i][j] indicates the coupling between the j-th neuron in the i-th trialset and the latent variable
 """
-@with_kw struct θDDLM{T<:Real} <: DDMθ
+@with_kw struct θDDLM{T<:Real, T2<:Vector{<:Vector{<:Real}} <: DDMθ
     α::T = 0.
     B::T = 15.
     bias::T = 0.
@@ -28,6 +29,7 @@ Fields:
     σ2_i::T = 0.5; @assert σ2_i != 0.
     σ2_s::T = 1.5
     τ_ϕ::T = 0.05
+    coupling::T2 = [[1.]]
 end
 
 """
@@ -36,9 +38,23 @@ Constructor method for ([`θDDLM`](@ref)) from a vector of parameter values
 Arguments:
 
 - `x` The values of the model parameters
+- `nunits_each_trialset`: Number of neuronal units in each trialset
 """
-function θDDLM(x::Vector{T}) where {T <: Real}
-    θDDLM(x...)
+function θDDLM(x::Vector{<:Real}, data::Vector{<:trialsetdata})
+    fnames = collect(fieldnames(θDDLM))
+    n_other_parameters = sum(fnames .!= :coupling])
+    xcoupling = view(x, n_other_parameters+1:end)
+
+    nunits_each_trialset = map(trialset->length(trialset.units), data)
+    coupling = map(nunits->zeros(nunits), nunits_each_trialset)
+
+    k = 0
+    for i = 1:length(nunits_each_trialset)
+        for j = 1:length(nunits_each_trialset[j])
+            coupling[i][j] = view(xcoupling, (k+1):(k+=nunits_each_trialset[i]))
+        end
+    end
+    θDDLM(x[1:11]..., coupling)
 end
 
 """
@@ -55,7 +71,9 @@ Returns:
 - a vector of Floats
 """
 function flatten(θ::θDDLM)
-    collect(map(x->getfield(θ,x), fieldnames(θDDLM)))
+    fnames = collect(fieldnames(θDDLM))
+    fnames[fnames .!= :coupling]
+    vcat(map(x->getfield(θ,x), fnames[fnames .!= :coupling]), vcat(θ.coupling...))
 end
 
 """
@@ -81,6 +99,7 @@ Fields:
 """
 @with_kw struct DDLMoptions{T1<:BitArray, T2<:Vector{Float64}, T3<:Bool, T4<:String, T5<:AbstractFloat, T6<:Integer, T7<:Vector{Vector{Float64}}}
     a_bases::T7 = [ones(1)]
+    autoreg_bases::T8 = ones(1,1)
     centered::T3=true
     cross::T3=false
     datapath::T4=""
@@ -127,7 +146,7 @@ Fields:
 @with_kw struct unitdata{T1 <: Matrix{Float64}, T2 <: Vector{Float64}}
     L2regularizer:: T1
     ℓ₀y::T2
-    X::T1
+    Xautoreg::T1
     y::T2
 end
 
@@ -162,10 +181,12 @@ Fields:
 - trials: A vector of 'trialdata' objects
 - units: A vector of 'unitdata' objects
 """
-@with_kw struct trialsetdata{T1<:laggeddata, T2<:Vector{<:trialdata}, T3<:Vector{<:unitdata}}
+@with_kw struct trialsetdata{T1<:laggeddata, T2<:Vector{<:Int}, T3<:Vector{<:trialdata}, T4<:Vector{<:unitdata}, T5<:Matrix{Float64}}
     lagged::T1
-    trials::T2
-    units::T3
+    nbins_each_trial::T2
+    trials::T3
+    units::T4
+    Xtiming::T5
 end
 
 """

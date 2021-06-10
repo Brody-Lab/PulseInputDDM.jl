@@ -33,7 +33,7 @@ function optimize(model::DDLM;
         extended_trace=extended_trace)
     x = Optim.minimizer(output)
     x = stack(x,c,fit)
-    model = DDLM(data=data, options=options, θ=θDDLM(x))
+    model = DDLM(data=data, options=options, θ=θDDLM(x, data))
 
     return model, output
 end
@@ -55,11 +55,11 @@ Returns:
 - The loglikelihood of choices and spikes counts given the model parameters, pulse timing, trial history, and model specifications, summed across trials and trial-sets
 """
 function loglikelihood(x::Vector{T1}, data::Vector{T2}, options::DDLMoptions) where {T1<:Real, T2<:trialsetdata}
-    @unpack a_bases = options
-    θ = θDDLM(x)
+    nunits_each_trialset = map(trialset->length(trialset.units), data)
+    θ = θDDLM(x, data)
     options.remap && (θ = θ2(θ))
     latentspec = latentspecification(options, θ)
-    sum(map(trialset->loglikelihood(a_bases, latentspec, θ, trialset), data))
+    sum(map((coupling, trialset)->loglikelihood(coupling, latentspec, options, θ, trialset), θ.coupling, data))
 end
 
 """
@@ -92,6 +92,7 @@ Sum the loglikelihood of all trials in a single trial-set
 
 ARGUMENT
 
+-coupling: The degree to which the neural units in this trialset is coordinated with the latent variable
 -a_bases: kernels with which to filter the mean of the latent variable
 -latentspec: a container of variables specifying the latent space
 -θ: an instance of `θDDLM`
@@ -102,54 +103,124 @@ RETURN
 -The summed log-likelihood of the choice and spike trains given the model parameters. Note that the likelihood of the spike trains of all units in each trial is normalized to be of the same magnitude as that of the choice, between 0 and 1.
 
 """
-function loglikelihood(a_bases::T1, latentspec::latentspecification, θ::θDDLM, trialset::trialsetdata) where {T1 <: Vector{<:Vector{<:Float64}}}
+function loglikelihood(coupling::Vector{<:Real}, latentspec::latentspecification, options::DDLMoptions, θ::θDDLM, trialset::trialsetdata) where {T1 <:Vector{<:Float64}, T<:Float64}
 
     @unpack σ2_a, bias, lapse = θ
-    @unpack trials, units = trialset
+    @unpack trials, units, nbins_each_trial, Xtiming = trialset
     @unpack dx, n, npostpad_abar, nprepad_abar, xc = latentspec
+    @unpack a_bases, autoreg_bases = options
 
-    abar = map(trial->fill(zero(σ2_a), nprepad_abar+trial.clickindices.nT+npostpad_abar), trialset.trials)
-
-    println("=========")
-    println(abar[1][1][end] == zero(σ2_a))
-    println("=========")
+    abar = map(trial->zeros(type(σ2_a), nprepad_abar+trial.clickindices.nT+npostpad_abar), trialset.trials)
 
     P = forwardpass!(abar, latentspec, θ, trialset)
     ℓℓ_choice = sum(log.(map((P, trial)->sum(choice_likelihood!(bias,xc,P,trial.choice,n,dx)), P, trials)))
     Xa = hcat(map(basis->vcat(pmap(abar->DSP.filt(basis, abar)[nprepad_abar+1:end], abar)...), a_bases)...)
-    ℓℓ_spike_train = mean(pmap(unit->mean(loglikelihood(lapse, unit, Xa)), units))*size(trials)[1]
-
-    println("=========")
-    println(abar[1][1][end] == zero(σ2_a))
-    println("=========")
+    ℓℓ_spike_train = mean(pmap((coupling,unit)->mean(loglikelihood(autoreg_bases, coupling, nbins_each_trial, unit, Xa, Xtiming)), coupling, units))*size(trials)[1]
 
     ℓℓ_choice + ℓℓ_spike_train
 end
 
 """
-    loglikelihood(lapse, unit, Xa)
+    loglikelihood(autoreg_bases, coupling, nbins_each_trial, unit, Xa, Xtiming)
 
 Loglikelihood of the spike trains of one neural unit across all trials of a trialset
 
 INPUT
 
--lapse: The fraction of trials in which the choice is formed independently of the latent variable
+-autoreg_bases: Kernels with which the spike history is filtered. Each column is a filter, and each row is a time bin. The first row corresponds to the immediately preceding time bin
+-coupling: The fraction of trials in which the neural unit is coordinate with the latent variable
+-nbins_each_trial: A vector whose each element indicates the number of time bins in each trial
 -unit: spike train and regressor associated with a unit
 -Xa: the columns of the design matrix corresponding to the filtered output of the mean of the latent variable. It is a N-by-pₐ matrix, where pₐ is the number of filters.
+-Xtiming: the columns of the design matrix corresponding to the timing of events in each trial
 
 OUTPUT
 
 -The loglikelihood of the spike trains. A vector of length `∑T(i)`, where `T(i)` is number of time bins in the i-th trial.
 """
-function loglikelihood(lapse::T1, unit::unitdata, Xa::Matrix{T1}) where {T1<:Real}
-    @unpack L2regularizer, ℓ₀y, y = unit
-    X = hcat(unit.X, Xa)
-    Xᵀ = transpose(X)
-    β = inv(Xᵀ*X+L2regularizer)*Xᵀ*y
-    ŷ = X*β
+function loglikelihood(autoreg_bases::Matrix{Float64}, coupling::T, nbins_each_trial::Vector{Int}, unit::unitdata, Xa::Matrix{T}, Xtiming::Matrix{Float64}) where {T<:Real}
+    @unpack L2regularizer, ℓ₀y, Xautoreg, y = unit
+    β = leastsquares(unit, Xa, Xtiming)
+    ŷ = predict_spike_train(autoreg_bases, β, nbins_each_trial, Xa, Xtiming)
     e = y-ŷ
     σ² = var(e)
-    log.((((1-lapse)/sqrt(2π*σ²)).*exp.(-(e.^2)./2σ²) + lapse.*ℓ₀y))
+    log.(((coupling/sqrt(2π*σ²)).*exp.(-(e.^2)./2σ²) + (1-coupling).*ℓ₀y))
+end
+
+"""
+    leastsquares(unit, Xa, Xtiming)
+
+Calculate the coefficients of the regressors for the spike train of one neural unit
+
+INPUT
+
+-unit: instance of `unitdata`
+-Xa: columns of the design matrix related to the latent
+-Xtiming: columns of the design matrix related to the timing of trial events
+
+RETURN
+
+-A vector of coefficients
+"""
+function leastsquares(unit::unitdata, Xa::Matrix{T1}, Xtiming::Matrix{T1}) where {T1<:Real}
+    @unpack L2regularizer, Xautoreg, y = unit
+    X = hcat(Xautoreg, Xtiming, Xa)
+    Xᵀ = transpose(X)
+    inv(Xᵀ*X+L2regularizer)*Xᵀ*y
+end
+
+"""
+    predict_spike_train
+
+Calculate the mean of the linear-Gaussian model of the spike in each time bin
+
+INPUT
+
+-autoreg_bases: Kernels with which the spike history is filtered. Each column is a filter, and each row is a time bin. The first row corresponds to the immediately preceding time bin
+-β: Coefficients of all regressors. The coefficients for the autoregressive terms are expected to be at the top.
+-nbins_each_trial: A vector whose each element indicates the number of time bins in each trial
+-Xa: the columns of the design matrix corresponding to the filtered output of the mean of the latent variable. It is a N-by-pₐ matrix, where pₐ is the number of filters.
+-Xtiming: the columns of the design matrix corresponding to the timing of events in each trial
+
+"""
+function predict_spike_train(autoreg_bases::Matrix{T1}, β::Vector{T2}, nbins_each_trial::Vector{T3}, Xa::Matrix{T1}, Xtiming::Matrix{T1}) where {T1<:Float64, T2<:Real, T3<:Int}
+    size_autoreg_bases = size(autoreg_bases)
+    n_autoreg_bins = size_autoreg_bases[1]
+    n_autoreg_bases = size_autoreg_bases[2]
+    w = autoreg_bases * β[1:n_autoreg_bases] # weight of the autoregressive term in each time bin
+    y = hcat(Xtiming, Xa) * β[n_autoreg_bases+1:end]
+    Y = pad_and_reshape(nbins_each_trial, y)
+    @inbounds for i = 2:maxtimebins
+        for j = 1:min(i-1, n_autoreg_bins)
+            Y[:,i] += view(Y,:,i-j) .* w[j]
+        end
+    end
+    Yᵀ = transpose(Y)
+    Yᵀ[.!isnan(Yᵀ)]
+end
+
+"""
+    pad_and_reshape
+
+Pad the spike train of each trial to have the same number of time bins and return the output as a matrix of size number-of-trials by T, where T is the maximum number of time bins across trials
+
+INPUT
+
+-nbins_each_trial: A vector whose each element indicates the number of time bins in each trial
+-y: spike count in each time bin concatenated across trials
+
+OUTPUT
+
+-A nan-padded matrix
+"""
+function pad_and_reshape(nbins_each_trial::Vector{T1}, y::Vector{T2}) where {T1<:Int, T2<:Real}
+    ntrials = length(nbins_each_trial);
+    Y = fill(NaN, ntrials, max(nbins_each_trial...))
+    k = 0
+    @inbounds for i = 1:ntrials
+        Y[i, 1:nbins_each_trial[i]] = view(y, (k+1):(k+=nbins_each_trial[i]))
+    end
+    return Y
 end
 
 """
@@ -309,11 +380,13 @@ end
     θ2(θ)
 
 Square the values of a subset of parameters (σ2_i, σ2_a, σ2_s)
+
+INPUT
+
+-θ: model parameters
+-nunits_each_trialset: Number of neuronal units in each trialset
 """
 function θ2(θ::θDDLM)
-    @unpack θz, θh, bias, lapse = θ
-    x = pulse_input_DDM.flatten(θz)
-    index = convert(BitArray, map(x->occursin("σ2", string(x)), collect(fieldnames(θz))))
-    x[index]=x[index].^2
-    θDDLM(θz=θz(x), θh=θh, bias=bias, lapse=lapse)
+    @unpack α, B, bias, k, λ, lapse, ϕ, σ2_a, σ2_i, σ2_s, τ_ϕ, coupling
+    θDDLM(α=α, B=B, bias=bias, k=k, λ=λ, lapse=lapse, ϕ=ϕ, σ2_a=σ2_a^2, σ2_i=σ2_i^2, σ2_s^2, τ_ϕ=τ_ϕ, coupling=coupling)
 end

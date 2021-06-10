@@ -17,6 +17,7 @@ function load_DDLM(datapath::String)
 
     loadedoptions = read(matopen(datapath), "options")
     options = DDLMoptions(  a_bases = map(x->vec(x), vec(loadedoptions["a_bases"])),
+                            autoreg_bases = loadedoptions["options"],
                             centered = loadedoptions["centered"],
                             cross = loadedoptions["cross"],
                             datapath = datapath,
@@ -31,8 +32,8 @@ function load_DDLM(datapath::String)
                             ub = vec(loadedoptions["ub"]),
                             x0 = vec(loadedoptions["x0"]))
     isfile(options.resultspath) ? x = vec(read(matopen(options.resultspath),"ML_params")) : x = options.x0
-    trialsets = map(x->parse_one_trialset(x, options), vec(read(matopen(datapath), "trialsets")))
-    DDLM(data=trialsets, options=options, θ=θDDLM(x))
+    data = map(x->parse_one_trialset(x, options), vec(read(matopen(datapath), "trialsets")))
+    DDLM(data=data, options=options, θ=θDDLM(x, data))
 end
 
 """
@@ -72,9 +73,9 @@ function parse_one_trialset(trialset::Dict, options::DDLMoptions)
     rawunits = vec(trialset["units"])
     L2regularizer = map(x->x["L2regularizer"], rawunits)
     ℓ₀y = map(x->vec(x["likelihood0_y"]), rawunits)
-    X = map(x->x["X"], rawunits)
+    Xautoreg = map(x->x["Xautoreg"], rawunits)
     y = map(x->vec(x["y"]), rawunits)
-    units = map((L2regularizer, ℓ₀y, X, y)->unitdata(L2regularizer=L2regularizer, ℓ₀y=ℓ₀y, X=X, y=y), L2regularizer, ℓ₀y, X, y)
+    units = map((L2regularizer, ℓ₀y, Xautoreg, y)->unitdata(L2regularizer=L2regularizer, ℓ₀y=ℓ₀y, Xautoreg=Xautoreg, y=y), L2regularizer, ℓ₀y, Xautoreg, y)
 
     laggedanswer = convert(Matrix{Int64}, trialset["lagged"]["answer"])
     laggedchoice = convert(Matrix{Int64}, trialset["lagged"]["choice"])
@@ -87,7 +88,10 @@ function parse_one_trialset(trialset::Dict, options::DDLMoptions)
     eˡᵃᵍ⁺¹ = exp.(lag.+1)
     lagged = laggeddata(answer=laggedanswer, choice=laggedchoice, eˡᵃᵍ⁺¹=eˡᵃᵍ⁺¹, lag=lag, reward=laggedreward)
 
-    trialsetdata(lagged=lagged, trials=trials, units=units)
+    nbins_each_trial = map(trial->trial.clickindices.nT, trials))
+    @assert sum(nbins_each_trial) == length(units[1].y)
+
+    trialsetdata(lagged=lagged, nbins_each_trial=nbins_each_trial, trials=trials, units=units, Xtiming=trialset["Xtiming"])
 end
 
 """
@@ -102,13 +106,15 @@ ARGUMENT
 """
 
 function save(model::DDLM)
-
-    abar, choicelikelihood = pulse_input_DDM.predict_in_sample(model)
+    abar, β, choicelikelihood, ŷ = pulse_input_DDM.predict_in_sample(model)
+    H = Hessian(model)
     dict = Dict("ML_params"=> pulse_input_DDM.flatten(model.θ),
                 "parameter_name" => pulse_input_DDM.θDDLM_names(),
-                "Hessian" => Hessian(model),
+                "Hessian" => H,
                 "abar_insample" => abar,
-                "choicelikelihood_insample" => choicelikelihood)
+                "beta_insample" => β,
+                "choicelikelihood_insample" => choicelikelihood,
+                "y_insample" => ŷ)
     matwrite(model.options.resultspath, dict)
 end
 
@@ -129,5 +135,6 @@ function θDDLM_names()
      "sigma2_a";
      "sigma2_i";
      "sigma2_s";
-     "tau_phi"]
+     "tau_phi";
+     "coupling"]
 end
