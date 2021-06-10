@@ -33,48 +33,6 @@ Fields:
 end
 
 """
-Constructor method for ([`θDDLM`](@ref)) from a vector of parameter values
-
-Arguments:
-
-- `x` The values of the model parameters
-- `nunits_each_trialset`: Number of neuronal units in each trialset
-"""
-function θDDLM(x::Vector{<:Real}, data::Vector{<:trialsetdata})
-    fnames = collect(fieldnames(θDDLM))
-    n_other_parameters = sum(fnames .!= :coupling)
-    xcoupling = x[n_other_parameters+1:end]
-
-    nunits_each_trialset = map(trialset->length(trialset.units), data)
-    coupling = map(nunits->zeros(nunits), nunits_each_trialset)
-
-    k = 0
-    for i = 1:length(nunits_each_trialset)
-        coupling[i] = view(xcoupling, (k+1):(k+=nunits_each_trialset[i]))
-    end
-    θDDLM(x[1:11]..., coupling)
-end
-
-"""
-    flatten(θ)
-
-Convert an instance of [`θDDLM`](@ref) to a vector.
-
-Arguments:
-
-- `θ`: an instance of ['θDDLM'](@ref)
-
-Returns:
-
-- a vector of Floats
-"""
-function flatten(θ::θDDLM)
-    fnames = collect(fieldnames(θDDLM))
-    fnames[fnames .!= :coupling]
-    vcat(map(x->getfield(θ,x), fnames[fnames .!= :coupling]), vcat(θ.coupling...))
-end
-
-"""
     DDLMoptions
 
 A module-specific type that specifies which parameters to fit, their lower and upper bounds, initial values, and other settings used during data preprocessing or model optimization.
@@ -185,6 +143,48 @@ Fields:
     trials::T3
     units::T4
     Xtiming::T5
+end
+
+"""
+Constructor method for ([`θDDLM`](@ref)) from a vector of parameter values
+
+Arguments:
+
+- `x` The values of the model parameters
+- `nunits_each_trialset`: Number of neuronal units in each trialset
+"""
+function θDDLM(x::Vector{<:Real}, data::Vector{<:trialsetdata})
+    fnames = collect(fieldnames(θDDLM))
+    n_other_parameters = sum(fnames .!= :coupling)
+    xcoupling = x[n_other_parameters+1:end]
+
+    nunits_each_trialset = map(trialset->length(trialset.units), data)
+    coupling = map(nunits->zeros(nunits), nunits_each_trialset)
+
+    k = 0
+    for i = 1:length(nunits_each_trialset)
+        coupling[i] = view(xcoupling, (k+1):(k+=nunits_each_trialset[i]))
+    end
+    θDDLM(x[1:n_other_parameters]..., coupling)
+end
+
+"""
+    flatten(θ)
+
+Convert an instance of [`θDDLM`](@ref) to a vector.
+
+Arguments:
+
+- `θ`: an instance of ['θDDLM'](@ref)
+
+Returns:
+
+- a vector of Floats
+"""
+function flatten(θ::θDDLM)
+    fnames = collect(fieldnames(θDDLM))
+    fnames[fnames .!= :coupling]
+    vcat(map(x->getfield(θ,x), fnames[fnames .!= :coupling]), vcat(θ.coupling...))
 end
 
 """
