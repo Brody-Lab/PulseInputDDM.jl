@@ -43,16 +43,14 @@ Arguments:
 function θDDLM(x::Vector{<:Real}, data::Vector{<:trialsetdata})
     fnames = collect(fieldnames(θDDLM))
     n_other_parameters = sum(fnames .!= :coupling)
-    xcoupling = view(x, n_other_parameters+1:end)
+    xcoupling = x[n_other_parameters+1:end)
 
     nunits_each_trialset = map(trialset->length(trialset.units), data)
     coupling = map(nunits->zeros(nunits), nunits_each_trialset)
 
     k = 0
     for i = 1:length(nunits_each_trialset)
-        for j = 1:length(nunits_each_trialset[j])
-            coupling[i][j] = view(xcoupling, (k+1):(k+=nunits_each_trialset[i]))
-        end
+        coupling[i] = view(xcoupling, (k+1):(k+=nunits_each_trialset[i]))
     end
     θDDLM(x[1:11]..., coupling)
 end
