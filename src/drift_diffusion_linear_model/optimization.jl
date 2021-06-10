@@ -162,7 +162,7 @@ RETURN
 
 -A vector of coefficients
 """
-function leastsquares(unit::unitdata, Xa::Matrix{T1}, Xtiming::Matrix{T1}) where {T1<:Real}
+function leastsquares(unit::unitdata, Xa::Matrix{T1}, Xtiming::Matrix{Float64}) where {T1<:Real}
     @unpack L2regularizer, Xautoreg, y = unit
     X = hcat(Xautoreg, Xtiming, Xa)
     Xᵀ = transpose(X)
