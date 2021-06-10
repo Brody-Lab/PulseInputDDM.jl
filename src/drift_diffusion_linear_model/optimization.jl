@@ -196,7 +196,7 @@ function predict_spike_train(autoreg_bases::Matrix{T1}, β::Vector{T2}, nbins_ea
         end
     end
     Yᵀ = transpose(Y)
-    Yᵀ[.!isnan(Yᵀ)]
+    Yᵀ[.!isnan.(Yᵀ)]
 end
 
 """
