@@ -190,7 +190,7 @@ function predict_spike_train(autoreg_bases::Matrix{T1}, β::Vector{T2}, nbins_ea
     w = autoreg_bases * β[1:n_autoreg_bases] # weight of the autoregressive term in each time bin
     y = hcat(Xtiming, Xa) * β[n_autoreg_bases+1:end]
     Y = pad_and_reshape(nbins_each_trial, y)
-    @inbounds for i = 2:max(nbins_each_trial)
+    @inbounds for i = 2:maximum(nbins_each_trial)
         for j = 1:min(i-1, n_autoreg_bins)
             Y[:,i] += view(Y,:,i-j) .* w[j]
         end
@@ -215,7 +215,7 @@ OUTPUT
 """
 function pad_and_reshape(nbins_each_trial::Vector{T1}, y::Vector{T2}) where {T1<:Int, T2<:Real}
     ntrials = length(nbins_each_trial);
-    Y = fill(NaN, ntrials, max(nbins_each_trial...))
+    Y = fill(NaN, ntrials, maximum(nbins_each_trial))
     k = 0
     @inbounds for i = 1:ntrials
         Y[i, 1:nbins_each_trial[i]] = view(y, (k+1):(k+=nbins_each_trial[i]))
