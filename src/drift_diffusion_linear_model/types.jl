@@ -99,11 +99,12 @@ Fields:
 - X: the design matrix containing auroregressive regressors based on the spiking history and regressors related to the timing of trial events. The columns related to the latent variable variable are preallocated as zeros.
 - y: column vector of spike count of the unit in each time bin in each trial, concatenated across trials
 """
-@with_kw struct unitdata{T1 <: Matrix{Float64}, T2 <: Vector{Float64}}
-    L2regularizer:: T1
-    ℓ₀y::T2
-    Xautoreg::T1
-    y::T2
+@with_kw struct unitdata{T1 <: Vector{Float64}, T2 <: Matrix{Float64}}
+    beta_uncoupled::T1
+    L2regularizer:: T2
+    ℓ₀y::T1
+    Xautoreg::T2
+    y::T1
 end
 
 """

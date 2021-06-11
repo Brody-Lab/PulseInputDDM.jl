@@ -71,11 +71,12 @@ function parse_one_trialset(trialset::Dict, options::DDLMoptions)
     trials = map((clickindices, clicktimes, choice)->trialdata(clickindices=clickindices, clicktimes=clicktimes, choice=choice), clickindices, clicktimes, choice)
 
     rawunits = vec(trialset["units"])
+    βuncoupled = map(x->vec(x["beta_uncoupled"]), rawunits)
     L2regularizer = map(x->x["L2regularizer"], rawunits)
     ℓ₀y = map(x->vec(x["likelihood0_y"]), rawunits)
     Xautoreg = map(x->x["Xautoreg"], rawunits)
     y = map(x->vec(x["y"]), rawunits)
-    units = map((L2regularizer, ℓ₀y, Xautoreg, y)->unitdata(L2regularizer=L2regularizer, ℓ₀y=ℓ₀y, Xautoreg=Xautoreg, y=y), L2regularizer, ℓ₀y, Xautoreg, y)
+    units = map((βuncoupled, L2regularizer, ℓ₀y, Xautoreg, y)->unitdata(βuncoupled=βuncoupled, L2regularizer=L2regularizer, ℓ₀y=ℓ₀y, Xautoreg=Xautoreg, y=y), L2regularizer, ℓ₀y, Xautoreg, y)
 
     laggedanswer = convert(Matrix{Int64}, trialset["lagged"]["answer"])
     laggedchoice = convert(Matrix{Int64}, trialset["lagged"]["choice"])
@@ -114,7 +115,7 @@ function save(model::DDLM)
                 "abar_insample" => abar,
                 "beta_insample" => β,
                 "choicelikelihood_insample" => choicelikelihood,
-                "Xa" => Xa, 
+                "Xa" => Xa,
                 "y_insample" => ŷ)
     matwrite(model.options.resultspath, dict)
 end
