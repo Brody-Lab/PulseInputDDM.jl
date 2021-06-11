@@ -107,13 +107,14 @@ ARGUMENT
 
 function save(model::DDLM)
     H = Hessian(model)
-    abar, β, choicelikelihood, ŷ = pulse_input_DDM.predict_in_sample(model)
+    abar, β, choicelikelihood, Xa, ŷ = pulse_input_DDM.predict_in_sample(model)
     dict = Dict("ML_params"=> pulse_input_DDM.flatten(model.θ),
                 "parameter_name" => pulse_input_DDM.θDDLM_names(),
                 "Hessian" => H,
                 "abar_insample" => abar,
                 "beta_insample" => β,
                 "choicelikelihood_insample" => choicelikelihood,
+                "Xa" => Xa, 
                 "y_insample" => ŷ)
     matwrite(model.options.resultspath, dict)
 end
