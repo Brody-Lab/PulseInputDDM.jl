@@ -100,8 +100,8 @@ Fields:
 - y: column vector of spike count of the unit in each time bin in each trial, concatenated across trials
 """
 @with_kw struct unitdata{T1 <: Vector{Float64}, T2 <: Matrix{Float64}}
-    beta_uncoupled::T1
-    L2regularizer:: T2
+    βuncoupled::T1
+    L2regularizer::T2
     ℓ₀y::T1
     Xautoreg::T2
     y::T1
