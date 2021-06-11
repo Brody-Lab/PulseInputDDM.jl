@@ -114,8 +114,10 @@ function loglikelihood(coupling::Vector{<:Real}, latentspec::latentspecification
 
     P = forwardpass!(abar, latentspec, θ, trialset)
     ℓℓ_choice = sum(log.(map((P, trial)->sum(choice_likelihood!(bias,xc,P,trial.choice,n,dx)), P, trials)))
-    Xa = hcat(map(basis->vcat(pmap(abar->DSP.filt(basis, abar)[nprepad_abar+1:end], abar)...), a_bases)...)
-    ℓℓ_spike_train = mean(pmap((coupling,unit)->mean(loglikelihood(autoreg_bases, coupling, nbins_each_trial, unit, Xa, Xtiming)), coupling, units))*size(trials)[1]
+    #Xa = hcat(map(basis->vcat(pmap(abar->DSP.filt(basis, abar)[nprepad_abar+1:end], abar)...), a_bases)...)
+    Xa = hcat(map(basis->vcat(map(abar->DSP.filt(basis, abar)[nprepad_abar+1:end], abar)...), a_bases)...)
+    #ℓℓ_spike_train = mean(pmap((coupling,unit)->mean(loglikelihood(autoreg_bases, coupling, nbins_each_trial, unit, Xa, Xtiming)), coupling, units))*size(trials)[1]
+    ℓℓ_spike_train = mean(map((coupling,unit)->mean(loglikelihood(autoreg_bases, coupling, nbins_each_trial, unit, Xa, Xtiming)), coupling, units))*size(trials)[1]
 
     ℓℓ_choice + ℓℓ_spike_train
 end
@@ -249,7 +251,8 @@ function forwardpass!(abar::Vector{T1}, latentspec::latentspecification, θ::θD
     @unpack lagged, trials = trialset
 
     a₀ = pulse_input_DDM.history_influence_on_initial_point(α, B, k, lagged)
-    pmap((abar, a₀, trial)->forwardpass!(abar, a₀, latentspec, θ, trial), abar, a₀, trials)
+    #pmap((abar, a₀, trial)->forwardpass!(abar, a₀, latentspec, θ, trial), abar, a₀, trials)
+    map((abar, a₀, trial)->forwardpass!(abar, a₀, latentspec, θ, trial), abar, a₀, trials)
 end
 
 """
