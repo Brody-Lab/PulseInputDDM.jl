@@ -55,11 +55,10 @@ Returns:
 - The loglikelihood of choices and spikes counts given the model parameters, pulse timing, trial history, and model specifications, summed across trials and trial-sets
 """
 function loglikelihood(x::Vector{T1}, data::Vector{T2}, options::DDLMoptions) where {T1<:Real, T2<:trialsetdata}
-    nunits_each_trialset = map(trialset->length(trialset.units), data)
     θ = θDDLM(x, data)
     options.remap && (θ = θ2(θ))
-    latentspec = latentspecification(options, θ)
-    sum(map((coupling, trialset)->loglikelihood(coupling, latentspec, options, θ, trialset), θ.coupling, data))
+    latentspec = pulse_input_DDM.latentspecification(options, θ)
+    sum(map((coupling, trialset)->pulse_input_DDM.loglikelihood(coupling, latentspec, options, θ, trialset), θ.coupling, data))
 end
 
 """
@@ -112,8 +111,8 @@ function loglikelihood(coupling::Vector{<:Real}, latentspec::latentspecification
 
     abar = map(trial->zeros(typeof(σ2_a), nprepad_abar+trial.clickindices.nT+npostpad_abar), trialset.trials)
 
-    P = forwardpass!(abar, latentspec, θ, trialset)
-    ℓℓ_choice = sum(log.(map((P, trial)->sum(choice_likelihood!(bias,xc,P,trial.choice,n,dx)), P, trials)))
+    P = pulse_input_DDM.forwardpass!(abar, latentspec, θ, trialset)
+    ℓℓ_choice = sum(log.(map((P, trial)->sum(pulse_input_DDM.choice_likelihood!(bias,xc,P,trial.choice,n,dx)), P, trials)))
     #Xa = hcat(map(basis->vcat(pmap(abar->DSP.filt(basis, abar)[nprepad_abar+1:end], abar)...), a_bases)...)
     Xa = hcat(map(basis->vcat(map(abar->DSP.filt(basis, abar)[nprepad_abar+1:end], abar)...), a_bases)...)
     #ℓℓ_spike_train = mean(pmap((coupling,unit)->mean(loglikelihood(autoreg_bases, coupling, nbins_each_trial, unit, Xa, Xtiming)), coupling, units))*size(trials)[1]
@@ -142,8 +141,8 @@ OUTPUT
 """
 function loglikelihood(autoreg_bases::Matrix{Float64}, coupling::T, nbins_each_trial::Vector{Int}, unit::unitdata, Xa::Matrix{T}, Xtiming::Matrix{Float64}) where {T<:Real}
     @unpack L2regularizer, ℓ₀y, Xautoreg, y = unit
-    β = leastsquares(unit, Xa, Xtiming)
-    ŷ = predict_spike_train(autoreg_bases, β, nbins_each_trial, Xa, Xtiming)
+    β = pulse_input_DDM.leastsquares(unit, Xa, Xtiming)
+    ŷ = pulse_input_DDM.predict_spike_train(autoreg_bases, β, nbins_each_trial, Xa, Xtiming)
     e = y-ŷ
     σ² = var(e)
     log.(((coupling/sqrt(2π*σ²)).*exp.(-(e.^2)./2σ²) + (1-coupling).*ℓ₀y))
@@ -191,7 +190,7 @@ function predict_spike_train(autoreg_bases::Matrix{T1}, β::Vector{T2}, nbins_ea
     n_autoreg_bases = size_autoreg_bases[2]
     w = autoreg_bases * β[1:n_autoreg_bases] # weight of the autoregressive term in each time bin
     y = hcat(Xtiming, Xa) * β[n_autoreg_bases+1:end]
-    Y = pad_and_reshape(nbins_each_trial, y)
+    Y = pulse_input_DDM.pad_and_reshape(nbins_each_trial, y)
     @inbounds for i = 2:maximum(nbins_each_trial)
         for j = 1:min(i-1, n_autoreg_bins)
             Y[:,i] += view(Y,:,i-j) .* w[j]
