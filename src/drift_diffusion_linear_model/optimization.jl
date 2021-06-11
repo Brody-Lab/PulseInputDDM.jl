@@ -217,10 +217,11 @@ OUTPUT
 """
 function pad_and_reshape(nbins_each_trial::Vector{T1}, y::Vector{T2}) where {T1<:Int, T2<:Real}
     ntrials = length(nbins_each_trial);
-    Y = fill(NaN, ntrials, maximum(nbins_each_trial))
+    Y = zeros(T2, ntrials, maximum(nbins_each_trial))
     k = 0
     @inbounds for i = 1:ntrials
         Y[i, 1:nbins_each_trial[i]] = view(y, (k+1):(k+=nbins_each_trial[i]))
+        Y[i, nbins_each_trial[i]+1:end] .= NaN
     end
     return Y
 end
