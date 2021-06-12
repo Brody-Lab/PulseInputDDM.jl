@@ -143,7 +143,8 @@ function loglikelihood(autoreg_bases::Matrix{Float64}, coupling::T, nbins_each_t
     ŷ = pulse_input_DDM.predict_spike_train(autoreg_bases, β, nbins_each_trial, Xa, Xtiming)
     e = y-ŷ
     σ² = var(e)
-    log.(((coupling/sqrt(2π*σ²)).*exp.(-(e.^2)./2σ²) + (1-coupling).*ℓ₀y))
+    τ² = σ² ./ L2regularizer
+    log.((coupling*((2π^(-(length(e)+length(L2regularizer))/2))*(1 ./ sqrt.(σ²*τ²)) .* exp.(-(e.^2)./2σ² -(β.^2)./2τ²)) + (1-coupling).*ℓ₀y))
 end
 
 """
@@ -164,8 +165,7 @@ RETURN
 function leastsquares(unit::unitdata, Xa::Matrix{T1}, Xtiming::Matrix{Float64}) where {T1<:Real}
     @unpack L2regularizer, Xautoreg, y = unit
     X = hcat(Xautoreg, Xtiming, Xa)
-    Xᵀ = transpose(X)
-    inv(Xᵀ*X+L2regularizer)*Xᵀ*y
+    MultivariateStats.ridge(X, y, L2regularizer)
 end
 
 """
