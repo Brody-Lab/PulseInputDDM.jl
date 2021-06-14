@@ -87,7 +87,7 @@ end
 
 Given a file, model produced by optimize and options, save the results of the optimization to a .MAT file
 """
-function save_choice_model(file, model, options, ll, CI, outsample_ll)
+function save_choice_model(file, model, options, ll, CI, outsample_ll, pright)
 
     @unpack lb, ub, fit = options
     @unpack θ = model
@@ -96,7 +96,7 @@ function save_choice_model(file, model, options, ll, CI, outsample_ll)
         "name" => get_param_names(θ), 
         "loglik" => ll, "outsample_ll" => outsample_ll,
         "lb"=> lb, "ub"=> ub, "fit"=> fit,
-        "CI" => CI)
+        "CI" => CI, "p_goright" => pright)
 
     matwrite(file, dict)
 

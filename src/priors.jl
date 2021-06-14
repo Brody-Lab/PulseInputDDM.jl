@@ -1,8 +1,8 @@
 """
 """
 @with_kw struct θprior{T<:Real} @deftype T
-    μ_B = 40.
-    σ_B = 1e4
+    μ_B = 5.
+    σ_B = 60.
 end
 
 
@@ -14,11 +14,13 @@ function logprior(x::Vector{T}, θprior::θprior) where {T <: Real}
     
     @unpack μ_B, σ_B = θprior
     
-    if (x[2] >= μ_B)
-        logpdf(Laplace(μ_B, σ_B), x[2]) 
-    else
-        logpdf(Laplace(μ_B, σ_B), μ_B)
-    end
+    # if (x[2] >= μ_B)
+    #     logpdf(Laplace(μ_B, σ_B), x[2]) 
+    # else
+    #     logpdf(Laplace(μ_B, σ_B), μ_B)
+    # end
+
+    logpdf(InverseGamma(μ_B, σ_B), x[2])
 
 end
 
