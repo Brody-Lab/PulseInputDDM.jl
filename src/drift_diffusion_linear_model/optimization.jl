@@ -143,10 +143,19 @@ function loglikelihood(autoreg_bases::Matrix{Float64}, coupling::T, nbins_each_t
     ŷ = pulse_input_DDM.predict_spike_train(autoreg_bases, β, nbins_each_trial, Xa, Xtiming)
     e = y-ŷ
     σ² = var(e)
-    log.((coupling/sqrt(2π*σ²)).*exp.(-(e.^2)./2σ²) + (1-coupling).*ℓ₀y)
-    # s² = diag(L2regularize).^2
-    # prior = prod(exp.(-(β.^2)./2s²)./sqrt(2π.*s²))
-    # log.(prior.*(coupling/sqrt(2π*σ²)).*exp.(-(e.^2)./2σ²) + (1-coupling).*ℓ₀y)
+    τ² = diag(L2regularize).^2
+    ℓ_β = exp.(-(β.^2)./2τ²)./sqrt(2π.*τ²)
+    prior_coupled = prod(ℓ_β)
+    nregressors_uncoupled = size(autoreg_bases)[2]+size(Xtiming)[2]
+    prior_uncoupled = prod(view(ℓ_β, 1:nregressors_uncoupled))
+    log.(prior_coupled.*(coupling/sqrt(2π*σ²)).*exp.(-(e.^2)./2σ²) + (1-coupling).*prior_uncoupled.*ℓ₀y)
+    # τ² = σ² ./ diag(L2regularizer)
+    # lik = (1/sqrt(2π*σ²)).*exp.(-(e.^2)./2σ²)
+    # prior = (1 ./ sqrt(2π .* τ²)).*exp.(-(β.^2)./2τ²) # exp.(-(β.^2)./2s²)./sqrt(2s²))
+    # posterior = vcat(lik[:], prior[:]) # just making sure that there is no dimension error
+    # prior_ℓ₀y = prior # prior for the ℓ₀y model?
+    # aug_ℓ₀y = vcat(ℓ₀y[:], prior_ℓ₀y[:])
+    # log.((coupling*posterior .+ (1-coupling).*aug_ℓ₀y))
 end
 
 """
@@ -167,8 +176,7 @@ RETURN
 function leastsquares(unit::unitdata, Xa::Matrix{T1}, Xtiming::Matrix{Float64}) where {T1<:Real}
     @unpack L2regularizer, Xautoreg, y = unit
     X = hcat(Xautoreg, Xtiming, Xa)
-    Xᵀ = transpose(X)
-    inv(Xᵀ*X+L2regularizer)*Xᵀ*y
+    MultivariateStats.ridge(X, y, L2regularizer)
 end
 
 """
