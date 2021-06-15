@@ -143,8 +143,13 @@ function loglikelihood(autoreg_bases::Matrix{Float64}, coupling::T, nbins_each_t
     ŷ = pulse_input_DDM.predict_spike_train(autoreg_bases, β, nbins_each_trial, Xa, Xtiming)
     e = y-ŷ
     σ² = var(e)
-    τ² = σ² ./ L2regularizer
-    log.((coupling*((2π^(-(length(e)+length(L2regularizer))/2))*(1 ./ sqrt.(σ²*τ²)) .* exp.(-(e.^2)./2σ² -(β.^2)./2τ²)) + (1-coupling).*ℓ₀y))
+    τ² = σ² ./ diag(L2regularizer)
+    lik = (1/sqrt(2π*σ²)).*exp.(-(e.^2)./2σ²)
+    prior = (1 ./ sqrt(2π .* τ²)).*exp.(-(β.^2)./2τ²) # exp.(-(β.^2)./2s²)./sqrt(2s²))
+    posterior = vcat(lik[:], prior[:]) # just making sure that there is no dimension error
+    prior_ℓ₀y = prior # prior for the ℓ₀y model?
+    aug_ℓ₀y = vcat(ℓ₀y[:], prior_ℓ₀y[:])
+    log.((coupling*posterior .+ (1-coupling).*aug_ℓ₀y))
 end
 
 """
