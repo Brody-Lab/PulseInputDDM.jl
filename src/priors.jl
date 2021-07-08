@@ -1,8 +1,8 @@
 """
 """
 @with_kw struct θprior{T<:Real} @deftype T
-    μ_B = 5.
-    σ_B = 60.
+    μ_B = 1.
+    σ_B = 50.
 end
 
 
