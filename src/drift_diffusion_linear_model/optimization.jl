@@ -148,7 +148,9 @@ function loglikelihood(autoreg_bases::Matrix{Float64}, coupling::T, nbins_each_t
     prior_coupled = prod(ℓ_β)
     nregressors_uncoupled = size(autoreg_bases)[2]+size(Xtiming)[2]
     prior_uncoupled = prod(view(ℓ_β, 1:nregressors_uncoupled))
-    log.(prior_coupled.*(coupling/sqrt(2π*σ²)).*exp.(-(e.^2)./2σ²) + (1-coupling).*prior_uncoupled.*ℓ₀y)
+    log.(prior_coupled.*(coupling/sqrt(2π*σ²)).*exp.(-(e.^2)./2σ²) + (1-coupling).*prior_uncoupled.*ℓ₀y) 
+
+    # Tim's suggestions: need to discuss with Tim to understand
     # τ² = σ² ./ diag(L2regularizer)
     # lik = (1/sqrt(2π*σ²)).*exp.(-(e.^2)./2σ²)
     # prior = (1 ./ sqrt(2π .* τ²)).*exp.(-(β.^2)./2τ²) # exp.(-(β.^2)./2s²)./sqrt(2s²))
