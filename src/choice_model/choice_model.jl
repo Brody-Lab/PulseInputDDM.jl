@@ -83,6 +83,9 @@ function create_options_and_x0(; modeltype = "bing")
             if (i == 9) | (i == 10) | (i == 8)  
                 x0[i] = 1e-2
             end
+            if (i == 11) | (i == 12) | (i == 13)
+                x0[i] = 0.
+            end
         else
             x0[i] = paramlims[Symbol(params[i])][7]
         end
