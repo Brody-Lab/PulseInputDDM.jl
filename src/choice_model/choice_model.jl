@@ -50,7 +50,7 @@ function create_options_and_x0(; modeltype = "bing")
         :τ_ϕ =>         [0.005, 1., true, true, true, true, eps()],   
         :lapse_prob =>  [0., 1., true, true, true, true, eps()],                  
         :lapse_bias =>  [-10., 10., true, true, true, true, 0.], 
-        :lapse_modbeta=>[-10., 10., false, false, false, true, 100.],                                 
+        :lapse_modbeta=>[-10., 10., false, false, false, true, 0.],                                 
         :h_ηcL =>       [-5., 5., false, true, true, true, 0.], 
         :h_ηcR =>       [-5., 5., false, true, true, true, 0.], 
         :h_ηe =>        [-5., 5., false, true, true, true, 0.], 
@@ -629,7 +629,18 @@ computes the probability of a rightward lapse based on trial history and general
 """
 function get_rightlapse_prob(θlapse::θlapse, i_0)
     @unpack lapse_bias, lapse_modbeta = θlapse
-    rbias =  1. ./(1. .+ exp.(-lapse_modbeta.*i_0 + lapse_modbeta*lapse_bias))
+    
+    rbias =  1. ./(1. .+ exp.(-lapse_modbeta.*i_0 - lapse_bias))
+
+    # if i_0 + lapse_bias > 0
+    #     rbias = 1. - eps()
+    # elseif i_0 + lapse_bias < 0
+    #     rbias = 0. + eps()
+    # else
+    #     rbias = 0.5
+    # end
+
+
     return rbias
 end
 
