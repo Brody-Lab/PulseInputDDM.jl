@@ -293,7 +293,7 @@ function adapt_clicks(ϕ::TT, τ_ϕ::TT, L::Vector{Float64}, R::Vector{Float64};
         #this if statement is for cases when ϕ is 1. and not being learned
         if (typeof(ϕ) == Float64) && (isapprox(ϕ, 1.0))
         else
-            Ra[1] = eps()
+            # Ra[1] = eps()
             (length(R) > 1 && ϕ != 1.) ? adapt_clicks!(ϕ, τ_ϕ, Ra, R) : nothing
         end
 
@@ -305,7 +305,7 @@ function adapt_clicks(ϕ::TT, τ_ϕ::TT, L::Vector{Float64}, R::Vector{Float64};
         #this if statement is for cases when ϕ is 1. and not being learned
         if (typeof(ϕ) == Float64) && (isapprox(ϕ, 1.0))
         else
-            La[1] = eps()
+            # La[1] = eps()
             (length(L) > 1 && ϕ != 1.) ? adapt_clicks!(ϕ, τ_ϕ, La, L) : nothing
         end
 
@@ -316,7 +316,7 @@ function adapt_clicks(ϕ::TT, τ_ϕ::TT, L::Vector{Float64}, R::Vector{Float64};
         all = vcat(hcat(L[2:end], -1 * ones(length(L)-1)), hcat(R, ones(length(R))))
         all = all[sortperm(all[:, 1]), :]
         adapted = ones(TT, size(all,1))
-        adapted[1] = eps()
+        # adapted[1] = eps()
 
         if (typeof(ϕ) == Float64) && (isapprox(ϕ, 1.0))
         else
@@ -334,7 +334,7 @@ function adapt_clicks(ϕ::TT, τ_ϕ::TT, L::Vector{Float64}, R::Vector{Float64};
         #this if statement is for cases when ϕ is 1. and not being learned
         if (typeof(ϕ) == Float64) && (isapprox(ϕ, 1.0))
         else
-            La[1], Ra[1] = eps(), eps()
+            # La[1], Ra[1] = eps(), eps()
             (length(L) > 1 && ϕ != 1.) ? adapt_clicks!(ϕ, τ_ϕ, La, L) : nothing
             (length(R) > 1 && ϕ != 1.) ? adapt_clicks!(ϕ, τ_ϕ, Ra, R) : nothing
         end
