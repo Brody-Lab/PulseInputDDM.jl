@@ -409,7 +409,7 @@ function create_options(θ::DDMθ)
     	:Bm => [0., 10., 0, 0.], :Bλ => [-5.0, 1.0, 0, 0.], :B0 => [0.5, 8.0, 1, 2.0],  	# bound parameters
     	:λ => [-30.0, 30.0, 1, 5.],                           					# leak
     	:σ2_i => [0.0, 2.0, 0, eps()], :σ2_a => [0.0, 10., 0, eps()], :σ2_s => [0.0, 20., 1, 2.],  # noise params
-    	:ϕ => [0.01, 1.2, 0, 1.], :τ_ϕ => [0.005, 1.0, 0, 0.02],        	# adaptation params
+    	:ϕ => [0.01, 1.2, 1, 1.], :τ_ϕ => [0.005, 1.0, 1, 0.02],        	# adaptation params
     	:bias => [-1.5, 1.5, 0, 0.],                                        # bias
         :lapse => [0.0, 0.5, 1, 1e-2], :lapse_u => [0.0, 0.8, 0, 0.0],         # lapse prob, mean params
         :lapse_sig => [0.0, 10., 1, 0.05],                                  # lapse sigmoidal modulation
