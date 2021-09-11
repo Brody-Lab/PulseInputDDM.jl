@@ -333,10 +333,49 @@ end
 """
 function adapt_clicks(ϕ::TT, τ_ϕ::TT, L::Vector{Float64}, R::Vector{Float64}, C::String) where {TT}
 
-    La, Ra = ones(TT,length(L)), ones(TT,length(R))
 
-    (length(L) > 1 && ϕ != 1.) ? adapt_clicks!(La, L, ϕ, τ_ϕ) : nothing
-    (length(R) > 1 && ϕ != 1.) ? adapt_clicks!(Ra, R, ϕ, τ_ϕ) : nothing
+    if (length(L) > 1) & (length(R) > 1)
+
+        if L[1] == R[1]
+        # stereo click
+            all = vcat(hcat(L[2:end], -1 * ones(length(L)-1)), hcat(R, ones(length(R))))
+            all = all[sortperm(all[:, 1]), :]
+            adapted = ones(TT, size(all,1))
+
+            if (typeof(ϕ) == Float64) && (isapprox(ϕ, 1.0))
+            else
+                (length(all) > 1 && ϕ != 1.) ? adapt_clicks!(adapted, all[:, 1], ϕ, τ_ϕ) : nothing
+            end
+
+            all = vcat([L[1], -1.]', all)
+            adapted = vcat(1., adapted)
+            La, Ra = adapted[all[:,2] .== -1.], adapted[all[:,2] .== 1.]
+        
+        else
+        
+        # no stereo click
+            all = vcat(hcat(L, -1 * ones(length(L))), hcat(R, ones(length(R))))
+            all = all[sortperm(all[:, 1]), :]
+            adapted = ones(TT, size(all,1))
+
+            if (typeof(ϕ) == Float64) && (isapprox(ϕ, 1.0))
+            else
+                (length(all) > 1 && ϕ != 1.) ? adapt_clicks!(adapted, all[:, 1], ϕ, τ_ϕ) : nothing
+            end
+
+            La, Ra = adapted[all[:,2] .== -1.], adapted[all[:,2] .== 1.]
+
+        end
+
+    else
+
+        La, Ra = ones(TT,length(L)), ones(TT,length(R))
+        if (typeof(ϕ) == Float64) && (isapprox(ϕ, 1.0))
+        else
+            (length(L) > 1 && ϕ != 1.) ? adapt_clicks!(La, L, ϕ, τ_ϕ) : nothing
+            (length(R) > 1 && ϕ != 1.) ? adapt_clicks!(Ra, R, ϕ, τ_ϕ) : nothing
+        end
+    end
 
     return La, Ra
 
