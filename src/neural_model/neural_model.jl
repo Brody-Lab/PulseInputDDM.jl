@@ -117,6 +117,26 @@ function (θ::Sigmoid)(x::U, λ0::T) where {U,T <: Real}
 end
 
 
+@with_kw struct Softplussign{T1} <: DDMf
+    #a::T1 = 0
+    c::T1 = 5.0*rand([-1,1])
+end
+
+
+"""
+"""
+function (θ::Softplussign)(x::Union{U,Vector{U}}, λ0::Union{T,Vector{T}}) where {U,T <: Real}
+
+    #@unpack a,c = θ
+    @unpack c = θ
+
+    #y = a .+ softplus.(c*x .+ d) .+ λ0
+     #y = softplus.(c*x .+ a .+ λ0)
+     y = softplus.(c .* sign.(x) .+ softplusinv.(λ0))
+    #y = max.(eps(), y .+ λ0)
+    #y = softplus.(y .+ λ0)
+end
+
 """
    Softplus(c)
 
@@ -151,8 +171,10 @@ function nθparams(f)
     
     ncells = length.(f)
     nparams = Vector{Int}(undef, sum(ncells));    
+    nparams[vcat(f...) .== "Softplussign"] .= 1
     nparams[vcat(f...) .== "Softplus"] .= 1
     nparams[vcat(f...) .== "Sigmoid"] .= 4
+    nparams[vcat(f...) .== "Softplus_negbin"] .= 2
     
     return nparams, ncells
     
@@ -333,8 +355,10 @@ function optimize(model::neuralDDM, options::neural_options;
     ub, = unstack(ub, fit)
     x0,c = unstack(x0, fit)
     
-    ℓℓ(x) = -(loglikelihood(stack(x,c,fit), model; remap=remap) + logprior(stack(x,c,fit), θprior) 
-        + sigmoid_prior(stack(x,c,fit), θ; sig_σ=sig_σ))
+    #ℓℓ(x) = -(loglikelihood(stack(x,c,fit), model; remap=remap) + logprior(stack(x,c,fit), θprior) 
+    #    + sigmoid_prior(stack(x,c,fit), θ; sig_σ=sig_σ))
+    
+    ℓℓ(x) = -(loglikelihood(stack(x,c,fit), model; remap=remap))
     
     output = optimize(x0, ℓℓ, lb, ub; g_tol=g_tol, x_tol=x_tol,
         f_tol=f_tol, iterations=iterations, show_trace=show_trace,
@@ -432,6 +456,55 @@ end
 loglikelihood(θz,θy,data::neuraldata, P::Vector{T1}, M::Array{T1,2},
     xc::Vector{T1}, dx::T3, n, cross) where {T1,T3 <: Real} = sum(log.(likelihood(θz,θy,data,P,M,xc,dx,n,cross)[1]))
 
+
+#=
+function likelihood(θz,θy,data::neuraldata,
+        P::Vector{T1}, M::Array{T1,2},
+        xc::Vector{T1}, dx::T3, n, cross) where {T1,T3 <: Real}
+
+    @unpack λ, σ2_a, σ2_s, ϕ, τ_ϕ = θz
+    @unpack spikes, input_data = data
+    @unpack binned_clicks, clicks, dt, λ0, centered, delay, pad = input_data
+    @unpack nT, nL, nR = binned_clicks
+    @unpack L, R = clicks
+
+    #adapt magnitude of the click inputs
+    La, Ra = adapt_clicks(ϕ,τ_ϕ,L,R;cross=cross)
+
+    F = zeros(T1,n,n) #empty transition matrix for time bins with clicks
+    
+    time_bin = (-(pad-1):nT+pad) .- delay
+    
+    alpha = log.(P)
+
+    @inbounds for t = 1:length(time_bin)
+        
+        mm = maximum(alpha)
+        py = vcat(map(xc-> sum(map((k,θy,λ0)-> logpdf(Poisson(θy(xc,λ0[t]) * dt), k[t]), spikes, θy, λ0)), xc)...)
+
+        if time_bin[t] >= 1
+            
+            any(t .== nL) ? sL = sum(La[t .== nL]) : sL = zero(T1)
+            any(t .== nR) ? sR = sum(Ra[t .== nR]) : sR = zero(T1)
+            σ2 = σ2_s * (sL + sR);   μ = -sL + sR
+
+            if (sL + sR) > zero(T1)
+                transition_M!(F,σ2+σ2_a*dt,λ, μ, dx, xc, n, dt)
+                alpha = log.((exp.(alpha .- mm)' * F)') .+ mm .+ py
+            else
+                alpha = log.((exp.(alpha .- mm)' * M)') .+ mm .+ py
+            end
+            
+        else
+            alpha = alpha .+ py
+        end
+                       
+    end
+
+    return exp(logsumexp(alpha)), exp.(alpha)
+
+end
+=#
 
 """
 """

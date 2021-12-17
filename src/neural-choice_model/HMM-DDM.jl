@@ -44,9 +44,13 @@ function θHMMDDM_joint(x::Vector{T}, θ::θHMMDDM_joint) where {T <: Real}
     
     @unpack K, f = θ
     
+    #m = collect(partition(x[1:K*K], K))
+    #m = map(m-> m/sum(m), m)
+    #m = collect(hcat(m...)')
+    
     m = collect(partition(x[1:K*K], K))
-    m = map(m-> m/sum(m), m)
-    m = collect(hcat(m...)')
+    m = collect(hcat(m...))
+    m = mapslices(x-> x/sum(x), m, dims=2)
     
     xz = collect(partition(x[K*K+1:K*K+K*dimz], dimz))  
     idx = K*K+K*dimz
@@ -101,7 +105,7 @@ Returns:
 function optimize(model::HMMDDM_joint, options::HMMDDM_joint_options;
         x_tol::Float64=1e-10, f_tol::Float64=1e-9, g_tol::Float64=1e-3,
         iterations::Int=Int(2e3), show_trace::Bool=true, outer_iterations::Int=Int(1e1), 
-        scaled::Bool=false, extended_trace::Bool=false)
+        scaled::Bool=false, extended_trace::Bool=false, useIDs=nothing)
     
     @unpack fit, lb, ub = options
     @unpack θ, data, n, cross, θprior = model
@@ -111,7 +115,7 @@ function optimize(model::HMMDDM_joint, options::HMMDDM_joint_options;
     ub, = unstack(ub, fit)
     x0, c = unstack(x0, fit)
     
-    ℓℓ(x) = -loglikelihood(stack(x,c,fit), model)
+    ℓℓ(x) = -loglikelihood(stack(x,c,fit), model; useIDs=useIDs)
     
     output = optimize(x0, ℓℓ, lb, ub; g_tol=g_tol, x_tol=x_tol,
         f_tol=f_tol, iterations=iterations, show_trace=show_trace,
@@ -138,12 +142,12 @@ Arguments:
 - `x`: a vector of mixed parameters.
 - `model`: an instance of `HMMDDM_joint`
 """
-function loglikelihood(x::Vector{T}, model::HMMDDM_joint) where {T <: Real}
+function loglikelihood(x::Vector{T}, model::HMMDDM_joint; useIDs=nothing) where {T <: Real}
     
     @unpack data,θ,n,cross,θprior = model
     model = HMMDDM_joint(θHMMDDM_joint(x, θ), data, n, cross, θprior)
 
-    loglikelihood(model)
+    loglikelihood(model; useIDs=useIDs)
 
 end
 
@@ -204,16 +208,30 @@ Arguments: `HMMDDM_joint` instance
 
 Returns: loglikehood of the data given the parameters.
 """
-function loglikelihood(model::HMMDDM_joint)
+function loglikelihood(model::HMMDDM_joint; useIDs=nothing)
     
     @unpack data,θ,n,cross = model
     @unpack θz, θy, bias, lapse, f = θ
+    
+    ntrials = length.(data)
+    if isnothing(useIDs)
+        useIDs = map(ntrials -> 1:ntrials, ntrials)
+    end
+        
+    use_data = map((data, useIDs)-> data[useIDs], data, useIDs)
         
     LL = map(θz-> joint_loglikelihood_per_trial(neural_choiceDDM(
-        θ=θneural_choice(θz=θz, bias=bias, lapse=lapse, θy=θy, f=f), data=data, n=n, cross=cross)), θz)  
+        θ=θneural_choice(θz=θz, bias=bias, lapse=lapse, θy=θy, f=f), data=use_data, n=n, cross=cross)), θz)  
     #py = map(i-> hcat(map(k-> max.(1e-150, exp.(LL[k][i])), 1:length(LL))...), 1:length(LL[1]))  
     py = map(i-> hcat(map(k-> LL[k][i], 1:length(LL))...), 1:length(LL[1]))  
-    sum(pmap(py-> loglikelihood(py, θ)[1], py))
+    
+    
+    LL2 = zeros.(typeof(py[1][1]), ntrials, θ.K)
+    map((LL2, useIDs, py)-> LL2[useIDs, :] = py, LL2, useIDs, py)
+    sum(pmap(LL2-> loglikelihood(LL2, θ)[1], LL2))
+    
+    
+    #sum(pmap(py-> loglikelihood(py, θ)[1], py))
 
 end
 
@@ -225,17 +243,35 @@ Arguments: `HMMDDM_joint` instance
 
 Returns: posterior of the data given the parameters.
 """
-function posterior(model::HMMDDM_joint)
+function posterior(model::HMMDDM_joint; useIDs=nothing)
     
     @unpack data,θ,n,cross = model
     @unpack θz, θy, f, bias, lapse = θ
     
+    #LL = map(θz-> joint_loglikelihood_per_trial(neural_choiceDDM(
+    #    θ=θneural_choice(θz=θz, bias=bias, lapse=lapse, θy=θy, f=f), data=data, n=n, cross=cross)), θz)  
+    #py = map(i-> hcat(map(k-> LL[k][i], 1:length(LL))...), 1:length(LL[1]))  
+    #pmap(py-> posterior(py, θ), py)
+    
+    ntrials = length.(data)
+    if isnothing(useIDs)
+        useIDs = map(ntrials -> 1:ntrials, ntrials)
+    end
+        
+    use_data = map((data, useIDs)-> data[useIDs], data, useIDs)
+        
     LL = map(θz-> joint_loglikelihood_per_trial(neural_choiceDDM(
-        θ=θneural_choice(θz=θz, bias=bias, lapse=lapse, θy=θy, f=f), data=data, n=n, cross=cross)), θz)  
-    #py = map(i-> hcat(map(k-> max.(1e-150, exp.(LL[k][i])), 1:length(LL))...), 1:length(LL[1]))  
+        θ=θneural_choice(θz=θz, bias=bias, lapse=lapse, θy=θy, f=f), data=use_data, n=n, cross=cross)), θz)  
+        
+    #LL = map(θ-> joint_loglikelihood_per_trial(neural_choiceDDM(θ=θ, data=use_data, n=n, cross=cross)), θ.θ) 
     py = map(i-> hcat(map(k-> LL[k][i], 1:length(LL))...), 1:length(LL[1]))  
-    pmap(py-> posterior(py, θ), py)
-
+    
+    LL2 = zeros.(typeof(py[1][1]), ntrials, θ.K)
+    map((LL2, useIDs, py)-> LL2[useIDs, :] = py, LL2, useIDs, py)
+    pmap(LL2-> posterior(LL2, θ), LL2)
+    
+    
+    
 end
 
 

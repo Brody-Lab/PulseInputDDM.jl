@@ -24,6 +24,9 @@ function neural_choice_options(f; remap::Bool=false)
         elseif vcat(f...)[i] == "Sigmoid"
             lb[i] = [-100.,0.,-10.,-10.]
             ub[i] = [100.,100.,10.,10.]
+        elseif vcat(f...)[i] == "Softplus_negbin"
+            lb[i] = [0, -10]
+            ub[i] = [Inf, 10]
         end
     end
     
