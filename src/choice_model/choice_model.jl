@@ -56,8 +56,8 @@ function create_options_and_x0(; modeltype = "bing")
         :h_ηe =>        [-5., 5., false, true, true, true, 0.], 
         :h_βc =>        [0., 1., false, true, true, true, 0.], 
         :h_βe =>        [0., 1., false, true, true, true, 0.],
-        :sd_β =>        [0., 50., false, false, false, false, 0.],
-        :sd_w =>        [40., 200., false, false, false, false, 4.],
+        :sd_β =>        [0., 50., false, false, false, false, 0.],   # nonfunctional
+        :sd_w =>        [40., 200., false, false, false, false, 4.],  # nonfunctional
         :bias =>        [-5., 5., true, true, true, true, 0.])        
 
     modeltype_idx = Dict(
@@ -391,7 +391,7 @@ function loglikelihood(model::choiceDDM)
     @unpack σ2_i, B, λ, σ2_a = θz
     @unpack dt = data[1].click_data
 
-    i_0 = compute_history(θhist, data, B) .+ compute_slowdrift(θslowdrift, data, B)
+    i_0 = compute_history(θhist, data, B) #.+ compute_slowdrift(θslowdrift, data, B)
 
     M,xc,dx = initialize_latent_model(σ2_i, B, λ, σ2_a, n, dt)
 
@@ -422,7 +422,7 @@ function likelihood(model::choiceDDM)
     @unpack σ2_i, B, λ, σ2_a = θz
     @unpack dt = data[1].click_data
 
-    i_0 = compute_history(θhist, data, B) .+ compute_slowdrift(θslowdrift, data, B)
+    i_0 = compute_history(θhist, data, B) #.+ compute_slowdrift(θslowdrift, data, B)
     M,xc,dx = initialize_latent_model(σ2_i, B, λ, σ2_a, n, dt)
 
     pmap((data, i_0) -> likelihood!(θ, M, dx, xc, data, i_0, n, cross, initpt_mod), data[trial_ids], i_0[trial_ids])
@@ -442,7 +442,7 @@ function P_goright(model::choiceDDM)
     @unpack σ2_i, B, λ, σ2_a = θz
     @unpack dt = data[1].click_data
 
-    i_0 = compute_history(θhist, data, B) .+ compute_slowdrift(θslowdrift, data, B)
+    i_0 = compute_history(θhist, data, B) #.+ compute_slowdrift(θslowdrift, data, B)
     M,xc,dx = initialize_latent_model(σ2_i, B, λ, σ2_a, n, dt)
 
     pmap((data, i_0) -> likelihood!(θ, M, dx, xc, data, i_0, n, cross, initpt_mod), map(x-> choicedata(x.click_data, true, true), data[trial_ids]), i_0[trial_ids])
@@ -734,7 +734,7 @@ function bounded_mass(θ::θchoice, data, n::Int, cross::Bool, initpt_mod::Bool)
     @unpack σ2_i, B, λ, σ2_a = θz
     @unpack dt = data[1].click_data
 
-    i_0 = compute_history(θhist, data, B) .+ compute_slowdrift(θslowdrift, data, B)
+    i_0 = compute_history(θhist, data, B) #.+ compute_slowdrift(θslowdrift, data, B)
     initpt_mod ? a_0 = i_0 : a_0 = 0. * i_0
     P,M,xc,dx = initialize_latent_model(σ2_i, a_0, B, λ, σ2_a, n, dt)
 
