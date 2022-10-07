@@ -11,8 +11,11 @@ function (θ::Softplus_negbin)(x::Union{U,Vector{U}}, λ0::Union{T,Vector{T}}, d
     @unpack r, c = θ
     
     μ = softplus.(c*x .+ softplusinv.(λ0))
-    #p = r/(μ*dt + r)
-    p = exp(-log((μ*dt/r) + 1.))
+    p = r/(μ*dt + r)
+    p = min(1. - eps(), p)
+    #sig2 = μ*dt + r*(μ*dt)^2
+    #p = μ*dt/sig2
+    #p = exp(-log((μ*dt/r) + 1.))
     #p = 1. /((μ*dt)/r + 1.)
     
     NegativeBinomial(r, p)
@@ -35,7 +38,8 @@ function all_Softplus_negbin(data)
 end
 
 
-function likelihood_new(θz, θy::Vector{Softplus_negbin{T2}}, data::neuraldata,
+#=
+function likelihood(θz, θy::Vector{Softplus_negbin{T2}}, data::neuraldata,
         P::Vector{T1}, M::Array{T1,2},
         xc::Vector{T1}, dx::T3, n, cross) where {T1,T2,T3 <: Real}
 
@@ -56,31 +60,40 @@ function likelihood_new(θz, θy::Vector{Softplus_negbin{T2}}, data::neuraldata,
 
     @inbounds for t = 1:length(time_bin)
         
-        mm = maximum(alpha)
+        #mm = maximum(alpha)
         py = vcat(map(xc-> sum(map((k,θy,λ0)-> logpdf(θy(xc, λ0[t], dt), k[t]), spikes, θy, λ0)), xc)...)
 
         if time_bin[t] >= 1
             
+            alpha, F = latent_one_step_alt!(alpha, F, λ, σ2_a, σ2_s, time_bin[t], nL, nR, La, Ra, M, dx, xc, n, dt)
+            
+            #=
             any(t .== nL) ? sL = sum(La[t .== nL]) : sL = zero(T1)
             any(t .== nR) ? sR = sum(Ra[t .== nR]) : sR = zero(T1)
             σ2 = σ2_s * (sL + sR);   μ = -sL + sR
 
             if (sL + sR) > zero(T1)
                 transition_M!(F,σ2+σ2_a*dt,λ, μ, dx, xc, n, dt)
-                alpha = log.((exp.(alpha .- mm)' * F)') .+ mm .+ py
+                alpha = log.((exp.(alpha .- mm)' * F')') .+ mm .+ py
             else
-                alpha = log.((exp.(alpha .- mm)' * M)') .+ mm .+ py
+                alpha = log.((exp.(alpha .- mm)' * M')') .+ mm .+ py
             end
+            
             
         else
             alpha = alpha .+ py
         end
+            =#
+        end
+        
+        alpha = alpha .+ py
                        
     end
 
-    return exp(logsumexp(alpha)), exp.(alpha)
+    return exp(logsumexp(alpha)), exp.(alpha)/sum(exp.(alpha))
 
 end
+=#
 
 
 function likelihood(θz, θy::Vector{Softplus_negbin{T2}}, data::neuraldata,

@@ -79,7 +79,7 @@ Extract parameters `HMMDDM` model and place in the correct order into a 1D `arra
 function flatten(θ::θHMMDDM_joint)
 
     @unpack m, θz, θy, bias, lapse = θ
-
+    
     vcat(m..., vcat(collect.(Flatten.flatten.(θz))...), 
         bias, lapse, vcat(collect.(Flatten.flatten.(vcat(θy...)))...))
 
