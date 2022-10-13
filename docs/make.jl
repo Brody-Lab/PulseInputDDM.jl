@@ -27,17 +27,17 @@ pages = Any["Home" => Any["index.md"],
                 "man/running_notebooks_on_scotty.md"],
         "Development" => Any["man/development.md"]]
 
-#makedocs(sitename="pulse input DDM",
-#        modules = [pulse_input_DDM],
-#        doctest=true,
-#        authors = "Brian DePasquale",
-#        format = Documenter.HTML(assets = ["assets/favicon.ico"]),
-#        pages = pages)
+makedocs(sitename="pulse input DDM",
+        modules = [pulse_input_DDM],
+        doctest=true,
+        authors = "Brian DePasquale",
+        format = Documenter.HTML(assets = ["assets/favicon.ico"]),
+        pages = pages)
 
-makedocs(sitename="pulse input DDM")
+#makedocs(sitename="pulse input DDM")
 
-#deploydocs(deps = Deps.pip("mkdocs", "python-markdown-math"),
-#           repo = "github.com/Brody-Lab/pulse_input_DDM.git",
-#           devbranch = "dev", devurl = "dev")
+deploydocs(deps = Deps.pip("mkdocs", "python-markdown-math"),
+           repo = "github.com/Brody-Lab/pulse_input_DDM.git",
+           devbranch = "dev", devurl = "dev")
 
-deploydocs(repo = "github.com/Brody-Lab/pulse_input_DDM.git")
+#deploydocs(repo = "github.com/Brody-Lab/pulse_input_DDM.git")
