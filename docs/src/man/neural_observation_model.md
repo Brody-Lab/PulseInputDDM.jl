@@ -5,9 +5,9 @@ Now, let's try fiting the model using neural data.
 
 ## Data conventions
 
-Following the same conventions as ([Working interactively on scotty via a SSH tunnel](@ref)) but `rawdata` the following two fields:
+Following the same conventions as ([Working interactively on scotty via a SSH tunnel](@ref)) but `rawdata` should contain the following extra field:
 
-- `rawdata.St`: cell array containing the spike times of each neuron on an individual trial. The cell array will be length of the number of neurons recorded on that trial. Each entry of the cell array is a column vector containing the relative timing of spikes, in seconds. Zero seconds is the start of the click stimulus.
+- `rawdata.spike_times`: cell array containing the spike times of each neuron on an individual trial. The cell array will be length of the number of neurons recorded on that trial. Each entry of the cell array is a column vector containing the relative timing of spikes, in seconds. Zero seconds is the start of the click stimulus.
 
 ## Load the data and fit the model interactively
 

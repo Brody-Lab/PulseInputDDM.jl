@@ -27,7 +27,7 @@ This will start a job called `fit_choice_model`. Output will be written to a log
 #SBATCH --mem=64000
 #SBATCH -c 44
 
-module load julia/1.0.0
+module load julia
 julia -p 44 ./fit_choice_model.jl
 ```
 
