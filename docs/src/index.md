@@ -4,7 +4,7 @@ This is a package for inferring the parameters of drift diffusion models (DDMs) 
 
 ## Getting Started
 
-To install the package see [Downloading the package](@ref). Brian test. Word up. 
+To install the package see [Downloading the package](@ref). Brian test.
 
 ## Fitting models
 
