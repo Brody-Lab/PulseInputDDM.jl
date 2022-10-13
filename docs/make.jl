@@ -34,7 +34,7 @@ pages = Any["Home" => Any["index.md"],
 #        format = Documenter.HTML(assets = ["assets/favicon.ico"]),
 #        pages = pages)
 
-makedocs(sitename="pulse input DDM", format = Documenter.HTML())
+makedocs(sitename="pulse input DDM")
 
 #deploydocs(deps = Deps.pip("mkdocs", "python-markdown-math"),
 #           repo = "github.com/Brody-Lab/pulse_input_DDM.git",
