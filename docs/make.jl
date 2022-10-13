@@ -18,22 +18,26 @@ Literate.markdown(EXAMPLE, OUTPUT)
 
 # Make changes here if you add to documentation
 pages = Any["Home" => Any["index.md"],
-        "Basics" => Any["man/getting_the_package.md", 
+        "Basics" => Any["man/getting_the_package.md",
                 "man/format_for_neural_data.md",
                 "generated/fit_choice_model.md",
                 "generated/recover_choice_model.md",
                 "generated/recover_neural_model.md"],
-        "Other helpful info" => Any["man/effcient_ssh.md", 
+        "Other helpful info" => Any["man/effcient_ssh.md",
                 "man/running_notebooks_on_scotty.md"],
         "Development" => Any["man/development.md"]]
 
-makedocs(sitename="pulse input DDM",
-        modules = [pulse_input_DDM],
-        doctest=true,
-        authors = "Brian DePasquale",
-        format = Documenter.HTML(assets = ["assets/favicon.ico"]),
-        pages = pages)
+#makedocs(sitename="pulse input DDM",
+#        modules = [pulse_input_DDM],
+#        doctest=true,
+#        authors = "Brian DePasquale",
+#        format = Documenter.HTML(assets = ["assets/favicon.ico"]),
+#        pages = pages)
 
-deploydocs(deps = Deps.pip("mkdocs", "python-markdown-math"),
-           repo = "github.com/Brody-Lab/pulse_input_DDM.git",
-           devbranch = "dev", devurl = "dev")
+makedocs()
+
+#deploydocs(deps = Deps.pip("mkdocs", "python-markdown-math"),
+#           repo = "github.com/Brody-Lab/pulse_input_DDM.git",
+#           devbranch = "dev", devurl = "dev")
+
+deploydocs(repo = "github.com/Brody-Lab/pulse_input_DDM.git")
