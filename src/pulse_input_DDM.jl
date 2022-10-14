@@ -222,6 +222,128 @@ end
 
 
 """
+"""
+@with_kw struct θHMMDDM_joint{T1,T2,T3,T4} <: DDMθ
+    θz::Vector{T1}
+    bias::T2
+    lapse::T2
+    θy::T3
+    f::Vector{Vector{String}}
+    m::Array{T4,2}=[0.2 0.8; 0.1 0.9]
+    K::Int=2
+end
+
+
+"""
+    HMMDDM
+
+Fields:
+- θ
+- data
+- n
+- cross
+- θprior
+
+"""
+@with_kw struct HMMDDM_joint{U,V} <: DDM
+    θ::θHMMDDM_joint
+    data::U
+    n::Int=53
+    cross::Bool=false
+    θprior::V = θprior()
+end
+
+
+"""
+"""
+@with_kw struct θHMMDDM_joint_3{T1,T2} <: DDMθ
+    θ::Vector{T1}
+    m::Array{T2,2}=[0.2 0.8; 0.1 0.9]
+    K::Int=2
+    f::Vector{Vector{String}}
+end
+
+
+"""
+    HMMDDM
+
+Fields:
+- θ
+- data
+- n
+- cross
+- θprior
+
+"""
+@with_kw struct HMMDDM_joint_3{U,V} <: DDM
+    θ::θHMMDDM_joint_3
+    data::U
+    n::Int=53
+    cross::Bool=false
+    θprior::V = θprior()
+end
+
+
+"""
+"""
+@with_kw struct θHMMDDM_joint_2{T1,T2} <: DDMθ
+    θ::Vector{T1}
+    m::Array{T2,2}=[0.2 0.8; 0.1 0.9]
+    K::Int=2
+    f::Vector{Vector{String}}
+end
+
+
+"""
+    HMMDDM
+
+Fields:
+- θ
+- data
+- n
+- cross
+- θprior
+
+"""
+@with_kw struct HMMDDM_joint_2{U,V} <: DDM
+    θ::θHMMDDM_joint_2
+    data::U
+    n::Int=53
+    cross::Bool=false
+    θprior::V = θprior()
+end
+
+
+"""
+"""
+@with_kw struct θHMMDDM_choice_2{T1,T2} <: DDMθ
+    θ::Vector{T1}
+    m::Array{T2,2}=[0.2 0.8; 0.1 0.9]
+    K::Int=2
+end
+
+
+"""
+    HMMDDM
+
+Fields:
+- θ
+- data
+- n
+- cross
+- θprior
+
+"""
+@with_kw struct HMMDDM_choice_2{U,V} <: DDM
+    θ::θHMMDDM_choice_2
+    data::U
+    n::Int=53
+    cross::Bool=false
+    θprior::V = θprior()
+end
+
+
+"""
     choiceDDM_dx(θ, data, dx, cross)
 
 Fields:
@@ -254,12 +376,14 @@ include("priors.jl")
 include("choice_model/choice_model.jl")
 include("choice_model/sample_model.jl")
 include("choice_model/process_data.jl")
+include("choice_model/HMM-DDM-2.jl")
 
 include("neural_model/neural_model.jl")
 include("neural_model/neural_model-sep.jl")
 include("neural_model/sample_model.jl")
 include("neural_model/process_data.jl")
 include("neural_model/noiseless_model.jl")
+include("neural_model/HMM-DDM.jl")
 #include("neural_model/null.jl")
 #include("neural_model/polynomial/neural_poly_model.jl")
 #include("neural_model/polynomial/noiseless_model_poly.jl")
@@ -274,6 +398,9 @@ include("neural-choice_model/neural-choice_model-sep.jl")
 include("neural-choice_model/neural-choice_model-ALT.jl")
 include("neural-choice_model/neural-choice_GLM_model.jl")
 include("neural-choice_model/process_data.jl")
+include("neural-choice_model/HMM-DDM.jl")
+include("neural-choice_model/HMM-DDM-2.jl")
+include("neural-choice_model/HMM-DDM-3.jl")
 
 #include("neural_model/load_and_optimize.jl")
 #include("neural_model/sample_model_functions_FP.jl")
