@@ -41,4 +41,7 @@ makedocs(sitename="pulse input DDM",
 #           devbranch = "dev", devurl = "dev")
 
 deploydocs(deps = Deps.pip("mkdocs", "python-markdown-math"),
-           repo = "github.com/Brody-Lab/pulse_input_DDM.git")
+           repo = "github.com/Brody-Lab/pulse_input_DDM.git",
+           branch = "gh-pages", devbranch = nothing,
+           devurl = "dev", versions = ["stable" => "v^", "v#.#",
+           devurl => devurl])
