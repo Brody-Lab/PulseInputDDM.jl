@@ -1,4 +1,4 @@
-name = "pulse-input-DDM"
+name = "PulseInputDDM"
 uuid = "c2542da2-1f7d-11e9-2506-87691095ebb2"
 authors = ["Brian DePasquale <depasquale@princeton.edu>"]
 version = "0.0.2"

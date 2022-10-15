@@ -1,5 +1,5 @@
 """
-    pulse_input_DDM
+    Pulse Input DDM
 
 A julia module for fitting bounded accumlator models using behavioral
 and/or neural data from pulse-based evidence accumlation tasks.
@@ -7,7 +7,7 @@ and/or neural data from pulse-based evidence accumlation tasks.
 
 #__precompile__(false)
 
-module pulse-input-DDM
+module PulseInputDDM
 
 using StatsBase, Distributions, LineSearches, JLD2
 using ForwardDiff, Distributed, LinearAlgebra
