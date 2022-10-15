@@ -7,7 +7,7 @@ and/or neural data from pulse-based evidence accumlation tasks.
 
 #__precompile__(false)
 
-module pulse_input_DDM
+module pulse-input-DDM
 
 using StatsBase, Distributions, LineSearches, JLD2
 using ForwardDiff, Distributed, LinearAlgebra
