@@ -1,10 +1,8 @@
 # Pulse Input DDM
 
-[![](https://img.shields.io/badge/docs-stable-blue.svg)](https://Brody-Lab.github.io/PulseInputDDM/stable)
-
 This is a package for inferring the parameters of drift diffusion models (DDMs) from neural activity or behavioral data collected when a subject is performing a pulse-based evidence accumulation task.
 
-###  Downloading the package
+##  Downloading the package
 
 You need to add the Pulse Input DDM package from github.
 
