@@ -85,5 +85,10 @@ The convention for fitting a model with neural model is that each session should
 
 ## Contribution Guidelines
 
+Constructive contributions are welcome.
+
+- Questions, feedback, bug reports, and proposed features should be submitted as a GitHub issue.
+- Alternatively, contact the repository owner, Brian, via email (depasquale@princeton.edu).
+- For development contributions, please first open an issue describing the proposed development. The resulting discussion may help prevent duplication of efforts. If moving forward with the development, open a pull request with the updated code or new features. Please reference the corresponding issue in the pull request.
 
 
