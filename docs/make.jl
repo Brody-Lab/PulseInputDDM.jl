@@ -40,13 +40,13 @@ makedocs(sitename="pulse input DDM",
 #           repo = "github.com/Brody-Lab/pulse_input_DDM.git",
 #           devbranch = "dev", devurl = "dev")
 
-deploydocs(deps = Deps.pip("mkdocs", "python-markdown-math"),
-           repo = "github.com/Brody-Lab/PulseInputDDM.git",
-           branch = "gh-pages", devbranch = nothing,
-           devurl = "dev", versions = ["stable" => "v^", "v#.#.#", "dev" => "dev"])
+#deploydocs(deps = Deps.pip("mkdocs", "python-markdown-math"),
+#           repo = "github.com/Brody-Lab/PulseInputDDM.git",
+#           branch = "gh-pages", devbranch = nothing,
+#           devurl = "dev", versions = ["stable" => "v^", "v#.#.#", "dev" => "dev"])
 
 #deploydocs(deps = Deps.pip("mkdocs", "python-markdown-math"),
 #           repo = "github.com/Brody-Lab/pulse_input_DDM.git")
 
-#deploydocs(repo = "Brody-Lab/pulse-input-DDM")
+deploydocs(repo = "Brody-Lab/PulseInputDDM.git")
 
