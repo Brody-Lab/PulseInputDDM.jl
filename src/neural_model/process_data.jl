@@ -352,24 +352,24 @@ function load_neural_data(file::String; break_sim_data::Bool=false,
 
                 spikes = vec(map(x-> [vec(collect(x[findall(ptest)][n]))], data["spike_times"]))
 
-                output = map((spikes, nT)-> pulse_input_DDM.bin_spikes(spikes, dt, nT; pad=pad), spikes, nT)
+                output = map((spikes, nT)-> PulseInputDDM.bin_spikes(spikes, dt, nT; pad=pad), spikes, nT)
 
                 spikes = getindex.(output, 1)
                 padded = getindex.(output, 2)  
 
-                μ_rnt = pulse_input_DDM.filtered_rate.(padded, dt; filtSD=filtSD, cut=cut)
+                μ_rnt = PulseInputDDM.filtered_rate.(padded, dt; filtSD=filtSD, cut=cut)
 
                 μ_t[n] = map(n-> [max(0., mean([μ_rnt[i][1][t]
                     for i in findall(nT .+ 2*pad .>= t)]))
                     for t in 1:(maximum(nT) .+ 2*pad)], n:n)
 
-                λ0 = map(nT-> pulse_input_DDM.bin_λ0(μ_t[n], nT+2*pad), nT)
+                λ0 = map(nT-> PulseInputDDM.bin_λ0(μ_t[n], nT+2*pad), nT)
 
-                input_data = pulse_input_DDM.neuralinputs(click_times, binned_clicks, λ0, dt, centered, delay, pad)
-                spike_data = pulse_input_DDM.neuraldata(input_data, spikes, 1, choice)
+                input_data = PulseInputDDM.neuralinputs(click_times, binned_clicks, λ0, dt, centered, delay, pad)
+                spike_data = PulseInputDDM.neuraldata(input_data, spikes, 1, choice)
 
                 if do_RBF
-                    model, = optimize([spike_data], pulse_input_DDM.μ_RBF_options(ncells=[1], nRBFs=nRBFs); show_trace=false)
+                    model, = optimize([spike_data], PulseInputDDM.μ_RBF_options(ncells=[1], nRBFs=nRBFs); show_trace=false)
                     maxnT = maximum(nT)
                     x = 1:maxnT+2*pad   
                     rbf = UniformRBFE(x, nRBFs, normalize=true)  

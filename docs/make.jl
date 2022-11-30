@@ -1,8 +1,8 @@
 push!(LOAD_PATH,"../src/")
 
-using Documenter, pulse_input_DDM
+using Documenter, PulseInputDDM
 using Literate
-DocMeta.setdocmeta!(pulse_input_DDM, :DocTestSetup, :(using pulse_input_DDM); recursive=true)
+DocMeta.setdocmeta!(PulseInputDDM, :DocTestSetup, :(using PulseInputDDM); recursive=true)
 
 EXAMPLE = joinpath(@__DIR__, "..", "examples", "choice model", "recover_choice_model.jl")
 OUTPUT = joinpath(@__DIR__, "src/generated")
@@ -28,7 +28,7 @@ pages = Any["Home" => Any["index.md"],
         "Development" => Any["man/development.md"]]
 
 makedocs(sitename="pulse input DDM",
-        modules = [pulse_input_DDM],
+        modules = [PulseInputDDM],
         doctest=true,
         authors = "Brian DePasquale",
         format = Documenter.HTML(assets = ["assets/favicon.ico"]),
@@ -36,8 +36,17 @@ makedocs(sitename="pulse input DDM",
 
 #makedocs(sitename="pulse input DDM")
 
-deploydocs(deps = Deps.pip("mkdocs", "python-markdown-math"),
-           repo = "github.com/Brody-Lab/pulse_input_DDM.git",
-           devbranch = "dev", devurl = "dev")
+#deploydocs(deps = Deps.pip("mkdocs", "python-markdown-math"),
+#           repo = "github.com/Brody-Lab/pulse_input_DDM.git",
+#           devbranch = "dev", devurl = "dev")
 
-#deploydocs(repo = "github.com/Brody-Lab/pulse_input_DDM.git")
+#deploydocs(deps = Deps.pip("mkdocs", "python-markdown-math"),
+#           repo = "github.com/Brody-Lab/PulseInputDDM.git",
+#           branch = "gh-pages", devbranch = nothing,
+#           devurl = "dev", versions = ["stable" => "v^", "v#.#.#", "dev" => "dev"])
+
+#deploydocs(deps = Deps.pip("mkdocs", "python-markdown-math"),
+#           repo = "github.com/Brody-Lab/pulse_input_DDM.git")
+
+deploydocs(repo = "Brody-Lab/PulseInputDDM.git")
+
