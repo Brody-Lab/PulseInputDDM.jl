@@ -128,3 +128,6 @@ save_optimization_parameters(save_path,file,pz,pd)
 ### Getting help
 
 To get more details about how any function in this package works, in julia you can type `?` and then the name of the function. Documentation will display in the REPL.
+
+## Contribution Guidelines
+
