@@ -1,4 +1,4 @@
-using Test, pulse_input_DDM, LinearAlgebra, Flatten, Parameters
+using Test, PulseInputDDM, LinearAlgebra, Flatten, Parameters
 
 @testset "pulse_input_DDM" begin
 
