@@ -1,36 +1,54 @@
-# Pulse Input DDM
+# PulseInputDDM --- a Julia package for inferring the parameters of drift diffusion models
 
-This is a package for inferring the parameters of drift diffusion models (DDMs) from neural activity or behavioral data collected when a subject is performing a pulse-based evidence accumulation task.
+PulseInputDDM is a Julia package for inferring the parameters of generalized drift diffusion to bound models (DDMs) from neural activity, behavioral data, or both. The codebase was designed with the expectation that data was collected from subjects performing pulse-based evidence accumulation task, as in [Brunton _et al_ 2013](DOI: 10.1126/science.1233912), but can be adapted for other evidence accumulation tasks.
 
-##  Downloading the package
+The package contains a variety of auxillary functions for loading/saving model fits, sampling from fit models (e.g., producing latents, neural activity, or choices from a model with specific parameter settings), and for fitting data to similar/related models.
 
-You need to add the Pulse Input DDM package from github.
+Written for Julia 1.5.0 and above. 
 
-```
->> module load julia/1.5.0
->> julia
-```
+##  Recommended installation
 
-Next add the package in julia by entering the package management mode by typing `]`.
+You need to add the PulseInputDDM package from github by entering the Julia package manager, by typing `]`. Then use `add` to add the package, as follows
 
 ```julia
 (v1.5) pkg > add https://github.com/Brody-Lab/PulseInputDDM/
 ```
 
-Another way to add the package (without typing `]`) is to do the following, in the normal Julia mode:
+Another way to add the package in normal Julia mode (i.e., without typing `]`) is
 
 ```julia
 julia > using Pkg    
 julia > Pkg.add(PackageSpec(url="https://github.com/Brody-Lab/PulseInputDDM/"))
 ```
 
+## Updating the package 
+
 When major modifications are made to the code base, you will need to update the package. You can do this in Julia's package manager (`]`) by typing `update`.
 
 
+## Getting help
+
+Most functions in this package contain [docstrings](https://docs.julialang.org/en/v1/manual/documentation/). To get more details about how any function in this package works, in Julia you can type `?` and then the name of the function. Documentation will display in the REPL or notebook.
+
+## Fitting the model to choice data only
+
+Because many neuroscientists use matlab, we use the [MAT.jl](https://github.com/JuliaIO/MAT.jl) package for IO. Data can be loaded using two conventions. One of these conventions is easier when data is saved within matlab as a .MAT file, and is described below. 
+
+The package expects your data to live in a single .mat file which should contain a struct called `rawdata`. Each element of `rawdata` should have data for one behavioral trial and `rawdata` should contain the following fields with the specified structure:
+
+ - `rawdata.leftbups`: row-vector containing the relative timing, in seconds, of left clicks on an individual trial. 0 seconds is the start of the click stimulus.
+ - `rawdata.rightbups`: row-vector containing the relative timing in seconds (origin at 0 sec) of right clicks on an individual trial. 0 seconds is the start of the click stimulus.
+ - `rawdata.T`: the duration of the trial, in seconds. The beginning of a trial is defined as the start of the click stimulus. The end of a trial is defined based on the behavioral event “cpoke_end”. This was the Hanks convention.
+ - `rawdata.pokedR`: `Bool` representing the animal choice (1 = right).
+ 
+The example file located at [example_matfile.mat](https://github.com/Brody-Lab/PulseInputDDM/blob/master/examples/choice%20model/example_matfile.mat) adheres to this convention and can be loaded using the `load_choice_data` method.
+
+### Fitting the model
+
+Once your data is correctly formatted and you have the package added in Julia, you are ready to fit the model. An example tutorial is located in the [examples](https://github.com/Brody-Lab/PulseInputDDM/tree/master/examples/choice%20model) directory. The tutorial illustrates how to use many of the most important methods, such as loading data, saving model fits, and optimizing the model parameters. of each below.
+
+
 ## Fitting the model to neural activity
-
-Now, let's try fiting the model using neural data.
-
 
 ### Data conventions
 
@@ -64,70 +82,8 @@ See [Loading data and fitting a choice model](@ref) for the expected format for 
 
 The convention for fitting a model with neural model is that each session should have its own .MAT file. (This constrasts with the convention for the choice model, where a single .MAT file can contain data from different session). It's just easier this way, especially if different sessions have different number of cells.
 
-## Fitting the model to choices
-
-### How to save your data so it can be loaded correctly
-
-The package expects your data to live in a single .mat file which should contain a struct called `rawdata`. Each element of `rawdata` should have data for one behavioral trial and `rawdata` should contain the following fields with the specified structure:
-
-- `rawdata.leftbups`: row-vector containing the relative timing, in seconds, of left clicks on an individual trial. 0 seconds is the start of the click stimulus.
-- `rawdata.rightbups`: row-vector containing the relative timing in seconds (origin at 0 sec) of right clicks on an individual trial. 0 seconds is the start of the click stimulus.
-- `rawdata.T`: the duration of the trial, in seconds. The beginning of a trial is defined as the start of the click stimulus. The end of a trial is defined based on the behavioral event “cpoke_end”. This was the Hanks convention.
-- `rawdata.pokedR`: `Bool` representing the animal choice (1 = right).
-
-### Fitting the model
-
-Once your data is correctly formatted and you have the package added in julia, you are ready to fit the model. You need to write a slurm script to use spock's resources and a .jl file to load the data and fit the model. See examples of each below. These files are also located in the package in the `examples` directory.
-
-
-### Example .jl file
-
-See comments in the script to understand what each line is doing.
-
-```julia
-#use the resources of the package
-using pulse_input_DDM
-
-println("using ", nprocs(), " cores")
-
-#define useful paths to the data and to a directory to save results
-data_path, save_path = "../data/dmFC_muscimol/", "../results/dmFC_muscimol/"
-
-#if the directory that you are saving to doesn't exist, make it
-isdir(save_path) ? nothing : mkpath(save_path)
-
-#read the name of the file located in the data directory
-files = readdir(data_path)
-files = files[.!isdir.(files)]
-file = files[1]
-
-#load your data
-data = load_choice_data(data_path, file)
-
-#generate default parameters for initializing the optimization
-pz, pd = default_parameters()
-
-#if you've already ran the optimization once and want to restart from where you stoped, this will reload those parameters
-if isfile(save_path*file)
-    pz, pd = reload_optimization_parameters(save_path, file, pz, pd)    
-end
-
-#run the optimization
-pz, pd, = optimize_model(pz, pd, data)
-
-#compute the Hessian around the ML solution, for confidence intervals
-H = compute_Hessian(pz, pd, data; state="final")
-
-#compute confidence intervals
-pz, pd = compute_CIs!(pz, pd, H)
-
-#save results
-save_optimization_parameters(save_path,file,pz,pd)
-```
-
-### Getting help
-
-To get more details about how any function in this package works, in julia you can type `?` and then the name of the function. Documentation will display in the REPL.
 
 ## Contribution Guidelines
+
+
 
