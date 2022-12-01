@@ -1,6 +1,6 @@
 # PulseInputDDM &mdash; a Julia package for inferring the parameters of drift diffusion models
 
-PulseInputDDM is a Julia package for inferring the parameters of generalized drift diffusion to bound models (DDMs) from neural activity, behavioral data, or both. The codebase was designed with the expectation that data was collected from subjects performing pulse-based evidence accumulation task, as in [Brunton et al 2013](DOI: 10.1126/science.1233912), but can be adapted for other evidence accumulation tasks.
+PulseInputDDM is a Julia package for inferring the parameters of generalized drift diffusion to bound models (DDMs) from neural activity, behavioral data, or both. The codebase was designed with the expectation that data was collected from subjects performing pulse-based evidence accumulation task, as in [Brunton et al 2013](https://www.science.org/doi/10.1126/science.1233912), but can be adapted for other evidence accumulation tasks.
 
 The package contains a variety of auxillary functions for loading/saving model fits, sampling from fit models (e.g., producing latents, neural activity, or choices from a model with specific parameter settings), and for fitting data to similar/related models.
 
