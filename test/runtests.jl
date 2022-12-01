@@ -1,6 +1,6 @@
 using Test, PulseInputDDM, LinearAlgebra, Flatten, Parameters
 
-@testset "pulse_input_DDM" begin
+@testset "PulseInputDDM" begin
 
     n, cross = 53, false
     

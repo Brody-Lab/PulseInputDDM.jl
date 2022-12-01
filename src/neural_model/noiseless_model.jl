@@ -114,7 +114,7 @@ function optimize(model::noiseless_neuralDDM, options::neural_options_noiseless;
     @unpack θ, data = model
     @unpack f = θ
     
-    x0 = pulse_input_DDM.flatten(θ)    
+    x0 = PulseInputDDM.flatten(θ)    
     
     lb, = unstack(lb, fit)
     ub, = unstack(ub, fit)
