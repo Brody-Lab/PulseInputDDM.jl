@@ -50,33 +50,9 @@ Once your data is correctly formatted and you have the package added in Julia, y
 
 ## Fitting the model to neural activity
 
-### Data conventions
+### Data format conventions for neural data
 
-Following the same conventions as ([Working interactively on scotty via a SSH tunnel](@ref)) but `rawdata` should contain the following extra field:
-
-- `rawdata.spike_times`: cell array containing the spike times of each neuron on an individual trial. The cell array will be length of the number of neurons recorded on that trial. Each entry of the cell array is a column vector containing the relative timing of spikes, in seconds. Zero seconds is the start of the click stimulus.
-
-
-### Load the data and fit the model interactively
-
-Working from the notebook you started in the previous section ([Working interactively on scotty via a SSH tunnel](@ref)), we need to create three variables to point to the data we want to fit and specify which animals and sessions we want to use:
-
-- `data_path`: a `String` indicating the directory where the `.mat` files described above are located. For example, `data_path = ENV["HOME"]*"/Projects/pulse_input_DDM.jl/data"` where `ENV["HOME"]` is using a bash environment variable and `*` conjoins two strings (like `strjoin` in MATLAB).
-
-
-### Now fit the model!
-
-You can use the function `optimize_model` to run the model.
-
-```julia
-    pz, py = optimize_model(data)
-```
-
-### Format for neural data
-
-First, define a path to where the data you want to fit is located.
-
-See [Loading data and fitting a choice model](@ref) for the expected format for .MAT files if one were fitting the choice model. In addition to those fields, for a neural model rawdata should also contain an extra field:
+See the setting on fitting modesl to [choices only](##Fitting the model to choice data only) for the expected format for .MAT files if one were fitting the choice model. In addition to those fields, for a neural model `rawdata` should also contain an extra field:
 
 `rawdata.spike_times`: cell array containing the spike times of each neuron on an individual trial. The cell array will be length of the number of neurons recorded on that trial. Each entry of the cell array is a column vector containing the relative timing of spikes, in seconds. Zero seconds is the start of the click stimulus. Spikes before and after the click inputs should also be included.
 
