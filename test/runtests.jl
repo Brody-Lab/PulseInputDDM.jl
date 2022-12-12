@@ -19,12 +19,8 @@ using Test, PulseInputDDM, LinearAlgebra, Flatten, Parameters
         @test all(choices .== vcat(true, falses(8), true))  
         
         @time @test round(loglikelihood(model_gen), digits=2) ≈ -3.3
-        
-    end
-                
-        #=
 
-        @test round(norm(gradient(model_gen)), digits=2) ≈ 11.28
+        @test round(norm(gradient(model_gen)), digits=2) ≈ 6.27
         
         options = choiceoptions(lb=vcat([0., 8.,  -5., 0.,   0.,  0.01, 0.005], [-30, 0.]),
             ub = vcat([2., 30., 5., 100., 2.5, 1.2,  1.], [30, 1.]), 
@@ -32,17 +28,18 @@ using Test, PulseInputDDM, LinearAlgebra, Flatten, Parameters
 
         model, = optimize(data, options; iterations=5, outer_iterations=1, 
             θprior=θprior(μ_B=40., σ_B=1e6));
-        @test round(norm(Flatten.flatten(model.θ)), digits=2) ≈ 25.04
+        @test round(norm(Flatten.flatten(model.θ)), digits=2) ≈ 25.01
 
         H = Hessian(model)
-        @test round(norm(H), digits=2) ≈ 186.32
+        @test round(norm(H), digits=2) ≈ 762.91
 
         CI, HPSD = CIs(H)
 
-        @test round(norm(CI), digits=2) ≈ 1231.27
+        @test round(norm(CI), digits=2) ≈ 587.96
 
     end
 
+    #=
     @testset "neural_model" begin
 
         ncells, ntrials = [1,2], [10,5]
@@ -130,10 +127,6 @@ using Test, PulseInputDDM, LinearAlgebra, Flatten, Parameters
         @test round(norm(pulse_input_DDM.flatten(choice_neural_model.θ)), digits=2) ≈ 52.21
 
     end
-
-    #add a julia file to the `test` directory with your tests
-    @testset "new_changes" begin include("new_changes_tests.jl") end
-    
     =#
 
 end
