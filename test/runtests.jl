@@ -1,12 +1,6 @@
 using Test, PulseInputDDM, LinearAlgebra, Flatten, Parameters
 
-@testset "choice_model" begin
 
-    @test true == true
-
-end
-
-#=
 @testset "PulseInputDDM" begin
 
     n, cross = 53, false
@@ -22,9 +16,13 @@ end
 
         choices = getfield.(data, :choice)
 
-        @test all(choices .== vcat(false, true, false, true, falses(4), trues(2)))
+        @test all(choices .== vcat(true, falses(8), true))  
         
-        @time @test round(loglikelihood(model_gen), digits=2) ≈ -5.05
+    end
+            
+        @time @test round(loglikelihood(model_gen), digits=2) ≈ -3.3
+    
+        #=
 
         @test round(norm(gradient(model_gen)), digits=2) ≈ 11.28
         
@@ -135,7 +133,7 @@ end
 
     #add a julia file to the `test` directory with your tests
     @testset "new_changes" begin include("new_changes_tests.jl") end
+    
+    =#
 
 end
-
-=#
