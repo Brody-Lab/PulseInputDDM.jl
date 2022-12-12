@@ -1,5 +1,12 @@
 using Test, PulseInputDDM, LinearAlgebra, Flatten, Parameters
 
+@testset "choice_model" begin
+
+    @test true == true
+
+end
+
+#=
 @testset "PulseInputDDM" begin
 
     n, cross = 53, false
@@ -130,3 +137,5 @@ using Test, PulseInputDDM, LinearAlgebra, Flatten, Parameters
     @testset "new_changes" begin include("new_changes_tests.jl") end
 
 end
+
+=#
