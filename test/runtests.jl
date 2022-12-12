@@ -18,10 +18,10 @@ using Test, PulseInputDDM, LinearAlgebra, Flatten, Parameters
 
         @test all(choices .== vcat(true, falses(8), true))  
         
-    end
-            
         @time @test round(loglikelihood(model_gen), digits=2) ≈ -3.3
-    
+        
+    end
+                
         #=
 
         @test round(norm(gradient(model_gen)), digits=2) ≈ 11.28
