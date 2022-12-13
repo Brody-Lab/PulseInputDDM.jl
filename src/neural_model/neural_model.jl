@@ -350,7 +350,7 @@ function optimize(model::neuralDDM, options::neural_options;
     @unpack θ, data, n, cross, θprior = model
     @unpack f = θ
     
-    x0 = pulse_input_DDM.flatten(θ)
+    x0 = PulseInputDDM.flatten(θ)
     lb, = unstack(lb, fit)
     ub, = unstack(ub, fit)
     x0,c = unstack(x0, fit)

@@ -1,6 +1,5 @@
 using Test, PulseInputDDM, LinearAlgebra, Flatten, Parameters
 
-
 @testset "PulseInputDDM" begin
 
     n, cross = 53, false
@@ -39,7 +38,6 @@ using Test, PulseInputDDM, LinearAlgebra, Flatten, Parameters
 
     end
 
-    #=
     @testset "neural_model" begin
 
         ncells, ntrials = [1,2], [10,5]
@@ -54,17 +52,16 @@ using Test, PulseInputDDM, LinearAlgebra, Flatten, Parameters
 
         spikes = map(x-> sum.(x), getfield.(vcat(data...), :spikes))
 
-        @test all(spikes .== [[5], [6], [4], [4], [5], [3], [8], [7], [9], [23], [11, 10], [9, 8], [4, 3], [11, 12], [15, 6]])
-        
-        @test round(loglikelihood(model_gen), digits=2) ≈ -487.07 
+        @test all(spikes .== [[7], [8], [5], [14], [10], [10], [9], [5], [8], [5], [4, 3], [9, 13], [11, 8], [1, 3], [11, 10]])        
+        @test round(loglikelihood(model_gen), digits=2) ≈ -451.56
 
-        @test round(norm(gradient(model_gen)), digits=2) ≈ 10.8
+        @test round(norm(gradient(model_gen)), digits=2) ≈ 4.4
 
         x = pulse_input_DDM.flatten(θ)
-        @test round(loglikelihood(x, model_gen), digits=2) ≈ -487.07
+        @test round(loglikelihood(x, model_gen), digits=2) ≈ -451.56
 
         θy0 = vcat(vcat(θy.(data, f)...)...)
-        @test round(norm(θy0), digits=2) ≈ 26.43
+        @test round(norm(θy0), digits=2) ≈ 21.41
 
         options0 = neural_options_noiseless(f)
         x0=vcat([0., 30., 0. + eps(), 0., 0., 1. - eps(), 0.008], θy0)
@@ -72,41 +69,46 @@ using Test, PulseInputDDM, LinearAlgebra, Flatten, Parameters
         θ0 = θneural_noiseless(x0, f)
         model0 = noiseless_neuralDDM(θ0, data)
 
-        @test round(loglikelihood(model0), digits=2) ≈ -1451.17
+        @test round(loglikelihood(model0), digits=2) ≈ -1127.15
 
         x0 = pulse_input_DDM.flatten(θ0)
         @unpack f = θ0
 
-        @test round(loglikelihood(x0, model0), digits=2) ≈ -1451.17
+        @test round(loglikelihood(x0, model0), digits=2) ≈ -1127.15
 
         model, = optimize(model0, options0; iterations=2, outer_iterations=1)
-        @test round(norm(pulse_input_DDM.flatten(model.θ)), digits=2) ≈ 54.78
+        @test round(norm(PulseInputDDM.flatten(model.θ)), digits=2) ≈ 45.21
 
+        #=
         @test round(norm(gradient(model)), digits=2) ≈ 4.64
+        =#
 
         x0 = vcat([0.1, 15., -0.1, 20., 0.5, 0.8, 0.008], pulse_input_DDM.flatten(model.θ)[dimz+1:end])
         options = neural_options(f)  
 
         model = neuralDDM(θneural(x0, f), data, n, cross, θprior(μ_B=40., σ_B=1e6))
         model, = optimize(model, options; iterations=2, outer_iterations=1)
-        @test round(norm(pulse_input_DDM.flatten(model.θ)), digits=2) ≈ 52.12
+        @test round(norm(PulseInputDDM.flatten(model.θ)), digits=2) ≈ 41.17
 
         H = Hessian(model; chunk_size=4)
-        @test round(norm(H), digits=2) ≈ 12.11
+        @test round(norm(H), digits=2) ≈ 9.17
 
         CI, HPSD = CIs(H)
-        @test round(norm(CI), digits=2) ≈ 199.93
+        @test round(norm(CI), digits=2) ≈ 917.8
+        
+    end
+    
+    @testset "neural_choice_model" begin
 
-        #neural choice, should eventaully be its own set
         options = neural_choice_options(f)
 
         choice_neural_model = neural_choiceDDM(θneural_choice(vcat(x0[1:dimz], 0., 0., x0[dimz+1:end]), f), data, n, cross)
 
-        @test round(choice_loglikelihood(choice_neural_model), digits=2) ≈ -4.01
+        @test round(choice_loglikelihood(choice_neural_model), digits=2) ≈ -6.45
 
-        @test round(joint_loglikelihood(choice_neural_model), digits=2) ≈ -552.97
+        @test round(joint_loglikelihood(choice_neural_model), digits=2) ≈ -486.23
 
-        import pulse_input_DDM: nθparams
+        import PulseInputDDM: nθparams
         nparams, = nθparams(f)
 
         fit = vcat(falses(dimz), trues(2), falses.(nparams)...);
@@ -114,7 +116,7 @@ using Test, PulseInputDDM, LinearAlgebra, Flatten, Parameters
 
         choice_neural_model, = choice_optimize(choice_neural_model, options; iterations=2, outer_iterations=1)
 
-        @test round(norm(pulse_input_DDM.flatten(choice_neural_model.θ)), digits=2) ≈ 52.21
+        @test round(norm(PulseInputDDM.flatten(choice_neural_model.θ)), digits=2) ≈ 42.06
 
         choice_neural_model = neural_choiceDDM(θneural_choice(vcat(x0[1:dimz], 0., 0., x0[dimz+1:end]), f), data, n, cross)
 
@@ -124,9 +126,9 @@ using Test, PulseInputDDM, LinearAlgebra, Flatten, Parameters
 
         choice_neural_model, = choice_optimize(choice_neural_model, options; iterations=2, outer_iterations=1)
 
-        @test round(norm(pulse_input_DDM.flatten(choice_neural_model.θ)), digits=2) ≈ 52.21
+        @test round(norm(PulseInputDDM.flatten(choice_neural_model.θ)), digits=2) ≈ 52.21
+        
 
     end
-    =#
 
 end

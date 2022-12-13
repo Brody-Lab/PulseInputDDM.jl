@@ -62,7 +62,7 @@ function choice_optimize(model::neural_choiceDDM, options::neural_choice_options
     @unpack θ, data, n, cross = model
     @unpack f = θ
     
-    x0 = pulse_input_DDM.flatten(θ)
+    x0 = PulseInputDDM.flatten(θ)
     lb, = unstack(lb, fit)
     ub, = unstack(ub, fit)
     x0,c = unstack(x0, fit)
