@@ -83,7 +83,7 @@ using Test, PulseInputDDM, LinearAlgebra, Flatten, Parameters
         @test round(norm(gradient(model)), digits=2) ≈ 4.64
         =#
 
-        x0 = vcat([0.1, 15., -0.1, 20., 0.5, 0.8, 0.008], pulse_input_DDM.flatten(model.θ)[dimz+1:end])
+        x0 = vcat([0.1, 15., -0.1, 20., 0.5, 0.8, 0.008], PulseInputDDM.flatten(model.θ)[dimz+1:end])
         options = neural_options(f)  
 
         model = neuralDDM(θneural(x0, f), data, n, cross, θprior(μ_B=40., σ_B=1e6))
