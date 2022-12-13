@@ -57,7 +57,7 @@ using Test, PulseInputDDM, LinearAlgebra, Flatten, Parameters
 
         @test round(norm(gradient(model_gen)), digits=2) ≈ 4.4
 
-        x = pulse_input_DDM.flatten(θ)
+        x = PulseInputDDM.flatten(θ)
         @test round(loglikelihood(x, model_gen), digits=2) ≈ -451.56
 
         θy0 = vcat(vcat(θy.(data, f)...)...)
@@ -94,12 +94,9 @@ using Test, PulseInputDDM, LinearAlgebra, Flatten, Parameters
         @test round(norm(H), digits=2) ≈ 9.17
 
         CI, HPSD = CIs(H)
-        @test round(norm(CI), digits=2) ≈ 917.8
+        @test round(norm(CI), digits=2) ≈ 917.8        
         
-    end
-    
-    @testset "neural_choice_model" begin
-
+        #joint
         options = neural_choice_options(f)
 
         choice_neural_model = neural_choiceDDM(θneural_choice(vcat(x0[1:dimz], 0., 0., x0[dimz+1:end]), f), data, n, cross)
