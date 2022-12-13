@@ -123,7 +123,7 @@ using Test, PulseInputDDM, LinearAlgebra, Flatten, Parameters
 
         choice_neural_model, = choice_optimize(choice_neural_model, options; iterations=2, outer_iterations=1)
 
-        @test round(norm(PulseInputDDM.flatten(choice_neural_model.θ)), digits=2) ≈ 52.21
+        @test round(norm(PulseInputDDM.flatten(choice_neural_model.θ)), digits=2) ≈ 42.06
         
 
     end
