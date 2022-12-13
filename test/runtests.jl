@@ -71,7 +71,7 @@ using Test, PulseInputDDM, LinearAlgebra, Flatten, Parameters
 
         @test round(loglikelihood(model0), digits=2) ≈ -1127.15
 
-        x0 = pulse_input_DDM.flatten(θ0)
+        x0 = PulseInputDDM.flatten(θ0)
         @unpack f = θ0
 
         @test round(loglikelihood(x0, model0), digits=2) ≈ -1127.15
