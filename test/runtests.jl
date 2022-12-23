@@ -79,9 +79,7 @@ using Test, PulseInputDDM, LinearAlgebra, Flatten, Parameters
         model, = optimize(model0, options0; iterations=2, outer_iterations=1)
         @test round(norm(PulseInputDDM.flatten(model.θ)), digits=2) ≈ 45.21
 
-        #=
-        @test round(norm(gradient(model)), digits=2) ≈ 4.64
-        =#
+        @test round(norm(gradient(model)), digits=2) ≈ 100.21
 
         x0 = vcat([0.1, 15., -0.1, 20., 0.5, 0.8, 0.008], PulseInputDDM.flatten(model.θ)[dimz+1:end])
         options = neural_options(f)  

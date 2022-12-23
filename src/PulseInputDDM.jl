@@ -18,6 +18,7 @@ using ForwardDiff: value
 using PositiveFactorizations, Parameters, Flatten
 using Polynomials, Missings
 using HypothesisTests
+using TaylorSeries
 
 import StatsFuns: logistic, logit, softplus, xlogy
 import Base.rand

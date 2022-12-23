@@ -248,8 +248,13 @@ end
 """
 function expm1_div_x(x)
 
-    y = exp(x)
-    y == 1. ? one(y) : (y-1.)/log(y)
+    #y = exp(x)
+    #y == 1. ? one(y) : (y-1.)/log(y)
+    #y == 1. ? one(y) : expm1(x)/x
+    
+    t = Taylor1(100)
+    y = (exp(t) - 1)/t
+    y(x)
 
 end
 
