@@ -17,6 +17,17 @@ function load_choice_data(file::String; centered::Bool=false, dt::Float64=1e-2)
     choices = vec(convert(BitArray, data["pokedR"]))
     hits = vec(convert(BitArray, data["hit"]))
 
+    # computing the correct side on each trial
+    idx_pR_correct = (hits .== Bool(1)) .& (choices .== Bool(1))
+    idx_pL_correct = (hits .== Bool(1)) .& (choices .== (0))
+    idx_pR_error =  (hits .== Bool(0)) .& (choices .== Bool(1))
+    idx_pL_error = (hits .== Bool(0)) .& (choices .== Bool(0))
+    correct = Array{Real}(undef, length(hits))
+    correct[idx_pR_correct] .= 1
+    correct[idx_pL_error] .= 1
+    correct[idx_pL_correct] .= -1
+    correct[idx_pR_error] .= -1
+
     if haskey(data, "sessbnd")
         sessbnd = vec(convert(BitArray, data["sessbnd"]))
     else
@@ -30,7 +41,7 @@ function load_choice_data(file::String; centered::Bool=false, dt::Float64=1e-2)
     inputs = map((clicks, binned_clicks, sessbnd)-> choiceinputs(clicks=clicks, binned_clicks=binned_clicks, sessbnd=sessbnd, 
         dt=dt, centered=centered), theclicks, binned_clicks, sessbnd)
 
-    choicedata.(inputs, choices, hits)
+    choicedata.(inputs, choices, hits, correct)
 
 end
 

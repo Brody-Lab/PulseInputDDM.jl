@@ -147,4 +147,3 @@ function compute_history(i::Int, θhist::θtrialhist, choices, hits, lim::Int)
     return i_0
 end
 
-

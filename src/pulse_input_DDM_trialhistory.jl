@@ -79,13 +79,9 @@ end
 """
 """
 @with_kw struct θtrialhist{T<:Real} @deftype T
-    h_ηcL = -0.3
-    h_ηcR = -0.3
-    h_ηe = -0.1
-    h_βc = 0.8
-    h_βe = 0.1
+    h_η = -0.1
+    h_β = 0.8
 end
-
 """
 """
 @with_kw struct θslowdrift{T<:Real} @deftype T

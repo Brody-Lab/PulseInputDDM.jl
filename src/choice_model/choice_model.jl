@@ -51,11 +51,8 @@ function create_options_and_x0(; modeltype = "bing")
         :lapse_prob =>  [0., 1., true, true, true, true, eps()],                  
         :lapse_bias =>  [-10., 10., true, true, true, true, 0.], 
         :lapse_modbeta=>[-10., 10., false, false, true, true, 0.],                                 
-        :h_ηcL =>       [-5., 5., false, true, true, true, 0.], 
-        :h_ηcR =>       [-5., 5., false, true, true, true, 0.], 
-        :h_ηe =>        [-5., 5., false, true, true, true, 0.], 
-        :h_βc =>        [0., 1., false, true, true, true, 0.], 
-        :h_βe =>        [0., 1., false, true, true, true, 0.],
+        :h_η =>       [-5., 5., false, true, true, true, 0.], 
+        :h_β =>        [0., 1., false, true, true, true, 0.], 
         :sd_β =>        [0., 50., false, false, false, false, 0.],   # nonfunctional
         :sd_w =>        [40., 200., false, false, false, false, 4.],  # nonfunctional
         :bias =>        [-5., 5., true, true, true, true, 0.])        
@@ -80,10 +77,10 @@ function create_options_and_x0(; modeltype = "bing")
         if fit[i]
             x0[i] = lb[i] + (ub[i] - lb[i]) * rand()
             # initiate lapse parameters at small values
-            if (i == 9) | (i == 10) | (i == 8)  
+            if (i == 8) | (i == 9) | (i == 10)  
                 x0[i] = 1e-2
             end
-            if (i == 11) | (i == 12) | (i == 13)
+            if (i == 11) 
                 x0[i] = 0.
             end
         else
@@ -160,6 +157,7 @@ Example:
     click_data::T1
     choice::Bool
     hits::Bool
+    correct::Float64
 end
 
 
@@ -445,7 +443,7 @@ function P_goright(model::choiceDDM)
     i_0 = compute_history(θhist, data, B) #.+ compute_slowdrift(θslowdrift, data, B)
     M,xc,dx = initialize_latent_model(σ2_i, B, λ, σ2_a, n, dt)
 
-    pmap((data, i_0) -> likelihood!(θ, M, dx, xc, data, i_0, n, cross, initpt_mod), map(x-> choicedata(x.click_data, true, true), data[trial_ids]), i_0[trial_ids])
+    pmap((data, i_0) -> likelihood!(θ, M, dx, xc, data, i_0, n, cross, initpt_mod), map(x-> choicedata(x.click_data, true, x.hits, x.correct), data[trial_ids]), i_0[trial_ids])
 
 end
 
@@ -650,28 +648,57 @@ end
 
 computes the bias due to trial history on initial point/lapse probability
 """
+# function compute_history(θhist::θtrialhist, data, B::TT) where TT <: Any
+
+#     # this can be computed just once instead of at every iteration
+#     # and passed along in data (ask Brian!)
+#     choices = map(data -> data.choice, data)
+#     sessbnd = map(data -> data.click_data.sessbnd, data)
+#     hits = map(data -> data.hits, data)
+
+
+#     i_0 = Array{TT}(undef, length(hits))
+#     lim = 1
+#     for i = 1:length(hits)
+#         if sessbnd[i] == true
+#             lim, i_0[i] = i, 0.
+#         else
+#             k = compute_history(i, θhist, choices, hits, lim)     
+#             abs(k) > B ? i_0[i] = sign(k) * B : i_0[i] = k
+#         end
+#     end
+
+#     return i_0
+
+# end
+
+
+"""
+    compute_history(θhist, data, B)
+
+computes the bias due to trial history on initial point/lapse probability
+"""
 function compute_history(θhist::θtrialhist, data, B::TT) where TT <: Any
 
-    # this can be computed just once instead of at every iteration
-    # and passed along in data (ask Brian!)
-    choices = map(data -> data.choice, data)
+    @unpack  h_η, h_β = θhist
+
     sessbnd = map(data -> data.click_data.sessbnd, data)
-    hits = map(data -> data.hits, data)
-
-
-    i_0 = Array{TT}(undef, length(hits))
-    lim = 1
-    for i = 1:length(hits)
-        if sessbnd[i] == true
-            lim, i_0[i] = i, 0.
+    correct = map(data -> data.correct, data)
+    ntrials = length(correct)
+    
+    i_0 = Array{TT}(undef, ntrials)
+    i_0[1] = 0.
+    
+    for i = 2:ntrials
+        if sessbnd[i] == 1
+            i_0[i] = 0.
         else
-            k = compute_history(i, θhist, choices, hits, lim)     
+            k = h_η*correct[i-1] + h_β*i_0[i-1]
             abs(k) > B ? i_0[i] = sign(k) * B : i_0[i] = k
         end
     end
-
+    
     return i_0
-
 end
 
 
