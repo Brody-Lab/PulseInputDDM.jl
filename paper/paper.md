@@ -7,6 +7,19 @@ authors:
   - name: Brian D. DePasquale
     orcid: 0000-0003-4508-0537
     affiliation: "1,2"
+- name: Thomas Luo
+- name: Tim Kim
+- name: Emily Dennis
+- name: Tyler Boyd-Meredith
+- name: Diksha Gupta
+- name: Jonathan Pillow
+- name: Carlos Brody
+- name: Jorge Yanar
+- name: Marino Pagan
+- name: Bing Brunton
+- name: Chuck Kopec
+- name: Alex Piet
+
 affiliations:
  - name: Princeton Neuroscience Institute, Princeton University
    index: 1
@@ -31,8 +44,7 @@ Here, we introduce ``PulseInputDDM``. [@Brunton2013]
 
 # Author contributions
 
-B.D.D. did. Bing Brunton did. 
-Me, Carlos, Jonathan, Bing, Tim, Diksha, Tyler, Alex, Thomas, Chuck, Jorge.
+B.D.D. did. Bing Brunton did.
 
 
 # Acknowledgements
