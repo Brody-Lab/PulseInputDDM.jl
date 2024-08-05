@@ -15,20 +15,19 @@ Written for Julia 1.5.0 and above.
 You need to add the PulseInputDDM package from github by entering the Julia package manager, by typing `]`. Then use `add` to add the package, as follows
 
 ```julia
-(v1.5) pkg > add https://github.com/Brody-Lab/PulseInputDDM/
+(v1.5) pkg > add https://github.com/Brody-Lab/PulseInputDDM.jl/
 ```
 
 Another way to add the package in normal Julia mode (i.e., without typing `]`) is
 
 ```julia
 julia > using Pkg    
-julia > Pkg.add(PackageSpec(url="https://github.com/Brody-Lab/PulseInputDDM/"))
+julia > Pkg.add(PackageSpec(url="https://github.com/Brody-Lab/PulseInputDDM.jl/"))
 ```
 
 ## Updating the package 
 
 When major modifications are made to the code base, you will need to update the package. You can do this in Julia's package manager (`]`) by typing `update`.
-
 
 ## Getting help
 
