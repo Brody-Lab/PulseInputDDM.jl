@@ -1,30 +1,33 @@
-# PulseInputDDM &mdash; a Julia package for inferring the parameters of drift diffusion models
+# PulseInputDDM.jl &mdash; a Julia package for inferring the parameters of drift diffusion models
 
-PulseInputDDM is a Julia package for inferring the parameters of generalized drift diffusion to bound models (DDMs) from neural activity, behavioral data, or both. The codebase was designed with the expectation that data was collected from subjects performing pulse-based evidence accumulation task, as in [Brunton et al 2013](https://www.science.org/doi/10.1126/science.1233912), but can be adapted for other evidence accumulation tasks.
+A Julia package for inferring the parameters of generalized drift diffusion to bound models (DDMs) from neural activity, behavioral data, or both. The codebase was designed with the expectation that data was collected from subjects performing pulse-based evidence accumulation task, as in [Brunton et al 2013](https://www.science.org/doi/10.1126/science.1233912), but can be adapted for other evidence accumulation tasks.
 
 The package contains a variety of auxillary functions for loading/saving model fits, sampling from fit models (e.g., producing latents, neural activity, or choices from a model with specific parameter settings), and for fitting data to similar/related models.
 
 Written for Julia 1.5.0 and above. 
+
+## Help
+
+[Start a discussion!](https://github.com/Brody-Lab/PulseInputDDM/discussions).
 
 ##  Recommended installation
 
 You need to add the PulseInputDDM package from github by entering the Julia package manager, by typing `]`. Then use `add` to add the package, as follows
 
 ```julia
-(v1.5) pkg > add https://github.com/Brody-Lab/PulseInputDDM/
+(v1.5) pkg > add https://github.com/Brody-Lab/PulseInputDDM.jl/
 ```
 
 Another way to add the package in normal Julia mode (i.e., without typing `]`) is
 
 ```julia
 julia > using Pkg    
-julia > Pkg.add(PackageSpec(url="https://github.com/Brody-Lab/PulseInputDDM/"))
+julia > Pkg.add(PackageSpec(url="https://github.com/Brody-Lab/PulseInputDDM.jl/"))
 ```
 
 ## Updating the package 
 
 When major modifications are made to the code base, you will need to update the package. You can do this in Julia's package manager (`]`) by typing `update`.
-
 
 ## Getting help
 
