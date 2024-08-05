@@ -37,7 +37,7 @@ affiliations:
    index: 1
  - name: Department of Biomedical Engineering, Boston University
    index: 2
-date: 7 October 2022
+date: 5 August 2024
 
 bibliography: paper.bib
 ---
@@ -47,6 +47,8 @@ bibliography: paper.bib
 Here, we introduce ``PulseInputDDM``. [@Brunton2013]
 
 # Statement of need
+
+`PyDDM` [@PyDDM2020]
 
 # Package design
 
