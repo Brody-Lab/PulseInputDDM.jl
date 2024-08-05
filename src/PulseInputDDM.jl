@@ -12,20 +12,18 @@ module PulseInputDDM
 using StatsBase, Distributions, LineSearches, JLD2
 using ForwardDiff, Distributed, LinearAlgebra
 using Optim, DSP, SpecialFunctions, MAT, Random
-using Discretizers
-using ImageFiltering
+using Discretizers, ImageFiltering
 using ForwardDiff: value
 using PositiveFactorizations, Parameters, Flatten
 using Polynomials, Missings
-using HypothesisTests
-using TaylorSeries
+using HypothesisTests, TaylorSeries
+using BasisFunctionExpansions
 
 import StatsFuns: logistic, logit, softplus, xlogy
 import Base.rand
 import Base.Iterators: partition
 import Flatten: flattenable
 #import Polynomials: Poly
-using BasisFunctionExpansions
 
 export choiceDDM, θchoice, θz, choiceoptions
 export choiceDDM_dx
