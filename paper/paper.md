@@ -7,18 +7,30 @@ authors:
   - name: Brian D. DePasquale
     orcid: 0000-0003-4508-0537
     affiliation: "1,2"
-- name: Thomas Luo
-- name: Tim Kim
-- name: Emily Dennis
-- name: Tyler Boyd-Meredith
-- name: Diksha Gupta
-- name: Jonathan Pillow
-- name: Carlos Brody
-- name: Jorge Yanar
-- name: Marino Pagan
-- name: Bing Brunton
-- name: Chuck Kopec
-- name: Alex Piet
+  - name: Diksha Gupta
+    affiliation: "1"
+  - name: Alex Piet
+    affiliation: "1"
+  - name: Thomas Luo
+    affiliation: "1"
+  - name: Tim Kim
+    affiliation: "1"
+  - name: Jorge Yanar
+    affiliation: "1"
+  - name: Emily Dennis
+    affiliation: "1"
+  - name: Marino Pagan
+    affiliation: "1"
+  - name: Chuck Kopec
+    affiliation: "1"
+  - name: Tyler Boyd-Meredith
+    affiliation: "1"
+  - name: Bing Brunton
+    affiliation: "1"
+  - name: Jonathan Pillow
+    affiliation: "1"
+  - name: Carlos Brody
+    affiliation: "1"
 
 affiliations:
  - name: Princeton Neuroscience Institute, Princeton University
@@ -34,18 +46,23 @@ bibliography: paper.bib
 
 Here, we introduce ``PulseInputDDM``. [@Brunton2013]
 
+# Statement of need
+
+# Package design
+
 # Example
 
 ![Model architecture](model.png)
 
 # Availability
 
+# Conclusion
+
 ``pulse input DDM`` is publicly available under the [MIT license](https://github.com/Brody-Lab/pulse_input_DDM/blob/master/LICENSE) at <https://github.com/Brody-Lab/pulse_input_DDM>.
 
 # Author contributions
 
 B.D.D. did. Bing Brunton did.
-
 
 # Acknowledgements
 
