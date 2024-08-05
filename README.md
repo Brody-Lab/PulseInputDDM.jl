@@ -6,6 +6,10 @@ The package contains a variety of auxillary functions for loading/saving model f
 
 Written for Julia 1.5.0 and above. 
 
+## Help
+
+[Start a discussion!](https://github.com/Brody-Lab/PulseInputDDM/discussions).
+
 ##  Recommended installation
 
 You need to add the PulseInputDDM package from github by entering the Julia package manager, by typing `]`. Then use `add` to add the package, as follows
