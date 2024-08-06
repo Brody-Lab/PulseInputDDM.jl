@@ -97,18 +97,6 @@ end
     n::Int
 end
 
-
-"""
-"""
-@with_kw struct choiceinputs{T1,T2}
-    clicks::T1
-    binned_clicks::T2
-    dt::Float64
-    centered::Bool
-    delay::Int=0
-    pad::Int=0
-end
-
 """
 """
 @with_kw struct neuralinputs{T1,T2}
@@ -246,6 +234,7 @@ include("optim_funcs.jl")
 include("sample_model.jl")
 include("priors.jl")
 
+include("choice_model/types.jl")
 include("choice_model/choice_model.jl")
 include("choice_model/sample_model.jl")
 include("choice_model/process_data.jl")
