@@ -1,3 +1,8 @@
+abstract type DDM end
+abstract type DDMdata end
+abstract type DDMθ end
+abstract type DDMf end
+
 """
 """
 @with_kw struct θz{T<:Real} @deftype T
