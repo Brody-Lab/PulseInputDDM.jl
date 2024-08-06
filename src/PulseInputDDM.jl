@@ -54,25 +54,6 @@ export logprior, process_spike_data
 export θprior, train_and_test, all_Softplus, θ2, invθ2, save_choice_data
 
 
-"""
-    choiceDDM_dx(θ, data, dx, cross)
-
-Fields:
-
-- `θ`: a instance of the module-defined class `θchoice` that contains all of the model parameters for a `choiceDDM`
-- `data`: an `array` where each entry is the module-defined class `choicedata`, which contains all of the data (inputs and choices).
-- `dx`: width of spatial bin (defaults to 0.25).
-- `cross`: whether or not to use cross click adaptation (defaults to false).
-"""
-@with_kw struct choiceDDM_dx{T,U,V} <: DDM
-    θ::T = θchoice()
-    data::U
-    dx::Float64=0.25
-    cross::Bool=false
-    θprior::V = θprior()
-end
-
-
 include("types.jl")
 include("choice_model/types.jl")
 include("neural_model/types.jl")
