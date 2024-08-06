@@ -58,151 +58,6 @@ abstract type DDMdata end
 abstract type DDMθ end
 abstract type DDMf end
 
-"""
-"""
-@with_kw struct θz{T<:Real} @deftype T
-    σ2_i = 0.5
-    B = 15.
-    λ = -0.5; @assert λ != 0.
-    σ2_a = 50.
-    σ2_s = 1.5
-    ϕ = 0.8; @assert ϕ != 1.
-    τ_ϕ = 0.05
-end
-
-
-"""
-"""
-@with_kw struct clicks
-    L::Vector{Float64}
-    R::Vector{Float64}
-    T::Float64
-end
-
-
-"""
-"""
-@with_kw struct binned_clicks
-    #clicks::T
-    nT::Int
-    nL::Vector{Int}
-    nR::Vector{Int}
-end
-
-
-@with_kw struct bins
-    #clicks::T
-    xc::Vector{Real}
-    dx::Real
-    n::Int
-end
-
-"""
-"""
-@with_kw struct neuralinputs{T1,T2}
-    clicks::T1
-    binned_clicks::T2
-    λ0::Vector{Vector{Float64}}
-    dt::Float64
-    centered::Bool
-    delay::Int
-    pad::Int
-end
-
-
-"""
-"""
-@with_kw struct θneural{T1, T2} <: DDMθ
-    θz::T1
-    θy::T2
-    f::Vector{Vector{String}}
-end
-
-
-"""
-    neuralDDM
-
-Fields:
-- θ
-- data
-- n
-- cross
-- θprior
-
-"""
-@with_kw struct neuralDDM{T,U,V} <: DDM
-    θ::T
-    data::U
-    n::Int=53
-    cross::Bool=false
-    θprior::V = θprior()
-end
-
-
-"""
-"""
-@with_kw struct θneural_noiseless{T1, T2} <: DDMθ
-    θz::T1
-    θy::T2
-    f::Vector{Vector{String}}
-end
-
-
-"""
-"""
-@with_kw struct noiseless_neuralDDM{T,U} <: DDM
-    θ::T
-    data::U
-end
-
-
-"""
-    neuralchoiceDDM
-
-Fields:
-- θ
-- data
-- n
-- cross
-
-"""
-@with_kw struct neural_choiceDDM{T,U} <: DDM
-    θ::T
-    data::U
-    n::Int=53
-    cross::Bool=false
-end
-
-
-"""
-"""
-@with_kw struct θneural_choice{T1, T2, T3} <: DDMθ
-    θz::T1
-    bias::T2
-    lapse::T2
-    θy::T3
-    f::Vector{Vector{String}}
-end
-
-
-@with_kw struct neural_choice_GLM_DDM{T,U} <: DDM
-    θ::T
-    data::U
-    n::Int=53
-    cross::Bool=false
-end
-
-
-"""
-"""
-@with_kw struct θneural_choice_GLM{T1, T2, T3} <: DDMθ
-    stim::T1
-    bias::T2
-    lapse::T2
-    θy::T3
-    f::Vector{Vector{String}}
-end
-
 
 """
     choiceDDM_dx(θ, data, dx, cross)
@@ -223,10 +78,10 @@ Fields:
 end
 
 
-"""
-"""
-neuralinputs(clicks, binned_clicks, λ0::Vector{Vector{Vector{Float64}}}, dt::Float64, centered::Bool, delay::Int, pad::Int) =
-    neuralinputs.(clicks, binned_clicks, λ0, dt, centered, delay, pad)
+include("types.jl")
+include("choice_model/types.jl")
+include("neural_model/types.jl")
+include("neural-choice_model/types.jl")
 
 include("base_model.jl")
 include("analysis_functions.jl")
@@ -234,7 +89,6 @@ include("optim_funcs.jl")
 include("sample_model.jl")
 include("priors.jl")
 
-include("choice_model/types.jl")
 include("choice_model/choice_model.jl")
 include("choice_model/sample_model.jl")
 include("choice_model/process_data.jl")
