@@ -41,7 +41,7 @@ export choice_optimize, choice_neural_optimize, choice_likelihood
 export simulate_expected_firing_rate, reload_neural_data
 export loglikelihood, synthetic_data
 export CIs, optimize, Hessian, gradient
-export load_choice_data, load_neural_data, reload_neural_model, save_neural_model, flatten
+export load_choice_data, reload_neural_model, save_neural_model, flatten
 export save, load, reload_choice_model, save_choice_model
 export reload_joint_model
 export initialize_θy, neural_null
@@ -50,6 +50,7 @@ export default_parameters_and_data, compute_LL
 export mean_exp_rate_per_trial, mean_exp_rate_per_cond
 export logprior, process_spike_data
 export θprior, train_and_test, all_Softplus, θ2, invθ2, save_choice_data
+#export load_neural_data
 
 abstract type DDM end
 abstract type DDMdata end
