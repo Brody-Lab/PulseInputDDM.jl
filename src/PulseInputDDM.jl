@@ -9,7 +9,7 @@ and/or neural data from pulse-based evidence accumlation tasks.
 
 module PulseInputDDM
 
-using StatsBase, Distributions, LineSearches, JLD2
+using StatsBase, Distributions, LineSearches
 using ForwardDiff, Distributed, LinearAlgebra
 using Optim, DSP, SpecialFunctions, MAT, Random
 using Discretizers, ImageFiltering
@@ -28,12 +28,6 @@ import Flatten: flattenable
 export choiceDDM, θchoice, θz, choiceoptions
 export choiceDDM_dx
 export neuralDDM, θneural, θy, neural_options, neuraldata
-export θHMMDDM, HMMDDM, HMMDDM_options, save_model
-export HMMDDM_joint, θHMMDDM_joint, HMMDDM_joint_options
-export HMMDDM_joint_2, θHMMDDM_joint_2, HMMDDM_joint_options_2
-export HMMDDM_joint_3, θHMMDDM_joint_3, HMMDDM_joint_options_3
-export HMMDDM_choice_2, θHMMDDM_choice_2, HMMDDM_choice_options_2
-
 export Sigmoid, Softplus
 export noiseless_neuralDDM, θneural_noiseless, neural_options_noiseless
 export neural_poly_DDM
