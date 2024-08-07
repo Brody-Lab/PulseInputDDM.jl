@@ -50,7 +50,7 @@ export default_parameters_and_data, compute_LL
 export mean_exp_rate_per_trial, mean_exp_rate_per_cond
 export logprior, process_spike_data
 export θprior, train_and_test, all_Softplus, θ2, invθ2, save_choice_data
-#export load_neural_data
+export load_neural_data
 
 abstract type DDM end
 abstract type DDMdata end
