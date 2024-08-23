@@ -28,9 +28,9 @@ Returns:
 - `μ_c_λ`: the average across trials and across group with similar evidence values (grouped into `nconds` number of groups).
 
 """
-function simulate_expected_firing_rate(model; num_samples::Int=100, nconds::Int=2, rng1::Int=1)
+function simulate_expected_firing_rate(model, data; num_samples::Int=100, nconds::Int=2, rng1::Int=1)
 
-    @unpack θ,data = model
+    @unpack θ = model
     @unpack θz,θy = θ
     
     rng = sample(Random.seed!(rng1), 1:num_samples, num_samples; replace=false)
@@ -44,9 +44,9 @@ function simulate_expected_firing_rate(model; num_samples::Int=100, nconds::Int=
 end
 
 
-function simulate_expected_spikes(model; num_samples::Int=100, nconds::Int=2, rng1::Int=1)
+function simulate_expected_spikes(model, data; num_samples::Int=100, nconds::Int=2, rng1::Int=1)
 
-    @unpack θ,data = model
+    @unpack θ = model
     @unpack θz,θy = θ
     
     rng = sample(Random.seed!(rng1), 1:num_samples, num_samples; replace=false)

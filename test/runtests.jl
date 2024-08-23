@@ -11,7 +11,7 @@ using Test, Random, PulseInputDDM, LinearAlgebra, Flatten, Parameters
         include("choice_model_tests.jl")
 
     end
-
+      
     @testset "neural_model" begin
 
         include("neural_model_tests.jl")

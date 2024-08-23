@@ -64,27 +64,11 @@ function θy0(data, f::Vector{Vector{String}})
     θy0 = θy.(data, f) 
     x0 = vcat([0., 15., 0. - eps(), 0., 0., 1.0 - eps(), 0.008], vcat(vcat(θy0...)...)) 
     θ = θneural_noiseless(x0, f)
-    model0 = noiseless_neuralDDM(θ, data)
+    model0 = noiseless_neuralDDM(θ)
         
-    model0, = optimize(model0, neural_options_noiseless(f), show_trace=false)
+    model0, = optimize(model0, data, neural_options_noiseless(f), show_trace=false)
     
-    return model0.θ.θy
-    
-end
-
-
-"""
-"""
-function train_and_test(data, x0, options::T1; seed::Int=1, α1s = 10. .^(-6:7)) where T1 <: neural_options_noiseless
-    
-    ntrials = length(data)
-    train = sample(Random.seed!(seed), 1:ntrials, ceil(Int, 0.9 * ntrials), replace=false)
-    test = setdiff(1:ntrials, train)
-      
-    model = map(α1-> optimize([data[train]], x0, options; α1=α1, show_trace=false)[1], α1s)   
-    testLL = map(model-> loglikelihood(model.θ, [data[test]]), model)
-
-    return α1s, model, testLL
+    return model0
     
 end
 
@@ -105,13 +89,13 @@ Returns:
 - `output`: results from [`Optim.optimize`](@ref).
 
 """
-function optimize(model::noiseless_neuralDDM, options::neural_options_noiseless;
+function fit(model::noiseless_neuralDDM, data, options::neural_options_noiseless;
         x_tol::Float64=1e-10, f_tol::Float64=1e-6, g_tol::Float64=1e-3,
         iterations::Int=Int(2e3), show_trace::Bool=false,
         outer_iterations::Int=Int(1e1), sig_σ::Float64=1.)
 
     @unpack fit, lb, ub = options
-    @unpack θ, data = model
+    @unpack θ = model
     @unpack f = θ
     
     x0 = PulseInputDDM.flatten(θ)    
@@ -119,7 +103,7 @@ function optimize(model::noiseless_neuralDDM, options::neural_options_noiseless;
     lb, = unstack(lb, fit)
     ub, = unstack(ub, fit)
     x0,c = unstack(x0, fit)
-    ℓℓ(x) = -(loglikelihood(stack(x,c,fit), model) + sigmoid_prior(stack(x,c,fit), θ; sig_σ=sig_σ))
+    ℓℓ(x) = -(loglikelihood(stack(x,c,fit), model, data) + sigmoid_prior(stack(x,c,fit), θ; sig_σ=sig_σ))
 
     output = optimize(x0, ℓℓ, lb, ub; g_tol=g_tol, x_tol=x_tol,
         f_tol=f_tol, iterations=iterations, show_trace=show_trace,
@@ -127,7 +111,7 @@ function optimize(model::noiseless_neuralDDM, options::neural_options_noiseless;
 
     x = Optim.minimizer(output)
     x = stack(x,c,fit)
-    model = noiseless_neuralDDM(θneural_noiseless(x, f), data)
+    model = noiseless_neuralDDM(θneural_noiseless(x, f))
     converged = Optim.converged(output)
 
     return model, output
@@ -143,21 +127,21 @@ A wrapper function that accepts a vector of mixed parameters, splits the vector
 into two vectors based on the parameter mapping function provided as an input. Used
 in optimization, Hessian and gradient computation.
 """
-function loglikelihood(x::Vector{T1}, model::noiseless_neuralDDM) where {T1 <: Real}
+function loglikelihood(x::Vector{T1}, model::noiseless_neuralDDM, data) where {T1 <: Real}
     
-    @unpack data,θ = model
+    @unpack θ = model
     @unpack f = θ 
-    model = noiseless_neuralDDM(θneural_noiseless(x, f), data)
-    loglikelihood(model)
+    model = noiseless_neuralDDM(θneural_noiseless(x, f))
+    loglikelihood(model, data)
 
 end
 
 
 """
 """
-function loglikelihood(model::noiseless_neuralDDM)
+function loglikelihood(model::noiseless_neuralDDM, data)
 
-    @unpack θ, data = model
+    @unpack θ = model
     @unpack θz, θy = θ
 
     sum(map((θy, data) -> sum(pmap(data-> loglikelihood(θz, θy, data), data,

@@ -94,45 +94,6 @@ end
 
 
 """
-    choice_neural_optimize(data)
-
-Optimize model parameters for a `neural_choiceDDM`. Neural tuning parameters ([`θy`](@ref)) are initialized by fitting a the noiseless DDM model first ([`noiseless_neuralDDM`](@ref)).
-
-Arguments:
-
-- `data`: the output of [`load_neural_data`](@ref) with the format as described in its docstring.
-
-Returns
-
-- `model`: a module-defined type that organizes the `data` and parameters from the fit (as well as a few other things that are necessary for re-computing things the way they were computed here (e.g. `n`)
-- `options`: some details related to the optimzation, such as which parameters were fit, and the upper and lower bounds of those parameters.
-
-"""
-function choice_neural_optimize(data;
-        x_tol::Float64=1e-10, f_tol::Float64=1e-9, g_tol::Float64=1e-3,
-        show_trace::Bool=true,  extended_trace::Bool=false, scaled::Bool=false,
-        outer_iterations::Int=Int(1e1), iterations::Int=Int(2e3),
-        n::Int=53, cross::Bool=false,
-        x0_z::Vector{Float64}=[0.1, 15., -0.1, 20., 0.8, 0.01, 0.008],
-        f::Vector{Vector{String}}=all_Softplus(data),
-        remap::Bool=false) 
-               
-    x0 = vcat(x0_z, [0., 1e-1], collect.(Flatten.flatten.(vcat(θy0(data,f)...)))...)
-    nparams, = nθparams(f)    
-    fit = vcat(trues(dimz), trues(2), trues.(nparams)...)
-    options = neural_choice_options(f)
-    options = neural_choice_options(fit=fit, lb=options.lb, ub=options.ub)
-        
-    model = neural_choiceDDM(θneural_choice(x0, f), data, n, cross)  
-    model, = choice_neural_optimize(model, options; show_trace=show_trace, f_tol=f_tol, 
-        iterations=iterations, outer_iterations=outer_iterations, remap=remap)
-
-    return model, options
-
-end
-
-
-"""
     choice_neural_optimize(model, options)
 
 Optimize (potentially all) model parameters for a `neural_choiceDDM` using choice and neural data.
@@ -148,13 +109,13 @@ Returns:
 - `output`: results from [`Optim.optimize`](@ref).
 
 """
-function choice_neural_optimize(model::neural_choiceDDM, options::neural_choice_options;
+function choice_neural_optimize(model::neural_choiceDDM, data, options::neural_choice_options;
         x_tol::Float64=1e-10, f_tol::Float64=1e-9, g_tol::Float64=1e-3,
         iterations::Int=Int(2e3), show_trace::Bool=true, outer_iterations::Int=Int(1e1), 
         scaled::Bool=false, extended_trace::Bool=false, remap::Bool=false)
     
     @unpack fit, lb, ub = options
-    @unpack θ, data, n, cross = model
+    @unpack θ, n, cross = model
     @unpack f = θ
     
     x0 = PulseInputDDM.flatten(θ)
@@ -162,7 +123,7 @@ function choice_neural_optimize(model::neural_choiceDDM, options::neural_choice_
     ub, = unstack(ub, fit)
     x0,c = unstack(x0, fit)
 
-    ℓℓ(x) = -joint_loglikelihood(stack(x,c,fit), model; remap=remap)
+    ℓℓ(x) = -joint_loglikelihood(stack(x,c,fit), model, data; remap=remap)
     
     output = optimize(x0, ℓℓ, lb, ub; g_tol=g_tol, x_tol=x_tol,
         f_tol=f_tol, iterations=iterations, show_trace=show_trace,
@@ -172,7 +133,7 @@ function choice_neural_optimize(model::neural_choiceDDM, options::neural_choice_
     x = Optim.minimizer(output)
     x = stack(x,c,fit)
     
-    model = neural_choiceDDM(θneural_choice(x, f), data, n, cross)
+    model = neural_choiceDDM(θneural_choice(x, f), n, cross)
     converged = Optim.converged(output)
 
     return model, output
@@ -229,9 +190,9 @@ invθexp(θ::θneural_choice) = θneural_choice(θz=invθzexp(θ.θz), bias=θ.b
 
 Given an instance of `choiceDDM` computes the probabilty of going right for each trial.
 """
-function P_goright(model::neural_choiceDDM)
+function P_goright(model::neural_choiceDDM, data)
     
-    @unpack θ, data, n, cross = model
+    @unpack θ, n, cross = model
     @unpack θz, θy, bias, lapse = θ
     @unpack σ2_i, B, λ, σ2_a = θz
     @unpack dt = data[1][1].input_data
@@ -273,11 +234,11 @@ Optional arguments:
 - `remap`: For considering parameters in variance of std space.
 
 """
-function gradient(model::neural_choiceDDM; remap::Bool=false)
+function gradient(model::neural_choiceDDM, data; remap::Bool=false)
 
     @unpack θ = model
     x = flatten(θ)
-    ℓℓ(x) = -joint_loglikelihood(x, model; remap=remap)
+    ℓℓ(x) = -joint_loglikelihood(x, model, data; remap=remap)
 
     ForwardDiff.gradient(ℓℓ, x)
 
@@ -299,11 +260,11 @@ Optional arguments:
 - `remap`: For considering parameters in variance of std space.
 
 """
-function Hessian(model::neural_choiceDDM; chunk_size::Int=4, remap::Bool=false)
+function Hessian(model::neural_choiceDDM, data; chunk_size::Int=4, remap::Bool=false)
 
     @unpack θ = model
     x = flatten(θ)
-    ℓℓ(x) = -joint_loglikelihood(x, model; remap=remap)
+    ℓℓ(x) = -joint_loglikelihood(x, model, data; remap=remap)
 
     cfg = ForwardDiff.HessianConfig(ℓℓ, x, ForwardDiff.Chunk{chunk_size}())
     ForwardDiff.hessian(ℓℓ, x, cfg)
@@ -318,18 +279,18 @@ A wrapper function that accepts a vector of mixed parameters, splits the vector
 into two vectors based on the parameter mapping function provided as an input. Used
 in optimization, Hessian and gradient computation.
 """
-function joint_loglikelihood(x::Vector{T}, model::neural_choiceDDM; remap::Bool=false) where {T <: Real}
+function joint_loglikelihood(x::Vector{T}, model::neural_choiceDDM, data; remap::Bool=false) where {T <: Real}
     
-    @unpack data,θ,n,cross = model
+    @unpack θ,n,cross = model
     @unpack f = θ 
     
     if remap
-        model = neural_choiceDDM(θexp(θneural_choice(x, f)), data, n, cross)
+        model = neural_choiceDDM(θexp(θneural_choice(x, f)), n, cross)
     else
-        model = neural_choiceDDM(θneural_choice(x, f), data, n, cross)
+        model = neural_choiceDDM(θneural_choice(x, f), n, cross)
     end
     
-    joint_loglikelihood(model)
+    joint_loglikelihood(model, data)
 
 end
 
@@ -339,7 +300,7 @@ end
 
 Given parameters θ and data (inputs and choices) computes the LL for all trials
 """
-joint_loglikelihood(model::neural_choiceDDM) = sum(log.(vcat(vcat(joint_likelihood(model)...)...)))
+joint_loglikelihood(model::neural_choiceDDM, data) = sum(log.(vcat(vcat(joint_likelihood(model, data)...)...)))
 
 
 """
@@ -347,9 +308,9 @@ joint_loglikelihood(model::neural_choiceDDM) = sum(log.(vcat(vcat(joint_likeliho
 
 Given parameters θ and data (inputs and choices) computes the LL for all trials
 """
-function joint_loglikelihood_per_trial(model::neural_choiceDDM) 
+function joint_loglikelihood_per_trial(model::neural_choiceDDM, data) 
     
-    output = joint_likelihood(model)
+    output = joint_likelihood(model, data)
     map(x-> map(x-> sum(log.(x)), x), output)
     
 end
@@ -362,9 +323,9 @@ Arguments: `neural_choiceDDM` instance
 
 Returns: `array` of `array` of P(d, Y|θ)
 """
-function joint_likelihood(model::neural_choiceDDM)
+function joint_likelihood(model::neural_choiceDDM, data)
     
-    @unpack data,θ,n,cross = model
+    @unpack θ,n,cross = model
     @unpack θz, θy, bias, lapse = θ
     @unpack σ2_i, B, λ, σ2_a = θz
     @unpack dt = data[1][1].input_data
@@ -395,9 +356,9 @@ end
 
 """
 """
-function posterior(model::neural_choiceDDM)
+function posterior(model::neural_choiceDDM, data)
     
-    @unpack data,θ,n,cross = model
+    @unpack θ,n,cross = model
     @unpack θy,θz = θ
     @unpack σ2_i, B, λ, σ2_a = θz
     @unpack dt = data[1][1].input_data
@@ -474,9 +435,9 @@ end
 
 """
 """
-function forward(model::neural_choiceDDM)
+function forward(model::neural_choiceDDM, data)
     
-    @unpack data,θ,n,cross = model
+    @unpack θ,n,cross = model
     @unpack θy,θz = θ
     @unpack σ2_i, B, λ, σ2_a = θz
     @unpack dt = data[1][1].input_data

@@ -15,14 +15,14 @@ Written for Julia 1.5.0 and above.
 You need to add the PulseInputDDM package from github by entering the Julia package manager, by typing `]`. Then use `add` to add the package, as follows
 
 ```julia
-(v1.5) pkg > add https://github.com/Brody-Lab/PulseInputDDM.jl/
+(@v1.10) pkg > add PulseInputDDM
 ```
 
 Another way to add the package in normal Julia mode (i.e., without typing `]`) is
 
 ```julia
 julia > using Pkg    
-julia > Pkg.add(PackageSpec(url="https://github.com/Brody-Lab/PulseInputDDM.jl/"))
+julia > Pkg.add("PulseInputDDM")
 ```
 
 ## Updating the package 
@@ -60,6 +60,8 @@ See the setting on fitting modesl to [choices only](##Fitting the model to choic
 `rawdata.spike_times`: cell array containing the spike times of each neuron on an individual trial. The cell array will be length of the number of neurons recorded on that trial. Each entry of the cell array is a column vector containing the relative timing of spikes, in seconds. Zero seconds is the start of the click stimulus. Spikes before and after the click inputs should also be included.
 
 The convention for fitting a model with neural model is that each session should have its own .MAT file. (This constrasts with the convention for the choice model, where a single .MAT file can contain data from different session). It's just easier this way, especially if different sessions have different number of cells.
+
+## Loading and saving data
 
 
 ## Contribution Guidelines

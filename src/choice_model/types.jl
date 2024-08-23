@@ -69,7 +69,7 @@ end
 
 
 """
-    choiceDDM(θ, data, n, cross)
+    choiceDDM(θ, n, cross)
 
 Fields:
 
@@ -87,10 +87,8 @@ _, data = synthetic_data(n ;θ=θ, ntrials=ntrials, rng=1, dt=dt);
 choiceDDM(θ=θ, data=data, n=n)
 ```
 """
-@with_kw struct choiceDDM{T,U,V} <: DDM
+@with_kw struct choiceDDM{T} <: DDM
     θ::T = θchoice()
-    data::U
     n::Int=53
     cross::Bool=false
-    θprior::V = θprior()
 end

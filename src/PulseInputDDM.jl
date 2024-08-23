@@ -5,8 +5,6 @@ A julia module for fitting bounded accumlator models using behavioral
 and/or neural data from pulse-based evidence accumlation tasks.
 """
 
-#__precompile__(false)
-
 module PulseInputDDM
 
 using StatsBase, Distributions, LineSearches
@@ -28,15 +26,15 @@ import Flatten: flattenable
 export choiceDDM, θchoice, θz, choiceoptions
 export choiceDDM_dx
 export neuralDDM, θneural, θy, neural_options, neuraldata
-export save_model
+export save_model, θy0
 
 export Sigmoid, Softplus
 export noiseless_neuralDDM, θneural_noiseless, neural_options_noiseless
 export neural_poly_DDM
 export θneural_choice
 export neural_choiceDDM, θneural_choice, neural_choice_options
-export θneural_choice_GLM, neural_choice_GLM_DDM, neural_choice_GLM_options
 
+export fit
 export dimz
 export likelihood, choice_loglikelihood, joint_loglikelihood
 export choice_optimize, choice_neural_optimize, choice_likelihood
@@ -70,26 +68,26 @@ include("choice_model/sample_model.jl")
 include("choice_model/process_data.jl")
 
 include("neural_model/neural_model.jl")
-include("neural_model/neural_model-sep.jl")
 include("neural_model/sample_model.jl")
 include("neural_model/process_data.jl")
 include("neural_model/noiseless_model.jl")
-#include("neural_model/null.jl")
-#include("neural_model/polynomial/neural_poly_model.jl")
-#include("neural_model/polynomial/noiseless_model_poly.jl")
 include("neural_model/RBF_model.jl")
-include("neural_model/filter/filtered.jl")
-include("neural_model/neural_model-th.jl")
 
-include("neural-choice_model/sample_model.jl")
+#include("neural_model/neural_model-sep.jl")
+#include("neural_model/filter/filtered.jl")
+#include("neural_model/neural_model-th.jl")
+
 include("neural-choice_model/neural-choice_model.jl")
-include("neural-choice_model/neural-choice_model-negBin.jl")
-include("neural-choice_model/neural-choice_model-sep.jl")
+include("neural-choice_model/sample_model.jl")
 include("neural-choice_model/neural-choice_model-ALT.jl")
-include("neural-choice_model/neural-choice_GLM_model.jl")
-include("neural-choice_model/process_data.jl")
 
-#include("neural_model/load_and_optimize.jl")
-#include("neural_model/sample_model_functions_FP.jl")
+#include("neural-choice_model/neural-choice_model-negBin.jl")
+#include("neural-choice_model/process_data.jl")
+
+##include("neural_model/null.jl")
+##include("neural_model/polynomial/neural_poly_model.jl")
+##include("neural_model/polynomial/noiseless_model_poly.jl")
+##include("neural_model/load_and_optimize.jl")
+##include("neural_model/sample_model_functions_FP.jl")
 
 end
