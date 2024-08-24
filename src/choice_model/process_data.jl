@@ -55,7 +55,7 @@ end
 
 Given a file, model produced by optimize and options, save the results of the optimization to a .MAT file
 """
-function save_choice_model(file, model::Union{choiceDDM, choiceDDM_dx}, options)
+function save_choice_model(file, model::choiceDDM, options)
 
     @unpack lb, ub, fit = options
     @unpack θ = model
