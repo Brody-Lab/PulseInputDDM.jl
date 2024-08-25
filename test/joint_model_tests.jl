@@ -21,11 +21,11 @@ x0=vcat([0., 30., 0. + eps(), 0., 0., 1. - eps(), 0.008], θy0)
 model0 = noiseless_neuralDDM(θ0)
 x0 = PulseInputDDM.flatten(θ0)
 @unpack f = θ0
-model, = optimize(model0, data, options0; iterations=2, outer_iterations=1)
+model, = fit(model0, data, options0; iterations=2, outer_iterations=1)
 x0 = vcat([0.1, 15., -0.1, 20., 0.5, 0.8, 0.008], PulseInputDDM.flatten(model.θ)[dimz+1:end])
 options = neural_options(f)  
 model = neuralDDM(θneural(x0, f), n, cross)
-model, = optimize(model, data, options; iterations=2, outer_iterations=1)
+model, = fit(model, data, options; iterations=2, outer_iterations=1)
 
 options = neural_choice_options(f)
 
