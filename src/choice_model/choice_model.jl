@@ -1,123 +1,7 @@
 """
-    choiceoptions(fit, lb, ub)
+    fit(model, options)
 
-Fields:
-
-- `fit`: `array` of `Bool` for optimization for `choiceDDM` model.
-- `lb`: `array` of lower bounds for optimization for `choiceDDM` model.
-- `ub`: `array` of upper bounds for optimization for `choiceDDM` model.
-"""
-@with_kw mutable struct choiceoptions
-    fit::Vector{Bool} = vcat(trues(dimz+2))
-    lb::Vector{Float64} = vcat([0., 4.,  -5., 0.,   0.,  0.01, 0.005], [-5, 0.])    
-    ub::Vector{Float64} = vcat([30., 30., 5., 100., 2.5, 1.2,  1.], [5, 1.])
-end
-
-
-"""
-    θchoice(θz, bias, lapse) <: DDMθ
-
-Fields:
-
-- `θz`: is a module-defined type that contains the parameters related to the latent variable model.
-- `bias` is the choice bias parameter.
-- `lapse` is the lapse parameter.
-
-Example:
-
-```julia
-θchoice(θz=θz(σ2_i = 0.5, B = 15., λ = -0.5, σ2_a = 50., σ2_s = 1.5,
-    ϕ = 0.8, τ_ϕ = 0.05), bias=1., lapse=0.05)
-```
-"""
-@with_kw struct θchoice{T1, T<:Real} <: DDMθ
-    θz::T1 = θz()
-    bias::T = 1.
-    lapse::T = 0.05
-end
-
-
-"""
-    choicedata{T1} <: DDMdata
-
-Fields:
-
-- `click_data` is a type that contains all of the parameters related to click input.
-- `choice` is the choice data for a single trial.
-
-Example:
-
-```julia
-```
-"""
-@with_kw struct choicedata{T1} <: DDMdata
-    click_data::T1
-    choice::Bool
-end
-
-
-"""
-    choiceDDM(θ, data, n, cross)
-
-Fields:
-
-- `θ`: a instance of the module-defined class `θchoice` that contains all of the model parameters for a `choiceDDM`
-- `data`: an `array` where each entry is the module-defined class `choicedata`, which contains all of the data (inputs and choices).
-- `n`: number of spatial bins to use (defaults to 53).
-- `cross`: whether or not to use cross click adaptation (defaults to false).
-
-Example:
-
-```julia
-ntrials, dt, centered, n  = 1, 1e-2, false, 53
-θ = θchoice()
-_, data = synthetic_data(n ;θ=θ, ntrials=ntrials, rng=1, dt=dt);
-choiceDDM(θ=θ, data=data, n=n)
-```
-"""
-@with_kw struct choiceDDM{T,U,V} <: DDM
-    θ::T = θchoice()
-    data::U
-    n::Int=53
-    cross::Bool=false
-    θprior::V = θprior()
-end
-
-
-"""
-"""
-function train_and_test(data, options::choiceoptions; 
-        n::Int=53, cross::Bool=false,
-        x_tol::Float64=1e-10, f_tol::Float64=1e-9, g_tol::Float64=1e-3,
-        iterations::Int=Int(2e3), show_trace::Bool=true, outer_iterations::Int=Int(1e1),
-        extended_trace::Bool=false, scaled::Bool=false, time_limit::Float64=170000., show_every::Int=10,
-        x0::Vector{Float64} = vcat([0.1, 15., -0.1, 20., 0.5, 0.8, 0.008], [0.,0.01]), 
-        seed::Int=1, σ_B::Float64=1e6)
-        
-    ntrials = length(data)
-    train = sample(Random.seed!(seed), 1:ntrials, ceil(Int, 0.9 * ntrials), replace=false)
-    test = setdiff(1:ntrials, train)
-    
-    θ = Flatten.reconstruct(θchoice(), x0)
-    model = choiceDDM(θ, data[train], n, cross, θprior(μ_B=40., σ_B=σ_B))
-    
-    model, = optimize(model, options; 
-        x_tol=x_tol, f_tol=f_tol, g_tol=g_tol, iterations=iterations, show_trace=show_trace, 
-        outer_iterations=outer_iterations, extended_trace=extended_trace, 
-        scaled=scaled, time_limit=time_limit, show_every=show_every)
-        
-    testLL = loglikelihood(choiceDDM(model.θ, data[test], n, cross, θprior(μ_B=40., σ_B=σ_B)))
-    LL = loglikelihood(choiceDDM(model.θ, data, n, cross, θprior(μ_B=40., σ_B=σ_B)))
-
-    return σ_B, model, testLL, LL
-    
-end
-
-
-"""
-    optimize(model, options)
-
-Optimize model parameters for a `choiceDDM`.
+fit model parameters for a `choiceDDM`.
 
 Returns:
 
@@ -130,13 +14,13 @@ Arguments:
 - `options`: module-defind type that contains the upper (`ub`) and lower (`lb`) boundaries and specification of which parameters to fit (`fit`).
 
 """
-function optimize(model::choiceDDM, options::choiceoptions; 
-        x_tol::Float64=1e-10, f_tol::Float64=1e-9, g_tol::Float64=1e-3,
+function fit(model::choiceDDM, data::Union{choicedata{choiceinputs{clicks, binned_clicks}}, Vector{choicedata{choiceinputs{clicks, binned_clicks}}}}, 
+        options::choiceoptions; x_tol::Float64=1e-10, f_tol::Float64=1e-9, g_tol::Float64=1e-3,
         iterations::Int=Int(2e3), show_trace::Bool=true, outer_iterations::Int=Int(1e1),
         extended_trace::Bool=false, scaled::Bool=false, time_limit::Float64=170000., show_every::Int=10)
 
     @unpack fit, lb, ub = options
-    @unpack θ, data, n, cross, θprior = model
+    @unpack θ, n, cross = model
     
     x0 = collect(Flatten.flatten(θ))
 
@@ -144,7 +28,7 @@ function optimize(model::choiceDDM, options::choiceoptions;
     ub, = unstack(ub, fit)
     x0,c = unstack(x0, fit)
 
-    ℓℓ(x) = -(loglikelihood(stack(x,c,fit), model) + logprior(stack(x,c,fit), θprior))
+    ℓℓ(x) = -(loglikelihood(stack(x,c,fit), model, data) + logprior(stack(x,c,fit), θprior()))
     
     output = optimize(x0, ℓℓ, lb, ub; g_tol=g_tol, x_tol=x_tol,
         f_tol=f_tol, iterations=iterations, show_trace=show_trace,
@@ -154,45 +38,8 @@ function optimize(model::choiceDDM, options::choiceoptions;
     x = Optim.minimizer(output)
     x = stack(x,c,fit)
     θ = Flatten.reconstruct(θchoice(), x)
-    model = choiceDDM(θ, data, n, cross, θprior)
+    model = choiceDDM(θ, n, cross)
     converged = Optim.converged(output)
-
-    return model, output
-
-end
-
-
-"""
-    optimize(data, options)
-
-Optimize model parameters for a `choiceDDM`.
-
-Returns:
-
-- `model`: an instance of a `choiceDDM`.
-- `output`: results from [`Optim.optimize`](@ref).
-
-Arguments:
-
-- `data`: an `array`, each element of which is a module-defined type `choicedata`. `choicedata` contains the click data and the choice for a trial.
-- `options`: module-defind type that contains the upper (`ub`) and lower (`lb`) boundaries and specification of which parameters to fit (`fit`).
-
-"""
-function optimize(data, options::choiceoptions; 
-        n::Int=53, cross::Bool=false,
-        x_tol::Float64=1e-10, f_tol::Float64=1e-9, g_tol::Float64=1e-3,
-        iterations::Int=Int(2e3), show_trace::Bool=true, outer_iterations::Int=Int(1e1),
-        extended_trace::Bool=false, scaled::Bool=false, time_limit::Float64=170000., show_every::Int=10,
-        x0::Vector{Float64} = vcat([0.1, 15., -0.1, 20., 0.5, 0.8, 0.008], [0.,0.01]), 
-        θprior::θprior=θprior())
-    
-    θ = Flatten.reconstruct(θchoice(), x0)
-    model = choiceDDM(θ, data, n, cross, θprior)
-    
-    model, output = optimize(model, options; 
-        x_tol=x_tol, f_tol=f_tol, g_tol=g_tol, iterations=iterations, show_trace=show_trace, 
-        outer_iterations=outer_iterations, extended_trace=extended_trace, 
-        scaled=scaled, time_limit=time_limit, show_every=show_every)
 
     return model, output
 
@@ -206,12 +53,12 @@ Given a vector of parameters and a type containing the data related to the choic
 
 See also: [`loglikelihood`](@ref)
 """
-function loglikelihood(x::Vector{T1}, model::choiceDDM) where {T1 <: Real}
+function loglikelihood(x::Vector{T1}, model::choiceDDM, data::Union{choicedata{choiceinputs{clicks, binned_clicks}}, Vector{choicedata{choiceinputs{clicks, binned_clicks}}}}) where {T1 <: Real}
 
-    @unpack n, data, cross, θprior = model
+    @unpack n, cross = model
     θ = Flatten.reconstruct(θchoice(), x)
-    model = choiceDDM(θ, data, n, cross, θprior)
-    loglikelihood(model)
+    model = choiceDDM(θ, n, cross)
+    loglikelihood(model, data)
 
 end
 
@@ -221,11 +68,11 @@ end
 
 Compute the gradient of the negative log-likelihood at the current value of the parameters of a `choiceDDM`.
 """
-function gradient(model::Union{choiceDDM, choiceDDM_dx})
+function gradient(model::choiceDDM, data::Union{choicedata{choiceinputs{clicks, binned_clicks}}, Vector{choicedata{choiceinputs{clicks, binned_clicks}}}})
 
     @unpack θ = model
     x = [Flatten.flatten(θ)...]
-    ℓℓ(x) = -loglikelihood(x, model)
+    ℓℓ(x) = -loglikelihood(x, model, data)
 
     ForwardDiff.gradient(ℓℓ, x)
 
@@ -237,11 +84,11 @@ end
 
 Compute the hessian of the negative log-likelihood at the current value of the parameters of a `choiceDDM`.
 """
-function Hessian(model::Union{choiceDDM, choiceDDM_dx})
+function Hessian(model::choiceDDM, data::Union{choicedata{choiceinputs{clicks, binned_clicks}}, Vector{choicedata{choiceinputs{clicks, binned_clicks}}}})
 
     @unpack θ = model
     x = [Flatten.flatten(θ)...]
-    ℓℓ(x) = -loglikelihood(x, model)
+    ℓℓ(x) = -loglikelihood(x, model, data)
 
     ForwardDiff.hessian(ℓℓ, x)
 
@@ -267,9 +114,9 @@ end
 
 Given parameters θ and data (inputs and choices) computes the LL for all trials
 """
-function loglikelihood(model::choiceDDM)
+function loglikelihood(model::choiceDDM, data::Union{choicedata{choiceinputs{clicks, binned_clicks}}, Vector{choicedata{choiceinputs{clicks, binned_clicks}}}})
     
-    @unpack θ, data, n, cross = model
+    @unpack θ, n, cross = model
     @unpack θz = θ
     @unpack σ2_i, B, λ, σ2_a = θz
     @unpack dt = data[1].click_data
@@ -296,9 +143,9 @@ loglikelihood!(θ::θchoice,
 
 Given parameters θ and data (inputs and choices) computes the likehood of the choice for all trials
 """
-function likelihood(model::choiceDDM)
+function likelihood(model::choiceDDM, data::Vector{choicedata{choiceinputs{clicks, binned_clicks}}})
     
-    @unpack θ, data, n, cross = model
+    @unpack θ, n, cross = model
     @unpack θz = θ
     @unpack σ2_i, B, λ, σ2_a = θz
     @unpack dt = data[1].click_data
@@ -314,9 +161,9 @@ end
 
 Given an instance of `choiceDDM` computes the probabilty of going right for each trial.
 """
-function P_goright(model::choiceDDM)
+function P_goright(model::choiceDDM, data::choicedata)
     
-    @unpack θ, data, n, cross = model
+    @unpack θ, n, cross = model
     @unpack θz = θ
     @unpack σ2_i, B, λ, σ2_a = θz
     @unpack dt = data[1].click_data
@@ -479,7 +326,7 @@ choice_null(choices) = sum(choices .== true)*log(sum(choices .== true)/length(ch
 """
     bounded_mass(θ, data, n)
 """
-function bounded_mass(θ::θchoice, data, n::Int, cross::Bool)
+function bounded_mass(θ::θchoice, data::choicedata, n::Int, cross::Bool)
 
     @unpack θz = θ
     @unpack σ2_i, B, λ, σ2_a = θz
@@ -513,9 +360,9 @@ end
     posterior(model)
 
 """
-function posterior(model::choiceDDM)
+function posterior(model::choiceDDM, data::Union{choicedata{choiceinputs{clicks, binned_clicks}}, Vector{choicedata{choiceinputs{clicks, binned_clicks}}}})
     
-    @unpack θ, data, n, cross = model
+    @unpack θ, n, cross = model
     @unpack θz = θ
     @unpack σ2_i, B, λ, σ2_a = θz
     @unpack dt = data[1].click_data
@@ -583,15 +430,15 @@ end
     forward(model)
 
 """
-function forward(model::choiceDDM)
+function forward(model::choiceDDM, data::Vector{choicedata{choiceinputs{clicks, binned_clicks}}})
     
-    @unpack θ, data, n, cross = model
+    @unpack θ, n, cross = model
     @unpack θz = θ
     @unpack σ2_i, B, λ, σ2_a = θz
     @unpack dt = data[1].click_data
 
     P,M,xc,dx = initialize_latent_model(σ2_i, B, λ, σ2_a, n, dt)
-    pmap(data -> forward(θ, data, P, M, dx, xc, data, n, cross), data)
+    pmap(data -> forward(θ, P, M, dx, xc, data, n, cross), data)
 
 end
 
@@ -600,9 +447,9 @@ end
     forward(θz, P, M, dx, xc, click_data, n)
 
 """
-function forward(θ::θchoice, data::choicedata,
+function forward(θ::θchoice,
         P::Vector{TT}, M::Array{TT,2}, dx::UU,
-        xc::Vector{TT}, click_data,
+        xc::Vector{TT}, data,
         n::Int, cross::Bool) where {TT,UU <: Real}
 
     @unpack θz, bias, lapse = θ
@@ -631,89 +478,6 @@ function forward(θ::θchoice, data::choicedata,
 
     return α, xc
    
-end
-
-
-"""
-    optimize(model, options)
-
-Optimize model parameters for a `choiceDDM`.
-
-Returns:
-
-- `model`: an instance of a `choiceDDM_dx`.
-- `output`: results from [`Optim.optimize`](@ref).
-
-Arguments:
-
-- `model`: an instance of a `choiceDDM_dx`.
-- `options`: module-defind type that contains the upper (`ub`) and lower (`lb`) boundaries and specification of which parameters to fit (`fit`).
-
-"""
-function optimize(model::choiceDDM_dx, options::choiceoptions; 
-        x_tol::Float64=1e-10, f_tol::Float64=1e-9, g_tol::Float64=1e-3,
-        iterations::Int=Int(2e3), show_trace::Bool=true, outer_iterations::Int=Int(1e1),
-        extended_trace::Bool=false, scaled::Bool=false, time_limit::Float64=170000., show_every::Int=10)
-
-    @unpack fit, lb, ub = options
-    @unpack θ, data, dx, cross, θprior = model
-    
-    x0 = collect(Flatten.flatten(θ))
-
-    lb, = unstack(lb, fit)
-    ub, = unstack(ub, fit)
-    x0,c = unstack(x0, fit)
-
-    ℓℓ(x) = -(loglikelihood(stack(x,c,fit), model) + logprior(stack(x,c,fit), θprior))
-    
-    output = optimize(x0, ℓℓ, lb, ub; g_tol=g_tol, x_tol=x_tol,
-        f_tol=f_tol, iterations=iterations, show_trace=show_trace,
-        outer_iterations=outer_iterations, extended_trace=extended_trace,
-        scaled=scaled, time_limit=time_limit, show_every=show_every)
-
-    x = Optim.minimizer(output)
-    x = stack(x,c,fit)
-    θ = Flatten.reconstruct(θchoice(), x)
-    model = choiceDDM_dx(θ, data, dx, cross, θprior)
-    converged = Optim.converged(output)
-
-    return model, output
-
-end
-
-
-"""
-    loglikelihood(x, model)
-
-Given a vector of parameters and a type containing the data related to the choice DDM model, compute the LL.
-
-See also: [`loglikelihood`](@ref)
-"""
-function loglikelihood(x::Vector{T1}, model::choiceDDM_dx) where {T1 <: Real}
-
-    @unpack dx, data, cross, θprior = model
-    θ = Flatten.reconstruct(θchoice(), x)
-    model = choiceDDM_dx(θ, data, dx, cross, θprior)
-    loglikelihood(model)
-
-end
-
-
-"""
-    loglikelihood(model)
-
-Given parameters θ and data (inputs and choices) computes the LL for all trials
-"""
-function loglikelihood(model::choiceDDM_dx)
-    
-    @unpack θ, data, dx, cross = model
-    @unpack θz = θ
-    @unpack σ2_i, B, λ, σ2_a = θz
-    @unpack dt = data[1].click_data
-
-    P,M,xc,n = initialize_latent_model(σ2_i, B, λ, σ2_a, dx, dt)
-    sum(pmap(data -> loglikelihood!(θ, P, M, dx, xc, data, n, cross), data))
-
 end
 
 
