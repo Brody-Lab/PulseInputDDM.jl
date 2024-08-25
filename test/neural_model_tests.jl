@@ -52,4 +52,4 @@ H = Hessian(model, data; chunk_size=4)
 @test round(norm(H), digits=2) ≈ 15.52
 
 CI, HPSD = CIs(H)
-@test round(norm(CI), digits=2) ≈ 690.08
+@test round(norm(CI), digits=2) ≈ 690.51

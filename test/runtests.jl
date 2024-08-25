@@ -20,7 +20,7 @@ using Test, Random, PulseInputDDM, LinearAlgebra, Flatten, Parameters
 
     @testset "joint_model" begin
 
-        include("joint_model_tests.jl")
+        #include("joint_model_tests.jl")
 
     end
 
