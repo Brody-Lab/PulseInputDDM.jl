@@ -76,10 +76,10 @@ Given a `file`, `model` and `options` produced by `optimize`, save everything to
 See also: [`reload_neural_model`](@ref)
 
 """
-function save_neural_model(file, model::Union{neuralDDM, neural_choiceDDM}, options)
+function save_neural_model(file, model::Union{neuralDDM, neural_choiceDDM}, data, options)
 
     @unpack lb, ub, fit = options
-    @unpack θ, data, n, cross = model
+    @unpack θ, n, cross = model
     @unpack f = θ
     @unpack dt, delay, pad = data[1][1].input_data
     
