@@ -66,7 +66,7 @@ function θy0(data, f::Vector{Vector{String}})
     θ = θneural_noiseless(x0, f)
     model0 = noiseless_neuralDDM(θ)
         
-    model0, = optimize(model0, data, neural_options_noiseless(f), show_trace=false)
+    model0, = fit(model0, data, neural_options_noiseless(f), show_trace=false)
     
     return model0
     
