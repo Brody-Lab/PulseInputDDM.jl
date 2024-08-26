@@ -1,11 +1,8 @@
-docs/build/
 examples/.ipynb_checkpoints
-docs/src/generated
-examples/bdd_work
-test/.ipynb_checkpoints
 examples/joint model/.ipynb_checkpoints
 examples/choice model/.ipynb_checkpoints
 examples/neural model/.ipynb_checkpoints
 .DS_STORE
 .vscode
 .devcontainer.json
+Manifest.toml
