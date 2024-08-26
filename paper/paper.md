@@ -1,5 +1,5 @@
 ---
-title: 'PulseInputDMM: A Julia codebase for fitting drift diffusions models to behavior and neural data from pulse-based evidence accumulation task'
+title: 'PulseInputDMM.jl: inference and learning for drift diffusions models fit with data from pulse-based evidence accumulation tasks'
 tags:
   - Drift-diffusion models
   - Julia
@@ -29,7 +29,7 @@ authors:
     affiliation: "1"
   - name: Jonathan Pillow
     affiliation: "1"
-  - name: Carlos Brody
+  - name: Carlos D. Brody
     affiliation: "1"
 
 affiliations:
@@ -44,9 +44,19 @@ bibliography: paper.bib
 
 # Summary
 
-Here, we introduce ``PulseInputDDM``. [@Brunton2013]
+Drift diffusion models (DDMs) are a popular model class for modeling a unobserved process that determines an subject's choice during a decision-making task [@Bogacz2006]. 
+
+```math
+ dz = \lambda zdt + u(t)dt + \sigma dW
+```
+
+[@Brunton2013]. 
 
 # Statement of need
+
+The initial motivation for writing ``PulseInputDDM.jl`` was to analyze experimental data collected from rats performing pulse-based evidence accumulation tasks. These findings were published in [@DePasquale2024]. 
+
+![Model](fig1.png)
 
 `PyDDM` [@PyDDM2020]
 
@@ -54,20 +64,18 @@ Here, we introduce ``PulseInputDDM``. [@Brunton2013]
 
 # Example
 
-![Model architecture](model.png)
-
 # Availability
 
 # Conclusion
 
-``pulse input DDM`` is publicly available under the [MIT license](https://github.com/Brody-Lab/pulse_input_DDM/blob/master/LICENSE) at <https://github.com/Brody-Lab/pulse_input_DDM>.
+``PulseInputDDM.jl`` is publicly available under the [MIT license](https://github.com/Brody-Lab/PulseInputDDM.jl/blob/master/LICENSE) at <https://github.com/Brody-Lab/PulseInputDDM.jl>.
 
 # Author contributions
 
-B.D.D. did. Bing Brunton did.
+BD did XXX. BB did XXX.
 
 # Acknowledgements
 
-This work was supported by the Princeton Neuroscience Institute and the Simons Foundation Grant.
+This work was supported by the Princeton Neuroscience Institute and the Simons Foundation.
 
 # References
