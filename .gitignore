@@ -8,3 +8,4 @@ examples/choice model/.ipynb_checkpoints
 examples/neural model/.ipynb_checkpoints
 .DS_STORE
 .vscode
+.devcontainer.json
