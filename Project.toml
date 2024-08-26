@@ -1,7 +1,7 @@
 name = "PulseInputDDM"
 uuid = "c2542da2-1f7d-11e9-2506-87691095ebb2"
 authors = ["Brian DePasquale <bddepasq@bu.edu>"]
-version = "0.4.3"
+version = "0.4.4"
 
 [deps]
 BasisFunctionExpansions = "07f847a3-b39a-5451-bea0-0f0f0688aa14"
@@ -42,11 +42,13 @@ ImageFiltering = "0.7.8"
 LineSearches = "7.2.0"
 LinearAlgebra = "1"
 MAT = "0.10.7"
+NBInclude = "2.3.1"
 Missings = "1.2.0"
 Optim = "1.9.4"
 Parameters = "0.12.3"
 Polynomials = "4.0.11"
 PositiveFactorizations = "0.2.4"
+PyPlot = "2.11.5"
 Random = "1"
 SpecialFunctions = "2.4.0"
 StatsBase = "0.33.21"
