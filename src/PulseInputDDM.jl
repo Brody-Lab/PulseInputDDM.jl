@@ -66,6 +66,7 @@ include("priors.jl")
 include("choice_model/choice_model.jl")
 include("choice_model/sample_model.jl")
 include("choice_model/process_data.jl")
+include("choice_model/IO.jl")
 
 include("neural_model/neural_model.jl")
 include("neural_model/sample_model.jl")

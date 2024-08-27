@@ -163,7 +163,7 @@ Returns:
 function load_neural_data(file::Vector{String}; break_sim_data::Bool=false, 
         centered::Bool=true, dt::Float64=1e-2, delay::Int=0, pad::Int=0, filtSD::Int=2,
         extra_pad::Int=10, cut::Int=10, pcut::Float64=0.01, 
-        do_RBF::Bool=false, nRBFs::Int=6)
+        do_RBF::Bool=true, nRBFs::Int=6)
     
     output = load_neural_data.(file; break_sim_data=break_sim_data,
         centered=centered,
@@ -222,7 +222,7 @@ Returns:
 function load_neural_data(file::String; break_sim_data::Bool=false, 
         dt::Float64=1e-2, delay::Int=0, pad::Int=0, filtSD::Int=2,
         extra_pad::Int=10, cut::Int=10, pcut::Float64=0.01, 
-        do_RBF::Bool=false, nRBFs::Int=6, centered::Bool=true)
+        do_RBF::Bool=true, nRBFs::Int=6, centered::Bool=true)
 
     data = read(matopen(file), "rawdata")
     
