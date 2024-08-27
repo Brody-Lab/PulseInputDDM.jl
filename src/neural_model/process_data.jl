@@ -85,7 +85,7 @@ function save_neural_model(file, model::Union{neuralDDM, neural_choiceDDM}, data
     
     nparams, ncells = nθparams(f)
     
-    dict = Dict("ML_params"=> collect(pulse_input_DDM.flatten(θ)),
+    dict = Dict("ML_params"=> collect(PulseInputDDM.flatten(θ)),
         "lb"=> lb, "ub"=> ub, "fit"=> fit, "n"=> n, "cross"=> cross,
         "dt"=> dt, "delay"=> delay, "pad"=> pad, "f"=> vcat(vcat(f...)...),
         "nparams" => nparams, "ncells" => ncells)
