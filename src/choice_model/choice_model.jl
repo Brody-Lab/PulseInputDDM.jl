@@ -28,7 +28,7 @@ function fit(model::choiceDDM, data::Union{choicedata{choiceinputs{clicks, binne
     ub, = unstack(ub, fit)
     x0,c = unstack(x0, fit)
 
-    ℓℓ(x) = -(loglikelihood(stack(x,c,fit), model, data) + logprior(stack(x,c,fit), θprior()))
+    ℓℓ(x) = -(loglikelihood(stack(x,c,fit), model, data))
     
     output = optimize(x0, ℓℓ, lb, ub; g_tol=g_tol, x_tol=x_tol,
         f_tol=f_tol, iterations=iterations, show_trace=show_trace,

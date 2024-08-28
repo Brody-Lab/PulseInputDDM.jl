@@ -47,7 +47,7 @@ end
 
 
 """
-    Hessian(model; chunck_size, remap)
+    Hessian(model; chunck_size)
 
 Compute the hessian of the negative log-likelihood at the current value of the parameters of a `neuralDDM` or a `noiseless_neuralDDM`.
 
@@ -58,14 +58,13 @@ Arguments:
 Optional arguments:
 
 - `chunk_size`: parameter to manange how many passes over the LL are required to compute the Hessian. Can be larger if you have access to more memory.
-- `remap`: For considering parameters in variance of std space.
 
 """
-function Hessian(model::Union{neuralDDM, noiseless_neuralDDM}, data; chunk_size::Int=4, remap::Bool=false)
+function Hessian(model::Union{neuralDDM, noiseless_neuralDDM}, data; chunk_size::Int=4)
 
     @unpack θ = model
     x = flatten(θ)
-    ℓℓ(x) = -loglikelihood(x, model, data; remap=remap)
+    ℓℓ(x) = -loglikelihood(x, model, data)
 
     cfg = ForwardDiff.HessianConfig(ℓℓ, x, ForwardDiff.Chunk{chunk_size}())
     ForwardDiff.hessian(ℓℓ, x, cfg)
@@ -92,7 +91,7 @@ Returns:
 function fit(model::neuralDDM, data, options::neural_options;
         x_tol::Float64=1e-10, f_tol::Float64=1e-9, g_tol::Float64=1e-3,
         iterations::Int=Int(2e3), show_trace::Bool=true, outer_iterations::Int=Int(1e1), 
-        scaled::Bool=false, extended_trace::Bool=false, sig_σ::Float64=1., remap::Bool=false)
+        scaled::Bool=false, extended_trace::Bool=false, sig_σ::Float64=1.)
     
     @unpack fit, lb, ub = options
     @unpack θ, n, cross = model
@@ -103,10 +102,7 @@ function fit(model::neuralDDM, data, options::neural_options;
     ub, = unstack(ub, fit)
     x0,c = unstack(x0, fit)
     
-    #ℓℓ(x) = -(loglikelihood(stack(x,c,fit), model; remap=remap) + logprior(stack(x,c,fit)) 
-    #    + sigmoid_prior(stack(x,c,fit), θ; sig_σ=sig_σ))
-    
-    ℓℓ(x) = -(loglikelihood(stack(x,c,fit), model, data; remap=remap))
+    ℓℓ(x) = -(loglikelihood(stack(x,c,fit), model, data))
     
     output = optimize(x0, ℓℓ, lb, ub; g_tol=g_tol, x_tol=x_tol,
         f_tol=f_tol, iterations=iterations, show_trace=show_trace,
@@ -124,17 +120,7 @@ end
 
 
 """
-"""
-θ2(θ::θneural) = θneural(θz=θz2(θ.θz), θy=θ.θy, f=θ.f)
-
-
-"""
-"""
-invθ2(θ::θneural) = θneural(θz=invθz2(θ.θz), θy=θ.θy, f=θ.f)
-
-
-"""
-    loglikelihood(x, model; remap)
+    loglikelihood(x, model)
 
 Maps `x` into `model`. Used in optimization, Hessian and gradient computation.
 
@@ -143,21 +129,13 @@ Arguments:
 - `x`: a vector of mixed parameters.
 - `model`: an instance of `neuralDDM`
 
-Optional arguments:
-
-- `remap`: For considering parameters in variance of std space.
-
 """
-function loglikelihood(x::Vector{T}, model::neuralDDM, data; remap::Bool=false) where {T <: Real}
+function loglikelihood(x::Vector{T}, model::neuralDDM, data) where {T <: Real}
     
     @unpack θ,n,cross = model
     @unpack f = θ 
-    
-    if remap
-        model = neuralDDM(θ2(θneural(x, f)), n, cross)
-    else
-        model = neuralDDM(θneural(x, f), n, cross)
-    end
+
+    model = neuralDDM(θneural(x, f), n, cross)
 
     loglikelihood(model, data)
 

@@ -17,7 +17,7 @@ Returns:
 function choice_optimize(model::neural_choiceDDM, data, options::neural_choice_options;
         x_tol::Float64=1e-10, f_tol::Float64=1e-9, g_tol::Float64=1e-3,
         iterations::Int=Int(2e3), show_trace::Bool=true, outer_iterations::Int=Int(1e1), 
-        scaled::Bool=false, extended_trace::Bool=false, remap::Bool=false)
+        scaled::Bool=false, extended_trace::Bool=false)
     
     @unpack fit, lb, ub = options
     @unpack θ, n, cross = model
@@ -28,7 +28,7 @@ function choice_optimize(model::neural_choiceDDM, data, options::neural_choice_o
     ub, = unstack(ub, fit)
     x0,c = unstack(x0, fit)
     
-    ℓℓ(x) = -choice_loglikelihood(stack(x,c,fit), model, data; remap=remap)
+    ℓℓ(x) = -choice_loglikelihood(stack(x,c,fit), model, data)
     
     output = optimize(x0, ℓℓ, lb, ub; g_tol=g_tol, x_tol=x_tol,
         f_tol=f_tol, iterations=iterations, show_trace=show_trace,
@@ -53,15 +53,11 @@ A wrapper function that accepts a vector of mixed parameters, splits the vector
 into two vectors based on the parameter mapping function provided as an input. Used
 in optimization, Hessian and gradient computation.
 """
-function choice_loglikelihood(x::Vector{T}, model::neural_choiceDDM, data; remap::Bool=false) where {T <: Real}
+function choice_loglikelihood(x::Vector{T}, model::neural_choiceDDM, data) where {T <: Real}
     
     @unpack θ,n,cross = model
     @unpack f = θ 
-    if remap
-        model = neural_choiceDDM(θ2(θneural_choice(x, f)), n, cross)
-    else
-        model = neural_choiceDDM(θneural_choice(x, f), n, cross)
-    end
+    model = neural_choiceDDM(θneural_choice(x, f), n, cross)
     choice_loglikelihood(model, data)
 
 end

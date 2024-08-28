@@ -9,7 +9,7 @@ end
 
 """
 """
-function neural_choice_options(f; remap::Bool=false)
+function neural_choice_options(f)
     
     nparams, ncells = nθparams(f)
     fit = vcat(trues(dimz+2), trues.(nparams)...)
@@ -30,13 +30,8 @@ function neural_choice_options(f; remap::Bool=false)
         end
     end
     
-    if remap
-        lb = vcat([-10., 8.,  -5., -20.,   -3.,   1e-3, 0.005], [-10, 0.], vcat(lb...))
-        ub = vcat([ 10., 40., 5.,  20.,    3.,   1.2,  1.],    [10, 1.],  vcat(ub...));
-    else
-        lb = vcat([1e-3, 8.,  -5., 1e-3,   1e-3,  1e-3, 0.005], [-10, 0.], vcat(lb...))
-        ub = vcat([100., 40., 5., 400., 10., 1.2,  1.], [10, 1.], vcat(ub...));
-    end
+    lb = vcat([1e-3, 8.,  -5., 1e-3,   1e-3,  1e-3, 0.005], [-10, 0.], vcat(lb...))
+    ub = vcat([100., 40., 5., 400., 10., 1.2,  1.], [10, 1.], vcat(ub...));
 
     neural_choice_options(fit=fit, ub=ub, lb=lb)
     
@@ -112,7 +107,7 @@ Returns:
 function choice_neural_optimize(model::neural_choiceDDM, data, options::neural_choice_options;
         x_tol::Float64=1e-10, f_tol::Float64=1e-9, g_tol::Float64=1e-3,
         iterations::Int=Int(2e3), show_trace::Bool=true, outer_iterations::Int=Int(1e1), 
-        scaled::Bool=false, extended_trace::Bool=false, remap::Bool=false)
+        scaled::Bool=false, extended_trace::Bool=false)
     
     @unpack fit, lb, ub = options
     @unpack θ, n, cross = model
@@ -123,7 +118,7 @@ function choice_neural_optimize(model::neural_choiceDDM, data, options::neural_c
     ub, = unstack(ub, fit)
     x0,c = unstack(x0, fit)
 
-    ℓℓ(x) = -joint_loglikelihood(stack(x,c,fit), model, data; remap=remap)
+    ℓℓ(x) = -joint_loglikelihood(stack(x,c,fit), model, data)
     
     output = optimize(x0, ℓℓ, lb, ub; g_tol=g_tol, x_tol=x_tol,
         f_tol=f_tol, iterations=iterations, show_trace=show_trace,
@@ -139,50 +134,6 @@ function choice_neural_optimize(model::neural_choiceDDM, data, options::neural_c
     return model, output
 
 end
-
-
-"""
-"""
-θz2(θ::θz) = θz(σ2_i=θ.σ2_i^2, B=θ.B, λ=θ.λ, 
-        σ2_a=θ.σ2_a^2, σ2_s=θ.σ2_s^2, ϕ=θ.ϕ, τ_ϕ=θ.τ_ϕ)
-
-
-"""
-"""
-θzexp(θ::θz) = θz(σ2_i=exp(θ.σ2_i), B=θ.B, λ=θ.λ, 
-        σ2_a=exp(θ.σ2_a), σ2_s=exp(θ.σ2_s), ϕ=exp(θ.ϕ), τ_ϕ=θ.τ_ϕ)
-
-
-"""
-"""
-invθzexp(θ::θz) = θz(σ2_i=log(θ.σ2_i), B=θ.B, λ=θ.λ, 
-        σ2_a=log(θ.σ2_a), σ2_s=log(θ.σ2_s), ϕ=log(θ.ϕ), τ_ϕ=θ.τ_ϕ)
-
-
-"""
-"""
-θ2(θ::θneural_choice) = θneural_choice(θz=θz2(θ.θz), bias=θ.bias, lapse=logistic(θ.lapse), θy=θ.θy, f=θ.f)
-
-
-"""
-"""
-θexp(θ::θneural_choice) = θneural_choice(θz=θzexp(θ.θz), bias=θ.bias, lapse=logistic(θ.lapse), θy=θ.θy, f=θ.f)
-
-
-"""
-"""
-invθz2(θ::θz) = θz(σ2_i=abs(sqrt(θ.σ2_i)), B=θ.B, λ=θ.λ, 
-        σ2_a=abs(sqrt(θ.σ2_a)), σ2_s=abs(sqrt(θ.σ2_s)), ϕ=θ.ϕ, τ_ϕ=θ.τ_ϕ)
-
-
-"""
-"""
-invθ2(θ::θneural_choice) = θneural_choice(θz=invθz2(θ.θz), bias=θ.bias, lapse=logit(θ.lapse), θy=θ.θy, f=θ.f)
-
-
-"""
-"""
-invθexp(θ::θneural_choice) = θneural_choice(θz=invθzexp(θ.θz), bias=θ.bias, lapse=logit(θ.lapse), θy=θ.θy, f=θ.f)
 
 
 """
@@ -221,7 +172,7 @@ end
 
 
 """
-    gradient(model; remap)
+    gradient(model)
 
 Compute the gradient of the negative log-likelihood at the current value of the parameters of a `neural_choiceDDM`.
 
@@ -229,16 +180,12 @@ Arguments:
 
 - `model`: instance of `neural_choiceDDM`
 
-Optional arguments:
-
-- `remap`: For considering parameters in variance of std space.
-
 """
-function gradient(model::neural_choiceDDM, data; remap::Bool=false)
+function gradient(model::neural_choiceDDM, data)
 
     @unpack θ = model
     x = flatten(θ)
-    ℓℓ(x) = -joint_loglikelihood(x, model, data; remap=remap)
+    ℓℓ(x) = -joint_loglikelihood(x, model, data)
 
     ForwardDiff.gradient(ℓℓ, x)
 
@@ -246,7 +193,7 @@ end
 
 
 """
-    Hessian(model; chunck_size, remap)
+    Hessian(model; chunck_size)
 
 Compute the hessian of the negative log-likelihood at the current value of the parameters of a `neural_choiceDDM`.
 
@@ -257,14 +204,13 @@ Arguments:
 Optional arguments:
 
 - `chunk_size`: parameter to manange how many passes over the LL are required to compute the Hessian. Can be larger if you have access to more memory.
-- `remap`: For considering parameters in variance of std space.
 
 """
-function Hessian(model::neural_choiceDDM, data; chunk_size::Int=4, remap::Bool=false)
+function Hessian(model::neural_choiceDDM, data; chunk_size::Int=4)
 
     @unpack θ = model
     x = flatten(θ)
-    ℓℓ(x) = -joint_loglikelihood(x, model, data; remap=remap)
+    ℓℓ(x) = -joint_loglikelihood(x, model, data)
 
     cfg = ForwardDiff.HessianConfig(ℓℓ, x, ForwardDiff.Chunk{chunk_size}())
     ForwardDiff.hessian(ℓℓ, x, cfg)
@@ -279,16 +225,12 @@ A wrapper function that accepts a vector of mixed parameters, splits the vector
 into two vectors based on the parameter mapping function provided as an input. Used
 in optimization, Hessian and gradient computation.
 """
-function joint_loglikelihood(x::Vector{T}, model::neural_choiceDDM, data; remap::Bool=false) where {T <: Real}
+function joint_loglikelihood(x::Vector{T}, model::neural_choiceDDM, data) where {T <: Real}
     
     @unpack θ,n,cross = model
     @unpack f = θ 
     
-    if remap
-        model = neural_choiceDDM(θexp(θneural_choice(x, f)), n, cross)
-    else
-        model = neural_choiceDDM(θneural_choice(x, f), n, cross)
-    end
+    model = neural_choiceDDM(θneural_choice(x, f), n, cross)
     
     joint_loglikelihood(model, data)
 
