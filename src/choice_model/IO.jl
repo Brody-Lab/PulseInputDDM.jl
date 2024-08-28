@@ -55,45 +55,15 @@ end
 
 Given a file, model produced by optimize and options, save the results of the optimization to a .MAT file
 """
-function save_choice_model(file, model::choiceDDM, options)
+function save_choice_model(file, model)
 
-    @unpack lb, ub, fit = options
-    @unpack θ = model
+    @unpack lb, ub, fit, θ = model
 
     dict = Dict("ML_params"=> collect(Flatten.flatten(θ)),
         "name" => ["σ2_i", "B", "λ", "σ2_a", "σ2_s", "ϕ", "τ_ϕ", "bias", "lapse"],
         "lb"=> lb, "ub"=> ub, "fit"=> fit)
 
     matwrite(file, dict)
-
-end
-
-
-"""
-    save_choice_model(file, model, options, CI)
-
-Given a file, model produced by optimize and options, save the results of the optimization to a .MAT file
-"""
-function save_choice_model(file, model, options, CI)
-
-    @unpack lb, ub, fit = options
-    @unpack θ = model
-
-    dict = Dict("ML_params"=> collect(Flatten.flatten(θ)),
-        "name" => ["σ2_i", "B", "λ", "σ2_a", "σ2_s", "ϕ", "τ_ϕ", "bias", "lapse"],
-        "lb"=> lb, "ub"=> ub, "fit"=> fit,
-        "CI" => CI)
-
-    matwrite(file, dict)
-
-    #=
-    if !isempty(H)
-        #dict["H"] = H
-        hfile = matopen(path*"hessian_"*file, "w")
-        write(hfile, "H", H)
-        close(hfile)
-    end
-    =#
 
 end
 
@@ -111,6 +81,6 @@ function reload_choice_model(file)
     ub = read(matopen(file), "ub")
     fit = read(matopen(file), "fit")
     
-    Flatten.reconstruct(θchoice(), x), choiceoptions(fit=fit, lb=lb, ub=ub)
-
+    choiceDDM(θ=Flatten.reconstruct(θchoice(), x), fit=fit, lb=lb, ub=ub)
+    
 end

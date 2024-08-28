@@ -11,22 +11,6 @@ end
 
 
 """
-    choiceoptions(fit, lb, ub)
-
-Fields:
-
-- `fit`: `array` of `Bool` for optimization for `choiceDDM` model.
-- `lb`: `array` of lower bounds for optimization for `choiceDDM` model.
-- `ub`: `array` of upper bounds for optimization for `choiceDDM` model.
-"""
-@with_kw mutable struct choiceoptions
-    fit::Vector{Bool} = vcat(trues(dimz+2))
-    lb::Vector{Float64} = vcat([0., 4.,  -5., 0.,   0.,  0.01, 0.005], [-5, 0.])    
-    ub::Vector{Float64} = vcat([30., 30., 5., 100., 2.5, 1.2,  1.], [5, 1.])
-end
-
-
-"""
     θchoice(θz, bias, lapse) <: DDMθ
 
 Fields:
@@ -74,9 +58,11 @@ end
 Fields:
 
 - `θ`: a instance of the module-defined class `θchoice` that contains all of the model parameters for a `choiceDDM`
-- `data`: an `array` where each entry is the module-defined class `choicedata`, which contains all of the data (inputs and choices).
 - `n`: number of spatial bins to use (defaults to 53).
 - `cross`: whether or not to use cross click adaptation (defaults to false).
+- `fit`: `array` of `Bool` for optimization for `choiceDDM` model.
+- `lb`: `array` of lower bounds for optimization for `choiceDDM` model.
+- `ub`: `array` of upper bounds for optimization for `choiceDDM` model.
 
 Example:
 
@@ -87,8 +73,11 @@ _, data = synthetic_data(n ;θ=θ, ntrials=ntrials, rng=1, dt=dt);
 choiceDDM(θ=θ, data=data, n=n)
 ```
 """
-@with_kw struct choiceDDM{T} <: DDM
+@with_kw mutable struct choiceDDM{T} <: DDM
     θ::T = θchoice()
     n::Int=53
     cross::Bool=false
+    fit::Vector{Bool} = vcat(trues(dimz+2))
+    lb::Vector{Float64} = vcat([0., 4.,  -5., 0.,   0.,  0.01, 0.005], [-5, 0.])    
+    ub::Vector{Float64} = vcat([30., 30., 5., 100., 2.5, 1.2,  1.], [5, 1.])
 end

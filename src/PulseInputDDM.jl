@@ -22,7 +22,7 @@ import Base.rand
 import Base.Iterators: partition
 import Flatten: flattenable
 
-export choiceDDM, θchoice, θz, choiceoptions
+export choiceDDM, θchoice, θz
 export neuralDDM, θneural, θy, neural_options, neuraldata
 export save_model, θy0
 export Sigmoid, Softplus

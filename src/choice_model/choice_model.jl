@@ -11,16 +11,15 @@ Returns:
 Arguments:
 
 - `model`: an instance of a `choiceDDM`.
-- `options`: module-defind type that contains the upper (`ub`) and lower (`lb`) boundaries and specification of which parameters to fit (`fit`).
 
 """
-function fit(model::choiceDDM, data::Union{choicedata{choiceinputs{clicks, binned_clicks}}, Vector{choicedata{choiceinputs{clicks, binned_clicks}}}}, 
-        options::choiceoptions; x_tol::Float64=1e-10, f_tol::Float64=1e-9, g_tol::Float64=1e-3,
+function fit(model::choiceDDM, data::Union{choicedata{choiceinputs{clicks, binned_clicks}}, 
+        Vector{choicedata{choiceinputs{clicks, binned_clicks}}}};
+        x_tol::Float64=1e-10, f_tol::Float64=1e-9, g_tol::Float64=1e-3,
         iterations::Int=Int(2e3), show_trace::Bool=true, outer_iterations::Int=Int(1e1),
         extended_trace::Bool=false, scaled::Bool=false, time_limit::Float64=170000., show_every::Int=10)
 
-    @unpack fit, lb, ub = options
-    @unpack θ, n, cross = model
+    @unpack fit, lb, ub, θ, n, cross = model
     
     x0 = collect(Flatten.flatten(θ))
 
@@ -38,7 +37,7 @@ function fit(model::choiceDDM, data::Union{choicedata{choiceinputs{clicks, binne
     x = Optim.minimizer(output)
     x = stack(x,c,fit)
     θ = Flatten.reconstruct(θchoice(), x)
-    model = choiceDDM(θ, n, cross)
+    model = choiceDDM(θ=θ, n=n, cross=cross, fit=fit, lb=lb, ub=ub)
     converged = Optim.converged(output)
 
     return model, output
@@ -57,7 +56,7 @@ function loglikelihood(x::Vector{T1}, model::choiceDDM, data::Union{choicedata{c
 
     @unpack n, cross = model
     θ = Flatten.reconstruct(θchoice(), x)
-    model = choiceDDM(θ, n, cross)
+    model = choiceDDM(θ=θ, n=n, cross=cross)
     loglikelihood(model, data)
 
 end
