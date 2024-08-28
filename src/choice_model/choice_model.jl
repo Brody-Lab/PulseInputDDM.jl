@@ -143,25 +143,6 @@ end
 
 
 """
-    P_goright(model)
-
-Given an instance of `choiceDDM` computes the probabilty of going right for each trial.
-"""
-function P_goright(model::choiceDDM, data::choicedata)
-    
-    @unpack θ, n, cross = model
-    @unpack θz = θ
-    @unpack σ2_i, B, λ, σ2_a = θz
-    @unpack dt = data[1].click_data
-       
-    P,M,xc,dx = initialize_latent_model(σ2_i, B, λ, σ2_a, n, dt)
-    pmap(data -> likelihood!(θ, P, M, dx, xc, data, n, cross), map(x-> choicedata(x.click_data, true), data))
-
-end
-
-
-
-"""
     likelihood!(θ, P, M, dx, xc, data, n, cross)
 
 Given parameters θ and data (inputs and choices) computes the LL for one trial
@@ -297,47 +278,6 @@ function choice_likelihood!(bias::TT, xc::Vector{TT}, P::Vector{VV},
     end
 
     return P
-
-end
-
-
-"""
-    choice_null(choices)
-
-"""
-choice_null(choices) = sum(choices .== true)*log(sum(choices .== true)/length(choices)) +
-    sum(choices .== false)*log(sum(choices .== false)/length(choices))
-
-
-"""
-    bounded_mass(θ, data, n)
-"""
-function bounded_mass(θ::θchoice, data::choicedata, n::Int, cross::Bool)
-
-    @unpack θz = θ
-    @unpack σ2_i, B, λ, σ2_a = θz
-    @unpack dt = data[1].click_data
-
-    P,M,xc,dx = initialize_latent_model(σ2_i, B, λ, σ2_a, n, dt)
-
-    pmap(data -> bounded_mass!(θ, P, M, dx, xc, data, n, cross), data)
-
-end
-
-
-"""
-    bounded_mass!(θ, P, M, dx, xc, data, n)
-"""
-function bounded_mass!(θ::θchoice,
-        P::Vector{TT}, M::Array{TT,2}, dx::UU,
-        xc::Vector{TT}, data::choicedata,
-        n::Int, cross::Bool) where {TT,UU <: Real}
-
-    @unpack θz, bias = θ
-    @unpack click_data, choice = data
-
-    P = P_single_trial!(θz,P,M,dx,xc,click_data,n,cross)
-    choice ? P[n] : P[1]
 
 end
 
