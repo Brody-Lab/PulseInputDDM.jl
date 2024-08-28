@@ -24,7 +24,6 @@ import Flatten: flattenable
 #import Polynomials: Poly
 
 export choiceDDM, θchoice, θz, choiceoptions
-export choiceDDM_dx
 export neuralDDM, θneural, θy, neural_options, neuraldata
 export save_model, θy0
 export Sigmoid, Softplus
@@ -47,10 +46,9 @@ export initialize_θy, neural_null
 export synthetic_clicks, binLR, bin_clicks
 export default_parameters_and_data, compute_LL
 export mean_exp_rate_per_trial, mean_exp_rate_per_cond
-export logprior, process_spike_data
-export θprior, train_and_test, all_Softplus, θ2, invθ2, save_choice_data
+export process_spike_data
+export train_and_test, all_Softplus, save_choice_data
 export load_neural_data
-
 
 include("types.jl")
 include("choice_model/types.jl")

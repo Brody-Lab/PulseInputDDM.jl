@@ -28,7 +28,7 @@ function fit(model::choiceDDM, data::Union{choicedata{choiceinputs{clicks, binne
     ub, = unstack(ub, fit)
     x0,c = unstack(x0, fit)
 
-    ℓℓ(x) = -(loglikelihood(stack(x,c,fit), model, data))
+    ℓℓ(x) = -loglikelihood(stack(x,c,fit), model, data)
     
     output = optimize(x0, ℓℓ, lb, ub; g_tol=g_tol, x_tol=x_tol,
         f_tol=f_tol, iterations=iterations, show_trace=show_trace,
@@ -94,20 +94,6 @@ function Hessian(model::choiceDDM, data::Union{choicedata{choiceinputs{clicks, b
 
 end
 
-
-
-"""
-"""
-θ2(θ::θchoice) = θchoice(θz=θz2(θ.θz), bias=θ.bias, lapse=θ.lapse)
-
-
-
-"""
-"""
-θexp(θ) = θchoice(θz=θz(σ2_i = exp(θ.θz.σ2_i), B = θ.θz.B, λ = θ.θz.λ, 
-        σ2_a = exp(θ.θz.σ2_a), σ2_s = exp(θ.θz.σ2_s), 
-        ϕ = θ.θz.ϕ, τ_ϕ = θ.θz.τ_ϕ), bias=θ.bias, lapse=θ.lapse)   
-    
     
 """
     loglikelihood(model)
