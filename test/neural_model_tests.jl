@@ -37,19 +37,19 @@ x0 = PulseInputDDM.flatten(θ0)
 @test round(loglikelihood(x0, model0, data), digits=2) ≈ -1495.92
 
 model, = fit(model0, data, options0; iterations=2, outer_iterations=1)
-@test round(norm(PulseInputDDM.flatten(model.θ)), digits=2) ≈ 58.68
+@test round(norm(PulseInputDDM.flatten(model.θ)), digits=2) ≈ 58.28
 
-@test round(norm(gradient(model, data)), digits=2) ≈ 260.59
+@test round(norm(gradient(model, data)), digits=2) ≈ 646.89
 
 x0 = vcat([0.1, 15., -0.1, 20., 0.5, 0.8, 0.008], PulseInputDDM.flatten(model.θ)[dimz+1:end])
 options = neural_options(f)  
 
 model = neuralDDM(θneural(x0, f), n, cross)
 model, = fit(model, data, options; iterations=2, outer_iterations=1)
-@test round(norm(PulseInputDDM.flatten(model.θ)), digits=2) ≈ 55.93
+@test round(norm(PulseInputDDM.flatten(model.θ)), digits=2) ≈ 55.53
 
 H = Hessian(model, data; chunk_size=4)
-@test round(norm(H), digits=2) ≈ 15.52
+@test round(norm(H), digits=2) ≈ 8.6
 
 CI, HPSD = CIs(H)
-@test round(norm(CI), digits=2) ≈ 690.51
+@test round(norm(CI), digits=2) ≈ 1149.39

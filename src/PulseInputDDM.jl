@@ -21,7 +21,6 @@ import StatsFuns: logistic, logit, softplus, xlogy
 import Base.rand
 import Base.Iterators: partition
 import Flatten: flattenable
-#import Polynomials: Poly
 
 export choiceDDM, θchoice, θz, choiceoptions
 export neuralDDM, θneural, θy, neural_options, neuraldata
@@ -59,7 +58,6 @@ include("base_model.jl")
 include("analysis_functions.jl")
 include("optim_funcs.jl")
 include("sample_model.jl")
-include("priors.jl")
 
 include("choice_model/choice_model.jl")
 include("choice_model/sample_model.jl")
@@ -72,21 +70,8 @@ include("neural_model/process_data.jl")
 include("neural_model/noiseless_model.jl")
 include("neural_model/RBF_model.jl")
 
-#include("neural_model/neural_model-sep.jl")
-#include("neural_model/filter/filtered.jl")
-#include("neural_model/neural_model-th.jl")
-
 include("neural-choice_model/neural-choice_model.jl")
 include("neural-choice_model/sample_model.jl")
 include("neural-choice_model/neural-choice_model-ALT.jl")
-
-#include("neural-choice_model/neural-choice_model-negBin.jl")
-#include("neural-choice_model/process_data.jl")
-
-##include("neural_model/null.jl")
-##include("neural_model/polynomial/neural_poly_model.jl")
-##include("neural_model/polynomial/noiseless_model_poly.jl")
-##include("neural_model/load_and_optimize.jl")
-##include("neural_model/sample_model_functions_FP.jl")
 
 end

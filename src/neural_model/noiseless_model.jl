@@ -92,7 +92,7 @@ Returns:
 function fit(model::noiseless_neuralDDM, data, options::neural_options_noiseless;
         x_tol::Float64=1e-10, f_tol::Float64=1e-6, g_tol::Float64=1e-3,
         iterations::Int=Int(2e3), show_trace::Bool=false,
-        outer_iterations::Int=Int(1e1), sig_σ::Float64=1.)
+        outer_iterations::Int=Int(1e1))
 
     @unpack fit, lb, ub = options
     @unpack θ = model
@@ -103,7 +103,7 @@ function fit(model::noiseless_neuralDDM, data, options::neural_options_noiseless
     lb, = unstack(lb, fit)
     ub, = unstack(ub, fit)
     x0,c = unstack(x0, fit)
-    ℓℓ(x) = -(loglikelihood(stack(x,c,fit), model, data) + sigmoid_prior(stack(x,c,fit), θ; sig_σ=sig_σ))
+    ℓℓ(x) = -loglikelihood(stack(x,c,fit), model, data)
 
     output = optimize(x0, ℓℓ, lb, ub; g_tol=g_tol, x_tol=x_tol,
         f_tol=f_tol, iterations=iterations, show_trace=show_trace,

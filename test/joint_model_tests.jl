@@ -31,9 +31,9 @@ options = neural_choice_options(f)
 
 choice_neural_model = neural_choiceDDM(θneural_choice(vcat(x0[1:dimz], 0., 0., x0[dimz+1:end]), f), n, cross)
 
-@test round(choice_loglikelihood(choice_neural_model, data), digits=2) ≈ -0.47
+@test round(choice_loglikelihood(choice_neural_model, data), digits=2) ≈ -0.44
 
-@test round(joint_loglikelihood(choice_neural_model, data), digits=2) ≈ -368.42
+@test round(joint_loglikelihood(choice_neural_model, data), digits=2) ≈ -368.03 
 
 nparams, = PulseInputDDM.nθparams(f)
 
@@ -41,7 +41,7 @@ options = neural_choice_options(fit=vcat(falses(dimz), trues(2), falses.(nparams
 
 choice_neural_model, = choice_optimize(choice_neural_model, data, options; iterations=2, outer_iterations=1)
 
-@test round(norm(PulseInputDDM.flatten(choice_neural_model.θ)), digits=2) ≈ 56.29
+@test round(norm(PulseInputDDM.flatten(choice_neural_model.θ)), digits=2) ≈ 55.87
 
 choice_neural_model = neural_choiceDDM(θneural_choice(vcat(x0[1:dimz], 0., 0., x0[dimz+1:end]), f), n, cross)
 
@@ -50,4 +50,4 @@ options = neural_choice_options(fit=vcat(trues(dimz), trues(2), trues.(nparams).
 
 choice_neural_model, = choice_optimize(choice_neural_model, data, options; iterations=2, outer_iterations=1)
 
-@test round(norm(PulseInputDDM.flatten(choice_neural_model.θ)), digits=2) ≈ 56.29
+@test round(norm(PulseInputDDM.flatten(choice_neural_model.θ)), digits=2) ≈ 55.87
