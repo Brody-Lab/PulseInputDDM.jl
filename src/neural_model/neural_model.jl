@@ -57,19 +57,18 @@ end
 
 
 """
-    fit(model, options)
-
 Optimize model parameters for a `neuralDDM`.
+
+ $(SIGNATURES)
 
 Arguments: 
 
 - `model`: an instance of a `neuralDDM`.
-- `options`: some details related to the optimzation, such as which parameters were fit (`fit`), and the upper (`ub`) and lower (`lb`) bounds of those parameters.
+- `data`: an instance of a `neuralDDM`.
 
 Returns:
 
 - `model`: an instance of a `neuralDDM`.
-- `output`: results from [`Optim.optimize`](@ref).
 
 """
 function fit(model::neuralDDM, data;

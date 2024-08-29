@@ -1,4 +1,5 @@
 """
+$(TYPEDEF)
 """
 @with_kw struct neuralinputs{T1,T2}
     clicks::T1

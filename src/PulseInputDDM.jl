@@ -7,6 +7,7 @@ and/or neural data from pulse-based evidence accumlation tasks.
 
 module PulseInputDDM
 
+using DocStringExtensions
 using StatsBase, Distributions, LineSearches
 using ForwardDiff, Distributed, LinearAlgebra
 using Optim, DSP, SpecialFunctions, MAT, Random
