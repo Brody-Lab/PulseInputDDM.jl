@@ -6,7 +6,6 @@ Optimize choice-related model parameters for a `neural_choiceDDM` using choice d
 Arguments: 
 
 - `model`: an instance of a `neural_choiceDDM`.
-- `options`: some details related to the optimzation, such as which parameters were fit (`fit`), and the upper (`ub`) and lower (`lb`) bounds of those parameters.
 
 Returns:
 
@@ -14,13 +13,12 @@ Returns:
 - `output`: results from [`Optim.optimize`](@ref).
 
 """
-function choice_optimize(model::neural_choiceDDM, data, options::neural_choice_options;
+function choice_optimize(model::neural_choiceDDM, data;
         x_tol::Float64=1e-10, f_tol::Float64=1e-9, g_tol::Float64=1e-3,
         iterations::Int=Int(2e3), show_trace::Bool=true, outer_iterations::Int=Int(1e1), 
         scaled::Bool=false, extended_trace::Bool=false)
     
-    @unpack fit, lb, ub = options
-    @unpack θ, n, cross = model
+    @unpack θ, n, cross, fit, lb, ub = model
     @unpack f = θ
     
     x0 = PulseInputDDM.flatten(θ)
@@ -38,8 +36,7 @@ function choice_optimize(model::neural_choiceDDM, data, options::neural_choice_o
     x = Optim.minimizer(output)
     x = stack(x,c,fit)
     
-    model = neural_choiceDDM(θneural_choice(x, f), n, cross)
-    converged = Optim.converged(output)
+    model.θ = θneural_choice(x, f)
 
     return model, output
 
@@ -55,9 +52,9 @@ in optimization, Hessian and gradient computation.
 """
 function choice_loglikelihood(x::Vector{T}, model::neural_choiceDDM, data) where {T <: Real}
     
-    @unpack θ,n,cross = model
+    @unpack θ,n,cross,fit,lb,ub = model
     @unpack f = θ 
-    model = neural_choiceDDM(θneural_choice(x, f), n, cross)
+    model = neural_choiceDDM(θ=θneural_choice(x, f), n=n, cross=cross,fit=fit, lb=lb, ub=ub)
     choice_loglikelihood(model, data)
 
 end

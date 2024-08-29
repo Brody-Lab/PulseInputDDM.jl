@@ -25,9 +25,9 @@ fitbool, lb, ub = neural_options(f)
 model = neuralDDM(θ=θneural(x0, f), fit=fitbool, lb=lb, ub=ub)
 model, = fit(model, data; iterations=2, outer_iterations=1)
 
-options = neural_choice_options(f)
+fitbool, lb, ub = neural_choice_options(f)
 
-choice_neural_model = neural_choiceDDM(θ=θneural_choice(vcat(x0[1:dimz], 0., 0., x0[dimz+1:end]), f))
+choice_neural_model = neural_choiceDDM(θ=θneural_choice(vcat(x0[1:dimz], 0., 0., x0[dimz+1:end]), f), fit=fitbool, lb=lb, ub=ub)
 
 @test round(choice_loglikelihood(choice_neural_model, data), digits=2) ≈ -0.44
 
@@ -35,17 +35,16 @@ choice_neural_model = neural_choiceDDM(θ=θneural_choice(vcat(x0[1:dimz], 0., 0
 
 nparams, = PulseInputDDM.nθparams(f)
 
-options = neural_choice_options(fit=vcat(falses(dimz), trues(2), falses.(nparams)...), lb=options.lb, ub=options.ub)
-
-choice_neural_model, = choice_optimize(choice_neural_model, data, options; iterations=2, outer_iterations=1)
+choice_neural_model.fit, choice_neural_model.lb, choice_neural_model.ub =vcat(falses(dimz), trues(2), falses.(nparams)...), lb, ub
+choice_neural_model, = choice_optimize(choice_neural_model, data; iterations=2, outer_iterations=1)
 
 @test round(norm(PulseInputDDM.flatten(choice_neural_model.θ)), digits=2) ≈ 55.87
 
-choice_neural_model = neural_choiceDDM(θ=θneural_choice(vcat(x0[1:dimz], 0., 0., x0[dimz+1:end]), f))
+choice_neural_model.θ = θ=θneural_choice(vcat(x0[1:dimz], 0., 0., x0[dimz+1:end]), f)
 
-options = neural_choice_options(fit=vcat(trues(dimz), trues(2), trues.(nparams)...), lb=vcat(options.lb[1:7], -10., options.lb[9:end]), 
-    ub=vcat(options.ub[1:7], 10., options.ub[9:end]))
+choice_neural_model.fit, choice_neural_model.lb, choice_neural_model.ub = vcat(trues(dimz), trues(2), trues.(nparams)...),
+    vcat(lb[1:7], -10., lb[9:end]), vcat(ub[1:7], 10., ub[9:end])
 
-choice_neural_model, = choice_optimize(choice_neural_model, data, options; iterations=2, outer_iterations=1)
+choice_neural_model, = choice_optimize(choice_neural_model, data; iterations=2, outer_iterations=1)
 
 @test round(norm(PulseInputDDM.flatten(choice_neural_model.θ)), digits=2) ≈ 55.87

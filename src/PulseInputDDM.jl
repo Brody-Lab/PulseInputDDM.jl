@@ -55,7 +55,7 @@ include("neural_model/types.jl")
 include("neural-choice_model/types.jl")
 
 include("base_model.jl")
-include("analysis_functions.jl")
+include("utils.jl")
 include("optim_funcs.jl")
 include("sample_model.jl")
 
