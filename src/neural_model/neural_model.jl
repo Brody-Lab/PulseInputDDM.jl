@@ -1,20 +1,4 @@
 """
-"""
-function nθparams(f)
-    
-    ncells = length.(f)
-    nparams = Vector{Int}(undef, sum(ncells));    
-    nparams[vcat(f...) .== "Softplussign"] .= 1
-    nparams[vcat(f...) .== "Softplus"] .= 1
-    nparams[vcat(f...) .== "Sigmoid"] .= 4
-    nparams[vcat(f...) .== "Softplus_negbin"] .= 2
-    
-    return nparams, ncells
-    
-end
-
-
-"""
     flatten(θ)
 
 Extract parameters `neuralDDM` or `noiseless_neuralDDM` model and place in the correct order into a 1D `array`
@@ -91,7 +75,7 @@ Returns:
 function fit(model::neuralDDM, data, options::neural_options;
         x_tol::Float64=1e-10, f_tol::Float64=1e-9, g_tol::Float64=1e-3,
         iterations::Int=Int(2e3), show_trace::Bool=true, outer_iterations::Int=Int(1e1), 
-        scaled::Bool=false, extended_trace::Bool=false, sig_σ::Float64=1.)
+        scaled::Bool=false, extended_trace::Bool=false)
     
     @unpack fit, lb, ub = options
     @unpack θ, n, cross = model
@@ -102,7 +86,7 @@ function fit(model::neuralDDM, data, options::neural_options;
     ub, = unstack(ub, fit)
     x0,c = unstack(x0, fit)
     
-    ℓℓ(x) = -(loglikelihood(stack(x,c,fit), model, data))
+    ℓℓ(x) = -loglikelihood(stack(x,c,fit), model, data)
     
     output = optimize(x0, ℓℓ, lb, ub; g_tol=g_tol, x_tol=x_tol,
         f_tol=f_tol, iterations=iterations, show_trace=show_trace,
@@ -366,8 +350,3 @@ function logistic!(x::T) where {T <: Any}
     return x
 
 end
-
-
-"""
-"""
-neural_null(k,λ,dt) = sum(logpdf.(Poisson.(λ*dt),k))

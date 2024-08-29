@@ -1,59 +1,4 @@
 """
-"""
-@with_kw struct neural_options_noiseless
-    fit::Vector{Bool}
-    ub::Vector{Float64}
-    lb::Vector{Float64}
-end
-
-
-"""
-"""
-function neural_options_noiseless(f)
-    
-    nparams, ncells = nθparams(f)
-    fit = vcat(falses(dimz), trues.(nparams)...)
-        
-    lb = Vector(undef, sum(ncells))
-    ub = Vector(undef, sum(ncells))
-    
-    for i in 1:sum(ncells)
-        if vcat(f...)[i] == "Softplus"
-            lb[i] = [-10]
-            ub[i] = [10]
-        elseif vcat(f...)[i] == "Sigmoid"
-            lb[i] = [-100.,0.,-10.,-10.]
-            ub[i] = [100.,100.,10.,10.]
-        end
-    end
-    lb = vcat([1e-3, 8.,  -5., 1e-3,   1e-3,  1e-3, 0.005], vcat(lb...))
-    ub = vcat([100., 100., 5., 400., 10., 1.2,  1.], vcat(ub...));
-
-    neural_options_noiseless(fit=fit, ub=ub, lb=lb)
-    
-end
-
-
-"""
-"""
-function θneural_noiseless(x::Vector{T}, f::Vector{Vector{String}}) where {T <: Real}
-    
-    nparams, ncells = nθparams(f)
-    
-    borg = vcat(dimz,dimz.+cumsum(nparams))
-    blah = [x[i] for i in [borg[i-1]+1:borg[i] for i in 2:length(borg)]]
-    
-    blah = map((f,x) -> f(x...), getfield.(Ref(@__MODULE__), Symbol.(vcat(f...))), blah)
-    
-    borg = vcat(0,cumsum(ncells))
-    θy = [blah[i] for i in [borg[i-1]+1:borg[i] for i in 2:length(borg)]]
-    
-    θneural_noiseless(θz(x[1:dimz]...), θy, f)
-
-end
-
-
-"""
     θy0(data, f)
 
 Returns: initializition of neural parameters. Module-defined class `θy`.
@@ -64,8 +9,7 @@ function θy0(data, f::Vector{Vector{String}})
     θy0 = θy.(data, f) 
     x0 = vcat([0., 15., 0. - eps(), 0., 0., 1.0 - eps(), 0.008], vcat(vcat(θy0...)...)) 
     θ = θneural_noiseless(x0, f)
-    model0 = noiseless_neuralDDM(θ)
-        
+    model0 = noiseless_neuralDDM(θ)  
     model0, = fit(model0, data, neural_options_noiseless(f), show_trace=false)
     
     return model0

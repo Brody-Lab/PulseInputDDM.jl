@@ -26,10 +26,10 @@ Example:
     ϕ = 0.8, τ_ϕ = 0.05), bias=1., lapse=0.05)
 ```
 """
-@with_kw struct θchoice{T1, T<:Real} <: DDMθ
+@with_kw mutable struct θchoice{T1, T2, T3} <: DDMθ
     θz::T1 = θz()
-    bias::T = 1.
-    lapse::T = 0.05
+    bias::T2 = 1.
+    lapse::T3 = 0.05
 end
 
 
