@@ -1,16 +1,17 @@
 """
-    θy0(data, f)
+    initalize(data, f)
 
 Returns: initializition of neural parameters. Module-defined class `θy`.
 
 """
-function θy0(data, f::Vector{Vector{String}})
+function initalize(data, f::Vector{Vector{String}})
     
     θy0 = θy.(data, f) 
     x0 = vcat([0., 15., 0. - eps(), 0., 0., 1.0 - eps(), 0.008], vcat(vcat(θy0...)...)) 
-    θ = θneural_noiseless(x0, f)
-    model0 = noiseless_neuralDDM(θ)  
-    model0, = fit(model0, data, neural_options_noiseless(f), show_trace=false)
+    θ = θneural(x0, f)
+    fitbool, lb, ub = neural_options_noiseless(f)
+    model0 = noiseless_neuralDDM(θ=θ, fit=fitbool, lb=lb, ub=ub)  
+    model0, = fit(model0, data; iterations=10, outer_iterations=1)
     
     return model0
     
@@ -18,9 +19,9 @@ end
 
 
 """
-    optimize(model, options)
+    fit(model, options)
 
-Optimize model parameters for a `noiseless_neuralDDM`.
+fit model parameters for a `noiseless_neuralDDM`.
 
 Arguments: 
 
@@ -33,20 +34,19 @@ Returns:
 - `output`: results from [`Optim.optimize`](@ref).
 
 """
-function fit(model::noiseless_neuralDDM, data, options::neural_options_noiseless;
+function fit(model::noiseless_neuralDDM, data;
         x_tol::Float64=1e-10, f_tol::Float64=1e-6, g_tol::Float64=1e-3,
         iterations::Int=Int(2e3), show_trace::Bool=false,
         outer_iterations::Int=Int(1e1))
 
-    @unpack fit, lb, ub = options
-    @unpack θ = model
+    @unpack fit, lb, ub, θ = model
     @unpack f = θ
     
-    x0 = PulseInputDDM.flatten(θ)    
-    
+    x0 = PulseInputDDM.flatten(θ)      
     lb, = unstack(lb, fit)
     ub, = unstack(ub, fit)
     x0,c = unstack(x0, fit)
+
     ℓℓ(x) = -loglikelihood(stack(x,c,fit), model, data)
 
     output = optimize(x0, ℓℓ, lb, ub; g_tol=g_tol, x_tol=x_tol,
@@ -55,8 +55,7 @@ function fit(model::noiseless_neuralDDM, data, options::neural_options_noiseless
 
     x = Optim.minimizer(output)
     x = stack(x,c,fit)
-    model = noiseless_neuralDDM(θneural_noiseless(x, f))
-    converged = Optim.converged(output)
+    model.θ = θneural(x, f)
 
     return model, output
 
@@ -73,9 +72,9 @@ in optimization, Hessian and gradient computation.
 """
 function loglikelihood(x::Vector{T1}, model::noiseless_neuralDDM, data) where {T1 <: Real}
     
-    @unpack θ = model
+    @unpack θ,fit,lb,ub = model
     @unpack f = θ 
-    model = noiseless_neuralDDM(θneural_noiseless(x, f))
+    model = noiseless_neuralDDM(θ=θneural(x, f),fit=fit,lb=lb,ub=ub)
     loglikelihood(model, data)
 
 end
