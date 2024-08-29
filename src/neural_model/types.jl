@@ -1,4 +1,5 @@
 """
+$(TYPEDEF)
 """
 @with_kw struct neuralinputs{T1,T2}
     clicks::T1
@@ -19,7 +20,7 @@ neuralinputs(clicks, binned_clicks, λ0::Vector{Vector{Vector{Float64}}}, dt::Fl
 
 """
 """
-@with_kw struct θneural{T1, T2} <: DDMθ
+@with_kw mutable struct θneural{T1, T2} <: DDMθ
     θz::T1
     θy::T2
     f::Vector{Vector{String}}
@@ -34,37 +35,67 @@ Fields:
 - n
 - cross
 """
-@with_kw struct neuralDDM{T} <: DDM
+@with_kw mutable struct neuralDDM{T} <: DDM
     θ::T
     n::Int=53
     cross::Bool=false
-end
-
-
-"""
-"""
-@with_kw struct θneural_noiseless{T1, T2} <: DDMθ
-    θz::T1
-    θy::T2
-    f::Vector{Vector{String}}
-end
-
-
-"""
-"""
-@with_kw struct noiseless_neuralDDM{T} <: DDM
-    θ::T
-end
-
-
-"""
-"""
-@with_kw struct neural_options
     fit::Vector{Bool}
-    ub::Vector{Float64}
     lb::Vector{Float64}
+    ub::Vector{Float64}
 end
 
+
+"""
+"""
+@with_kw mutable struct noiseless_neuralDDM{T} <: DDM
+    θ::T
+    fit::Vector{Bool}
+    lb::Vector{Float64}
+    ub::Vector{Float64}
+end
+
+
+"""
+"""
+function nθparams(f)
+    
+    ncells = length.(f)
+    nparams = Vector{Int}(undef, sum(ncells));    
+    nparams[vcat(f...) .== "Softplussign"] .= 1
+    nparams[vcat(f...) .== "Softplus"] .= 1
+    nparams[vcat(f...) .== "Sigmoid"] .= 4
+    nparams[vcat(f...) .== "Softplus_negbin"] .= 2
+    
+    return nparams, ncells
+    
+end
+
+
+"""
+"""
+function neural_options_noiseless(f)
+    
+    nparams, ncells = nθparams(f)
+    fit = vcat(falses(dimz), trues.(nparams)...)
+        
+    lb = Vector(undef, sum(ncells))
+    ub = Vector(undef, sum(ncells))
+    
+    for i in 1:sum(ncells)
+        if vcat(f...)[i] == "Softplus"
+            lb[i] = [-10]
+            ub[i] = [10]
+        elseif vcat(f...)[i] == "Sigmoid"
+            lb[i] = [-100.,0.,-10.,-10.]
+            ub[i] = [100.,100.,10.,10.]
+        end
+    end
+    lb = vcat([1e-3, 8.,  -5., 1e-3,   1e-3,  1e-3, 0.005], vcat(lb...))
+    ub = vcat([100., 100., 5., 400., 10., 1.2,  1.], vcat(ub...));
+
+    fit, lb, ub
+    
+end
 
 
 """
@@ -89,8 +120,8 @@ function neural_options(f)
     lb = vcat([0., 4.,  -5., 0.,   0.,  0.01, 0.005], vcat(lb...))
     ub = vcat([30., 30., 5., 100., 2.5, 1.2,  1.], vcat(ub...));
 
-    neural_options(fit=fit, ub=ub, lb=lb)
-    
+    fit, lb, ub
+
 end
    
 

@@ -76,16 +76,15 @@ Given a `file`, `model` and `options` produced by `optimize`, save everything to
 See also: [`reload_neural_model`](@ref)
 
 """
-function save_neural_model(file, model::Union{neuralDDM, neural_choiceDDM}, data, options)
+function save_neural_model(file, model::Union{neuralDDM, neural_choiceDDM}, data)
 
-    @unpack lb, ub, fit = options
-    @unpack θ, n, cross = model
+    @unpack θ, n, cross, lb, ub, fit = model
     @unpack f = θ
     @unpack dt, delay, pad = data[1][1].input_data
     
     nparams, ncells = nθparams(f)
     
-    dict = Dict("ML_params"=> collect(pulse_input_DDM.flatten(θ)),
+    dict = Dict("ML_params"=> collect(PulseInputDDM.flatten(θ)),
         "lb"=> lb, "ub"=> ub, "fit"=> fit, "n"=> n, "cross"=> cross,
         "dt"=> dt, "delay"=> delay, "pad"=> pad, "f"=> vcat(vcat(f...)...),
         "nparams" => nparams, "ncells" => ncells)
@@ -135,7 +134,7 @@ function reload_neural_model(file)
     
     lb = read(matopen(file), "lb")
     ub = read(matopen(file), "ub")
-    fit = read(matopen(file), "fit")
+    fitbool = read(matopen(file), "fit")
     
     n = read(matopen(file), "n")
     cross = read(matopen(file), "cross")
@@ -143,7 +142,7 @@ function reload_neural_model(file)
     delay = read(matopen(file), "delay")
     pad = read(matopen(file), "pad")       
     
-    θneural(xf, f), neural_options(lb=lb, ub=ub, fit=fit), n, cross, dt, delay, pad 
+    neuralDDM(θ=θneural(xf, f),fit=fitbool,lb=lb,ub=ub, n=n, cross=cross)
     
 end
 
@@ -163,7 +162,7 @@ Returns:
 function load_neural_data(file::Vector{String}; break_sim_data::Bool=false, 
         centered::Bool=true, dt::Float64=1e-2, delay::Int=0, pad::Int=0, filtSD::Int=2,
         extra_pad::Int=10, cut::Int=10, pcut::Float64=0.01, 
-        do_RBF::Bool=false, nRBFs::Int=6)
+        do_RBF::Bool=true, nRBFs::Int=6)
     
     output = load_neural_data.(file; break_sim_data=break_sim_data,
         centered=centered,
@@ -222,7 +221,7 @@ Returns:
 function load_neural_data(file::String; break_sim_data::Bool=false, 
         dt::Float64=1e-2, delay::Int=0, pad::Int=0, filtSD::Int=2,
         extra_pad::Int=10, cut::Int=10, pcut::Float64=0.01, 
-        do_RBF::Bool=false, nRBFs::Int=6, centered::Bool=true)
+        do_RBF::Bool=true, nRBFs::Int=6, centered::Bool=true)
 
     data = read(matopen(file), "rawdata")
     

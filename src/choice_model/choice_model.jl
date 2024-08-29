@@ -11,16 +11,15 @@ Returns:
 Arguments:
 
 - `model`: an instance of a `choiceDDM`.
-- `options`: module-defind type that contains the upper (`ub`) and lower (`lb`) boundaries and specification of which parameters to fit (`fit`).
 
 """
-function fit(model::choiceDDM, data::Union{choicedata{choiceinputs{clicks, binned_clicks}}, Vector{choicedata{choiceinputs{clicks, binned_clicks}}}}, 
-        options::choiceoptions; x_tol::Float64=1e-10, f_tol::Float64=1e-9, g_tol::Float64=1e-3,
+function fit(model::choiceDDM, data::Union{choicedata{choiceinputs{clicks, binned_clicks}}, 
+        Vector{choicedata{choiceinputs{clicks, binned_clicks}}}};
+        x_tol::Float64=1e-10, f_tol::Float64=1e-9, g_tol::Float64=1e-3,
         iterations::Int=Int(2e3), show_trace::Bool=true, outer_iterations::Int=Int(1e1),
         extended_trace::Bool=false, scaled::Bool=false, time_limit::Float64=170000., show_every::Int=10)
 
-    @unpack fit, lb, ub = options
-    @unpack θ, n, cross = model
+    @unpack fit, lb, ub, θ, n, cross = model
     
     x0 = collect(Flatten.flatten(θ))
 
@@ -28,7 +27,7 @@ function fit(model::choiceDDM, data::Union{choicedata{choiceinputs{clicks, binne
     ub, = unstack(ub, fit)
     x0,c = unstack(x0, fit)
 
-    ℓℓ(x) = -(loglikelihood(stack(x,c,fit), model, data) + logprior(stack(x,c,fit), θprior()))
+    ℓℓ(x) = -loglikelihood(stack(x,c,fit), model, data)
     
     output = optimize(x0, ℓℓ, lb, ub; g_tol=g_tol, x_tol=x_tol,
         f_tol=f_tol, iterations=iterations, show_trace=show_trace,
@@ -37,9 +36,7 @@ function fit(model::choiceDDM, data::Union{choicedata{choiceinputs{clicks, binne
 
     x = Optim.minimizer(output)
     x = stack(x,c,fit)
-    θ = Flatten.reconstruct(θchoice(), x)
-    model = choiceDDM(θ, n, cross)
-    converged = Optim.converged(output)
+    model.θ = Flatten.reconstruct(θ, x)
 
     return model, output
 
@@ -57,7 +54,7 @@ function loglikelihood(x::Vector{T1}, model::choiceDDM, data::Union{choicedata{c
 
     @unpack n, cross = model
     θ = Flatten.reconstruct(θchoice(), x)
-    model = choiceDDM(θ, n, cross)
+    model = choiceDDM(θ=θ, n=n, cross=cross)
     loglikelihood(model, data)
 
 end
@@ -71,7 +68,7 @@ Compute the gradient of the negative log-likelihood at the current value of the 
 function gradient(model::choiceDDM, data::Union{choicedata{choiceinputs{clicks, binned_clicks}}, Vector{choicedata{choiceinputs{clicks, binned_clicks}}}})
 
     @unpack θ = model
-    x = [Flatten.flatten(θ)...]
+    x = collect(Flatten.flatten(θ))
     ℓℓ(x) = -loglikelihood(x, model, data)
 
     ForwardDiff.gradient(ℓℓ, x)
@@ -87,27 +84,13 @@ Compute the hessian of the negative log-likelihood at the current value of the p
 function Hessian(model::choiceDDM, data::Union{choicedata{choiceinputs{clicks, binned_clicks}}, Vector{choicedata{choiceinputs{clicks, binned_clicks}}}})
 
     @unpack θ = model
-    x = [Flatten.flatten(θ)...]
+    x = collect(Flatten.flatten(θ))
     ℓℓ(x) = -loglikelihood(x, model, data)
 
     ForwardDiff.hessian(ℓℓ, x)
 
 end
 
-
-
-"""
-"""
-θ2(θ::θchoice) = θchoice(θz=θz2(θ.θz), bias=θ.bias, lapse=θ.lapse)
-
-
-
-"""
-"""
-θexp(θ) = θchoice(θz=θz(σ2_i = exp(θ.θz.σ2_i), B = θ.θz.B, λ = θ.θz.λ, 
-        σ2_a = exp(θ.θz.σ2_a), σ2_s = exp(θ.θz.σ2_s), 
-        ϕ = θ.θz.ϕ, τ_ϕ = θ.θz.τ_ϕ), bias=θ.bias, lapse=θ.lapse)   
-    
     
 """
     loglikelihood(model)
@@ -154,25 +137,6 @@ function likelihood(model::choiceDDM, data::Vector{choicedata{choiceinputs{click
     pmap(data -> likelihood!(θ, P, M, dx, xc, data, n, cross), data)
 
 end
-
-
-"""
-    P_goright(model)
-
-Given an instance of `choiceDDM` computes the probabilty of going right for each trial.
-"""
-function P_goright(model::choiceDDM, data::choicedata)
-    
-    @unpack θ, n, cross = model
-    @unpack θz = θ
-    @unpack σ2_i, B, λ, σ2_a = θz
-    @unpack dt = data[1].click_data
-       
-    P,M,xc,dx = initialize_latent_model(σ2_i, B, λ, σ2_a, n, dt)
-    pmap(data -> likelihood!(θ, P, M, dx, xc, data, n, cross), map(x-> choicedata(x.click_data, true), data))
-
-end
-
 
 
 """
@@ -311,47 +275,6 @@ function choice_likelihood!(bias::TT, xc::Vector{TT}, P::Vector{VV},
     end
 
     return P
-
-end
-
-
-"""
-    choice_null(choices)
-
-"""
-choice_null(choices) = sum(choices .== true)*log(sum(choices .== true)/length(choices)) +
-    sum(choices .== false)*log(sum(choices .== false)/length(choices))
-
-
-"""
-    bounded_mass(θ, data, n)
-"""
-function bounded_mass(θ::θchoice, data::choicedata, n::Int, cross::Bool)
-
-    @unpack θz = θ
-    @unpack σ2_i, B, λ, σ2_a = θz
-    @unpack dt = data[1].click_data
-
-    P,M,xc,dx = initialize_latent_model(σ2_i, B, λ, σ2_a, n, dt)
-
-    pmap(data -> bounded_mass!(θ, P, M, dx, xc, data, n, cross), data)
-
-end
-
-
-"""
-    bounded_mass!(θ, P, M, dx, xc, data, n)
-"""
-function bounded_mass!(θ::θchoice,
-        P::Vector{TT}, M::Array{TT,2}, dx::UU,
-        xc::Vector{TT}, data::choicedata,
-        n::Int, cross::Bool) where {TT,UU <: Real}
-
-    @unpack θz, bias = θ
-    @unpack click_data, choice = data
-
-    P = P_single_trial!(θz,P,M,dx,xc,click_data,n,cross)
-    choice ? P[n] : P[1]
 
 end
 

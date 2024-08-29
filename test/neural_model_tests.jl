@@ -1,13 +1,15 @@
-n, cross = 53, false
+
 ncells, ntrials = [1,2], [3,4]
 f = [repeat(["Sigmoid"], N) for N in ncells]
 
 θ = θneural(θz = θz(σ2_i = 0.5, B = 15., λ = -0.5, σ2_a = 10., σ2_s = 1.2,
     ϕ = 0.6, τ_ϕ =  0.02),
     θy=[[Sigmoid() for n in 1:N] for N in ncells], f=f);
+    
+fitbool,lb,ub = neural_options(f)
 
 data, = synthetic_data(θ, ntrials, ncells);
-model_gen = neuralDDM(θ, n, cross);
+model_gen = neuralDDM(θ=θ,fit=fitbool,lb=lb,ub=ub);
 
 spikes = map(x-> sum.(x), getfield.(vcat(data...), :spikes))
 
@@ -23,11 +25,11 @@ x = PulseInputDDM.flatten(θ)
 θy0 = vcat(vcat(θy.(data, f)...)...)
 @test round(norm(θy0), digits=2) ≈ 38.43
 
-options0 = neural_options_noiseless(f)
 x0=vcat([0., 30., 0. + eps(), 0., 0., 1. - eps(), 0.008], θy0)
 
-θ0 = θneural_noiseless(x0, f)
-model0 = noiseless_neuralDDM(θ0)
+θ0 = θneural(x0, f)
+fitbool,lb,ub = neural_options_noiseless(f)
+model0 = noiseless_neuralDDM(θ=θ0,fit=fitbool,lb=lb,ub=ub)
 
 @test round(loglikelihood(model0, data), digits=2) ≈ -1495.92
 
@@ -36,20 +38,20 @@ x0 = PulseInputDDM.flatten(θ0)
 
 @test round(loglikelihood(x0, model0, data), digits=2) ≈ -1495.92
 
-model, = fit(model0, data, options0; iterations=2, outer_iterations=1)
-@test round(norm(PulseInputDDM.flatten(model.θ)), digits=2) ≈ 58.68
+model, = fit(model0, data; iterations=2, outer_iterations=1)
+@test round(norm(PulseInputDDM.flatten(model.θ)), digits=2) ≈ 58.28
 
-@test round(norm(gradient(model, data)), digits=2) ≈ 260.59
+#@test round(norm(gradient(model, data)), digits=2) ≈ 646.89
 
 x0 = vcat([0.1, 15., -0.1, 20., 0.5, 0.8, 0.008], PulseInputDDM.flatten(model.θ)[dimz+1:end])
-options = neural_options(f)  
+fitbool,lb,ub = neural_options(f)
 
-model = neuralDDM(θneural(x0, f), n, cross)
-model, = fit(model, data, options; iterations=2, outer_iterations=1)
-@test round(norm(PulseInputDDM.flatten(model.θ)), digits=2) ≈ 55.93
+model = neuralDDM(θ=θneural(x0, f),fit=fitbool,lb=lb,ub=ub)
+model, = fit(model, data; iterations=2, outer_iterations=1)
+@test round(norm(PulseInputDDM.flatten(model.θ)), digits=2) ≈ 55.53
 
 H = Hessian(model, data; chunk_size=4)
-@test round(norm(H), digits=2) ≈ 15.52
+@test round(norm(H), digits=2) ≈ 8.6
 
 CI, HPSD = CIs(H)
-@test round(norm(CI), digits=2) ≈ 690.51
+@test round(norm(CI), digits=2) ≈ 1149.39

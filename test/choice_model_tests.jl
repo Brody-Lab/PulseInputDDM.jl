@@ -14,16 +14,15 @@ choices = getfield.(data, :choice)
 @time @test round(loglikelihood(model_gen, data), digits=2) ≈ -0.79
 
 @test round(norm(gradient(model_gen, data)), digits=2) ≈ 0.67
-       
-options = choiceoptions(lb=vcat([0., 8.,  -5., 0.,   0.,  0.01, 0.005], [-30, 0.]),
-    ub = vcat([2., 30., 5., 100., 2.5, 1.2,  1.], [30, 1.]), 
-    fit = trues(dimz+2));
 
 x0 = vcat([0.1, 15., -0.1, 20., 0.5, 0.8, 0.008], [0.,0.01])
 θ = Flatten.reconstruct(θchoice(), x0)
-model = choiceDDM(θ=θ)
 
-model, = fit(model, data, options; iterations=5, outer_iterations=1);
+model = choiceDDM(θ=θ, fit = trues(dimz+2), 
+    lb=lb=vcat([0., 8.,  -5., 0.,   0.,  0.01, 0.005], [-30, 0.]), 
+    ub = vcat([2., 30., 5., 100., 2.5, 1.2,  1.], [30, 1.]))
+
+model, = fit(model, data; iterations=5, outer_iterations=1);
 @test round(norm(Flatten.flatten(model.θ)), digits=2) ≈ 25.03
 
 H = Hessian(model, data)
