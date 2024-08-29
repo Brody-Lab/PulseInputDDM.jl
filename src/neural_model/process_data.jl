@@ -76,10 +76,9 @@ Given a `file`, `model` and `options` produced by `optimize`, save everything to
 See also: [`reload_neural_model`](@ref)
 
 """
-function save_neural_model(file, model::Union{neuralDDM, neural_choiceDDM}, data, options)
+function save_neural_model(file, model::Union{neuralDDM, neural_choiceDDM}, data)
 
-    @unpack lb, ub, fit = options
-    @unpack θ, n, cross = model
+    @unpack θ, n, cross, lb, ub, fit = model
     @unpack f = θ
     @unpack dt, delay, pad = data[1][1].input_data
     
@@ -135,7 +134,7 @@ function reload_neural_model(file)
     
     lb = read(matopen(file), "lb")
     ub = read(matopen(file), "ub")
-    fit = read(matopen(file), "fit")
+    fitbool = read(matopen(file), "fit")
     
     n = read(matopen(file), "n")
     cross = read(matopen(file), "cross")
@@ -143,7 +142,7 @@ function reload_neural_model(file)
     delay = read(matopen(file), "delay")
     pad = read(matopen(file), "pad")       
     
-    θneural(xf, f), neural_options(lb=lb, ub=ub, fit=fit), n, cross, dt, delay, pad 
+    neuralDDM(θ=θneural(xf, f),fit=fitbool,lb=lb,ub=ub, n=n, cross=cross)
     
 end
 

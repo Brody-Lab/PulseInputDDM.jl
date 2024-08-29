@@ -1,4 +1,19 @@
 """
+    all_Softplus(data)
+
+Returns: `array` of `array` of `string`, of all Softplus
+"""
+function all_Softplus(ncells)
+    
+    #ncells = getfield.(first.(data), :ncells)
+    f = repeat(["Softplus"], sum(ncells))
+    borg = vcat(0,cumsum(ncells))
+    f = [f[i] for i in [borg[i-1]+1:borg[i] for i in 2:length(borg)]]
+    
+end
+
+
+"""
 """
 function diffLR(data)
     

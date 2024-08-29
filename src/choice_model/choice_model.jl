@@ -36,9 +36,7 @@ function fit(model::choiceDDM, data::Union{choicedata{choiceinputs{clicks, binne
 
     x = Optim.minimizer(output)
     x = stack(x,c,fit)
-    θ = Flatten.reconstruct(θchoice(), x)
-    model = choiceDDM(θ=θ, n=n, cross=cross, fit=fit, lb=lb, ub=ub)
-    converged = Optim.converged(output)
+    model.θ = Flatten.reconstruct(θ, x)
 
     return model, output
 
@@ -70,7 +68,7 @@ Compute the gradient of the negative log-likelihood at the current value of the 
 function gradient(model::choiceDDM, data::Union{choicedata{choiceinputs{clicks, binned_clicks}}, Vector{choicedata{choiceinputs{clicks, binned_clicks}}}})
 
     @unpack θ = model
-    x = [Flatten.flatten(θ)...]
+    x = collect(Flatten.flatten(θ))
     ℓℓ(x) = -loglikelihood(x, model, data)
 
     ForwardDiff.gradient(ℓℓ, x)
@@ -86,7 +84,7 @@ Compute the hessian of the negative log-likelihood at the current value of the p
 function Hessian(model::choiceDDM, data::Union{choicedata{choiceinputs{clicks, binned_clicks}}, Vector{choicedata{choiceinputs{clicks, binned_clicks}}}})
 
     @unpack θ = model
-    x = [Flatten.flatten(θ)...]
+    x = collect(Flatten.flatten(θ))
     ℓℓ(x) = -loglikelihood(x, model, data)
 
     ForwardDiff.hessian(ℓℓ, x)
