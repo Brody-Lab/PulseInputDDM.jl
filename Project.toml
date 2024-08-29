@@ -1,7 +1,7 @@
 name = "PulseInputDDM"
 uuid = "c2542da2-1f7d-11e9-2506-87691095ebb2"
 authors = ["Brian DePasquale <bddepasq@bu.edu>"]
-version = "0.4.4"
+version = "0.4.5"
 
 [deps]
 BasisFunctionExpansions = "07f847a3-b39a-5451-bea0-0f0f0688aa14"
