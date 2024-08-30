@@ -44,11 +44,19 @@ bibliography: paper.bib
 
 # Summary
 
-Drift diffusion models (DDMs) are a popular model class for modeling a unobserved process that determines an subject's choice during a decision-making task [@Bogacz2006]. 
+Drift diffusion models (DDMs) are a popular model class for modeling a unobserved process that determines an subject's choice during a decision-making task [@Bogacz2006]. Mathematically, in their simplest form, they are equivalent of an [Ornstein-Uhlenbeck](https://en.wikipedia.org/wiki/Ornstein%E2%80%93Uhlenbeck_process) process, a type of mean-reverting stochastic process similar to Brownian motion, described by the following stochastic differential equation
 
 ```math
- dz = \lambda zdt + u(t)dt + \sigma dW
+ dz = \lambda zdt + u(t)dt + \sigma dW \tag{1}
 ```
+
+These dynamics can be equivalently expressed as a partial differential equation, which describes the motion of the probability distribution of $z$
+
+```math
+\frac{\partial P(z(t))}{\partial t} = \frac{\sigma}{2}\frac{\partial^2 P}{\partial z^2} - \frac{\partial(\lambda zP)}{\partial z} - \frac{\partial(u(t)P)}{\partial z}. \tag{2}
+```
+
+In neuroscience, as mass of this distribution moves, this can be considered to be a simple model of the internal process by which evidence is accumlated and weighed between options. In cases where evidence is received continuously in time, an external input $u(t)$ is included. This external input forces our PDE to be solved numerically. 
 
 [@Brunton2013]. 
 
