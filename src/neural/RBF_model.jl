@@ -245,22 +245,6 @@ mutable struct θμ_RBF{T1} <: DDMθ
 end
 
 
-
-function train_and_test(data, options::μ_RBF_options; seed::Int=1, nRBFs = 2:10)
-    
-    ntrials = length(data)
-    train = sample(Random.seed!(seed), 1:ntrials, ceil(Int, 0.9 * ntrials), replace=false)
-    test = setdiff(1:ntrials, train)
-      
-    ncells = options.ncells; 
-    model = pmap(nRBF-> optimize([data[train]], μ_RBF_options(ncells=ncells, nRBFs=nRBF); show_trace=false)[1], nRBFs)   
-    testLL = map(model-> loglikelihood(model.θ, [data[test]]), model)
-
-    return nRBFs, model, testLL
-    
-end
-
-
 function optimize(data, options::μ_RBF_options;
         x_tol::Float64=1e-10, f_tol::Float64=1e-6, g_tol::Float64=1e-3,
         iterations::Int=Int(2e3), show_trace::Bool=true,
@@ -299,9 +283,6 @@ function loglikelihood(x::Vector{T1}, data::Vector{Vector{T2}}, θ::θμ_RBF) wh
     loglikelihood(θ, data)
 
 end
-
-
-
 
 
 """

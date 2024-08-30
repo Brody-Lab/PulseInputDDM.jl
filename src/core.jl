@@ -3,31 +3,6 @@ const dimz = 7
 
 
 """
-    CIs(H)
-
-Given a Hessian matrix `H`, compute the 2 std confidence intervals based on the Laplace approximation.
-If `H` is not positive definite (which it should be, but might not be due numerical round off, etc.) compute
-a close approximation to it by adding a correction term. The magnitude of this correction is reported.
-
-"""
-function CIs(H::Array{Float64,2}) where T <: DDM
-
-    HPSD = Matrix(cholesky(Positive, H, Val{false}))
-
-    if !isapprox(HPSD,H)
-        norm_ϵ = norm(HPSD - H)/norm(H)
-        @warn "Hessian is not positive definite. Approximated by closest PSD matrix.
-            ||ϵ||/||H|| is $norm_ϵ"
-    end
-
-    CI = 2*sqrt.(diag(inv(HPSD)))
-
-    return CI, HPSD
-
-end
-
-
-"""
     P, M, xc, dx = initialize_latent_model(σ2_i, B, λ, σ2_a, n, dt)
 
 Creates several variables that are required to compute the LL for each trial, but that
@@ -70,18 +45,6 @@ function initialize_latent_model(σ2_i::TT, B::TT, λ::TT, σ2_a::TT,
     M = transition_M(σ2_a*dt,λ,zero(TT),dx,xc,n,dt)
 
     return P, M, xc, dx
-
-end
-
-
-function initialize_latent_model(σ2_i::TT, B::TT, λ::TT, σ2_a::TT,
-     dx::Float64, dt::Float64) where {TT <: Any}
-
-    xc,n = bins(B,dx)
-    P = P0(σ2_i,n,dx,xc,dt)
-    M = transition_M(σ2_a*dt,λ,zero(TT),dx,xc,n,dt)
-
-    return P, M, xc, n
 
 end
 
@@ -211,33 +174,6 @@ function bins(B::TT, n::Int) where {TT}
         collect(range(dx,stop=(B+dx/2.),length=Int((n-1)/2))))
 
     return xc, dx
-
-end
-
-
-"""
-    bins(B, dx)
-Computes the bin center locations and number of bins, given the boundary and desired (average) bin spacing.
-### Examples
-```jldoctest
-julia> xc,n = pulse_input_DDM.bins(10.,0.25)
-([-10.25, -9.75, -9.5, -9.25, -9.0, -8.75, -8.5, -8.25, -8.0, -7.75  …  7.75, 8.0, 8.25, 8.5, 8.75, 9.0, 9.25, 9.5, 9.75, 10.25], 81)
-```
-"""
-function bins(B::TT, dx::Float64) where {TT}
-
-    xc = collect(0.:dx:floor(value(B)/dx)*dx)
-
-    if xc[end] == B
-        xc = vcat(xc[1:end-1], B + dx)
-    else
-        xc = vcat(xc, 2*B - xc[end])
-    end
-
-    xc = vcat(-xc[end:-1:2], xc)
-    n = length(xc)
-
-    return xc, n
 
 end
 

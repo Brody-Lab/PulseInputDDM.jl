@@ -51,28 +51,28 @@ export train_and_test, all_Softplus, save_choice_data
 export load_neural_data
 
 include("types.jl")
-include("choice_model/types.jl")
-include("neural_model/types.jl")
-include("neural-choice_model/types.jl")
+include("choice/types.jl")
+include("neural/types.jl")
+include("joint/types.jl")
 
-include("base_model.jl")
+include("core.jl")
 include("utils.jl")
-include("optim_funcs.jl")
-include("sample_model.jl")
+include("optimization.jl")
+include("sampling.jl")
 
-include("choice_model/choice_model.jl")
-include("choice_model/sample_model.jl")
-include("choice_model/process_data.jl")
-include("choice_model/IO.jl")
+include("choice/choice.jl")
+include("choice/sampling.jl")
+include("choice/preprocessing.jl")
+include("choice/IO.jl")
 
-include("neural_model/neural_model.jl")
-include("neural_model/sample_model.jl")
-include("neural_model/process_data.jl")
-include("neural_model/initalize.jl")
-include("neural_model/RBF_model.jl")
+include("neural/neural.jl")
+include("neural/sampling.jl")
+include("neural/preprocessing.jl")
+include("neural/initalize.jl")
+include("neural/RBF_model.jl")
 
-include("neural-choice_model/neural-choice_model.jl")
-include("neural-choice_model/sample_model.jl")
-include("neural-choice_model/neural-choice_model-ALT.jl")
+include("joint/joint.jl")
+include("joint/sampling.jl")
+include("joint/joint-ALT.jl")
 
 end

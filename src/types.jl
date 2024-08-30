@@ -33,11 +33,3 @@ end
     nL::Vector{Int}
     nR::Vector{Int}
 end
-
-
-@with_kw struct bins
-    #clicks::T
-    xc::Vector{Real}
-    dx::Real
-    n::Int
-end
