@@ -74,7 +74,7 @@ end
 Given a path, reload the results of a previous optimization saved as a .MAT file and
 place them in the "state" key of the dictionaires that optimize_model() expects.
 """
-function reload_choice_model(file)
+function load_choice_model(file)
 
     x = read(matopen(file), "ML_params")
     lb = read(matopen(file), "lb")
